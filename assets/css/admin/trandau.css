@@ -1,0 +1,8 @@
+/* Trang Trận đấu (admin/trandau.php) */
+.admin-noidung .form-loc input.o-tim { flex:1; min-width:220px; width:auto; }
+.form-loc label.nhan-checkbox { display:inline-flex; align-items:center; gap:4px; margin:0; font-weight:400; }
+.canh-bao-nho { font-size:13px; }
+.tt-daghep { color:#92400e; }
+.tt-dangdau { color:#1d4ed8; }
+.tt-ketthuc { color:#166534; }
+.tt-huy { color:#991b1b; }

@@ -1,0 +1,10 @@
+/* Trang Kiểm duyệt cộng đồng (admin/congdong.php) */
+.admin-noidung .form-loc input.o-tim { flex:1; min-width:220px; width:auto; }
+.cot-noidung { min-width:260px; }
+.cot-thaotac { min-width:230px; }
+.form-kiemduyet { display:flex; gap:6px; }
+.admin-noidung .form-kiemduyet input.o-lydo { width:auto; flex:1; }
+.lien-ket-duyet { margin-top:4px; }
+.tt-hien { color:#166534; }
+.tt-an { color:#92400e; }
+.tt-xoa { color:#6b7280; }

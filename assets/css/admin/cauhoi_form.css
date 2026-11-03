@@ -1,0 +1,4 @@
+/* Trang Thêm/Sửa câu hỏi (admin/cauhoi_form.php) */
+.cot-nhan { width:160px; }
+.hang-dapan { display:flex; gap:8px; align-items:center; margin-bottom:6px; }
+.hang-dapan input[type=radio] { width:auto; }

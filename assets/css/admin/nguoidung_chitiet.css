@@ -1,0 +1,5 @@
+/* Trang Chi tiết người dùng (admin/nguoidung_chitiet.php) */
+.cot-nhan { width:180px; }
+.form-khoa { margin-top:12px; }
+.form-lichsu { display:flex; gap:8px; align-items:center; }
+.form-lichsu select { width:auto; }

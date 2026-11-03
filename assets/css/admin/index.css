@@ -1,0 +1,5 @@
+/* Trang Tổng quan (admin/index.php) */
+.form-ngay label { display:inline; margin-right:8px; }
+.form-ngay select { width:auto; }
+.cot-so { width:40px; }
+.cot-thanh { width:35%; }

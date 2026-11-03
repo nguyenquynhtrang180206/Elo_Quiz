@@ -1,0 +1,4 @@
+/* Trang Phòng thi đấu (client/phong.php) */
+.khoi-chiu-thua { margin-top:16px; }
+.btn.nut-dap-an { display:block; margin:8px 0; width:100%; text-align:left; }   /* nút đáp án do phong.js tạo */
+.an { display:none; }

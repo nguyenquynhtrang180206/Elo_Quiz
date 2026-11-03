@@ -1,0 +1,4 @@
+/* Trang Sửa bài đăng (client/suabai.php) */
+.container.khung-suabai { max-width:640px; }
+.tieu-de-sua { margin-top:0; }
+textarea { min-height:140px; resize:vertical; font-family:inherit; }

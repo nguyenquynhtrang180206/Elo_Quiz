@@ -1,0 +1,8 @@
+/* Trang Khảo sát định hướng (client/khaosat.php) */
+.container.khung-khaosat { max-width:560px; }
+.ghi-chu { color:var(--mau-phu); }
+.the-muctieu { display:block; margin:8px 0; padding:12px 14px; border:1px solid var(--mau-vien);
+               border-radius:10px; background:#fff; font-weight:500; cursor:pointer; }
+.the-muctieu input { margin-right:10px; }
+.the-muctieu:has(input:checked) { border-color:var(--mau-chinh); background:#eff6ff; }
+.nut-khaosat { display:flex; gap:10px; margin-top:14px; }

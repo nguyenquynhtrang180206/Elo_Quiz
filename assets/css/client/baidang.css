@@ -1,0 +1,7 @@
+/* Trang Bài đăng (client/baidang.php) */
+.meta { color:var(--mau-phu); font-size:13px; }
+textarea { min-height:90px; resize:vertical; font-family:inherit; }
+.binhluan { border-top:1px solid var(--mau-vien); padding:10px 0; }
+.binhluan:first-of-type { border-top:0; }
+.tieu-de-bai, .tieu-de-binhluan { margin-top:0; }
+.form-dong { display:inline; }

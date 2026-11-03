@@ -1,0 +1,36 @@
+/* Site Admin: sidebar bên trái */
+.admin-khung { display:flex; min-height:100vh; }
+.sidebar { width:230px; background:#111827; color:#e5e7eb; padding:16px 0; flex-shrink:0; }
+.sidebar .logo { display:block; padding:0 20px 14px; font-weight:700; color:#fff; font-size:17px; }
+.sidebar a { display:block; padding:9px 20px; color:#d1d5db; }
+.sidebar a:hover, .sidebar a.dang-chon { background:#1f2937; color:#fff; text-decoration:none; }
+.admin-noidung { flex:1; padding:20px; min-width:0; }
+.admin-noidung table { display:block; overflow-x:auto; }
+
+@media (max-width: 720px) {
+  .admin-khung { flex-direction:column; }
+  .sidebar { width:100%; display:flex; flex-wrap:wrap; padding:8px; }
+  .sidebar .logo { width:100%; padding:4px 12px; }
+  .sidebar a { padding:6px 12px; }
+}
+
+/* Site Admin: thẻ số liệu và thanh biểu đồ */
+.the-so { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:12px; margin-bottom:16px; }
+.the-so .card { margin:0; }
+.so-lon { font-size:28px; font-weight:700; color:var(--mau-chinh); }
+.nhan-phu { color:var(--mau-phu); font-size:14px; }
+.thanh { background:#e5e7eb; border-radius:6px; height:14px; overflow:hidden; min-width:80px; }
+.thanh span { display:block; height:100%; background:var(--mau-chinh); }
+.thanh.xanh span { background:#16a34a; }
+
+/* Tiện ích dùng chung của Site Admin (các trang chỉ thêm kiểu riêng trong assets/css/admin/) */
+.form-loc { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+.form-loc select, .form-loc input[type=date] { width:auto; }
+.form-dong { display:inline; }
+.khong-ngat { white-space:nowrap; }
+.xuong-dong { white-space:pre-wrap; }
+.dam { font-weight:600; }
+.mau-do { color:#991b1b; }
+.mau-xanh { color:#166534; }
+.btn-do { background:#dc2626; }
+.btn-do-dam { background:#b91c1c; }

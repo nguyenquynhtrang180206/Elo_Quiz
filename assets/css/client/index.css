@@ -1,0 +1,9 @@
+/* Trang chủ (client/index.php) */
+.luoi { display:flex; flex-wrap:wrap; gap:16px; }
+.luoi > .card { flex:1 1 340px; }
+.so-lieu { display:flex; flex-wrap:wrap; gap:20px; margin:8px 0; }
+.so-lieu div { min-width:90px; }
+.so-lieu strong { display:block; font-size:24px; }
+.meta { color:var(--mau-phu); font-size:13px; }
+tr.la-toi { font-weight:700; background:#eff6ff; }
+.bai-moi { margin-bottom:12px; }

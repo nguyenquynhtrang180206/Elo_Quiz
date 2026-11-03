@@ -1,0 +1,33 @@
+/* Giao diện chung: nền sáng, gọn, responsive */
+:root { --mau-chinh:#2563eb; --mau-nen:#f5f7fb; --mau-chu:#1f2937; --mau-vien:#e5e7eb; --mau-phu:#6b7280; }
+* { box-sizing: border-box; }
+body { margin:0; font-family:'Segoe UI',Arial,sans-serif; background:var(--mau-nen); color:var(--mau-chu); line-height:1.5; }
+a { color:var(--mau-chinh); text-decoration:none; }
+a:hover { text-decoration:underline; }
+.container { max-width:1000px; margin:0 auto; padding:16px; }
+.card { background:#fff; border:1px solid var(--mau-vien); border-radius:10px; padding:16px; margin-bottom:16px; }
+.btn { display:inline-block; padding:8px 16px; border:0; border-radius:8px; background:var(--mau-chinh); color:#fff; cursor:pointer; font-size:15px; }
+.btn:hover { opacity:.9; text-decoration:none; }
+.btn-phu { background:#fff; color:var(--mau-chinh); border:1px solid var(--mau-chinh); }
+table { width:100%; border-collapse:collapse; background:#fff; }
+th, td { padding:8px 10px; border-bottom:1px solid var(--mau-vien); text-align:left; }
+th { background:#f0f3f9; }
+input[type=text], input[type=email], input[type=password], select, textarea { width:100%; padding:8px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:15px; }
+label { display:block; margin:10px 0 4px; font-weight:600; }
+.loi { background:#fee2e2; color:#991b1b; padding:8px 12px; border-radius:8px; margin-bottom:12px; }
+.thanhcong { background:#dcfce7; color:#166534; padding:8px 12px; border-radius:8px; margin-bottom:12px; }
+.phantrang { margin:12px 0; }
+.phantrang a, .phantrang strong { display:inline-block; padding:2px 8px; border:1px solid var(--mau-vien); border-radius:6px; background:#fff; }
+.phantrang strong { background:var(--mau-chinh); color:#fff; border-color:var(--mau-chinh); }
+
+/* Site Client: thanh điều hướng ngang */
+.topnav { background:#fff; border-bottom:1px solid var(--mau-vien); }
+.topnav .container { display:flex; flex-wrap:wrap; align-items:center; gap:4px 18px; padding:10px 16px; }
+.topnav .logo { font-weight:700; font-size:18px; color:var(--mau-chinh); margin-right:12px; }
+.topnav .phai a { margin-left:14px; }
+
+/* Chân trang chung của Site Client */
+.chan-trang { color:#6b7280; font-size:13px; }
+
+/* Liên kết sang Site Admin trên thanh điều hướng Site Client */
+.lien-ket-admin { color:var(--mau-phu); font-size:13px; }

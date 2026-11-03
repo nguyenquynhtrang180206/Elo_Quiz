@@ -1,0 +1,9 @@
+/* Trang Kiểm duyệt bài và bình luận (admin/congdong_baidang.php) */
+.form-kiemduyet { display:flex; gap:6px; flex-wrap:wrap; }
+.admin-noidung .form-kiemduyet input.o-lydo { width:auto; flex:1; min-width:160px; }
+.khoi-thaotac { margin-top:12px; }
+.cot-noidung { min-width:240px; }
+.cot-thaotac { min-width:230px; }
+.tt-hien { color:#166534; }
+.tt-an { color:#92400e; }
+.tt-xoa { color:#6b7280; }
