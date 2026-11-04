@@ -7,25 +7,40 @@
 // 4. Bottom Bar Chuyên Nghiệp (Tránh chồng đè nút FX)
 // =====================================================================
 
-$ftSoTranDau = 1280;
-$ftSoMonHoc = 12;
-$ftTopElo = 2450;
-$ftSoCauHoi = 3500;
+// Số liệu thật từ database; lỗi truy vấn thì để null và hiển thị "—" (không dùng số giả)
+$ftSoTranDau = $ftSoMonHoc = $ftTopElo = $ftChinhXac = null;
 
-if (class_exists('DB')) {
-    try {
-        $db = DB::pdo();
-        $cntTran = (int) ($db->query("SELECT COUNT(*) FROM TRANDAU")->fetchColumn() ?: 0);
-        if ($cntTran > 0) $ftSoTranDau = $cntTran;
-        $cntMon = (int) ($db->query("SELECT COUNT(*) FROM MONHOC WHERE TrangThai = 1")->fetchColumn() ?: 0);
-        if ($cntMon > 0) $ftSoMonHoc = $cntMon;
-        $maxElo = (int) ($db->query("SELECT MAX(DiemElo) FROM NGUOIDUNG")->fetchColumn() ?: 0);
-        if ($maxElo > 0) $ftTopElo = $maxElo;
-        $cntCauHoi = (int) ($db->query("SELECT COUNT(*) FROM CAUHOI WHERE TrangThai = 1")->fetchColumn() ?: 0);
-        if ($cntCauHoi > 0) $ftSoCauHoi = $cntCauHoi;
-    } catch (Throwable $t) {
-        // Giữ số liệu hiển thị mượt mà
+try {
+    $db = Database::pdo();
+
+    // Trận đã hoàn tất
+    $ftSoTranDau = (int) $db->query("SELECT COUNT(*) FROM TRANDAU WHERE TrangThai = 'Kết thúc'")->fetchColumn();
+
+    // Môn đang mở
+    $ftSoMonHoc = (int) $db->query("SELECT COUNT(*) FROM MONHOC WHERE TrangThai = 'Đang mở'")->fetchColumn();
+
+    // Elo cao nhất: trong ELOMONHOC, người đã đấu, tài khoản đang hoạt động, môn đang mở
+    $maxElo = $db->query(
+        "SELECT MAX(e.DiemElo) FROM ELOMONHOC e
+           JOIN NGUOIDUNG u ON u.MaND = e.MaND AND u.TrangThai = 'Hoạt động'
+           JOIN MONHOC m ON m.MaMon = e.MaMon AND m.TrangThai = 'Đang mở'
+          WHERE e.SoTran > 0"
+    )->fetchColumn();
+    $ftTopElo = $maxElo !== false && $maxElo !== null ? (int) $maxElo : null;
+
+    // Tỉ lệ trả lời đúng: câu "Đã trả lời" chọn đúng đáp án / tổng câu "Đã trả lời", chỉ tính trận đã kết thúc
+    $r = $db->query(
+        "SELECT COUNT(*) AS Tong, COALESCE(SUM(d.LaDapAnDung = 1), 0) AS Dung
+           FROM CHITIETTRALOI c
+           JOIN TRANDAU t ON t.MaTran = c.MaTran AND t.TrangThai = 'Kết thúc'
+           LEFT JOIN DAPAN d ON d.MaCauHoi = c.MaCauHoi AND d.MaDapAn = c.MaDapAn
+          WHERE c.TrangThai = 'Đã trả lời'"
+    )->fetch();
+    if ($r && (int) $r['Tong'] > 0) {
+        $ftChinhXac = round((int) $r['Dung'] * 100 / (int) $r['Tong'], 1);
     }
+} catch (Throwable $t) {
+    // Giữ nguyên null: trang vẫn hiển thị bình thường
 }
 ?>
 </main>
@@ -45,8 +60,8 @@ if (class_exists('DB')) {
         </div>
         <div class="ft-dash-info">
           <div class="ft-dash-top"><span class="ft-dash-tag">LIVE ARENA</span></div>
-          <strong class="ft-dash-num"><?= number_format($ftSoTranDau) ?>+</strong>
-          <span class="ft-dash-label">Trận Đấu Đã Hoàn Tất</span>
+          <strong class="ft-dash-num"><?= $ftSoTranDau !== null ? number_format($ftSoTranDau) : '—' ?></strong>
+          <span class="ft-dash-label">Trận Đã Hoàn Tất</span>
         </div>
       </div>
 
@@ -57,7 +72,7 @@ if (class_exists('DB')) {
         </div>
         <div class="ft-dash-info">
           <div class="ft-dash-top"><span class="ft-dash-tag tag-gold">ĐỘ CHÍNH XÁC</span></div>
-          <strong class="ft-dash-num text-gold">88.6%</strong>
+          <strong class="ft-dash-num text-gold"><?= $ftChinhXac !== null ? number_format($ftChinhXac, 1) . '%' : '—' ?></strong>
           <span class="ft-dash-label">Tỉ Lệ Trả Lời Chuẩn Xác</span>
         </div>
       </div>
@@ -69,7 +84,7 @@ if (class_exists('DB')) {
         </div>
         <div class="ft-dash-info">
           <div class="ft-dash-top"><span class="ft-dash-tag tag-challenger">THÁCH ĐẤU</span></div>
-          <strong class="ft-dash-num text-challenger"><?= number_format($ftTopElo) ?> ELO</strong>
+          <strong class="ft-dash-num text-challenger"><?= $ftTopElo !== null ? number_format($ftTopElo) . ' ELO' : '—' ?></strong>
           <span class="ft-dash-label">Kỷ Lục Điểm Đấu Thần</span>
         </div>
       </div>
@@ -81,7 +96,7 @@ if (class_exists('DB')) {
         </div>
         <div class="ft-dash-info">
           <div class="ft-dash-top"><span class="ft-dash-tag tag-purple">BẢN ĐỒ TRI THỨC</span></div>
-          <strong class="ft-dash-num text-purple"><?= $ftSoMonHoc ?>+ Bộ Môn</strong>
+          <strong class="ft-dash-num text-purple"><?= $ftSoMonHoc !== null ? (int) $ftSoMonHoc . ' Bộ Môn' : '—' ?></strong>
           <span class="ft-dash-label">Đang Mở Tranh Tài</span>
         </div>
       </div>

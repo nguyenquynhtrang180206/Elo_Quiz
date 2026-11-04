@@ -3,7 +3,7 @@
 return [
     'db' => [
         'host'    => '127.0.0.1',
-        'port'    => 3307,
+        'port'    => 3306,
         'name'    => 'elo_quiz',   // tên database (import file csdl_elo_quiz.sql để tạo)
         'user'    => 'root',
         'pass'    => '',

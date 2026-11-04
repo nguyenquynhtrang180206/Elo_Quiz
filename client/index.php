@@ -88,31 +88,44 @@ if ($monUaThich > 0) {
     }
 }
 
-// Chuẩn bị dữ liệu Top 3 cho bục vinh quang (Podium): nếu chưa đủ 3 người đã đấu thì lấy thêm sinh viên đang hoạt động
-$podium = $bxh;
-if (count($podium) < 3) {
-    $daCo = array_map(fn($r) => (int) $r['MaND'], $podium);
-    $st = $pdo->query("SELECT MaND, HoTen, AnhDaiDien FROM NGUOIDUNG WHERE TrangThai = 'Hoạt động' ORDER BY MaND LIMIT 6");
-    foreach ($st->fetchAll() as $u) {
-        if (!in_array((int) $u['MaND'], $daCo, true)) {
-            $podium[] = [
-                'MaND'       => (int) $u['MaND'],
-                'HoTen'      => $u['HoTen'],
-                'AnhDaiDien' => $u['AnhDaiDien'],
-                'DiemElo'    => 1000,
-                'SoTran'     => 0,
-                'Hang'       => count($podium) + 1,
-            ];
-            if (count($podium) >= 3) {
-                break;
-            }
+// Top 3 cho bục vinh quang: chỉ lấy người thật trong BXH, chưa đủ 3 người thì để trống
+$podium = array_slice($bxh, 0, 3);
+
+// Chuỗi thắng hiện tại của từng người trong Top 3 (đếm các trận thắng liên tiếp gần nhất đã kết thúc)
+$stChuoi = $pdo->prepare(
+    "SELECT n.KetQua FROM NGUOICHOITRANDAU n JOIN TRANDAU t ON t.MaTran = n.MaTran
+      WHERE n.MaND = ? AND t.TrangThai = 'Kết thúc' AND n.KetQua IS NOT NULL
+      ORDER BY t.MaTran DESC LIMIT 100"
+);
+foreach ($podium as $i => $r) {
+    $stChuoi->execute([(int) $r['MaND']]);
+    $chuoi = 0;
+    foreach ($stChuoi->fetchAll(PDO::FETCH_COLUMN) as $kq) {
+        if ($kq !== 'Thắng') {
+            break;
         }
+        $chuoi++;
     }
+    $podium[$i]['ChuoiThang'] = $chuoi;
 }
+
+// Dải tin nóng: 3 trận gần nhất đã kết thúc có người thắng
+$tinNong = $pdo->query(
+    "SELECT m.TenMon, uw.HoTen AS Thang, ul.HoTen AS Thua, w.DiemSo AS DiemThang, l.DiemSo AS DiemThua
+       FROM TRANDAU t
+       JOIN MONHOC m ON m.MaMon = t.MaMon
+       JOIN NGUOICHOITRANDAU w ON w.MaTran = t.MaTran AND w.KetQua = 'Thắng'
+       JOIN NGUOICHOITRANDAU l ON l.MaTran = t.MaTran AND l.MaND <> w.MaND
+       JOIN NGUOIDUNG uw ON uw.MaND = w.MaND
+       JOIN NGUOIDUNG ul ON ul.MaND = l.MaND
+      WHERE t.TrangThai = 'Kết thúc'
+      ORDER BY t.MaTran DESC LIMIT 3"
+)->fetchAll();
 
 // Bài đăng mới (chỉ bài đang hiển thị)
 $baiMoi = $pdo->query(
-    "SELECT b.MaBaiDang, b.TieuDe, b.NoiDung, b.NgayDang, u.HoTen, m.TenMon
+    "SELECT b.MaBaiDang, b.TieuDe, b.NoiDung, b.NgayDang, u.HoTen, m.TenMon,
+            (SELECT COUNT(*) FROM BINHLUAN c WHERE c.MaBaiDang = b.MaBaiDang AND c.TrangThai = 'Hiển thị') AS SoBinhLuan
        FROM BAIDANG b JOIN NGUOIDUNG u ON u.MaND = b.MaND LEFT JOIN MONHOC m ON m.MaMon = b.MaMon
       WHERE b.TrangThai = 'Hiển thị'
       ORDER BY b.NgayDang DESC, b.MaBaiDang DESC LIMIT 3"
@@ -122,7 +135,7 @@ $tyLe = (int) $tong['SoTran'] > 0 ? round($tong['SoThang'] * 100 / $tong['SoTran
 
 // Thống kê nhanh hiển thị trên Hero Banner
 $soMonMo = (int) $pdo->query("SELECT COUNT(*) FROM MONHOC WHERE TrangThai = 'Đang mở'")->fetchColumn();
-$soCauHoi = (int) $pdo->query("SELECT COUNT(*) FROM CAUHOI WHERE TrangThai = 'Hiển thị'")->fetchColumn();
+$soCauHoi = (int) $pdo->query("SELECT COUNT(*) FROM CAUHOI c JOIN MONHOC m ON m.MaMon = c.MaMon WHERE c.TrangThai = 'Hiển thị' AND m.TrangThai = 'Đang mở'")->fetchColumn();
 $soTuyenThu = (int) $pdo->query("SELECT COUNT(*) FROM NGUOIDUNG WHERE TrangThai = 'Hoạt động'")->fetchColumn();
 
 $linkThiDau = $tranDangCo !== null
@@ -232,7 +245,7 @@ require __DIR__ . '/layout/header.php';
           <span class="chip-icon">
             <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><polygon points="11,2 4,11 10,11 9,18 16,9 10,9" fill="#F3DE8A" stroke="#AA820A" stroke-width="1.3" stroke-linejoin="round"/></svg>
           </span>
-          <div><strong><?= $soCauHoi ?>+</strong> <span>Câu hỏi</span></div>
+          <div><strong><?= number_format($soCauHoi) ?></strong> <span>Câu hỏi</span></div>
         </div>
         <div class="hero-chip">
           <span class="chip-icon">
@@ -358,58 +371,21 @@ require __DIR__ . '/layout/header.php';
       <span class="ticker-pill pill-genz"><span class="cham-live yellow"></span> 🔥 HÓNG BIẾN</span>
       <div class="ticker-track">
         <div class="ticker-text">
-          <span>🐶 <strong>Cún chạy deadline:</strong> Vừa cày xong 10 ván Toán cao cấp không kịp thở!</span>
-          <span class="ticker-dot">•</span>
-          <span>☕ <strong>Mèo kiệt sức:</strong> Cần gấp 1 tách cafe cứu điểm thi tuần này!</span>
-          <span class="ticker-dot">•</span>
-          <span>🐒 <strong>Bác học Khỉ:</strong> "Đã vào đấu trường thì đừng ngán bất kỳ ai!"</span>
+          <?php if (!$tinNong): ?>
+            <span>🏆 <strong>Chưa có trận nào kết thúc:</strong> Hãy là người đầu tiên ghi tên lên bảng vàng!</span>
+          <?php else: ?>
+            <?php foreach ($tinNong as $i => $t): ?>
+              <?php if ($i > 0): ?><span class="ticker-dot">•</span><?php endif; ?>
+              <span>🔥 <strong><?= e($t['Thang']) ?></strong> thắng <?= e($t['Thua']) ?> <?= (int) $t['DiemThang'] ?>–<?= (int) $t['DiemThua'] ?> môn <?= e($t['TenMon']) ?></span>
+            <?php endforeach; ?>
+          <?php endif; ?>
         </div>
       </div>
     </div>
 
     <div class="tin-danh-sach genz-list">
       <?php if (!$baiMoi): ?>
-        <!-- Bài mặc định -->
-        <article class="tin-muc genz-card" data-post-id="default">
-          <a class="tin-anh genz-thumb-link" href="<?= e(BASE_URL) ?>/client/congdong.php">
-            <div class="genz-thumb-wrap">
-              <img src="<?= e(BASE_URL) ?>/assets/images/pets/pet-2-rush.jpg" alt="Meme Pet" class="genz-thumb-img">
-              <span class="genz-badge-tag hot">🔥 HOT TREND</span>
-            </div>
-          </a>
-          <div class="tin-noi-dung">
-            <h4 class="tin-tieu-de">
-              <a href="<?= e(BASE_URL) ?>/client/congdong.php">Chính thức nổ phát súng khai mạc QUIZUP ARENA!</a>
-            </h4>
-            <p class="tin-mo-ta">
-              Sân chơi trí tuệ thi đấu 1 vs 1 giật gân, so kè từng điểm Elo môn học. Ai sẽ là Đệ Nhất Chiến Thần mùa 1?
-            </p>
-            <div class="tin-meta genz-meta">
-              <span class="meta-ngay">
-                <svg class="meta-svg" viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><rect x="2" y="3" width="12" height="11" rx="2" fill="none" stroke="currentColor" stroke-width="1.4"/><line x1="2" y1="6.5" x2="14" y2="6.5" stroke="currentColor" stroke-width="1.4"/><line x1="5" y1="1.5" x2="5" y2="3.5" stroke="var(--cyan)" stroke-width="1.6" stroke-linecap="round"/><line x1="11" y1="1.5" x2="11" y2="3.5" stroke="var(--cyan)" stroke-width="1.6" stroke-linecap="round"/></svg>
-                <?= date('d/m/Y') ?>
-              </span>
-              <span>&middot; Ban Quản Trị</span>
-              <a class="tin-link-doc" href="<?= e(BASE_URL) ?>/client/congdong.php">Đọc tiếp &rarr;</a>
-            </div>
-
-            <!-- Thanh Reaction Tương Tác Hài Hước -->
-            <div class="genz-reactions" aria-label="Thả cảm xúc">
-              <button type="button" class="react-btn" data-emoji="🔥" title="Chiến quá!">
-                <span class="r-icon">🔥</span> <span class="r-count">128</span> <span class="r-label">Chiến!</span>
-              </button>
-              <button type="button" class="react-btn" data-emoji="☕" title="Chill & Cần cafe">
-                <span class="r-icon">☕</span> <span class="r-count">95</span> <span class="r-label">Cafe</span>
-              </button>
-              <button type="button" class="react-btn" data-emoji="💀" title="Cứu môn!">
-                <span class="r-icon">💀</span> <span class="r-count">42</span> <span class="r-label">Cứu môn</span>
-              </button>
-              <button type="button" class="react-btn" data-emoji="🎉" title="Đỉnh nóc!">
-                <span class="r-icon">🎉</span> <span class="r-count">88</span> <span class="r-label">Đỉnh</span>
-              </button>
-            </div>
-          </div>
-        </article>
+        <p class="tin-mo-ta">Chưa có bài đăng nào. <a href="<?= e(BASE_URL) ?>/client/congdong.php">Vào cộng đồng để đăng bài đầu tiên</a>.</p>
       <?php else: ?>
         <?php 
           $petAvatars = [
@@ -418,15 +394,9 @@ require __DIR__ . '/layout/header.php';
             'assets/images/pets/pet-7-nerd.jpg',
             'assets/images/pets/pet-8-chill.jpg',
           ];
-          $reactionPresets = [
-            ['fire' => 128, 'coffee' => 95, 'skull' => 42, 'party' => 88],
-            ['fire' => 86, 'coffee' => 112, 'skull' => 29, 'party' => 64],
-            ['fire' => 54, 'coffee' => 48, 'skull' => 73, 'party' => 91],
-          ];
         ?>
         <?php foreach ($baiMoi as $idx => $b): 
           $petThumb = $petAvatars[$idx % count($petAvatars)];
-          $preset = $reactionPresets[$idx % count($reactionPresets)];
         ?>
           <article class="tin-muc genz-card" data-post-id="<?= (int) $b['MaBaiDang'] ?>">
             <a class="tin-anh genz-thumb-link" href="<?= e(BASE_URL) ?>/client/baidang.php?id=<?= (int) $b['MaBaiDang'] ?>">
@@ -452,20 +422,11 @@ require __DIR__ . '/layout/header.php';
                 <a class="tin-link-doc" href="<?= e(BASE_URL) ?>/client/baidang.php?id=<?= (int) $b['MaBaiDang'] ?>">Đọc tiếp &rarr;</a>
               </div>
 
-              <!-- Thanh Reaction Tương Tác Hài Hước -->
-              <div class="genz-reactions" aria-label="Thả cảm xúc">
-                <button type="button" class="react-btn" data-emoji="🔥" title="Chiến quá!">
-                  <span class="r-icon">🔥</span> <span class="r-count"><?= $preset['fire'] ?></span> <span class="r-label">Chiến!</span>
-                </button>
-                <button type="button" class="react-btn" data-emoji="☕" title="Chill & Cần cafe">
-                  <span class="r-icon">☕</span> <span class="r-count"><?= $preset['coffee'] ?></span> <span class="r-label">Cafe</span>
-                </button>
-                <button type="button" class="react-btn" data-emoji="💀" title="Cứu môn!">
-                  <span class="r-icon">💀</span> <span class="r-count"><?= $preset['skull'] ?></span> <span class="r-label">Cứu môn</span>
-                </button>
-                <button type="button" class="react-btn" data-emoji="🎉" title="Đỉnh nóc!">
-                  <span class="r-icon">🎉</span> <span class="r-count"><?= $preset['party'] ?></span> <span class="r-label">Đỉnh</span>
-                </button>
+              <!-- Số bình luận thật từ bảng BINHLUAN -->
+              <div class="genz-reactions">
+                <a class="react-btn" href="<?= e(BASE_URL) ?>/client/baidang.php?id=<?= (int) $b['MaBaiDang'] ?>">
+                  <span class="r-icon">💬</span> <span class="r-count"><?= (int) $b['SoBinhLuan'] ?></span> <span class="r-label">Bình luận</span>
+                </a>
               </div>
             </div>
           </article>
@@ -495,7 +456,6 @@ require __DIR__ . '/layout/header.php';
               'hang' => 2,
               'lop' => 'card-pos-left rank-diamond',
               'rankName' => 'RANK 2 • BẬC THẦY',
-              'streak' => '🛡️ Chuỗi 5 Thắng',
               'foil' => 'foil-ice',
               'crown' => '🥈',
               'icon' => '💎'
@@ -505,7 +465,6 @@ require __DIR__ . '/layout/header.php';
               'hang' => 1,
               'lop' => 'card-pos-center rank-challenger',
               'rankName' => '👑 TOP 1 • THÁCH ĐẤU',
-              'streak' => '🔥 Chuỗi 7 Thắng',
               'foil' => 'foil-gold',
               'crown' => '👑',
               'icon' => '⭐'
@@ -515,7 +474,6 @@ require __DIR__ . '/layout/header.php';
               'hang' => 3,
               'lop' => 'card-pos-right rank-master',
               'rankName' => 'RANK 3 • CHIẾN TƯỚNG',
-              'streak' => '⚡ Chuỗi 4 Thắng',
               'foil' => 'foil-amethyst',
               'crown' => '🥉',
               'icon' => '🔮'
@@ -531,7 +489,8 @@ require __DIR__ . '/layout/header.php';
         <?php foreach ($theChienThan as $tc): 
           $ng = $podium[$tc['idx']] ?? null;
           $ten = $ng ? (string) $ng['HoTen'] : 'Chưa có';
-          $elo = $ng ? (int) $ng['DiemElo'] : 1000;
+          $elo = $ng ? (int) $ng['DiemElo'] : null;
+          $chuoiThang = $ng ? (int) $ng['ChuoiThang'] : 0;
           $laToi = $ng && $maND !== null && (int) $ng['MaND'] === $maND;
           $hang = (int) $tc['hang'];
           $tu = preg_split('/\s+/u', trim($ten)) ?: ['?'];
@@ -566,12 +525,12 @@ require __DIR__ . '/layout/header.php';
             <!-- Chip Elo dập nổi -->
             <div class="tc-elo-pill">
               <span class="tc-elo-gem"><?= $tc['icon'] ?></span>
-              <strong class="tc-elo-num"><?= number_format($elo) ?></strong> <small>ELO</small>
+              <strong class="tc-elo-num"><?= $elo !== null ? number_format($elo) : '—' ?></strong> <small>ELO</small>
             </div>
 
             <!-- Chỉ số chiến đấu (Combat Stats) -->
             <div class="tc-stats-badge">
-              <span class="tc-stat-val"><?= e($tc['streak']) ?></span>
+              <span class="tc-stat-val"><?= $ng ? ($chuoiThang > 0 ? '🔥 Chuỗi ' . $chuoiThang . ' thắng' : (int) $ng['SoTran'] . ' trận đã đấu') : 'Đang chờ chiến thần' ?></span>
             </div>
 
             <!-- Nút Thách Đấu / So Tài -->
@@ -960,7 +919,7 @@ require __DIR__ . '/layout/header.php';
   }
 
   // Xử lý Click Reactions trên Báo Gen Z
-  document.querySelectorAll('.react-btn').forEach(btn => {
+  document.querySelectorAll('.react-btn[data-emoji]').forEach(btn => {
     btn.addEventListener('click', function (e) {
       e.preventDefault();
       const countEl = this.querySelector('.r-count');
