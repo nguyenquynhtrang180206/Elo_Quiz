@@ -48,6 +48,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <title>Đăng nhập quản trị - Đấu Trường Tri Thức</title>
   <link rel="stylesheet" href="<?= e(BASE_URL) ?>/assets/style.css">
   <link rel="stylesheet" href="<?= e(BASE_URL) ?>/assets/css/admin/login.css">
+  <link rel="stylesheet" href="<?= e(BASE_URL) ?>/assets/css/cosmic-fix.css">
+  <script type="module" src="<?= e(BASE_URL) ?>/assets/js/effects/cosmic-bg.js"></script>
 </head>
 <body>
 <div class="container khung-login">

@@ -1,0 +1,13 @@
+/* Nạp SAU CÙNG: chuyển các màu sáng cố định trong CSS riêng của từng trang sang tông Cosmic.
+   Chỉ chứa phần ghi đè; không thêm logic. */
+.khung-xemthu { background:rgba(255,180,60,.10) !important; border-color:rgba(255,190,80,.6) !important; }
+.mau-nau, .tt-an, .tt-daghep { color:#ffd08a !important; }
+.tt-hien, .tt-ketthuc, .dap-an.dung { color:#8dffe0 !important; }
+.tt-xoa, .ghi-chu, .ghichu { color:var(--mau-phu) !important; }
+.tt-dangdau { color:var(--light-cyan) !important; }
+.tt-huy, .dap-an.sai { color:#ff9db8 !important; }
+tr.la-toi, tr.la-toi td { background:rgba(8,123,255,.22) !important; box-shadow:inset 3px 0 0 var(--cyan); }
+.the-muctieu { background:var(--glass) !important; border-color:var(--mau-vien) !important; color:var(--white) !important; }
+.the-muctieu:has(input:checked) { background:rgba(139,53,255,.25) !important; border-color:var(--cyan) !important; box-shadow:var(--glow-cyan); }
+input[readonly] { background:rgba(5,10,32,.4) !important; }
+.avatar-mac-dinh { background:var(--gradient-neon) !important; box-shadow:var(--glow-purple); }
