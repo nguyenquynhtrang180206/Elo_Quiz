@@ -10,6 +10,10 @@
 $tieuDe = $tieuDe ?? 'Đấu Trường Tri Thức';
 $daDangNhap = Auth::clientId() !== null;
 $cssTrang = (array) ($cssTrang ?? []);
+$bodyClass = $bodyClass ?? '';
+$trangHienTai = basename($_SERVER['SCRIPT_NAME'] ?? '');
+// Gắn class dang-chon cho mục điều hướng của trang đang mở
+$nav = static fn (string $f): string => $trangHienTai === $f ? ' class="dang-chon"' : '';
 ?>
 <!DOCTYPE html>
 <html lang="vi">
@@ -18,18 +22,19 @@ $cssTrang = (array) ($cssTrang ?? []);
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title><?= e($tieuDe) ?> - Đấu Trường Tri Thức</title>
   <link rel="stylesheet" href="<?= e(BASE_URL) ?>/assets/style.css">
+  <link rel="stylesheet" href="<?= e(BASE_URL) ?>/assets/css/client/layout.css">
   <?php foreach ($cssTrang as $f): ?>
   <link rel="stylesheet" href="<?= e(BASE_URL) ?>/assets/css/client/<?= e($f) ?>.css">
   <?php endforeach; ?>
 </head>
-<body>
+<body<?= $bodyClass !== '' ? ' class="' . e($bodyClass) . '"' : '' ?>>
 <header class="topnav">
   <div class="container">
-    <a class="logo" href="<?= e(BASE_URL) ?>/client/index.php">Đấu Trường Tri Thức</a>
-    <a href="<?= e(BASE_URL) ?>/client/index.php">Trang chủ</a>
-    <a href="<?= e(BASE_URL) ?>/client/timtran.php">Tìm trận</a>
-    <a href="<?= e(BASE_URL) ?>/client/bxh.php">Bảng xếp hạng</a>
-    <a href="<?= e(BASE_URL) ?>/client/congdong.php">Cộng đồng</a>
+    <a class="logo" href="<?= e(BASE_URL) ?>/client/index.php"><span class="logo-tron">&#127942;</span><span>Đấu Trường<br>Tri Thức</span></a>
+    <a<?= $nav('index.php') ?> href="<?= e(BASE_URL) ?>/client/index.php">Trang chủ</a>
+    <a<?= $nav('timtran.php') ?> href="<?= e(BASE_URL) ?>/client/timtran.php">Tìm trận</a>
+    <a<?= $nav('bxh.php') ?> href="<?= e(BASE_URL) ?>/client/bxh.php">Bảng xếp hạng</a>
+    <a<?= $nav('congdong.php') ?> href="<?= e(BASE_URL) ?>/client/congdong.php">Cộng đồng</a>
     <span class="phai">
       <?php if ($daDangNhap): ?>
         <a href="<?= e(BASE_URL) ?>/client/lichsutran.php">Lịch sử trận</a>
@@ -38,8 +43,8 @@ $cssTrang = (array) ($cssTrang ?? []);
         <a href="<?= e(BASE_URL) ?>/client/doimatkhau.php">Đổi mật khẩu</a>
         <a href="<?= e(BASE_URL) ?>/client/dangxuat.php">Đăng xuất</a>
       <?php else: ?>
-        <a href="<?= e(BASE_URL) ?>/client/login.php">Đăng nhập</a>
-        <a href="<?= e(BASE_URL) ?>/client/register.php">Đăng ký</a>
+        <a class="nut-dn" href="<?= e(BASE_URL) ?>/client/login.php">Đăng nhập</a>
+        <a class="nut-dk" href="<?= e(BASE_URL) ?>/client/register.php">Đăng ký</a>
       <?php endif; ?>
     </span>
   </div>
