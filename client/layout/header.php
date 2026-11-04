@@ -20,11 +20,11 @@ $cur = fn(string $f): string => $f === $trangHienTai ? ' aria-current="page"' : 
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title><?= e($tieuDe) ?> - QUIZUP ARENA</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cpolygon points='24,2.5 39.2,8.8 45.5,24 39.2,39.2 24,45.5 8.8,39.2 2.5,24 8.8,8.8' fill='%23081436' stroke='%23D4AF37' stroke-width='2'/%3E%3Ccircle cx='24' cy='26' r='7.2' fill='none' stroke='%23F3DE8A' stroke-width='2.6'/%3E%3Cpath d='M26 28 L35.5 37.5 L37.5 35.5 L28 26 Z' fill='%23D4AF37'/%3E%3Cpath d='M17 18 L19.5 13.5 L24 16.5 L28.5 13.5 L31 18 Z' fill='%23D4AF37'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="<?= e(BASE_URL) ?>/assets/style.css">
+  <link rel="stylesheet" href="<?= e(BASE_URL) ?>/assets/style.css?v=<?= (int) @filemtime(__DIR__ . '/../../assets/style.css') ?>">
   <?php foreach ($cssTrang as $f): ?>
-  <link rel="stylesheet" href="<?= e(BASE_URL) ?>/assets/css/client/<?= e($f) ?>.css">
+  <link rel="stylesheet" href="<?= e(BASE_URL) ?>/assets/css/client/<?= e($f) ?>.css?v=<?= (int) @filemtime(__DIR__ . '/../../assets/css/client/' . $f . '.css') ?>">
   <?php endforeach; ?>
-  <link rel="stylesheet" href="<?= e(BASE_URL) ?>/assets/css/cosmic-fix.css">
+  <link rel="stylesheet" href="<?= e(BASE_URL) ?>/assets/css/cosmic-fix.css?v=<?= (int) @filemtime(__DIR__ . '/../../assets/css/cosmic-fix.css') ?>">
   <script type="module" src="<?= e(BASE_URL) ?>/assets/js/effects/cosmic-bg.js"></script>
   <script src="<?= e(BASE_URL) ?>/assets/js/ui.js" defer></script>
 </head>

@@ -6,6 +6,7 @@ require_once __DIR__ . '/../core/CongDongHelper.php';
 $maND = Auth::clientId();   // khách chưa đăng nhập vẫn xem được bài; bình luận/xóa/sửa cần đăng nhập
 $pdo  = Database::pdo();
 $id   = (int) ($_GET['id'] ?? 0);
+$coLoai = CongDongHelper::coCotLoaiBai();
 
 // Bảng LUOTTHICH có thể chưa được tạo (chạy migration_luotthich.sql); chưa có thì ẩn nút thích
 $coLike = true;
@@ -17,7 +18,8 @@ try {
 
 // C-44: chỉ thấy bài đang ở trạng thái "Hiển thị"
 $st = $pdo->prepare(
-    "SELECT b.MaBaiDang, b.MaND, b.TieuDe, b.NoiDung, b.NgayDang, u.HoTen, m.TenMon,
+    "SELECT b.MaBaiDang, b.MaND, b.MaMon, b.TieuDe, b.NoiDung, b.NgayDang, u.HoTen, m.TenMon,
+            " . ($coLoai ? 'b.LoaiBai' : "'" . CongDongHelper::LOAI_MAC_DINH . "' AS LoaiBai") . ",
             TIMESTAMPDIFF(SECOND, b.NgayDang, NOW()) AS GiayTuDang,
             " . ($coLike
                 ? '(SELECT COUNT(*) FROM LUOTTHICH l WHERE l.MaBaiDang = b.MaBaiDang) AS SoThich,
@@ -137,6 +139,7 @@ if ($bai && $_SERVER['REQUEST_METHOD'] === 'POST') {
 $thanhCong   = CongDongHelper::flash();
 $thanhCongBL = CongDongHelper::flash(null, 'flash_bl');
 $binhLuan = [];
+$eloMap = [];   // Elo theo người, dùng cho huy hiệu cạnh tên
 $p = null;
 $soBLHienThi = 0;
 
@@ -168,6 +171,7 @@ if ($bai) {
     );
     $st->execute($thamBL);
     $binhLuan = $st->fetchAll();
+    $eloMap = CongDongHelper::layElo($pdo, array_merge([(int) $bai['MaND']], array_column($binhLuan, 'MaND')));
 }
 
 $tieuDe = $bai ? $bai['TieuDe'] : 'Bài đăng';
@@ -186,8 +190,11 @@ require __DIR__ . '/layout/header.php';
     <div class="card">
       <h2 class="tieu-de-bai"><?= e($bai['TieuDe']) ?></h2>
       <div class="meta">
-        <?= e($bai['HoTen']) ?> · <?= e(CongDongHelper::ngay($bai['NgayDang'])) ?>
+        <?= e($bai['HoTen']) ?>
+        <?= CongDongHelper::huyHieuElo($eloMap[(int) $bai['MaND']] ?? [], $bai['MaMon'] !== null ? (int) $bai['MaMon'] : null) ?>
+        · <?= e(CongDongHelper::ngay($bai['NgayDang'])) ?>
         <?php if ($bai['TenMon']): ?> · <?= e($bai['TenMon']) ?><?php endif; ?>
+        <?= CongDongHelper::nhanLoai($bai['LoaiBai']) ?>
       </div>
       <p><?= nl2br(e($bai['NoiDung'])) ?></p>
 
@@ -247,7 +254,9 @@ require __DIR__ . '/layout/header.php';
       ?>
         <div class="binhluan" id="bl-<?= (int) $c['MaBinhLuan'] ?>">
           <div class="meta">
-            <b><?= e($c['HoTen']) ?></b> · <?= e(CongDongHelper::ngay($c['NgayBinhLuan'])) ?>
+            <b><?= e($c['HoTen']) ?></b>
+            <?= CongDongHelper::huyHieuElo($eloMap[(int) $c['MaND']] ?? [], $bai['MaMon'] !== null ? (int) $bai['MaMon'] : null) ?>
+            · <?= e(CongDongHelper::ngay($c['NgayBinhLuan'])) ?>
             <?php if ($dangAn): ?><span class="nhan-an">Đang ẩn (chỉ bạn thấy)</span><?php endif; ?>
           </div>
 

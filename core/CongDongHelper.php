@@ -7,6 +7,42 @@ class CongDongHelper
     public const BINH_LUAN_TOI_DA = 1000;
     public const SUA_TOI_DA_PHUT  = 15;   // chủ bài chỉ được sửa trong 15 phút kể từ lúc đăng
 
+    // Phân loại bài đăng (cột BAIDANG.LoaiBai). 'Thảo luận' là loại mặc định cho bài cũ và bài không chọn loại.
+    public const LOAI_BAI     = ['Thảo luận', 'Hỏi đáp', 'Chia sẻ mẹo', 'Tìm bạn ôn thi'];
+    public const LOAI_MAC_DINH = 'Thảo luận';
+    private const LOAI_LOP = [
+        'Thảo luận'      => 'cd-loai-tl',
+        'Hỏi đáp'        => 'cd-loai-hd',
+        'Chia sẻ mẹo'    => 'cd-loai-meo',
+        'Tìm bạn ôn thi' => 'cd-loai-ban',
+    ];
+
+    // Cột BAIDANG.LoaiBai có thể chưa tạo (chạy migration_baidang_loaibai.sql); chưa có thì ẩn mọi chức năng phân loại
+    public static function coCotLoaiBai(): bool
+    {
+        static $co = null;
+        if ($co === null) {
+            $co = Database::pdo()->query("SHOW COLUMNS FROM BAIDANG LIKE 'LoaiBai'")->fetch() !== false;
+        }
+        return $co;
+    }
+
+    // Giá trị loại bài gửi lên -> loại hợp lệ; sai hoặc rỗng thì dùng loại mặc định
+    public static function kiemTraLoai($gui): string
+    {
+        $gui = (string) $gui;
+        return in_array($gui, self::LOAI_BAI, true) ? $gui : self::LOAI_MAC_DINH;
+    }
+
+    // Nhãn loại bài; loại mặc định không hiện nhãn để danh sách đỡ rối
+    public static function nhanLoai(?string $loai): string
+    {
+        if ($loai === null || $loai === '' || $loai === self::LOAI_MAC_DINH || !isset(self::LOAI_LOP[$loai])) {
+            return '';
+        }
+        return '<span class="cd-loai ' . self::LOAI_LOP[$loai] . '">' . e($loai) . '</span>';
+    }
+
     // Cột BAIDANG.NguoiAn (ai đã ẩn bài: 'Chủ bài' hoặc 'Quản trị') có thể chưa tạo (chạy migration_baidang_nguoian.sql)
     public static function coCotNguoiAn(): bool
     {
@@ -271,5 +307,74 @@ class CongDongHelper
         );
         $st->execute([$maBL, $maND]);
         return $st->rowCount() === 1;
+    }
+
+    // ================= HUY HIỆU ELO CẠNH TÊN (không thêm bảng, đọc từ ELOMONHOC) =================
+    // Chỉ hiện huy hiệu khi người đó đã đấu từ ngần này trận trở lên ở môn tương ứng (tránh nhãn ảo cho người mới)
+    public const HUY_HIEU_TOI_THIEU_TRAN = 5;
+    // [Elo tối thiểu, tên hạng, lớp CSS, biểu tượng], xếp từ cao xuống thấp; điểm khởi đầu là 1000
+    private const HANG_ELO = [
+        [1400, 'Kim cương', 'cd-elo-kc',   '💎'],
+        [1250, 'Vàng',      'cd-elo-vang', '🥇'],
+        [1100, 'Bạc',       'cd-elo-bac',  '🥈'],
+        [0,    'Đồng',      'cd-elo-dong', '🥉'],
+    ];
+
+    // Lấy Elo của nhiều người bằng MỘT truy vấn (không truy vấn từng dòng).
+    // Trả về [MaND => [MaMon => ['elo' => int, 'tran' => int, 'mon' => TenMon]]], chỉ gồm môn đã đủ số trận tối thiểu.
+    public static function layElo(PDO $pdo, array $dsMaND): array
+    {
+        $ds = array_values(array_unique(array_map('intval', $dsMaND)));
+        if (!$ds) {
+            return [];
+        }
+        $in = implode(',', array_fill(0, count($ds), '?'));
+        $st = $pdo->prepare(
+            "SELECT e.MaND, e.MaMon, m.TenMon, e.DiemElo, e.SoTran
+               FROM ELOMONHOC e JOIN MONHOC m ON m.MaMon = e.MaMon
+              WHERE e.SoTran >= ? AND e.MaND IN ($in)"
+        );
+        $st->execute(array_merge([self::HUY_HIEU_TOI_THIEU_TRAN], $ds));
+        $kq = [];
+        foreach ($st->fetchAll() as $r) {
+            $kq[(int) $r['MaND']][(int) $r['MaMon']] = [
+                'elo'  => (int) $r['DiemElo'],
+                'tran' => (int) $r['SoTran'],
+                'mon'  => (string) $r['TenMon'],
+            ];
+        }
+        return $kq;
+    }
+
+    // Huy hiệu cạnh tên: bài/bình luận gắn môn thì lấy Elo của đúng môn đó; không gắn môn thì lấy môn có Elo cao nhất.
+    // $eloNguoi = phần tử của layElo() ứng với một người. Chưa đủ điều kiện thì trả về chuỗi rỗng.
+    public static function huyHieuElo(array $eloNguoi, ?int $maMon): string
+    {
+        if (!$eloNguoi) {
+            return '';
+        }
+        $d = null;
+        if ($maMon !== null) {
+            $d = $eloNguoi[$maMon] ?? null;
+        } else {
+            foreach ($eloNguoi as $x) {
+                if ($d === null || $x['elo'] > $d['elo']) {
+                    $d = $x;
+                }
+            }
+        }
+        if ($d === null) {
+            return '';
+        }
+        $hang = self::HANG_ELO[count(self::HANG_ELO) - 1];
+        foreach (self::HANG_ELO as $cap) {
+            if ($d['elo'] >= $cap[0]) {
+                $hang = $cap;
+                break;
+            }
+        }
+        $goiY = 'Elo ' . number_format($d['elo']) . ' môn ' . $d['mon'] . ' · ' . $d['tran'] . ' trận';
+        return '<span class="cd-elo ' . $hang[2] . '" title="' . e($goiY) . '">'
+             . $hang[3] . ' ' . e($hang[1]) . ' · ' . number_format($d['elo']) . '</span>';
     }
 }

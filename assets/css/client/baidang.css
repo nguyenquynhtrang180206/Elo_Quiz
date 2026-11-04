@@ -19,3 +19,14 @@ textarea { min-height:90px; resize:vertical; font-family:inherit; }
 .cd-thich.da-thich { color:#fff; background:rgba(8,123,255,.35); border-color:var(--blue); }
 .form-sua-bl textarea { min-height:80px; }
 .thao-tac-chu-bai { display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
+.cd-loai { padding:1px 9px; border-radius:99px; font-size:12px; border:1px solid; }
+.cd-loai-hd   { background:rgba(255,184,0,.18); border-color:rgba(255,184,0,.6); }
+.cd-loai-meo  { background:rgba(0,214,143,.18); border-color:rgba(0,214,143,.6); }
+.cd-loai-ban  { background:rgba(0,184,255,.18); border-color:rgba(0,184,255,.6); }
+
+/* Huy hiệu Elo cạnh tên người đăng / người bình luận (tính từ ELOMONHOC, không lưu CSDL) */
+.cd-elo { display:inline-block; padding:1px 9px; border-radius:99px; font-size:12px; font-weight:700; border:1px solid; white-space:nowrap; vertical-align:middle; }
+.cd-elo-dong { color:#f0b48a; background:rgba(205,127,50,.16); border-color:rgba(205,127,50,.6); }
+.cd-elo-bac  { color:#e3ebf5; background:rgba(192,200,215,.14); border-color:rgba(200,208,222,.6); }
+.cd-elo-vang { color:#ffe08a; background:rgba(255,200,60,.16); border-color:rgba(255,200,60,.65); }
+.cd-elo-kc   { color:#a8f0ff; background:rgba(0,217,255,.16); border-color:rgba(0,217,255,.7); box-shadow:0 0 8px rgba(0,217,255,.35); }

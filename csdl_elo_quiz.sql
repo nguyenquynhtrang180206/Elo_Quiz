@@ -255,8 +255,10 @@ CREATE TABLE BAIDANG (
   NgayDang   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   TrangThai  ENUM('Hiển thị','Bị ẩn','Đã xóa') NOT NULL DEFAULT 'Hiển thị',
   NguoiAn    ENUM('Chủ bài','Quản trị') NULL COMMENT 'Ai đã ẩn bài; NULL khi bài không bị ẩn',
+  LoaiBai    ENUM('Thảo luận','Hỏi đáp','Chia sẻ mẹo','Tìm bạn ôn thi') NOT NULL DEFAULT 'Thảo luận' COMMENT 'Phân loại bài đăng',
   PRIMARY KEY (MaBaiDang),
   KEY idx_baidang_mon (MaMon, TrangThai, NgayDang),
+  KEY idx_baidang_loai (LoaiBai, TrangThai, NgayDang),
   KEY idx_baidang_nd (MaND),
   CONSTRAINT fk_baidang_nd  FOREIGN KEY (MaND)  REFERENCES NGUOIDUNG (MaND),
   CONSTRAINT fk_baidang_mon FOREIGN KEY (MaMon) REFERENCES MONHOC (MaMon)

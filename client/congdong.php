@@ -16,6 +16,8 @@ try {
     $coLike = false;
 }
 
+$coLoai = CongDongHelper::coCotLoaiBai();
+
 // ---- Bộ lọc: tab và môn ----
 $cacTab = [
     'moi'      => ['✏️', 'Bài đăng mới',      'Bài đăng mới nhất'],
@@ -35,13 +37,15 @@ $monLoc = (int) ($_GET['mon'] ?? 0);
 if (!isset($monDangMo[$monLoc])) {
     $monLoc = 0;
 }
+$loaiLoc = $coLoai && in_array((string) ($_GET['loai'] ?? ''), CongDongHelper::LOAI_BAI, true) ? (string) $_GET['loai'] : '';
 $tuKhoa = mb_substr(trim((string) ($_GET['q'] ?? '')), 0, 100);
 // Tham số lọc giữ nguyên khi đổi tab, sang trang, thích bài...
-$thamLoc = ($monLoc > 0 ? ['mon' => $monLoc] : []) + ($tuKhoa !== '' ? ['q' => $tuKhoa] : []);
+$thamLoc = ($monLoc > 0 ? ['mon' => $monLoc] : []) + ($loaiLoc !== '' ? ['loai' => $loaiLoc] : []) + ($tuKhoa !== '' ? ['q' => $tuKhoa] : []);
 $thamTab = fn(string $t): string => '?' . http_build_query(['tab' => $t] + $thamLoc);
 
 $loi = [];
 $tieuDeBai = $noiDungBai = $monChon = '';
+$loaiChon = CongDongHelper::LOAI_MAC_DINH;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($maND === null) {
@@ -65,6 +69,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $quayLai = ['tab' => isset($cacTab[$_POST['tab'] ?? '']) ? $_POST['tab'] : 'moi'];
         if ((int) ($_POST['mon'] ?? 0) > 0) {
             $quayLai['mon'] = (int) $_POST['mon'];
+        }
+        if ($coLoai && in_array((string) ($_POST['loai'] ?? ''), CongDongHelper::LOAI_BAI, true)) {
+            $quayLai['loai'] = (string) $_POST['loai'];
         }
         $qGui = mb_substr(trim((string) ($_POST['q'] ?? '')), 0, 100);
         if ($qGui !== '') {
@@ -111,12 +118,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $tieuDeBai  = trim((string) ($_POST['tieu_de'] ?? ''));
     $noiDungBai = trim((string) ($_POST['noi_dung'] ?? ''));
     $monChon    = (string) ($_POST['mon'] ?? '');
+    $loaiChon   = CongDongHelper::kiemTraLoai($_POST['loai'] ?? '');
 
     [$loi, $maMon] = CongDongHelper::kiemTraBai($tieuDeBai, $noiDungBai, $monChon, $monDangMo);
 
     if (!$loi) {
-        $st = $pdo->prepare('INSERT INTO BAIDANG (MaND, MaMon, TieuDe, NoiDung) VALUES (?, ?, ?, ?)');
-        $st->execute([$maND, $maMon, $tieuDeBai, $noiDungBai]);
+        if ($coLoai) {
+            $st = $pdo->prepare('INSERT INTO BAIDANG (MaND, MaMon, TieuDe, NoiDung, LoaiBai) VALUES (?, ?, ?, ?, ?)');
+            $st->execute([$maND, $maMon, $tieuDeBai, $noiDungBai, $loaiChon]);
+        } else {
+            $st = $pdo->prepare('INSERT INTO BAIDANG (MaND, MaMon, TieuDe, NoiDung) VALUES (?, ?, ?, ?)');
+            $st->execute([$maND, $maMon, $tieuDeBai, $noiDungBai]);
+        }
         CongDongHelper::flash('Đã đăng bài.');
         redirect(BASE_URL . '/client/congdong.php');
     }
@@ -125,6 +138,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $thanhCong = CongDongHelper::flash();
 
 $baiDang = [];
+$eloMap = [];   // Elo theo người đăng, dùng cho huy hiệu cạnh tên
 $thanhVien = [];
 $p = null;
 
@@ -152,6 +166,10 @@ if ($tab === 'thanhvien') {
     if ($monLoc > 0) {
         $where .= ' AND b.MaMon = :mon';
         $tham[':mon'] = $monLoc;
+    }
+    if ($loaiLoc !== '') {
+        $where .= ' AND b.LoaiBai = :loai';
+        $tham[':loai'] = $loaiLoc;
     }
     if ($tuKhoa !== '') {
         // Tìm theo từ khóa trong tiêu đề hoặc nội dung
@@ -185,9 +203,10 @@ if ($tab === 'thanhvien') {
     }
 
     $st = $pdo->prepare(
-        "SELECT b.MaBaiDang, b.TieuDe, b.NoiDung, b.NgayDang, b.TrangThai, u.MaND, u.HoTen, u.AnhDaiDien, m.TenMon,
+        "SELECT b.MaBaiDang, b.MaMon, b.TieuDe, b.NoiDung, b.NgayDang, b.TrangThai, u.MaND, u.HoTen, u.AnhDaiDien, m.TenMon,
                 TIMESTAMPDIFF(SECOND, b.NgayDang, NOW()) AS GiayTuDang,
                 " . (CongDongHelper::coCotNguoiAn() ? 'b.NguoiAn' : 'NULL AS NguoiAn') . ",
+                " . ($coLoai ? 'b.LoaiBai' : "'" . CongDongHelper::LOAI_MAC_DINH . "' AS LoaiBai") . ",
                 (SELECT COUNT(*) FROM BINHLUAN c WHERE c.MaBaiDang = b.MaBaiDang AND c.TrangThai = 'Hiển thị') AS SoBL,
                 (SELECT COUNT(*) FROM BINHLUAN c7 WHERE c7.MaBaiDang = b.MaBaiDang AND c7.TrangThai = 'Hiển thị'
                     AND c7.NgayBinhLuan >= DATE_SUB(NOW(), INTERVAL 7 DAY)) AS SoBL7,
@@ -201,6 +220,7 @@ if ($tab === 'thanhvien') {
     );
     $st->execute($thamSel);
     $baiDang = $st->fetchAll();
+    $eloMap  = CongDongHelper::layElo($pdo, array_column($baiDang, 'MaND'));
 }
 
 $tieuDe = 'Cộng đồng';
@@ -223,6 +243,16 @@ require __DIR__ . '/layout/header.php';
             <option value="<?= (int) $id ?>" <?= $id === $monLoc ? 'selected' : '' ?>><?= e($ten) ?></option>
           <?php endforeach; ?>
         </select>
+
+        <?php if ($coLoai): ?>
+        <label for="loc_loai">Lọc theo loại bài</label>
+        <select id="loc_loai" name="loai">
+          <option value="">Tất cả loại</option>
+          <?php foreach (CongDongHelper::LOAI_BAI as $l): ?>
+            <option value="<?= e($l) ?>" <?= $l === $loaiLoc ? 'selected' : '' ?>><?= e($l) ?></option>
+          <?php endforeach; ?>
+        </select>
+        <?php endif; ?>
 
         <label for="tim_q">Tìm theo từ khóa</label>
         <div class="cd-tim">
@@ -268,6 +298,15 @@ require __DIR__ . '/layout/header.php';
             <?php endforeach; ?>
           </select>
 
+          <?php if ($coLoai): ?>
+          <label for="loai">Loại bài</label>
+          <select id="loai" name="loai">
+            <?php foreach (CongDongHelper::LOAI_BAI as $l): ?>
+              <option value="<?= e($l) ?>" <?= $l === $loaiChon ? 'selected' : '' ?>><?= e($l) ?></option>
+            <?php endforeach; ?>
+          </select>
+          <?php endif; ?>
+
           <label for="noi_dung">Nội dung</label>
           <textarea id="noi_dung" name="noi_dung" maxlength="5000" required><?= e($noiDungBai) ?></textarea>
 
@@ -304,7 +343,7 @@ require __DIR__ . '/layout/header.php';
       <?php else: ?>
         <?php if (!$baiDang): ?>
           <div class="cd-rong">
-            <?php if ($tuKhoa !== '' || $monLoc > 0): ?>
+            <?php if ($tuKhoa !== '' || $monLoc > 0 || $loaiLoc !== ''): ?>
               Không có bài đăng nào phù hợp với bộ lọc.
             <?php elseif ($tab === 'hot'): ?>
               Tuần này chưa có thảo luận nào sôi nổi.
@@ -325,8 +364,10 @@ require __DIR__ . '/layout/header.php';
             <div class="cd-the-than">
               <div class="cd-dong-tren">
                 <span class="cd-ten"><?= e($b['HoTen']) ?></span>
+                <?= CongDongHelper::huyHieuElo($eloMap[(int) $b['MaND']] ?? [], $b['MaMon'] !== null ? (int) $b['MaMon'] : null) ?>
                 <span class="cd-gio">&middot; <?= e(CongDongHelper::truocDo($b['NgayDang'])) ?></span>
                 <?php if ($b['TenMon']): ?><span class="cd-mon"><?= e($b['TenMon']) ?></span><?php endif; ?>
+                <?= CongDongHelper::nhanLoai($b['LoaiBai']) ?>
                 <?php if ($dangAn): ?><span class="cd-an">Đang ẩn</span><?php endif; ?>
               </div>
               <h3 class="cd-tieu-de">
@@ -343,6 +384,7 @@ require __DIR__ . '/layout/header.php';
                   <input type="hidden" name="ma" value="<?= (int) $b['MaBaiDang'] ?>">
                   <input type="hidden" name="tab" value="<?= e($tab) ?>">
                   <input type="hidden" name="mon" value="<?= (int) $monLoc ?>">
+                  <input type="hidden" name="loai" value="<?= e($loaiLoc) ?>">
                   <input type="hidden" name="q" value="<?= e($tuKhoa) ?>">
                   <input type="hidden" name="page" value="<?= $p ? (int) $p->trang() : 1 ?>">
                   <button type="submit" class="cd-chi-so cd-thich<?= (int) $b['DaThich'] > 0 ? ' da-thich' : '' ?>"

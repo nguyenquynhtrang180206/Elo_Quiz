@@ -6,10 +6,12 @@ require_once __DIR__ . '/../core/CongDongHelper.php';
 $maND = Auth::requireClient(BASE_URL . '/client/login.php');
 $pdo  = Database::pdo();
 $id   = (int) ($_GET['id'] ?? 0);
+$coLoai = CongDongHelper::coCotLoaiBai();
 
 // Chỉ sửa được bài của mình, đang "Hiển thị", và trong vòng 15 phút kể từ lúc đăng
 $st = $pdo->prepare(
     "SELECT b.MaBaiDang, b.MaMon, b.TieuDe, b.NoiDung, m.TenMon,
+            " . ($coLoai ? 'b.LoaiBai' : "'" . CongDongHelper::LOAI_MAC_DINH . "' AS LoaiBai") . ",
             TIMESTAMPDIFF(SECOND, b.NgayDang, NOW()) AS GiayTuDang
        FROM BAIDANG b LEFT JOIN MONHOC m ON m.MaMon = b.MaMon
       WHERE b.MaBaiDang = ? AND b.MaND = ? AND b.TrangThai = 'Hiển thị'"
@@ -31,22 +33,26 @@ $loi = [];
 $tieuDeBai  = $bai['TieuDe'] ?? '';
 $noiDungBai = $bai['NoiDung'] ?? '';
 $monChon    = $bai ? (string) ($bai['MaMon'] ?? '') : '';
+$loaiChon   = $bai['LoaiBai'] ?? CongDongHelper::LOAI_MAC_DINH;
 
 if ($bai && !$hetHan && $_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_check();
     $tieuDeBai  = trim((string) ($_POST['tieu_de'] ?? ''));
     $noiDungBai = trim((string) ($_POST['noi_dung'] ?? ''));
     $monChon    = (string) ($_POST['mon'] ?? '');
+    $loaiChon   = CongDongHelper::kiemTraLoai($_POST['loai'] ?? '');
 
     [$loi, $maMon] = CongDongHelper::kiemTraBai($tieuDeBai, $noiDungBai, $monChon, $monDangMo);
 
     if (!$loi) {
         $up = $pdo->prepare(
-            "UPDATE BAIDANG SET TieuDe = ?, NoiDung = ?, MaMon = ?
+            "UPDATE BAIDANG SET TieuDe = ?, NoiDung = ?, MaMon = ?" . ($coLoai ? ', LoaiBai = ?' : '') . "
               WHERE MaBaiDang = ? AND MaND = ? AND TrangThai = 'Hiển thị'
                 AND NgayDang >= DATE_SUB(NOW(), INTERVAL " . CongDongHelper::SUA_TOI_DA_PHUT . " MINUTE)"
         );
-        $up->execute([$tieuDeBai, $noiDungBai, $maMon, $id, $maND]);
+        $up->execute($coLoai
+            ? [$tieuDeBai, $noiDungBai, $maMon, $loaiChon, $id, $maND]
+            : [$tieuDeBai, $noiDungBai, $maMon, $id, $maND]);
         CongDongHelper::flash('Đã cập nhật bài đăng.');
         redirect(BASE_URL . '/client/baidang.php?id=' . $id);
     }
@@ -82,6 +88,15 @@ require __DIR__ . '/layout/header.php';
             <option value="<?= (int) $mid ?>" <?= (string) $mid === $monChon ? 'selected' : '' ?>><?= e($ten) ?></option>
           <?php endforeach; ?>
         </select>
+
+        <?php if ($coLoai): ?>
+        <label for="loai">Loại bài</label>
+        <select id="loai" name="loai">
+          <?php foreach (CongDongHelper::LOAI_BAI as $l): ?>
+            <option value="<?= e($l) ?>" <?= $l === $loaiChon ? 'selected' : '' ?>><?= e($l) ?></option>
+          <?php endforeach; ?>
+        </select>
+        <?php endif; ?>
 
         <label for="noi_dung">Nội dung</label>
         <textarea id="noi_dung" name="noi_dung" maxlength="5000" required><?= e($noiDungBai) ?></textarea>
