@@ -36,6 +36,9 @@ $menu = [
   <?php foreach ($cssTrang as $f): ?>
   <link rel="stylesheet" href="<?= e(BASE_URL) ?>/assets/css/admin/<?= e($f) ?>.css">
   <?php endforeach; ?>
+  <link rel="stylesheet" href="<?= e(BASE_URL) ?>/assets/css/cosmic-fix.css">
+  <script type="module" src="<?= e(BASE_URL) ?>/assets/js/effects/cosmic-bg.js"></script>
+  <script src="<?= e(BASE_URL) ?>/assets/js/ui.js" defer></script>
 </head>
 <body>
 <div class="admin-khung">
@@ -44,7 +47,7 @@ $menu = [
     <?php foreach ($menu as $ma => [$ten, $duong]): ?>
       <a href="<?= e(BASE_URL . $duong) ?>"<?= $ma === $mucChon ? ' class="dang-chon"' : '' ?>><?= e($ten) ?></a>
     <?php endforeach; ?>
-    <a href="<?= e(BASE_URL) ?>/client/index.php" style="border-top:1px solid #1f2937;margin-top:8px">Về trang sinh viên</a>
+    <a href="<?= e(BASE_URL) ?>/client/index.php" class="tach">Về trang sinh viên</a>
     <a href="<?= e(BASE_URL) ?>/admin/dangxuat.php">Đăng xuất</a>
   </nav>
   <main class="admin-noidung">
