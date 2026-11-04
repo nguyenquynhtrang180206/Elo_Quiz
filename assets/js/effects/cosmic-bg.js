@@ -22,13 +22,14 @@ let mode = 'auto';
 try { mode = localStorage.getItem(KEY) || 'auto'; } catch (e) { /* bỏ qua */ }
 if (!MODES.includes(mode)) mode = 'auto';
 
-/* ---------- Nút chọn chế độ hiệu ứng ---------- */
+/* ---------- Nút chọn chế độ hiệu ứng (Gaming Cyber Orb) ---------- */
 (function makeToggle() {
   const b = document.createElement('button');
   b.type = 'button';
   b.className = 'fx-toggle';
-  b.textContent = '✦ Hiệu ứng: ' + MODE_LABEL[mode];
-  b.title = 'Đổi chế độ hiệu ứng nền (tự động / nhẹ / tắt)';
+  b.innerHTML = '<svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true" style="display:inline-block;vertical-align:-2px;margin-right:6px;filter:drop-shadow(0 0 5px var(--cyan));color:var(--cyan)"><circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="8" cy="8" r="3" fill="none" stroke="#E044FF" stroke-width="1.3"/><circle cx="8" cy="8" r="1.3" fill="#FFE27A"/></svg>' +
+    '<span>FX: ' + MODE_LABEL[mode] + '</span>';
+  b.title = 'Tùy chỉnh đồ họa / hiệu ứng nền (Tự động / Nhẹ / Tắt)';
   b.addEventListener('click', () => {
     const next = MODES[(MODES.indexOf(mode) + 1) % MODES.length];
     try { localStorage.setItem(KEY, next); } catch (e) { /* bỏ qua */ }

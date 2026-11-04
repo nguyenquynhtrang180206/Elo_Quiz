@@ -45,7 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Đăng nhập quản trị - Đấu Trường Tri Thức</title>
+  <title>Đăng nhập quản trị - QUIZUP ARENA</title>
   <link rel="stylesheet" href="<?= e(BASE_URL) ?>/assets/style.css">
   <link rel="stylesheet" href="<?= e(BASE_URL) ?>/assets/css/admin/login.css">
   <link rel="stylesheet" href="<?= e(BASE_URL) ?>/assets/css/cosmic-fix.css">

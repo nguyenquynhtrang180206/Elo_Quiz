@@ -72,7 +72,7 @@ require __DIR__ . '/layout/header.php';
 ?>
 <div class="container khung-khaosat">
   <div class="card">
-    <h2>Bạn muốn dùng Đấu Trường Tri Thức để làm gì?</h2>
+    <h2>Bạn muốn dùng QUIZUP ARENA để làm gì?</h2>
     <p class="ghi-chu">Chọn một hoặc nhiều mục tiêu để chúng tôi hoàn thiện trải nghiệm cho bạn.</p>
 
     <?php if ($loi): ?>
