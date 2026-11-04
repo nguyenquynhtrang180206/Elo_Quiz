@@ -29,6 +29,8 @@ $cacTab = [
 if ($maND !== null) {
     $cacTab['cuatoi'] = ['📁', 'Bài của tôi', 'Bài của tôi'];
 }
+// Trang giải thích huy hiệu Elo: chỉ là nội dung tĩnh, không truy vấn bài đăng
+$cacTab['huyhieu'] = ['🏅', 'Huy hiệu là gì?', 'Huy hiệu là gì?'];
 $tab = (string) ($_GET['tab'] ?? 'moi');
 if (!isset($cacTab[$tab])) {
     $tab = 'moi';
@@ -142,7 +144,9 @@ $eloMap = [];   // Elo theo người đăng, dùng cho huy hiệu cạnh tên
 $thanhVien = [];
 $p = null;
 
-if ($tab === 'thanhvien') {
+if ($tab === 'huyhieu') {
+    // ---- Huy hiệu là gì?: không cần dữ liệu từ CSDL ----
+} elseif ($tab === 'thanhvien') {
     // ---- Thành viên nổi bật: xếp theo hoạt động (bài đăng x3 + bình luận) ----
     $thanhVien = $pdo->query(
         "SELECT * FROM (
@@ -233,7 +237,7 @@ require __DIR__ . '/layout/header.php';
 
     <!-- ===== Cột trái: menu ===== -->
     <aside class="cd-trai">
-      <?php if ($tab !== 'thanhvien'): ?>
+      <?php if (!in_array($tab, ['thanhvien', 'huyhieu'], true)): ?>
       <form method="get" action="" class="cd-loc">
         <input type="hidden" name="tab" value="<?= e($tab) ?>">
         <label for="loc_mon">Lọc theo môn</label>
@@ -282,7 +286,7 @@ require __DIR__ . '/layout/header.php';
         <div class="loi"><?php foreach ($loi as $m): ?><div><?= e($m) ?></div><?php endforeach; ?></div>
       <?php endif; ?>
 
-      <?php if ($maND !== null): ?>
+      <?php if ($maND !== null && $tab !== 'huyhieu'): ?>
       <details class="cd-dang" id="dang-bai"<?= $loi ? ' open' : '' ?>>
         <summary>✍️ Viết bài mới</summary>
         <form method="post" action="" novalidate>
@@ -322,7 +326,31 @@ require __DIR__ . '/layout/header.php';
         <?php endif; ?>
       </header>
 
-      <?php if ($tab === 'thanhvien'): ?>
+      <?php if ($tab === 'huyhieu'): ?>
+        <div class="cd-hh-trang">
+          <p class="cd-hh-gt">Huy hiệu hiện cạnh tên người đăng bài và người bình luận, cho biết người đó đang ở hạng nào ở một môn học. Hạng được tính từ điểm Elo có được khi đấu.</p>
+
+          <h3>Các hạng</h3>
+          <ul class="cd-hh-bang">
+            <?php foreach (CongDongHelper::bangHangElo() as $h): ?>
+              <li>
+                <span class="cd-elo <?= e($h['css']) ?>"><?= $h['icon'] ?> <?= e($h['ten']) ?></span>
+                <span class="cd-hh-khoang">Elo <?= e($h['khoang']) ?></span>
+              </li>
+            <?php endforeach; ?>
+          </ul>
+
+          <h3>Khi nào huy hiệu hiện?</h3>
+          <ul class="cd-hh-luat">
+            <li>Bạn đã đấu từ <strong><?= (int) CongDongHelper::HUY_HIEU_TOI_THIEU_TRAN ?> trận</strong> trở lên ở môn đó. Chưa đủ thì chưa hiện huy hiệu.</li>
+            <li>Bài đăng hoặc bình luận có gắn môn thì huy hiệu tính theo đúng môn đó.</li>
+            <li>Bài đăng hoặc bình luận không gắn môn thì huy hiệu lấy theo môn bạn có Elo cao nhất.</li>
+            <li>Hạng đổi theo Elo hiện tại của bạn: thắng nhiều thì lên hạng, thua nhiều thì có thể xuống hạng.</li>
+          </ul>
+          <p class="cd-hh-ghichu">Rê chuột vào huy hiệu để xem điểm Elo, môn học và số trận.</p>
+          <p><a class="btn" href="<?= e(BASE_URL) ?>/client/timtran.php">Tìm trận để lên hạng</a></p>
+        </div>
+      <?php elseif ($tab === 'thanhvien'): ?>
         <?php if (!$thanhVien): ?>
           <div class="cd-rong">Chưa có thành viên nào hoạt động trong cộng đồng.</div>
         <?php endif; ?>

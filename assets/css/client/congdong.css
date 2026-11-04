@@ -93,3 +93,13 @@ textarea { min-height:110px; resize:vertical; font-family:inherit; }
 .cd-elo-bac  { color:#e3ebf5; background:rgba(192,200,215,.14); border-color:rgba(200,208,222,.6); }
 .cd-elo-vang { color:#ffe08a; background:rgba(255,200,60,.16); border-color:rgba(255,200,60,.65); }
 .cd-elo-kc   { color:#a8f0ff; background:rgba(0,217,255,.16); border-color:rgba(0,217,255,.7); box-shadow:0 0 8px rgba(0,217,255,.35); }
+/* Trang "Huy hiệu là gì?" (tab huyhieu, hiện ở cột phải thay cho danh sách bài) */
+.cd-hh-trang { background:#0a1430; border:1px solid rgba(138,245,255,.18); border-radius:var(--radius); padding:18px 20px 8px; }
+.cd-hh-trang h3 { margin:20px 0 10px; font-size:16px; text-shadow:none; }
+.cd-hh-gt { margin:0; color:var(--mau-phu); line-height:1.6; max-width:70ch; }
+.cd-hh-bang { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px; max-width:420px; }
+.cd-hh-bang li { display:flex; align-items:center; gap:14px; padding:9px 14px; border:1px solid rgba(138,245,255,.12); border-radius:12px; background:#0e1b3d; }
+.cd-hh-bang .cd-elo { flex:none; min-width:116px; padding:3px 12px; font-size:14px; text-align:center; }
+.cd-hh-khoang { color:var(--white); font-variant-numeric:tabular-nums; }
+.cd-hh-luat { margin:0; padding-left:20px; display:flex; flex-direction:column; gap:7px; line-height:1.55; max-width:70ch; }
+.cd-hh-ghichu { margin:14px 0 10px; font-size:13px; color:var(--mau-phu); }

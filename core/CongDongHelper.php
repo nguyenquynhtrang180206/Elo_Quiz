@@ -320,6 +320,26 @@ class CongDongHelper
         [0,    'Đồng',      'cd-elo-dong', '🥉'],
     ];
 
+    // Bảng hạng để hiển thị phần mô tả huy hiệu. Đọc thẳng từ HANG_ELO nên đổi mốc điểm ở một chỗ là mô tả tự khớp theo.
+    // Trả về từ cao xuống thấp: [['ten' => ..., 'icon' => ..., 'css' => ..., 'tu' => int, 'khoang' => 'chuỗi mô tả khoảng điểm'], ...]
+    public static function bangHangElo(): array
+    {
+        $kq   = [];
+        $tren = null; // mốc tối thiểu của hạng ngay phía trên
+        foreach (self::HANG_ELO as [$tu, $ten, $css, $icon]) {
+            if ($tren === null) {
+                $khoang = 'từ ' . number_format($tu) . ' trở lên';
+            } elseif ($tu <= 0) {
+                $khoang = 'dưới ' . number_format($tren);
+            } else {
+                $khoang = number_format($tu) . ' – ' . number_format($tren - 1);
+            }
+            $kq[] = ['ten' => $ten, 'icon' => $icon, 'css' => $css, 'tu' => $tu, 'khoang' => $khoang];
+            $tren = $tu;
+        }
+        return $kq;
+    }
+
     // Lấy Elo của nhiều người bằng MỘT truy vấn (không truy vấn từng dòng).
     // Trả về [MaND => [MaMon => ['elo' => int, 'tran' => int, 'mon' => TenMon]]], chỉ gồm môn đã đủ số trận tối thiểu.
     public static function layElo(PDO $pdo, array $dsMaND): array
