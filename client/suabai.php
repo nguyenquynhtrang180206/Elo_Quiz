@@ -7,14 +7,19 @@ $maND = Auth::requireClient(BASE_URL . '/client/login.php');
 $pdo  = Database::pdo();
 $id   = (int) ($_GET['id'] ?? 0);
 
-// Chỉ sửa được bài của mình và đang "Hiển thị" (bài bị Admin ẩn thì chủ bài không tự mở lại được)
+// Chỉ sửa được bài của mình, đang "Hiển thị", và trong vòng 15 phút kể từ lúc đăng
 $st = $pdo->prepare(
-    "SELECT b.MaBaiDang, b.MaMon, b.TieuDe, b.NoiDung, m.TenMon
+    "SELECT b.MaBaiDang, b.MaMon, b.TieuDe, b.NoiDung, m.TenMon,
+            TIMESTAMPDIFF(SECOND, b.NgayDang, NOW()) AS GiayTuDang
        FROM BAIDANG b LEFT JOIN MONHOC m ON m.MaMon = b.MaMon
       WHERE b.MaBaiDang = ? AND b.MaND = ? AND b.TrangThai = 'Hiển thị'"
 );
 $st->execute([$id, $maND]);
 $bai = $st->fetch();
+$hetHan = $bai && !CongDongHelper::conHanSua((int) $bai['GiayTuDang']);
+$phutCon = $bai && !$hetHan
+    ? max(1, (int) ceil((CongDongHelper::SUA_TOI_DA_PHUT * 60 - (int) $bai['GiayTuDang']) / 60))
+    : 0;
 
 $monDangMo = CongDongHelper::monDangMo();
 // Bài đang gắn môn đã bị ẩn: vẫn giữ môn đó trong danh sách để không vô tình bỏ gắn
@@ -27,7 +32,7 @@ $tieuDeBai  = $bai['TieuDe'] ?? '';
 $noiDungBai = $bai['NoiDung'] ?? '';
 $monChon    = $bai ? (string) ($bai['MaMon'] ?? '') : '';
 
-if ($bai && $_SERVER['REQUEST_METHOD'] === 'POST') {
+if ($bai && !$hetHan && $_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_check();
     $tieuDeBai  = trim((string) ($_POST['tieu_de'] ?? ''));
     $noiDungBai = trim((string) ($_POST['noi_dung'] ?? ''));
@@ -38,7 +43,8 @@ if ($bai && $_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!$loi) {
         $up = $pdo->prepare(
             "UPDATE BAIDANG SET TieuDe = ?, NoiDung = ?, MaMon = ?
-              WHERE MaBaiDang = ? AND MaND = ? AND TrangThai = 'Hiển thị'"
+              WHERE MaBaiDang = ? AND MaND = ? AND TrangThai = 'Hiển thị'
+                AND NgayDang >= DATE_SUB(NOW(), INTERVAL " . CongDongHelper::SUA_TOI_DA_PHUT . " MINUTE)"
         );
         $up->execute([$tieuDeBai, $noiDungBai, $maMon, $id, $maND]);
         CongDongHelper::flash('Đã cập nhật bài đăng.');
@@ -54,9 +60,13 @@ require __DIR__ . '/layout/header.php';
   <?php if (!$bai): ?>
     <div class="card">Không tìm thấy bài đăng, hoặc bạn không có quyền sửa bài này.</div>
     <p><a href="<?= e(BASE_URL) ?>/client/congdong.php">&laquo; Về bảng tin</a></p>
+  <?php elseif ($hetHan): ?>
+    <div class="card">Đã quá <?= CongDongHelper::SUA_TOI_DA_PHUT ?> phút kể từ lúc đăng nên bạn không thể sửa bài này nữa. Bạn vẫn có thể ẩn hoặc xóa bài.</div>
+    <p><a href="<?= e(BASE_URL) ?>/client/baidang.php?id=<?= (int) $id ?>">&laquo; Về bài đăng</a></p>
   <?php else: ?>
     <div class="card">
       <h2 class="tieu-de-sua">Sửa bài đăng</h2>
+      <p class="meta">Bạn chỉ được sửa bài trong <?= CongDongHelper::SUA_TOI_DA_PHUT ?> phút kể từ lúc đăng (còn khoảng <?= $phutCon ?> phút).</p>
       <?php if ($loi): ?>
         <div class="loi"><?php foreach ($loi as $m): ?><div><?= e($m) ?></div><?php endforeach; ?></div>
       <?php endif; ?>

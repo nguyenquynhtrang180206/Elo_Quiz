@@ -3,6 +3,7 @@
 // Hai tab: ?loai=bai (bài đăng), ?loai=bl (bình luận). Chỉ ẩn/hiện, không xóa cứng; mọi lần ẩn/hiện đều bắt buộc lý do và ghi nhật ký.
 // A-33: bài sinh viên đã tự xóa ("Đã xóa") không được hiện lại. Admin chỉ chuyển qua lại Hiển thị <-> Bị ẩn.
 require_once __DIR__ . '/../core/bootstrap.php';
+require_once __DIR__ . '/../core/CongDongHelper.php';
 Auth::requireAdmin(BASE_URL . '/admin/login.php');   // A-04
 
 $pdo  = Database::pdo();
@@ -10,7 +11,7 @@ $loai = (string) ($_GET['loai'] ?? 'bai');
 if (!in_array($loai, ['bai', 'bl'], true)) {
     $loai = 'bai';
 }
-$dsTT = $loai === 'bai' ? ['Hiển thị', 'Bị ẩn', 'Đã xóa'] : ['Hiển thị', 'Bị ẩn'];
+$dsTT = ['Hiển thị', 'Bị ẩn', 'Đã xóa'];
 $tt   = (string) ($_GET['tt'] ?? '');
 if (!in_array($tt, $dsTT, true)) {
     $tt = '';
@@ -47,8 +48,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         // Điều kiện theo trạng thái cũ: bài "Đã xóa" không khớp nên không hiện lại được (A-33);
         // bấm lặp hoặc hai quản trị viên cùng bấm thì chỉ ghi nhật ký một lần.
-        $up = $pdo->prepare("UPDATE $bang SET TrangThai = ? WHERE $cotKhoa = ? AND TrangThai = ?");
-        $up->execute([$moi, $ma, $cu]);
+        // Bài đăng: ghi nhận ai ẩn. Quản trị ẩn thì chủ bài không tự mở lại được; hiện lại thì xóa dấu.
+        $set  = 'TrangThai = ?';
+        $thamUp = [$moi];
+        if (($bang === 'BAIDANG' && CongDongHelper::coCotNguoiAn())
+            || ($bang === 'BINHLUAN' && CongDongHelper::coCotNguoiAnBL())) {
+            $set .= ', NguoiAn = ?';
+            $thamUp[] = $moi === 'Bị ẩn' ? 'Quản trị' : null;
+        }
+        $up = $pdo->prepare("UPDATE $bang SET $set WHERE $cotKhoa = ? AND TrangThai = ?");
+        $up->execute(array_merge($thamUp, [$ma, $cu]));
         $doi = $up->rowCount() === 1;
         if ($doi) {
             NhatKy::ghi($tenNk, $doiTuong . ' #' . $ma, 'Lý do: ' . $ly);
@@ -138,7 +147,7 @@ require __DIR__ . '/layout/header.php';
   <a class="btn btn-phu" href="?loai=<?= e($loai) ?>">Xóa lọc</a>
 </form>
 
-<p class="nhan-phu">Chỉ ẩn/hiện lại, không xóa cứng. Bắt buộc nhập lý do, lý do được ghi vào nhật ký quản trị.<?= $loai === 'bai' ? ' Bài sinh viên đã tự xóa không hiện lại được.' : '' ?></p>
+<p class="nhan-phu">Chỉ ẩn/hiện lại, không xóa cứng. Bắt buộc nhập lý do, lý do được ghi vào nhật ký quản trị.<?= $loai === 'bai' ? ' Bài' : ' Bình luận' ?> sinh viên đã tự xóa không hiện lại được.</p>
 
 <div class="card">
   <?php if (!$ds): ?>

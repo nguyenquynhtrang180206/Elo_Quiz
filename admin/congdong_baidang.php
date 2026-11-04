@@ -108,14 +108,18 @@ require __DIR__ . '/layout/header.php';
   <?php else: ?>
     <table>
       <tr><th>Người bình luận</th><th>Nội dung</th><th>Ngày</th><th>Trạng thái</th><th>Xử lý</th></tr>
-      <?php foreach ($binhLuan as $c): $dangHien = $c['TrangThai'] === 'Hiển thị'; ?>
+      <?php foreach ($binhLuan as $c): $dangHien = $c['TrangThai'] === 'Hiển thị'; $daXoa = $c['TrangThai'] === 'Đã xóa'; ?>
         <tr>
           <td><a href="<?= e(BASE_URL) ?>/admin/nguoidung_chitiet.php?id=<?= (int) $c['MaND'] ?>"><?= e($c['HoTen']) ?></a></td>
           <td class="cot-noidung xuong-dong"><?= e($c['NoiDung']) ?></td>
           <td><?= e(date('d/m/Y H:i', strtotime($c['NgayBinhLuan']))) ?></td>
           <td><span class="dam <?= e($lopTT[$c['TrangThai']] ?? '') ?>"><?= e($c['TrangThai']) ?></span></td>
           <td class="cot-thaotac">
-            <?php form_kiem_duyet($dangHien ? 'an_bl' : 'hien_bl', (int) $c['MaBinhLuan'], $id, $dangHien ? 'Ẩn' : 'Hiện lại', $dangHien); ?>
+            <?php if ($daXoa): ?>
+              <span class="nhan-phu">Sinh viên đã xóa</span>
+            <?php else: ?>
+              <?php form_kiem_duyet($dangHien ? 'an_bl' : 'hien_bl', (int) $c['MaBinhLuan'], $id, $dangHien ? 'Ẩn' : 'Hiện lại', $dangHien); ?>
+            <?php endif; ?>
           </td>
         </tr>
       <?php endforeach; ?>

@@ -49,6 +49,11 @@ html.cosmic-on body { background:transparent; }
 
 .container { max-width:1120px; margin:0 auto; padding:16px; }
 
+/* Chiều cao tối thiểu 1 màn hình: trang ngắn thì footer nằm sát đáy màn hình, chỉ lướt xuống mới thấy khi trang dài */
+body { display:flex; flex-direction:column; min-height:100vh; min-height:100dvh; }
+body > main.container { flex:1 0 auto; width:100%; }
+body > header, body > footer { flex:none; }
+
 /* ---- Card (glassmorphism) ---- */
 .card {
   background:#0a1430;                       /* nền đặc, không trong suốt */

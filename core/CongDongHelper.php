@@ -5,6 +5,62 @@ class CongDongHelper
     public const TIEU_DE_TOI_DA   = 200;
     public const NOI_DUNG_TOI_DA  = 5000;
     public const BINH_LUAN_TOI_DA = 1000;
+    public const SUA_TOI_DA_PHUT  = 15;   // chủ bài chỉ được sửa trong 15 phút kể từ lúc đăng
+
+    // Cột BAIDANG.NguoiAn (ai đã ẩn bài: 'Chủ bài' hoặc 'Quản trị') có thể chưa tạo (chạy migration_baidang_nguoian.sql)
+    public static function coCotNguoiAn(): bool
+    {
+        static $co = null;
+        if ($co === null) {
+            $co = Database::pdo()->query("SHOW COLUMNS FROM BAIDANG LIKE 'NguoiAn'")->fetch() !== false;
+        }
+        return $co;
+    }
+
+    // Còn trong thời hạn sửa bài không ($giayTuDang = số giây từ lúc đăng, tính bằng TIMESTAMPDIFF để cùng múi giờ với DB)
+    public static function conHanSua(int $giayTuDang): bool
+    {
+        return $giayTuDang <= self::SUA_TOI_DA_PHUT * 60;
+    }
+
+    // Chủ bài ẩn bài của mình (bài đang "Hiển thị"). Cần cột NguoiAn để sau này biết ai được mở lại.
+    public static function anBai(PDO $pdo, int $maBai, int $maND): bool
+    {
+        if (!self::coCotNguoiAn()) {
+            return false;
+        }
+        $st = $pdo->prepare(
+            "UPDATE BAIDANG SET TrangThai = 'Bị ẩn', NguoiAn = 'Chủ bài'
+              WHERE MaBaiDang = ? AND MaND = ? AND TrangThai = 'Hiển thị'"
+        );
+        $st->execute([$maBai, $maND]);
+        return $st->rowCount() === 1;
+    }
+
+    // Chủ bài mở lại bài: chỉ khi chính chủ bài đã ẩn. Bài do Quản trị ẩn (hoặc bài cũ chưa rõ ai ẩn) thì không mở được.
+    public static function moLaiBai(PDO $pdo, int $maBai, int $maND): bool
+    {
+        if (!self::coCotNguoiAn()) {
+            return false;
+        }
+        $st = $pdo->prepare(
+            "UPDATE BAIDANG SET TrangThai = 'Hiển thị', NguoiAn = NULL
+              WHERE MaBaiDang = ? AND MaND = ? AND TrangThai = 'Bị ẩn' AND NguoiAn = 'Chủ bài'"
+        );
+        $st->execute([$maBai, $maND]);
+        return $st->rowCount() === 1;
+    }
+
+    // Chủ bài xóa bài mọi lúc (chuyển sang "Đã xóa", không xóa cứng)
+    public static function xoaBai(PDO $pdo, int $maBai, int $maND): bool
+    {
+        $st = $pdo->prepare(
+            "UPDATE BAIDANG SET TrangThai = 'Đã xóa'
+              WHERE MaBaiDang = ? AND MaND = ? AND TrangThai IN ('Hiển thị', 'Bị ẩn')"
+        );
+        $st->execute([$maBai, $maND]);
+        return $st->rowCount() === 1;
+    }
 
     // Các môn đang mở: [MaMon => TenMon]
     public static function monDangMo(): array
@@ -49,21 +105,171 @@ class CongDongHelper
         return [$loi, $maMon];
     }
 
+    // "Vừa xong", "5 phút trước", "2 giờ trước", "3 ngày trước"; quá 30 ngày thì in ngày d/m/Y
+    public static function truocDo(string $thoiGian): string
+    {
+        $t = strtotime($thoiGian);
+        if (!$t) {
+            return '';
+        }
+        $d = max(0, time() - $t);
+        if ($d < 60) {
+            return 'Vừa xong';
+        }
+        if ($d < 3600) {
+            return floor($d / 60) . ' phút trước';
+        }
+        if ($d < 86400) {
+            return floor($d / 3600) . ' giờ trước';
+        }
+        if ($d < 30 * 86400) {
+            return floor($d / 86400) . ' ngày trước';
+        }
+        return date('d/m/Y', $t);
+    }
+
+    // Ảnh đại diện tròn; chưa có ảnh thì hiện chữ cái cuối của tên
+    public static function avatar(string $hoTen, ?string $anh, string $lop = 'cd-av'): string
+    {
+        if ($anh !== null && $anh !== '') {
+            $src = (defined('BASE_URL') ? BASE_URL : '') . '/' . ltrim($anh, '/');
+            return '<img class="' . e($lop) . '" src="' . e($src) . '" alt="' . e($hoTen) . '" loading="lazy">';
+        }
+        $tu = preg_split('/\s+/u', trim($hoTen)) ?: ['?'];
+        $chu = mb_strtoupper(mb_substr((string) end($tu), 0, 1));
+        return '<span class="' . e($lop) . ' cd-av-chu" aria-hidden="true">' . e($chu) . '</span>';
+    }
+
     public static function ngay(string $thoiGian): string
     {
         $t = strtotime($thoiGian);
         return $t ? date('d/m/Y H:i', $t) : '';
     }
 
-    // Thông báo một lần sau khi đăng, sửa, xóa
-    public static function flash(?string $noiDung = null): ?string
+    // Thông báo một lần sau khi đăng, sửa, xóa ($khoa riêng cho thông báo của bình luận)
+    public static function flash(?string $noiDung = null, string $khoa = 'flash_cd'): ?string
     {
         if ($noiDung !== null) {
-            $_SESSION['flash_cd'] = $noiDung;
+            $_SESSION[$khoa] = $noiDung;
             return null;
         }
-        $m = $_SESSION['flash_cd'] ?? null;
-        unset($_SESSION['flash_cd']);
+        $m = $_SESSION[$khoa] ?? null;
+        unset($_SESSION[$khoa]);
         return $m;
+    }
+
+    // ================= BÌNH LUẬN: thích, sửa (15 phút), ẩn, mở lại, xóa =================
+    // Cần chạy migration_binhluan.sql (cột BINHLUAN.NguoiAn, trạng thái "Đã xóa", bảng LUOTTHICH_BL)
+
+    // Đã có cột NguoiAn và trạng thái "Đã xóa" cho bình luận chưa (điều kiện để ẩn/mở lại/xóa)
+    public static function coCotNguoiAnBL(): bool
+    {
+        static $co = null;
+        if ($co === null) {
+            $co = Database::pdo()->query("SHOW COLUMNS FROM BINHLUAN LIKE 'NguoiAn'")->fetch() !== false;
+        }
+        return $co;
+    }
+
+    // Đã có bảng LUOTTHICH_BL chưa (điều kiện để hiện nút thích bình luận)
+    public static function coLikeBL(): bool
+    {
+        static $co = null;
+        if ($co === null) {
+            try {
+                Database::pdo()->query('SELECT 1 FROM LUOTTHICH_BL LIMIT 1');
+                $co = true;
+            } catch (PDOException $ex) {
+                $co = false;
+            }
+        }
+        return $co;
+    }
+
+    // Thích / bỏ thích một bình luận (chỉ bình luận đang hiển thị, thuộc bài đang hiển thị)
+    public static function thichBL(PDO $pdo, int $maBL, int $maND): void
+    {
+        if (!self::coLikeBL()) {
+            return;
+        }
+        $st = $pdo->prepare(
+            "SELECT COUNT(*) FROM BINHLUAN c JOIN BAIDANG b ON b.MaBaiDang = c.MaBaiDang
+              WHERE c.MaBinhLuan = ? AND c.TrangThai = 'Hiển thị' AND b.TrangThai = 'Hiển thị'"
+        );
+        $st->execute([$maBL]);
+        if ((int) $st->fetchColumn() !== 1) {
+            return;
+        }
+        $st = $pdo->prepare('INSERT IGNORE INTO LUOTTHICH_BL (MaBinhLuan, MaND) VALUES (?, ?)');
+        $st->execute([$maBL, $maND]);
+        if ($st->rowCount() === 0) {
+            $st = $pdo->prepare('DELETE FROM LUOTTHICH_BL WHERE MaBinhLuan = ? AND MaND = ?');
+            $st->execute([$maBL, $maND]);
+        }
+    }
+
+    // Sửa bình luận của mình, chỉ trong 15 phút kể từ lúc viết. Trả về 'ok' | 'het_han' | 'khong'
+    public static function suaBL(PDO $pdo, int $maBL, int $maND, string $noiDung): string
+    {
+        $st = $pdo->prepare(
+            'SELECT MaND, TrangThai, TIMESTAMPDIFF(SECOND, NgayBinhLuan, NOW()) AS Giay FROM BINHLUAN WHERE MaBinhLuan = ?'
+        );
+        $st->execute([$maBL]);
+        $r = $st->fetch();
+        if (!$r || (int) $r['MaND'] !== $maND || $r['TrangThai'] !== 'Hiển thị') {
+            return 'khong';
+        }
+        if (!self::conHanSua((int) $r['Giay'])) {
+            return 'het_han';
+        }
+        $up = $pdo->prepare(
+            "UPDATE BINHLUAN SET NoiDung = ?
+              WHERE MaBinhLuan = ? AND MaND = ? AND TrangThai = 'Hiển thị'
+                AND NgayBinhLuan >= DATE_SUB(NOW(), INTERVAL " . self::SUA_TOI_DA_PHUT . ' MINUTE)'
+        );
+        $up->execute([$noiDung, $maBL, $maND]);
+        return 'ok';
+    }
+
+    // Chủ bình luận ẩn bình luận của mình (mọi lúc)
+    public static function anBL(PDO $pdo, int $maBL, int $maND): bool
+    {
+        if (!self::coCotNguoiAnBL()) {
+            return false;
+        }
+        $st = $pdo->prepare(
+            "UPDATE BINHLUAN SET TrangThai = 'Bị ẩn', NguoiAn = 'Chủ bình luận'
+              WHERE MaBinhLuan = ? AND MaND = ? AND TrangThai = 'Hiển thị'"
+        );
+        $st->execute([$maBL, $maND]);
+        return $st->rowCount() === 1;
+    }
+
+    // Mở lại: chỉ khi chính chủ đã ẩn. Bình luận do Quản trị ẩn (hoặc cũ chưa rõ ai ẩn) thì không mở được.
+    public static function moLaiBL(PDO $pdo, int $maBL, int $maND): bool
+    {
+        if (!self::coCotNguoiAnBL()) {
+            return false;
+        }
+        $st = $pdo->prepare(
+            "UPDATE BINHLUAN SET TrangThai = 'Hiển thị', NguoiAn = NULL
+              WHERE MaBinhLuan = ? AND MaND = ? AND TrangThai = 'Bị ẩn' AND NguoiAn = 'Chủ bình luận'"
+        );
+        $st->execute([$maBL, $maND]);
+        return $st->rowCount() === 1;
+    }
+
+    // Chủ bình luận xóa mọi lúc (chuyển sang "Đã xóa", không xóa cứng)
+    public static function xoaBL(PDO $pdo, int $maBL, int $maND): bool
+    {
+        if (!self::coCotNguoiAnBL()) {
+            return false;
+        }
+        $st = $pdo->prepare(
+            "UPDATE BINHLUAN SET TrangThai = 'Đã xóa'
+              WHERE MaBinhLuan = ? AND MaND = ? AND TrangThai IN ('Hiển thị', 'Bị ẩn')"
+        );
+        $st->execute([$maBL, $maND]);
+        return $st->rowCount() === 1;
     }
 }

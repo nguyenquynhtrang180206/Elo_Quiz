@@ -9,7 +9,7 @@ CREATE DATABASE IF NOT EXISTS elo_quiz
 USE elo_quiz;
 
 SET FOREIGN_KEY_CHECKS = 0;
-DROP TABLE IF EXISTS NHATKYQUANTRI, BINHLUAN, BAIDANG, BANBE, LICHSUELO, ELOMONHOC,
+DROP TABLE IF EXISTS NHATKYQUANTRI, LUOTTHICH_BL, LUOTTHICH, BINHLUAN, BAIDANG, BANBE, LICHSUELO, ELOMONHOC,
   CHITIETTRALOI, CAUHOITRANDAU, NGUOICHOITRANDAU, TRANDAU, HANGDOIGHEPDOI, DAPAN,
   CAUHOI, LOAIKYTHI, MONHOC, ADMIN, NGUOIDUNG, CAUHINH;
 SET FOREIGN_KEY_CHECKS = 1;
@@ -254,6 +254,7 @@ CREATE TABLE BAIDANG (
   NoiDung    TEXT NOT NULL,
   NgayDang   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   TrangThai  ENUM('Hiển thị','Bị ẩn','Đã xóa') NOT NULL DEFAULT 'Hiển thị',
+  NguoiAn    ENUM('Chủ bài','Quản trị') NULL COMMENT 'Ai đã ẩn bài; NULL khi bài không bị ẩn',
   PRIMARY KEY (MaBaiDang),
   KEY idx_baidang_mon (MaMon, TrangThai, NgayDang),
   KEY idx_baidang_nd (MaND),
@@ -270,7 +271,8 @@ CREATE TABLE BINHLUAN (
   MaND         INT UNSIGNED NOT NULL,
   NoiDung      TEXT NOT NULL,
   NgayBinhLuan DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  TrangThai    ENUM('Hiển thị','Bị ẩn') NOT NULL DEFAULT 'Hiển thị',
+  TrangThai    ENUM('Hiển thị','Bị ẩn','Đã xóa') NOT NULL DEFAULT 'Hiển thị',
+  NguoiAn      ENUM('Chủ bình luận','Quản trị') NULL COMMENT 'Ai đã ẩn bình luận; NULL khi không bị ẩn',
   PRIMARY KEY (MaBinhLuan),
   KEY idx_binhluan_baidang (MaBaiDang, TrangThai),
   KEY idx_binhluan_nd (MaND),
@@ -376,3 +378,26 @@ WHERE TenDangNhap = 'admin';
 -- Chạy một lần trên CSDL elo_quiz. Không cần sửa code ghép đôi: giá trị tự điền lúc INSERT.
 ALTER TABLE TRANDAU
   ADD COLUMN ThoiGianTao DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) AFTER MaLoaiKT;
+
+-- Bảng lượt thích bài đăng (trang Cộng đồng). Chạy một lần trong phpMyAdmin hoặc MySQL.
+-- Mỗi người chỉ thích một bài một lần: khóa chính (MaBaiDang, MaND).
+CREATE TABLE IF NOT EXISTS LUOTTHICH (
+  MaBaiDang  INT UNSIGNED NOT NULL,
+  MaND       INT UNSIGNED NOT NULL,
+  NgayThich  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (MaBaiDang, MaND),
+  KEY idx_luotthich_nd (MaND),
+  CONSTRAINT fk_luotthich_baidang FOREIGN KEY (MaBaiDang) REFERENCES BAIDANG (MaBaiDang),
+  CONSTRAINT fk_luotthich_nd      FOREIGN KEY (MaND)      REFERENCES NGUOIDUNG (MaND)
+) ENGINE=InnoDB;
+
+-- Lượt thích bình luận (mỗi người thích một bình luận một lần)
+CREATE TABLE IF NOT EXISTS LUOTTHICH_BL (
+  MaBinhLuan INT UNSIGNED NOT NULL,
+  MaND       INT UNSIGNED NOT NULL,
+  NgayThich  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (MaBinhLuan, MaND),
+  KEY idx_luotthichbl_nd (MaND),
+  CONSTRAINT fk_luotthichbl_bl FOREIGN KEY (MaBinhLuan) REFERENCES BINHLUAN (MaBinhLuan),
+  CONSTRAINT fk_luotthichbl_nd FOREIGN KEY (MaND)       REFERENCES NGUOIDUNG (MaND)
+) ENGINE=InnoDB;
