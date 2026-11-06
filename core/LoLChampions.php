@@ -1,5 +1,5 @@
 <?php
-// Danh sách Đấu Thần Plants vs Zombies trong Đấu Trường QuizUp Arena
+// Danh sách Đấu Thần Plants vs Zombies trong Đấu Trường QuizUp Arena (Màu Sắc Nhã Nhặn, Cân Đối)
 class LoLChampions
 {
     // Mapping tương thích ngược cho session hoặc dữ liệu cũ
@@ -30,8 +30,9 @@ class LoLChampions
             'tacDungMatch'=> '+20% Điểm Elo khi chiến thắng',
             'tacDungArena'=> 'Tích Năng Lượng Mặt Trời x1.5 điểm cống hiến',
             'buffLoai'    => 'bonus_elo',
-            'mauSac'      => '#FDE047',
-            'mauNen'      => 'linear-gradient(135deg, rgba(253, 224, 71, 0.4), rgba(245, 158, 11, 0.3))'
+            'mauSac'      => '#FBBF24',
+            'mauRgb'      => '251, 191, 36',
+            'mauNen'      => 'linear-gradient(135deg, rgba(251, 191, 36, 0.18), rgba(217, 119, 6, 0.12))'
         ],
         'snowpea' => [
             'id'          => 'snowpea',
@@ -51,7 +52,8 @@ class LoLChampions
             'tacDungArena'=> '+4 Giây suy nghĩ mỗi câu hỏi (19s thay vì 15s)',
             'buffLoai'    => 'extra_time',
             'mauSac'      => '#38BDF8',
-            'mauNen'      => 'linear-gradient(135deg, rgba(56, 189, 248, 0.4), rgba(0, 217, 255, 0.3))'
+            'mauRgb'      => '56, 189, 248',
+            'mauNen'      => 'linear-gradient(135deg, rgba(56, 189, 248, 0.18), rgba(14, 165, 233, 0.12))'
         ],
         'wallnut' => [
             'id'          => 'wallnut',
@@ -71,7 +73,8 @@ class LoLChampions
             'tacDungArena'=> 'Giảm 50% Elo mất khi thua & bảo vệ chuỗi thắng',
             'buffLoai'    => 'elo_shield',
             'mauSac'      => '#D97706',
-            'mauNen'      => 'linear-gradient(135deg, rgba(217, 119, 6, 0.4), rgba(212, 175, 55, 0.3))'
+            'mauRgb'      => '217, 119, 6',
+            'mauNen'      => 'linear-gradient(135deg, rgba(217, 119, 6, 0.18), rgba(180, 83, 9, 0.12))'
         ],
         'buckethead' => [
             'id'          => 'buckethead',
@@ -91,7 +94,8 @@ class LoLChampions
             'tacDungArena'=> 'Không bị trừ chuỗi combo khi chọn sai 1 câu trước Bot',
             'buffLoai'    => 'bot_master',
             'mauSac'      => '#94A3B8',
-            'mauNen'      => 'linear-gradient(135deg, rgba(148, 163, 184, 0.4), rgba(100, 116, 139, 0.3))'
+            'mauRgb'      => '148, 163, 184',
+            'mauNen'      => 'linear-gradient(135deg, rgba(148, 163, 184, 0.18), rgba(100, 116, 139, 0.12))'
         ],
         'flagzombie' => [
             'id'          => 'flagzombie',
@@ -110,8 +114,9 @@ class LoLChampions
             'tacDungMatch'=> 'Hàng chờ ưu tiên số 1, tìm trận siêu tốc dưới 8s',
             'tacDungArena'=> 'Bạo kích x1.5 điểm tốc độ khi trả lời trong 3s',
             'buffLoai'    => 'fast_queue',
-            'mauSac'      => '#EF4444',
-            'mauNen'      => 'linear-gradient(135deg, rgba(239, 68, 68, 0.4), rgba(185, 28, 28, 0.3))'
+            'mauSac'      => '#F87171',
+            'mauRgb'      => '248, 113, 113',
+            'mauNen'      => 'linear-gradient(135deg, rgba(248, 113, 113, 0.18), rgba(220, 38, 38, 0.12))'
         ],
         'drzomboss' => [
             'id'          => 'drzomboss',
@@ -130,8 +135,9 @@ class LoLChampions
             'tacDungMatch'=> 'Áp chế tâm lý đối thủ bằng hào quang tím trên radar',
             'tacDungArena'=> 'Nuốt 1 đáp án sai trong 3 câu hỏi khó nhất',
             'buffLoai'    => 'eliminate_wrong',
-            'mauSac'      => '#A855F7',
-            'mauNen'      => 'linear-gradient(135deg, rgba(168, 85, 247, 0.4), rgba(147, 51, 234, 0.3))'
+            'mauSac'      => '#C084FC',
+            'mauRgb'      => '192, 132, 252',
+            'mauNen'      => 'linear-gradient(135deg, rgba(192, 132, 252, 0.18), rgba(147, 51, 234, 0.12))'
         ]
     ];
 

@@ -61,6 +61,21 @@
     });
   });
 
+  // --- Exam Quiz Multiple-Choice Cards (Giữa kì, Cuối kì, Cả 2) ---
+  var examQuizCards = document.querySelectorAll('.exam-quiz-card');
+  examQuizCards.forEach(function (card) {
+    card.addEventListener('click', function (e) {
+      if (card.classList.contains('is-disabled')) return;
+      examQuizCards.forEach(function (c) { c.classList.remove('is-selected'); });
+      card.classList.add('is-selected');
+      var radio = card.querySelector('input[type="radio"]');
+      if (radio) {
+        radio.checked = true;
+      }
+      playPickSound();
+    });
+  });
+
   // --- Auto-submit when selecting subject ---
   var chonMon = document.getElementById('mon');
   if (chonMon) {

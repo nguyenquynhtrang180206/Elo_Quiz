@@ -20,6 +20,14 @@ class GhepDoi
 
     public static function demCauHoi(PDO $pdo, int $maMon, int $maLoaiKT): int
     {
+        if ($maLoaiKT === 3 || $maLoaiKT === 0) {
+            $sql = "SELECT COUNT(*) FROM CAUHOI c WHERE c.MaMon = ? AND c.TrangThai = 'Hiển thị'
+                 AND (SELECT COUNT(*) FROM DAPAN d WHERE d.MaCauHoi = c.MaCauHoi) BETWEEN 2 AND 4
+                 AND (SELECT COUNT(*) FROM DAPAN d WHERE d.MaCauHoi = c.MaCauHoi AND d.LaDapAnDung = 1) = 1";
+            $st = $pdo->prepare($sql);
+            $st->execute([$maMon]);
+            return (int) $st->fetchColumn();
+        }
         $st = $pdo->prepare('SELECT COUNT(*) FROM CAUHOI c WHERE ' . self::DK_CAU_HOP_LE);
         $st->execute([$maMon, $maLoaiKT]);
         return (int) $st->fetchColumn();
@@ -123,8 +131,16 @@ class GhepDoi
             }
 
             // 4. Chọn ngẫu nhiên đúng số câu hợp lệ (cả hai người dùng chung bộ câu, cùng thứ tự)
-            $st = $pdo->prepare('SELECT c.MaCauHoi FROM CAUHOI c WHERE ' . self::DK_CAU_HOP_LE . ' ORDER BY RAND() LIMIT ' . $soCau);
-            $st->execute([$maMon, $maKT]);
+            if ($maKT === 3 || $maKT === 0) {
+                $st = $pdo->prepare("SELECT c.MaCauHoi FROM CAUHOI c WHERE c.MaMon = ? AND c.TrangThai = 'Hiển thị'
+                     AND (SELECT COUNT(*) FROM DAPAN d WHERE d.MaCauHoi = c.MaCauHoi) BETWEEN 2 AND 4
+                     AND (SELECT COUNT(*) FROM DAPAN d WHERE d.MaCauHoi = c.MaCauHoi AND d.LaDapAnDung = 1) = 1
+                     ORDER BY RAND() LIMIT " . $soCau);
+                $st->execute([$maMon]);
+            } else {
+                $st = $pdo->prepare('SELECT c.MaCauHoi FROM CAUHOI c WHERE ' . self::DK_CAU_HOP_LE . ' ORDER BY RAND() LIMIT ' . $soCau);
+                $st->execute([$maMon, $maKT]);
+            }
             $dsCau = $st->fetchAll(PDO::FETCH_COLUMN);
             if (count($dsCau) < $soCau) {
                 $pdo->rollBack();
@@ -283,8 +299,16 @@ class GhepDoi
         $pdo->beginTransaction();
         try {
             // Chọn ngẫu nhiên câu hỏi
-            $st = $pdo->prepare('SELECT c.MaCauHoi FROM CAUHOI c WHERE ' . self::DK_CAU_HOP_LE . ' ORDER BY RAND() LIMIT ' . $soCau);
-            $st->execute([$maMon, $maKT]);
+            if ($maKT === 3 || $maKT === 0) {
+                $st = $pdo->prepare("SELECT c.MaCauHoi FROM CAUHOI c WHERE c.MaMon = ? AND c.TrangThai = 'Hiển thị'
+                     AND (SELECT COUNT(*) FROM DAPAN d WHERE d.MaCauHoi = c.MaCauHoi) BETWEEN 2 AND 4
+                     AND (SELECT COUNT(*) FROM DAPAN d WHERE d.MaCauHoi = c.MaCauHoi AND d.LaDapAnDung = 1) = 1
+                     ORDER BY RAND() LIMIT " . $soCau);
+                $st->execute([$maMon]);
+            } else {
+                $st = $pdo->prepare('SELECT c.MaCauHoi FROM CAUHOI c WHERE ' . self::DK_CAU_HOP_LE . ' ORDER BY RAND() LIMIT ' . $soCau);
+                $st->execute([$maMon, $maKT]);
+            }
             $dsCau = $st->fetchAll(PDO::FETCH_COLUMN);
             if (count($dsCau) < $soCau) {
                 $pdo->rollBack();

@@ -337,7 +337,8 @@ CREATE TABLE CAUHINH (
 -- =====================================================================
 INSERT INTO LOAIKYTHI (TenLoaiKT, MoTa) VALUES
   ('Giữa kỳ',  'Câu hỏi ôn thi giữa kỳ'),
-  ('Cuối kỳ',  'Câu hỏi ôn thi cuối kỳ');
+  ('Cuối kỳ',  'Câu hỏi ôn thi cuối kỳ'),
+  ('Cả 2',     'Câu hỏi ôn thi cả giữa kỳ và cuối kỳ');
 
 INSERT INTO CAUHINH (TenCauHinh, GiaTri, MoTa) VALUES
   ('SO_CAU',                          '10',   'Số câu mỗi trận (chụp vào CAUHOITRANDAU lúc tạo trận)'),

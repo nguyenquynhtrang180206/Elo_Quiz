@@ -185,6 +185,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $maKT  = (int) ($_POST['loaikt'] ?? 0);
         $loi   = null;
 
+        if ($maKT === 3) {
+            try {
+                $pdo->exec("INSERT IGNORE INTO LOAIKYTHI (MaLoaiKT, TenLoaiKT, MoTa) VALUES (3, 'Cả 2', 'Ôn tập bao gồm cả câu hỏi giữa kỳ và cuối kỳ')");
+            } catch (Throwable $e) {}
+        }
+
         $st = $pdo->prepare("SELECT 1 FROM MONHOC WHERE MaMon = ? AND TrangThai = 'Đang mở'");
         $st->execute([$maMon]);
         $monHopLe = (bool) $st->fetchColumn();
@@ -638,7 +644,30 @@ $tatCaTuong = LoLChampions::DANH_SACH;
     }
     $dsKT = [];
     if ($monChon) {
-        foreach ($pdo->query('SELECT MaLoaiKT, TenLoaiKT FROM LOAIKYTHI ORDER BY MaLoaiKT')->fetchAll() as $k) {
+        $rawKT = $pdo->query('SELECT MaLoaiKT, TenLoaiKT FROM LOAIKYTHI ORDER BY MaLoaiKT')->fetchAll();
+        $hasBoth = false;
+        foreach ($rawKT as $k) {
+            if ((int) $k['MaLoaiKT'] === 3 || mb_stripos($k['TenLoaiKT'], 'cả') !== false) {
+                $hasBoth = true;
+            }
+        }
+        if (!$hasBoth) {
+            try {
+                $pdo->exec("INSERT INTO LOAIKYTHI (MaLoaiKT, TenLoaiKT, MoTa) VALUES (3, 'Cả 2', 'Ôn tập bao gồm cả câu hỏi giữa kỳ và cuối kỳ')");
+                $rawKT = $pdo->query('SELECT MaLoaiKT, TenLoaiKT FROM LOAIKYTHI ORDER BY MaLoaiKT')->fetchAll();
+            } catch (Throwable $e) {}
+        }
+
+        foreach ($rawKT as $k) {
+            $ten = $k['TenLoaiKT'];
+            if (mb_stripos($ten, 'giữa') !== false) {
+                $ten = 'Giữa kì';
+            } elseif (mb_stripos($ten, 'cuối') !== false) {
+                $ten = 'Cuối kì';
+            } elseif (mb_stripos($ten, 'cả') !== false) {
+                $ten = 'Cả 2';
+            }
+            $k['TenHienThi'] = $ten;
             $k['SoCau'] = GhepDoi::demCauHoi($pdo, (int) $monChon['MaMon'], (int) $k['MaLoaiKT']);
             $dsKT[] = $k;
         }
@@ -726,24 +755,14 @@ $tatCaTuong = LoLChampions::DANH_SACH;
                   </div>
                   <noscript><p><button type="submit" class="btn btn-phu">Xác nhận môn</button></p></noscript>
                 </form>
-
-                <!-- Gợi ý nhanh các môn -->
-                <div class="quick-mon-pills-row">
-                  <span class="quick-pick-lbl">Gợi ý nhanh:</span>
-                  <?php $topMons = array_slice($dsMon, 0, 4); foreach ($topMons as $tm): ?>
-                    <button type="button" class="quick-mon-tag <?= (int) $tm['MaMon'] === $mon ? 'is-active' : '' ?>" data-mon-id="<?= (int) $tm['MaMon'] ?>">
-                      <?= e($tm['TenMon']) ?>
-                    </button>
-                  <?php endforeach; ?>
-                </div>
               </div>
 
-              <!-- Bước 2: Chọn loại kỳ thi -->
+              <!-- Bước 2: Chọn hạng mục kỳ thi (Xếp ngang: Giữa kì, Cuối kì, Cả 2 theo kiểu tích trắc nghiệm) -->
               <div class="deck-form-group">
                 <div class="deck-group-header">
                   <span class="step-num-badge">BƯỚC 02</span>
-                  <label for="loaikt" class="deck-group-title">HẠNG MỤC KỲ THI</label>
-                  <?php if ($monChon): ?><span class="deck-group-status ready">✓ Sẵn sàng: Trận 10 câu &middot; Hạn chờ 30s</span><?php endif; ?>
+                  <label class="deck-group-title">HẠNG MỤC KỲ THI</label>
+                  <?php if ($monChon): ?><span class="deck-group-status ready">✓ Sẵn sàng: Trận <?= $soCau ?> câu &middot; Hạn chờ <?= $choToiDa ?>s</span><?php endif; ?>
                 </div>
                 <?php if ($monChon): ?>
                   <form method="post" action="" class="form-arena-queue" id="formVaoHang">
@@ -752,27 +771,37 @@ $tatCaTuong = LoLChampions::DANH_SACH;
                     <input type="hidden" name="mon" value="<?= (int) $monChon['MaMon'] ?>">
                     <input type="hidden" name="tuong_id" value="<?= e($tuongChonId) ?>">
 
-                    <div class="vip-select-wrapper">
-                      <span class="select-icon-svg">
-                        <svg viewBox="0 0 24 24" width="24" height="24" fill="none">
-                          <path d="M6 4h12v4a6 6 0 0 1-12 0V4z" fill="rgba(212, 175, 55, 0.22)" stroke="#D4AF37" stroke-width="2.2"/>
-                          <path d="M6 6H3a2 2 0 0 0-2 2v1a4 4 0 0 0 4 4h1" stroke="#F3DE8A" stroke-width="2"/>
-                          <path d="M18 6h3a2 2 0 0 1 2 2v1a4 4 0 0 1-4 4h-1" stroke="#F3DE8A" stroke-width="2"/>
-                          <path d="M12 14v4M8 20h8" stroke="#D4AF37" stroke-width="2.4" stroke-linecap="round"/>
-                        </svg>
-                      </span>
-                      <select name="loaikt" id="loaikt" class="cosmic-select vip-select">
-                        <?php foreach ($dsKT as $k): ?>
-                          <option value="<?= (int) $k['MaLoaiKT'] ?>" <?= $k['SoCau'] < $soCau ? 'disabled' : '' ?>>
-                            <?= e($k['TenLoaiKT']) ?> (<?= (int) $k['SoCau'] ?> câu khả dụng<?= $k['SoCau'] < $soCau ? ' - Chưa đủ ' . $soCau . ' câu' : '' ?>)
-                          </option>
-                        <?php endforeach; ?>
-                      </select>
-                      <span class="select-chevron-svg">
-                        <svg viewBox="0 0 20 20" width="18" height="18" fill="none">
-                          <path d="M5 7.5L10 12.5L15 7.5" stroke="#00D9FF" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
-                      </span>
+                    <?php 
+                      // Mặc định chọn mục đầu tiên đủ câu hỏi
+                      $firstEligible = null;
+                      foreach ($dsKT as $k) {
+                          if ($k['SoCau'] >= $soCau && $firstEligible === null) {
+                              $firstEligible = (int) $k['MaLoaiKT'];
+                          }
+                      }
+                      if ($firstEligible === null && !empty($dsKT)) {
+                          $firstEligible = (int) $dsKT[0]['MaLoaiKT'];
+                      }
+                    ?>
+                    <div class="exam-quiz-options">
+                      <?php foreach ($dsKT as $k): ?>
+                        <?php 
+                          $duCau = ($k['SoCau'] >= $soCau);
+                          $isDefChecked = ((int)$k['MaLoaiKT'] === $firstEligible);
+                        ?>
+                        <label class="exam-quiz-card <?= $isDefChecked ? 'is-selected' : '' ?> <?= !$duCau ? 'is-disabled' : '' ?>">
+                          <input type="radio" name="loaikt" value="<?= (int) $k['MaLoaiKT'] ?>" <?= $isDefChecked ? 'checked' : '' ?> <?= !$duCau ? 'disabled' : '' ?> class="quiz-radio-input" style="display:none;">
+                          <span class="quiz-radio-indicator" aria-hidden="true">
+                            <span class="quiz-radio-dot"></span>
+                          </span>
+                          <div class="quiz-opt-info">
+                            <span class="quiz-opt-title"><?= e($k['TenHienThi'] ?? $k['TenLoaiKT']) ?></span>
+                            <span class="quiz-opt-sub <?= $duCau ? 'ready' : 'lack' ?>">
+                              <?= (int) $k['SoCau'] ?> câu<?= $duCau ? ' khả dụng' : ' (Chưa đủ ' . $soCau . ')' ?>
+                            </span>
+                          </div>
+                        </label>
+                      <?php endforeach; ?>
                     </div>
 
                     <?php $coThe = array_filter($dsKT, fn($k) => $k['SoCau'] >= $soCau); ?>
@@ -825,9 +854,9 @@ $tatCaTuong = LoLChampions::DANH_SACH;
                       <span class="btn-light-sweep"></span>
                       <span class="btn-sword-svg">
                         <svg viewBox="0 0 24 24" width="24" height="24" fill="none">
-                          <path d="M14.5 17.5L3 6V3h3l11.5 11.5M13 19l2 2 4-4-2-2" stroke="#081436" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
-                          <path d="M9.5 6.5L18 15" stroke="#081436" stroke-width="2" stroke-linecap="round"/>
-                          <path d="M16 3h5v5l-4 4-5-5 4-4z" fill="#081436"/>
+                          <path d="M14.5 17.5L3 6V3h3l11.5 11.5M13 19l2 2 4-4-2-2" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+                          <path d="M9.5 6.5L18 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                          <path d="M16 3h5v5l-4 4-5-5 4-4z" fill="currentColor"/>
                         </svg>
                       </span>
                       <span>TÌM TRẬN NHANH (QUICK MATCH) →</span>
@@ -847,9 +876,9 @@ $tatCaTuong = LoLChampions::DANH_SACH;
           </div>
 
           <!-- CỘT PHẢI: SÂN KHẤU HOLOGAM TƯỚNG 3D VIP PRO (GỌN GÀNG, SANG TRỌNG, KHÔNG RỐI MẮT) -->
-          <div class="deck-right-stage" style="--champ-color: <?= e($tuongHienTai['mauSac']) ?>;">
-            <!-- Vầng hào quang phát sáng phía sau -->
-            <div class="stage-aura" style="background: radial-gradient(circle, <?= e($tuongHienTai['mauSac']) ?>55 0%, transparent 70%);"></div>
+          <div class="deck-right-stage" style="--champ-color: <?= e($tuongHienTai['mauSac']) ?>; --champ-rgb: <?= e($tuongHienTai['mauRgb'] ?? '251, 191, 36') ?>;">
+            <!-- Vầng hào quang dịu nhẹ phía sau -->
+            <div class="stage-aura" style="background: radial-gradient(circle, rgba(<?= e($tuongHienTai['mauRgb'] ?? '251, 191, 36') ?>, 0.14) 0%, transparent 70%);"></div>
 
             <!-- Khung Tranh Hologram Tướng -->
             <div class="stage-champ-card">
@@ -911,64 +940,43 @@ $tatCaTuong = LoLChampions::DANH_SACH;
       <div class="champ-grid">
         <?php foreach ($tatCaTuong as $cid => $c): ?>
           <?php $isChon = ($cid === $tuongChonId); ?>
-          <div class="champ-card <?= $isChon ? 'is-selected' : '' ?> faction-<?= e($c['phe']) ?>" style="--champ-color: <?= e($c['mauSac']) ?>;" data-champ-id="<?= e($cid) ?>" data-faction="<?= e($c['phe']) ?>">
-            <div class="pet-corner tl"></div><div class="pet-corner tr"></div>
-            <div class="pet-corner bl"></div><div class="pet-corner br"></div>
-
+          <div class="champ-card <?= $isChon ? 'is-selected' : '' ?> faction-<?= e($c['phe']) ?>" style="--champ-color: <?= e($c['mauSac']) ?>; --champ-rgb: <?= e($c['mauRgb'] ?? '251, 191, 36') ?>;" data-champ-id="<?= e($cid) ?>" data-faction="<?= e($c['phe']) ?>">
             <div class="champ-card-inner">
-              <!-- Avatar Circle 3D -->
+              <!-- Avatar Circle 3D Nét Đẹp -->
               <div class="champ-avatar-wrap">
                 <div class="champ-avatar-ring">
                   <img src="<?= e(BASE_URL . $c['avatar']) ?>" alt="<?= e($c['ten']) ?>" class="champ-avatar-img">
                 </div>
                 <?php if ($isChon): ?>
-                  <span class="champ-status-badge selected-badge">✓ ĐÃ XUẤT TRẬN</span>
+                  <span class="champ-status-badge selected-badge">✓ ĐÃ CHỌN</span>
                 <?php endif; ?>
               </div>
 
-              <!-- Champ Info -->
+              <!-- Thông tin Đấu Thần Tinh Gọn, Khóa Cứng Vị Trí Đồng Bộ -->
               <div class="champ-details">
-                <div class="champ-header-row">
-                  <span class="champ-faction-tag <?= $c['phe'] === 'plant' ? 'is-plant' : 'is-zombie' ?>">
-                    <?= $c['pheIcon'] ?> <?= e($c['pheTen']) ?>
-                  </span>
-                  <h3 class="champ-name"><?= e($c['ten']) ?></h3>
-                  <span class="champ-title-tag"><?= e($c['danhHieu']) ?></span>
+                <div class="champ-header-block">
+                  <div class="champ-header-meta">
+                    <span class="champ-faction-tag <?= $c['phe'] === 'plant' ? 'is-plant' : 'is-zombie' ?>">
+                      <?= $c['pheIcon'] ?> <?= e($c['pheTen']) ?>
+                    </span>
+                    <span class="champ-title-tag" title="<?= e($c['danhHieu']) ?>"><?= e($c['danhHieu']) ?></span>
+                  </div>
+                  <h3 class="champ-name" title="<?= e($c['ten']) ?>"><?= e($c['ten']) ?></h3>
                 </div>
 
-                <!-- Buff Highlight -->
+                <!-- Năng lực Đặc Biệt (Buff Cốt Lõi - Chiều Cao Cố Định) -->
                 <div class="champ-buff-showcase">
-                  <div class="buff-showcase-item">
+                  <div class="buff-showcase-item" title="⚡ Tìm trận: <?= e($c['tacDungMatch']) ?>">
                     <span class="buff-lbl match-lbl">⚡ TÌM TRẬN:</span>
                     <span class="buff-val"><?= e($c['tacDungMatch']) ?></span>
                   </div>
-                  <div class="buff-showcase-item">
+                  <div class="buff-showcase-item" title="⚔️ Trong phòng: <?= e($c['tacDungArena']) ?>">
                     <span class="buff-lbl arena-lbl">⚔️ TRONG PHÒNG:</span>
                     <span class="buff-val"><?= e($c['tacDungArena']) ?></span>
                   </div>
                 </div>
 
-                <div class="champ-role-row">
-                  <span class="role-pill"><?= e($c['vaiTro']) ?></span>
-                  <span class="subject-pill">
-                    <svg viewBox="0 0 20 20" width="14" height="14" fill="none" style="vertical-align: text-bottom; margin-right: 3px;">
-                      <path d="M3 16.5A1.5 1.5 0 0 1 4.5 15H17" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-                      <path d="M4.5 2H17v16H4.5A1.5 1.5 0 0 1 3 16.5v-13A1.5 1.5 0 0 1 4.5 2z" stroke="currentColor" stroke-width="1.8"/>
-                    </svg>
-                    <?= e($c['monHoc']) ?>
-                  </span>
-                </div>
-
-                <!-- Skill Badges -->
-                <div class="champ-skills-box">
-                  <div class="skill-item"><span class="key-badge">Q</span> <span class="skill-name"><?= e($c['chieuQ']) ?></span></div>
-                  <div class="skill-item"><span class="key-badge ult-badge">R</span> <span class="skill-name"><?= e($c['chieuR']) ?></span></div>
-                </div>
-
-                <!-- Quote -->
-                <p class="champ-quote">“<?= e($c['cauNoi']) ?>”</p>
-
-                <!-- Action Button -->
+                <!-- Nút Bấm Xuất Trận - Khóa Đáy Đồng Bộ -->
                 <form method="post" action="" class="form-chon-tuong">
                   <?= csrf_field() ?>
                   <input type="hidden" name="hanh_dong" value="chon_tuong">
@@ -979,7 +987,7 @@ $tatCaTuong = LoLChampions::DANH_SACH;
                     </button>
                   <?php else: ?>
                     <button type="submit" class="btn-select-champ">
-                      <span>XUẤT CHIẾN CÙNG ĐẤU THẦN NÀY →</span>
+                      <span>CHỌN CHIẾN BINH NÀY</span>
                     </button>
                   <?php endif; ?>
                 </form>
