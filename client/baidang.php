@@ -66,20 +66,91 @@ if ($bai && $_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             $ins = $pdo->prepare('INSERT INTO BINHLUAN (MaBaiDang, MaND, NoiDung) VALUES (?, ?, ?)');
             $ins->execute([$id, $maND, $noiDungBL]);
+            $maBLMoi = (int) $pdo->lastInsertId();
+
+            // Tính trang cuối và link trực tiếp đến bình luận
+            $trangCuoi = max(1, (int) ceil($demBL() / 10));
+            $linkBL = BASE_URL . '/client/baidang.php?id=' . $id . '&page=' . $trangCuoi . '#bl-' . $maBLMoi;
+            $trichDoan = mb_substr(strip_tags($noiDungBL), 0, 120);
+
+            // Tên người gửi bình luận
+            $stUser = $pdo->prepare('SELECT HoTen FROM NGUOIDUNG WHERE MaND = ?');
+            $stUser->execute([$maND]);
+            $tenNguoiGui = (string) ($stUser->fetchColumn() ?: 'Một thành viên');
+
+            // 1. Thông báo cho chủ bài viết (nếu không phải tự mình bình luận bài của mình)
+            $chuBaiMaND = (int) $bai['MaND'];
+            if ($chuBaiMaND > 0 && $chuBaiMaND !== $maND) {
+                $tieuDeTB = $tenNguoiGui . ' đã bình luận bài viết của bạn: "' . mb_substr($bai['TieuDe'], 0, 60) . '"';
+                ThongBaoHelper::taoThongBao(
+                    $pdo,
+                    $chuBaiMaND,
+                    $maND,
+                    $id,
+                    $maBLMoi,
+                    'binhluan',
+                    $tieuDeTB,
+                    $trichDoan,
+                    $linkBL
+                );
+            }
+
+            // 2. Thông báo cho người được trả lời (nếu rep bình luận của người khác)
+            $repMaND = (int) ($_POST['rep_mand'] ?? 0);
+            if ($repMaND <= 0 && preg_match('/@([^\s,:;!?\n\r]+)/u', $noiDungBL, $khop)) {
+                $tenTag = trim($khop[1]);
+                if ($tenTag !== '') {
+                    $stND = $pdo->prepare("SELECT MaND FROM NGUOIDUNG WHERE HoTen LIKE ? AND MaND <> ? LIMIT 1");
+                    $stND->execute(['%' . $tenTag . '%', $maND]);
+                    $repMaND = (int) $stND->fetchColumn();
+                }
+            }
+
+            if ($repMaND > 0 && $repMaND !== $maND && $repMaND !== $chuBaiMaND) {
+                $tieuDeTB = $tenNguoiGui . ' đã trả lời bình luận của bạn trong: "' . mb_substr($bai['TieuDe'], 0, 60) . '"';
+                ThongBaoHelper::taoThongBao(
+                    $pdo,
+                    $repMaND,
+                    $maND,
+                    $id,
+                    $maBLMoi,
+                    'rep_bl',
+                    $tieuDeTB,
+                    $trichDoan,
+                    $linkBL
+                );
+            }
 
             // Quay về trang cuối để thấy bình luận vừa viết
-            $trangCuoi = max(1, (int) ceil($demBL() / 10));
-            redirect(BASE_URL . '/client/baidang.php?id=' . $id . '&page=' . $trangCuoi . '#form-bl');
+            redirect($linkBL);
         }
     } elseif ($hanhDong === 'thich') {
-        // ---- Thích / bỏ thích bài đăng này (giống ở bảng tin) ----
+        // ---- Thả lửa / dập lửa bài đăng này ----
+        $daThich = false;
         if ($coLike) {
             $st = $pdo->prepare('INSERT IGNORE INTO LUOTTHICH (MaBaiDang, MaND) VALUES (?, ?)');
             $st->execute([$id, $maND]);
             if ($st->rowCount() === 0) {
                 $st = $pdo->prepare('DELETE FROM LUOTTHICH WHERE MaBaiDang = ? AND MaND = ?');
                 $st->execute([$id, $maND]);
+                $daThich = false;
+            } else {
+                $daThich = true;
             }
+        }
+        $stCount = $pdo->prepare('SELECT COUNT(*) FROM LUOTTHICH WHERE MaBaiDang = ?');
+        $stCount->execute([$id]);
+        $soThichMoi = (int) $stCount->fetchColumn();
+
+        if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode([
+                'ok' => true,
+                'daThich' => $daThich,
+                'soThich' => $soThichMoi,
+                'thongBao' => $daThich ? '🔥 Đã tiếp lửa bài viết!' : 'Đã bỏ thả lửa.'
+            ]);
+            exit;
         }
         redirect(BASE_URL . '/client/baidang.php?id=' . $id);
     } elseif (in_array($hanhDong, ['like_bl', 'an_bl', 'mo_bl', 'xoa_bl', 'sua_bl'], true)) {
@@ -92,6 +163,23 @@ if ($bai && $_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($hanhDong === 'like_bl') {
             CongDongHelper::thichBL($pdo, $maBL, $maND);
+            $stCount = $pdo->prepare('SELECT COUNT(*) FROM LUOTTHICH_BL WHERE MaBinhLuan = ?');
+            $stCount->execute([$maBL]);
+            $soThichMoi = (int) $stCount->fetchColumn();
+            $stDaThich = $pdo->prepare('SELECT COUNT(*) FROM LUOTTHICH_BL WHERE MaBinhLuan = ? AND MaND = ?');
+            $stDaThich->execute([$maBL, $maND]);
+            $daThichBL = ((int) $stDaThich->fetchColumn()) > 0;
+
+            if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+                header('Content-Type: application/json; charset=utf-8');
+                echo json_encode([
+                    'ok' => true,
+                    'daThich' => $daThichBL,
+                    'soThich' => $soThichMoi,
+                    'thongBao' => $daThichBL ? '🔥 Đã tiếp lửa bình luận!' : 'Đã bỏ thả lửa.'
+                ]);
+                exit;
+            }
             $veLai();
         } elseif ($hanhDong === 'an_bl') {
             $ok = CongDongHelper::anBL($pdo, $maBL, $maND);
@@ -179,6 +267,27 @@ $cssTrang = 'baidang';
 $jsTrang  = 'baidang';
 require __DIR__ . '/layout/header.php';
 ?>
+<!-- Reusable Cyber Gradients for Community SVG Icons -->
+<svg width="0" height="0" style="position: absolute; width: 0; height: 0; overflow: hidden; pointer-events: none;" aria-hidden="true" focusable="false">
+  <defs>
+    <linearGradient id="cdGradGold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="30%" stop-color="#FFF0A3"/>
+      <stop offset="70%" stop-color="#F59E0B"/>
+      <stop offset="100%" stop-color="#9A5B02"/>
+    </linearGradient>
+    <linearGradient id="cdGradCyan" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#E0F2FE"/>
+      <stop offset="50%" stop-color="#38BDF8"/>
+      <stop offset="100%" stop-color="#0284C7"/>
+    </linearGradient>
+    <linearGradient id="cdGradFlame" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FEF08A"/>
+      <stop offset="45%" stop-color="#F97316"/>
+      <stop offset="100%" stop-color="#EF4444"/>
+    </linearGradient>
+  </defs>
+</svg>
 <div class="container">
   <p><a href="<?= e(BASE_URL) ?>/client/congdong.php">&laquo; Về bảng tin</a></p>
 
@@ -199,12 +308,15 @@ require __DIR__ . '/layout/header.php';
       <p><?= nl2br(e($bai['NoiDung'])) ?></p>
 
       <?php if ($coLike): ?>
-        <form method="post" action="?id=<?= (int) $id ?>" class="form-dong">
+        <form method="post" action="?id=<?= (int) $id ?>" class="form-dong cd-like-form" data-bai-id="<?= (int) $id ?>">
           <?= csrf_field() ?>
           <input type="hidden" name="hanh_dong" value="thich">
-          <button type="submit" class="cd-chi-so cd-thich<?= (int) $bai['DaThich'] > 0 ? ' da-thich' : '' ?>"
-                  title="<?= (int) $bai['DaThich'] > 0 ? 'Bỏ thích' : 'Thích bài này' ?>">
-            👍 <?= (int) $bai['SoThich'] ?>
+          <button type="submit" class="cd-chi-so cd-tha-lua<?= (int) $bai['DaThich'] > 0 ? ' da-tha-lua' : '' ?>"
+                  title="<?= (int) $bai['DaThich'] > 0 ? 'Dập lửa (Bỏ thả lửa)' : 'Thả lửa bài viết này' ?>">
+            <span class="flame-icon">
+              <?= CongDongHelper::iconLua(18) ?>
+            </span>
+            <span class="flame-count"><?= (int) $bai['SoThich'] ?></span>
           </button>
         </form>
       <?php endif; ?>
@@ -212,7 +324,10 @@ require __DIR__ . '/layout/header.php';
       <?php if ((int) $bai['MaND'] === $maND): ?>
         <div class="thao-tac-chu-bai">
           <?php if (CongDongHelper::conHanSua((int) $bai['GiayTuDang'])): ?>
-            <a class="btn btn-phu" href="<?= e(BASE_URL) ?>/client/suabai.php?id=<?= (int) $id ?>">Sửa bài</a>
+            <a class="btn btn-phu" href="<?= e(BASE_URL) ?>/client/suabai.php?id=<?= (int) $id ?>">
+              <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="vertical-align: -1.5px; margin-right: 3px;" aria-hidden="true"><path d="M11 2.5l2.5 2.5-8 8H3v-2.5l8-8z"/></svg>
+              Sửa bài
+            </a>
           <?php else: ?>
             <span class="meta">Đã quá <?= CongDongHelper::SUA_TOI_DA_PHUT ?> phút kể từ lúc đăng nên không thể sửa bài.</span>
           <?php endif; ?>
@@ -221,14 +336,20 @@ require __DIR__ . '/layout/header.php';
                   data-xac-nhan="Ẩn bài đăng này? Bạn có thể mở lại trong mục Bài của tôi.">
               <?= csrf_field() ?>
               <input type="hidden" name="hanh_dong" value="an">
-              <button type="submit" class="btn btn-phu">Ẩn bài</button>
+              <button type="submit" class="btn btn-phu">
+                <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" style="vertical-align: -1.5px; margin-right: 3px;" aria-hidden="true"><path d="M2 8s2.5-4.5 6-4.5S14 8 14 8s-2.5 4.5-6 4.5S2 8 2 8z"/><circle cx="8" cy="8" r="2"/></svg>
+                Ẩn bài
+              </button>
             </form>
           <?php endif; ?>
           <form method="post" action="?id=<?= (int) $id ?>" class="form-dong"
                 data-xac-nhan="Xóa bài đăng này?">
             <?= csrf_field() ?>
             <input type="hidden" name="hanh_dong" value="xoa">
-            <button type="submit" class="btn btn-phu">Xóa bài</button>
+            <button type="submit" class="btn btn-phu">
+              <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="vertical-align: -1.5px; margin-right: 3px;" aria-hidden="true"><path d="M3 4.5h10M6 4.5V3a1 1 0 011-1h2a1 1 0 011 1v1.5M4.5 4.5v8.5a1.5 1.5 0 001.5 1.5h4a1.5 1.5 0 001.5-1.5V4.5"/></svg>
+              Xóa bài
+            </button>
           </form>
         </div>
       <?php endif; ?>
@@ -281,20 +402,42 @@ require __DIR__ . '/layout/header.php';
           <?php if (!$moSua): ?>
           <div class="thao-tac-bl">
             <?php if ($dangAn): ?>
-              <span class="cd-chi-so">👍 <?= (int) $c['SoThich'] ?></span>
+              <span class="cd-chi-so cd-tha-lua-static" title="Lượt thả lửa">
+                <?= CongDongHelper::iconLua(16) ?>
+                <span class="flame-count"><?= (int) $c['SoThich'] ?></span>
+              </span>
             <?php elseif ($coLikeBL): ?>
-              <form method="post" action="?id=<?= (int) $id ?>" class="form-dong">
+              <form method="post" action="?id=<?= (int) $id ?>" class="form-dong cd-like-bl-form" data-bl-id="<?= (int) $c['MaBinhLuan'] ?>">
                 <?= csrf_field() ?>
                 <input type="hidden" name="hanh_dong" value="like_bl">
                 <?= $truongBL ?>
-                <button type="submit" class="cd-chi-so cd-thich<?= (int) $c['DaThich'] > 0 ? ' da-thich' : '' ?>"
-                        title="<?= (int) $c['DaThich'] > 0 ? 'Bỏ thích' : 'Thích bình luận này' ?>">👍 <?= (int) $c['SoThich'] ?></button>
+                <button type="submit" class="cd-chi-so cd-tha-lua<?= (int) $c['DaThich'] > 0 ? ' da-tha-lua' : '' ?>"
+                        title="<?= (int) $c['DaThich'] > 0 ? 'Dập lửa (Bỏ thả lửa)' : 'Thả lửa bình luận này' ?>">
+                  <span class="flame-icon">
+                    <?= CongDongHelper::iconLua(16) ?>
+                  </span>
+                  <span class="flame-count"><?= (int) $c['SoThich'] ?></span>
+                </button>
               </form>
+            <?php endif; ?>
+
+            <?php if (!$dangAn && $maND !== null): ?>
+              <button type="button" class="cd-chi-so btn-rep-bl"
+                      data-ten="<?= e($c['HoTen']) ?>"
+                      data-mand="<?= (int) $c['MaND'] ?>"
+                      data-bl-id="<?= (int) $c['MaBinhLuan'] ?>"
+                      title="Trả lời bình luận của <?= e($c['HoTen']) ?>">
+                <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -1.5px; margin-right: 3px;" aria-hidden="true"><path d="M14 7.5c0 3-2.5 5.5-5.5 5.5-1 0-2-.3-2.8-.7L2 13.5l1.2-3.1C2.5 9.6 2 8.6 2 7.5 2 4.5 4.5 2 7.5 2S14 4.5 14 7.5z"/></svg>
+                <span>Trả lời</span>
+              </button>
             <?php endif; ?>
 
             <?php if ($laChu): ?>
               <?php if ($conSua): ?>
-                <a class="btn btn-phu btn-nho" href="?id=<?= (int) $id ?><?= $trangHt > 1 ? '&amp;page=' . $trangHt : '' ?>&amp;sua=<?= (int) $c['MaBinhLuan'] ?>#bl-<?= (int) $c['MaBinhLuan'] ?>">Sửa</a>
+                <a class="btn btn-phu btn-nho" href="?id=<?= (int) $id ?><?= $trangHt > 1 ? '&amp;page=' . $trangHt : '' ?>&amp;sua=<?= (int) $c['MaBinhLuan'] ?>#bl-<?= (int) $c['MaBinhLuan'] ?>">
+                  <svg viewBox="0 0 16 16" width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="vertical-align: -1px; margin-right: 2px;" aria-hidden="true"><path d="M11 2.5l2.5 2.5-8 8H3v-2.5l8-8z"/></svg>
+                  Sửa
+                </a>
               <?php endif; ?>
 
               <?php if ($coAnBL): ?>
@@ -304,14 +447,20 @@ require __DIR__ . '/layout/header.php';
                     <?= csrf_field() ?>
                     <input type="hidden" name="hanh_dong" value="an_bl">
                     <?= $truongBL ?>
-                    <button type="submit" class="btn btn-phu btn-nho">Ẩn</button>
+                    <button type="submit" class="btn btn-phu btn-nho">
+                      <svg viewBox="0 0 16 16" width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.8" style="vertical-align: -1px; margin-right: 2px;" aria-hidden="true"><path d="M2 8s2.5-4.5 6-4.5S14 8 14 8s-2.5 4.5-6 4.5S2 8 2 8z"/><circle cx="8" cy="8" r="2"/></svg>
+                      Ẩn
+                    </button>
                   </form>
                 <?php elseif ($c['NguoiAn'] === 'Chủ bình luận'): ?>
                   <form method="post" action="?id=<?= (int) $id ?>" class="form-dong">
                     <?= csrf_field() ?>
                     <input type="hidden" name="hanh_dong" value="mo_bl">
                     <?= $truongBL ?>
-                    <button type="submit" class="btn btn-phu btn-nho">Mở lại</button>
+                    <button type="submit" class="btn btn-phu btn-nho">
+                      <svg viewBox="0 0 16 16" width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.8" style="vertical-align: -1px; margin-right: 2px;" aria-hidden="true"><rect x="3" y="7" width="10" height="7" rx="1.5"/><path d="M5.5 7V4.5a2.5 2.5 0 015 0V7"/></svg>
+                      Mở lại
+                    </button>
                   </form>
                 <?php else: ?>
                   <span class="meta">Bình luận này do quản trị viên ẩn, bạn không thể mở lại.</span>
@@ -322,7 +471,10 @@ require __DIR__ . '/layout/header.php';
                   <?= csrf_field() ?>
                   <input type="hidden" name="hanh_dong" value="xoa_bl">
                   <?= $truongBL ?>
-                  <button type="submit" class="btn btn-phu btn-nho">Xóa</button>
+                  <button type="submit" class="btn btn-phu btn-nho">
+                    <svg viewBox="0 0 16 16" width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="vertical-align: -1px; margin-right: 2px;" aria-hidden="true"><path d="M3 4.5h10M6 4.5V3a1 1 0 011-1h2a1 1 0 011 1v1.5M4.5 4.5v8.5a1.5 1.5 0 001.5 1.5h4a1.5 1.5 0 001.5-1.5V4.5"/></svg>
+                    Xóa
+                  </button>
                 </form>
               <?php endif; ?>
             <?php endif; ?>
@@ -343,16 +495,78 @@ require __DIR__ . '/layout/header.php';
         <?php if ($maND === null): ?>
           <p class="meta"><a href="<?= e(BASE_URL) ?>/client/login.php">Đăng nhập</a> để viết bình luận.</p>
         <?php else: ?>
-        <form method="post" action="?id=<?= (int) $id ?>" novalidate>
+        <form method="post" action="?id=<?= (int) $id ?>" novalidate id="formDangBL">
           <?= csrf_field() ?>
           <input type="hidden" name="hanh_dong" value="binhluan">
+          <input type="hidden" name="rep_mand" id="rep_mand" value="">
+          <input type="hidden" name="rep_bl_id" id="rep_bl_id" value="">
+
+          <div class="cd-rep-indicator" id="repIndicator" style="display:none;">
+            <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="#38BDF8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -2px; margin-right: 4px;" aria-hidden="true"><path d="M14 7.5c0 3-2.5 5.5-5.5 5.5-1 0-2-.3-2.8-.7L2 13.5l1.2-3.1C2.5 9.6 2 8.6 2 7.5 2 4.5 4.5 2 7.5 2S14 4.5 14 7.5z"/></svg>
+            <span>Đang trả lời <strong id="repTenDisplay">@Tên</strong></span>
+            <button type="button" class="btn-cancel-rep" id="btnCancelRep" title="Hủy trả lời">&times;</button>
+          </div>
+
           <label for="noi_dung">Viết bình luận</label>
-          <textarea id="noi_dung" name="noi_dung" maxlength="1000" required><?= e($noiDungBL) ?></textarea>
-          <p><button type="submit" class="btn">Gửi bình luận</button></p>
+          <textarea id="noi_dung" name="noi_dung" maxlength="1000" placeholder="Chia sẻ lời giải hoặc trả lời thảo luận..." required><?= e($noiDungBL) ?></textarea>
+          <p>
+            <button type="submit" class="btn btn-dang-bai-gradient">
+              <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -2px; margin-right: 5px;" aria-hidden="true"><path d="M14 2L7 9M14 2L9.5 14l-2.5-5-5-2.5L14 2z"/></svg>
+              Gửi bình luận
+            </button>
+          </p>
         </form>
         <?php endif; ?>
       </div>
     </div>
   <?php endif; ?>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  var textarea = document.getElementById('noi_dung');
+  var repMandInput = document.getElementById('rep_mand');
+  var repBlIdInput = document.getElementById('rep_bl_id');
+  var repIndicator = document.getElementById('repIndicator');
+  var repTenDisplay = document.getElementById('repTenDisplay');
+  var btnCancelRep = document.getElementById('btnCancelRep');
+
+  document.querySelectorAll('.btn-rep-bl').forEach(function (btn) {
+    btn.addEventListener('click', function (e) {
+      e.preventDefault();
+      var ten = this.getAttribute('data-ten') || '';
+      var mand = this.getAttribute('data-mand') || '';
+      var blId = this.getAttribute('data-bl-id') || '';
+
+      if (repMandInput) repMandInput.value = mand;
+      if (repBlIdInput) repBlIdInput.value = blId;
+      if (repTenDisplay) repTenDisplay.textContent = '@' + ten;
+      if (repIndicator) repIndicator.style.display = 'inline-flex';
+
+      if (textarea) {
+        var prefix = '@' + ten + ' ';
+        if (!textarea.value.startsWith(prefix)) {
+          textarea.value = prefix + textarea.value;
+        }
+        var formBL = document.getElementById('form-bl');
+        if (formBL) {
+          formBL.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        textarea.focus();
+      }
+    });
+  });
+
+  if (btnCancelRep) {
+    btnCancelRep.addEventListener('click', function () {
+      if (repMandInput) repMandInput.value = '';
+      if (repBlIdInput) repBlIdInput.value = '';
+      if (repIndicator) repIndicator.style.display = 'none';
+      if (textarea && textarea.value.startsWith('@')) {
+        textarea.value = textarea.value.replace(/^@[^\s]+\s*/, '');
+      }
+    });
+  }
+});
+</script>
 <?php require __DIR__ . '/layout/footer.php'; ?>

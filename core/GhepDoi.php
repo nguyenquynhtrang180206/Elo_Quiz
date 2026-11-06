@@ -51,7 +51,7 @@ class GhepDoi
     public static function thuGhep(PDO $pdo, int $maND, bool $choPhepBot = true): ?int
     {
         $base     = max(1, Config::int('NGUONG_ELO_GHEP_DOI', 100));
-        $choToiDa = max(1, Config::int('THOI_GIAN_CHO_GHEP_TOI_DA', 30));
+        $choToiDa = max(1, Config::int('THOI_GIAN_CHO_GHEP_TOI_DA', 60));
         $soCau    = max(1, Config::int('SO_CAU', 10));
         $buoc     = self::BUOC_NOI_GIAY;
 
@@ -267,7 +267,7 @@ class GhepDoi
             return (int) $id;
         }
         $hash = password_hash('bot_arena_2026', PASSWORD_DEFAULT);
-        $pdo->prepare("INSERT INTO NGUOIDUNG (HoTen, Email, MatKhau, TrangThai, Lop, Khoa) VALUES ('Yasuo [Đấu Thần Máy]', 'bot@quizup.arena', ?, 'Hoạt động', 'AI Arena', 'Đấu Thần Liên Minh')")
+        $pdo->prepare("INSERT INTO NGUOIDUNG (HoTen, Email, MatKhau, TrangThai, Lop, Khoa) VALUES ('Zombie Máy AI [Buckethead]', 'bot@quizup.arena', ?, 'Hoạt động', 'AI Arena', 'Đấu Thần PvZ Arena')")
             ->execute([$hash]);
         return (int) $pdo->lastInsertId();
     }
@@ -281,7 +281,14 @@ class GhepDoi
         }
 
         // Chọn ngẫu nhiên tên Tướng Bot cho sống động
-        $dsTuongNames = ['Yasuo [Đấu Thần Máy]', 'Ahri [Hồ Ly Máy]', 'Zed [Bóng Ma AI]', 'Lee Sin [Thần Quyền AI]', 'Jinx [Xạ Thủ AI]'];
+        $dsTuongNames = [
+            'Zombie Máy AI [Buckethead]',
+            'Tiến Sĩ Zomboss [AI Thông Minh]',
+            'Chiến Binh Flag Zombie [AI]',
+            'Cây Đậu Băng [AI Thách Đấu]',
+            'Hoa Hướng Dương [AI Vui Vẻ]',
+            'Quả Óc Chó [AI Kiên Cường]'
+        ];
         $tenBot = $dsTuongNames[array_rand($dsTuongNames)];
         $pdo->prepare("UPDATE NGUOIDUNG SET HoTen = ? WHERE MaND = ?")->execute([$tenBot, $maBot]);
 

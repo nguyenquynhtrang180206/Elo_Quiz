@@ -248,7 +248,7 @@ try {
 </footer>
 
 <?php foreach ((array) ($jsTrang ?? []) as $f): ?>
-<script src="<?= e(BASE_URL) ?>/assets/js/client/<?= e($f) ?>.js"></script>
+<script src="<?= e(BASE_URL) ?>/assets/js/client/<?= e($f) ?>.js?v=<?= (int) @filemtime(__DIR__ . '/../../assets/js/client/' . $f . '.js') ?>"></script>
 <?php endforeach; ?>
 </body>
 </html>

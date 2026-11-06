@@ -404,3 +404,24 @@ CREATE TABLE IF NOT EXISTS LUOTTHICH_BL (
   CONSTRAINT fk_luotthichbl_bl FOREIGN KEY (MaBinhLuan) REFERENCES BINHLUAN (MaBinhLuan),
   CONSTRAINT fk_luotthichbl_nd FOREIGN KEY (MaND)       REFERENCES NGUOIDUNG (MaND)
 ) ENGINE=InnoDB;
+
+-- Bảng thông báo người dùng (Thông báo khi có người bình luận, trả lời bình luận, v.v.)
+CREATE TABLE IF NOT EXISTS THONGBAO (
+  MaTB        INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  MaND        INT UNSIGNED NOT NULL COMMENT 'Người nhận thông báo',
+  MaNguoiGui  INT UNSIGNED NOT NULL COMMENT 'Người thực hiện hành động',
+  MaBaiDang   INT UNSIGNED NOT NULL COMMENT 'Bài viết liên quan',
+  MaBinhLuan  INT UNSIGNED NULL COMMENT 'Bình luận liên quan nếu có',
+  Loai        VARCHAR(30) NOT NULL DEFAULT 'binhluan' COMMENT 'binhluan, rep_bl, thich_bai, v.v.',
+  TieuDe      VARCHAR(255) NOT NULL,
+  NoiDung     VARCHAR(500) NULL,
+  LienKet     VARCHAR(255) NOT NULL,
+  DaDoc       TINYINT(1) NOT NULL DEFAULT 0,
+  NgayTao     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (MaTB),
+  KEY idx_thongbao_user (MaND, DaDoc, NgayTao),
+  KEY idx_thongbao_baidang (MaBaiDang),
+  CONSTRAINT fk_thongbao_nd       FOREIGN KEY (MaND)       REFERENCES NGUOIDUNG (MaND) ON DELETE CASCADE,
+  CONSTRAINT fk_thongbao_nguoigui FOREIGN KEY (MaNguoiGui) REFERENCES NGUOIDUNG (MaND) ON DELETE CASCADE,
+  CONSTRAINT fk_thongbao_baidang  FOREIGN KEY (MaBaiDang)  REFERENCES BAIDANG (MaBaiDang) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

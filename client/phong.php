@@ -96,7 +96,7 @@ require __DIR__ . '/layout/header.php';
         <!-- Blue Player -->
         <div class="vs-fighter-card blue-side">
           <div class="fighter-glow-ring" style="border-color: <?= e($tuongToi['mauSac']) ?>; box-shadow: 0 0 30px <?= e($tuongToi['mauSac']) ?>66;">
-            <img src="<?= e(BASE_URL . $tuongToi['avatar']) ?>" alt="<?= e($tuongToi['ten']) ?>" class="fighter-img">
+            <img src="<?= e(BASE_URL . $tuongToi['avatar'] . '?v=2') ?>" alt="<?= e($tuongToi['ten']) ?>" class="fighter-img">
           </div>
           <div class="fighter-name-box">
             <span class="fighter-side-tag blue">ĐỘI XANH (BẠN)</span>
@@ -118,7 +118,7 @@ require __DIR__ . '/layout/header.php';
         <!-- Red Opponent -->
         <div class="vs-fighter-card red-side">
           <div class="fighter-glow-ring" style="border-color: <?= e($tuongDoiThu['mauSac']) ?>; box-shadow: 0 0 30px <?= e($tuongDoiThu['mauSac']) ?>66;">
-            <img src="<?= e(BASE_URL . $tuongDoiThu['avatar']) ?>" alt="<?= e($tuongDoiThu['ten']) ?>" class="fighter-img">
+            <img src="<?= e(BASE_URL . $tuongDoiThu['avatar'] . '?v=2') ?>" alt="<?= e($tuongDoiThu['ten']) ?>" class="fighter-img">
           </div>
           <div class="fighter-name-box">
             <span class="fighter-side-tag red">ĐỘI ĐỎ (ĐỐI THỦ)</span>
@@ -169,7 +169,7 @@ require __DIR__ . '/layout/header.php';
         <div class="combat-fighter blue-corner" id="blueFighter">
           <div class="fighter-podium">
             <div class="fighter-avatar-box" id="myAvatarBox" style="border-color: <?= e($tuongToi['mauSac']) ?>; box-shadow: 0 0 25px <?= e($tuongToi['mauSac']) ?>88;">
-              <img src="<?= e(BASE_URL . $tuongToi['avatar']) ?>" alt="<?= e($tuongToi['ten']) ?>" class="combat-avatar-img" id="myChampAvatar">
+              <img src="<?= e(BASE_URL . $tuongToi['avatar'] . '?v=2') ?>" alt="<?= e($tuongToi['ten']) ?>" class="combat-avatar-img" id="myChampAvatar">
               <div class="hit-red-overlay"></div>
               <div class="stun-stars" id="myStunStars" style="display: none;">💫</div>
             </div>
@@ -237,7 +237,7 @@ require __DIR__ . '/layout/header.php';
         <div class="combat-fighter red-corner" id="redFighter">
           <div class="fighter-podium reverse">
             <div class="fighter-avatar-box" id="oppAvatarBox" style="border-color: <?= e($tuongDoiThu['mauSac']) ?>; box-shadow: 0 0 25px <?= e($tuongDoiThu['mauSac']) ?>88;">
-              <img src="<?= e(BASE_URL . $tuongDoiThu['avatar']) ?>" alt="<?= e($tuongDoiThu['ten']) ?>" class="combat-avatar-img" id="oppChampAvatar">
+              <img src="<?= e(BASE_URL . $tuongDoiThu['avatar'] . '?v=2') ?>" alt="<?= e($tuongDoiThu['ten']) ?>" class="combat-avatar-img" id="oppChampAvatar">
               <div class="hit-red-overlay"></div>
               <div class="stun-stars" id="oppStunStars" style="display: none;">💫</div>
             </div>
@@ -347,7 +347,7 @@ require __DIR__ . '/layout/header.php';
         <!-- Player Box -->
         <div class="podium-card <?= $isWin ? 'winner' : '' ?>">
           <div class="podium-avatar-glow" style="border-color: <?= e($tuongToi['mauSac']) ?>;">
-            <img src="<?= e(BASE_URL . $tuongToi['avatar']) ?>" alt="<?= e($tuongToi['ten']) ?>" class="podium-img">
+            <img src="<?= e(BASE_URL . $tuongToi['avatar'] . '?v=2') ?>" alt="<?= e($tuongToi['ten']) ?>" class="podium-img">
           </div>
           <div class="podium-name-tag">BẠN &middot; <?= e($toi['HoTen']) ?></div>
           <div class="podium-champ-name" style="color: <?= e($tuongToi['mauSac']) ?>;"><?= e($tuongToi['ten']) ?></div>
@@ -365,7 +365,7 @@ require __DIR__ . '/layout/header.php';
         <!-- Opponent Box -->
         <div class="podium-card <?= $isLose ? 'winner' : '' ?>">
           <div class="podium-avatar-glow" style="border-color: <?= e($tuongDoiThu['mauSac']) ?>;">
-            <img src="<?= e(BASE_URL . $tuongDoiThu['avatar']) ?>" alt="<?= e($tuongDoiThu['ten']) ?>" class="podium-img">
+            <img src="<?= e(BASE_URL . $tuongDoiThu['avatar'] . '?v=2') ?>" alt="<?= e($tuongDoiThu['ten']) ?>" class="podium-img">
           </div>
           <div class="podium-name-tag">ĐỐI THỦ &middot; <?= e($doiThu['HoTen']) ?></div>
           <div class="podium-champ-name" style="color: <?= e($tuongDoiThu['mauSac']) ?>;"><?= e($tuongDoiThu['ten']) ?></div>

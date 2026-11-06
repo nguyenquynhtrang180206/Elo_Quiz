@@ -76,11 +76,90 @@
     });
   });
 
-  // --- Auto-submit when selecting subject ---
+  // --- Cyber Propose Subject Modal Logic ---
+  function openProposeModal() {
+    var modal = document.getElementById('cyberProposeModal');
+    if (!modal) return;
+    modal.classList.add('is-open');
+    modal.style.setProperty('display', 'flex', 'important');
+    document.body.classList.add('modal-open');
+    try { playPickSound(); } catch (err) {}
+    setTimeout(function () {
+      var input = document.getElementById('modal_ten_mon');
+      if (input) {
+        input.focus();
+        input.select();
+      }
+    }, 120);
+  }
+
+  function closeProposeModal() {
+    var modal = document.getElementById('cyberProposeModal');
+    if (!modal) return;
+    modal.classList.remove('is-open');
+    modal.style.setProperty('display', 'none', 'important');
+    document.body.classList.remove('modal-open');
+  }
+
+  window.openProposeModal = openProposeModal;
+  window.closeProposeModal = closeProposeModal;
+
+  var btnOpenPropose = document.getElementById('btnOpenProposeModal');
+  var pillOpenPropose = document.getElementById('proposeQuickPill');
+  var btnClosePropose = document.getElementById('btnCloseProposeModal');
+  var btnCancelPropose = document.getElementById('btnCancelProposeModal');
+  var proposeBackdrop = document.getElementById('proposeModalBackdrop');
+
+  if (btnOpenPropose) {
+    btnOpenPropose.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      openProposeModal();
+    });
+  }
+  if (pillOpenPropose) {
+    pillOpenPropose.addEventListener('click', function (e) {
+      if (e.target.closest('a')) return;
+      openProposeModal();
+    });
+  }
+  if (btnClosePropose) {
+    btnClosePropose.addEventListener('click', function (e) {
+      e.preventDefault();
+      closeProposeModal();
+    });
+  }
+  if (btnCancelPropose) {
+    btnCancelPropose.addEventListener('click', function (e) {
+      e.preventDefault();
+      closeProposeModal();
+    });
+  }
+  if (proposeBackdrop) {
+    proposeBackdrop.addEventListener('click', function (e) {
+      e.preventDefault();
+      closeProposeModal();
+    });
+  }
+  window.addEventListener('keydown', function (e) {
+    var modal = document.getElementById('cyberProposeModal');
+    if (e.key === 'Escape' && modal && (modal.classList.contains('is-open') || modal.style.display !== 'none')) {
+      closeProposeModal();
+    }
+  });
+
+  // --- Auto-submit when selecting subject (with intercept for __propose__) ---
   var chonMon = document.getElementById('mon');
   if (chonMon) {
+    var previousMonVal = chonMon.value;
     chonMon.addEventListener('change', function () {
+      if (chonMon.value === '__propose__') {
+        chonMon.value = previousMonVal;
+        openProposeModal();
+        return;
+      }
       if (chonMon.value) {
+        previousMonVal = chonMon.value;
         chonMon.form.submit();
       }
     });
@@ -182,7 +261,8 @@
     var toggleBotUrl = radarCard.getAttribute('data-toggle-bot-url');
     var resetTimerUrl = radarCard.getAttribute('data-reset-timer-url');
     var phongUrl = radarCard.getAttribute('data-phong-url');
-    var choToiDaSec = parseInt(radarCard.getAttribute('data-cho-toi-da') || 30, 10) || 30;
+    var choToiDaSec = parseInt(radarCard.getAttribute('data-cho-toi-da') || 60, 10) || 60;
+    var nguongEloVal = parseInt(radarCard.getAttribute('data-nguong-elo') || 100, 10) || 100;
     var choPhepBot = (radarCard.getAttribute('data-cho-phep-bot') === '1');
     var daChoSec = parseInt(dachoRawInput ? dachoRawInput.value : 0, 10) || 0;
     var matchFound = false;
@@ -193,6 +273,34 @@
       var sec = s % 60;
       return (m < 10 ? '0' : '') + m + ':' + (sec < 10 ? '0' : '') + sec;
     }
+
+    // Hàm đồng bộ hiển thị toàn bộ giao diện theo cấu hình Admin (cập nhật tức thời khi Admin đổi)
+    function syncConfigUI() {
+      var radarMaxLimit = document.getElementById('radarMaxLimit');
+      if (radarMaxLimit) {
+        radarMaxLimit.textContent = '/ ' + formatTime(choToiDaSec);
+      }
+      var radarMaxBadge = document.getElementById('radarMaxBadge');
+      if (radarMaxBadge) {
+        radarMaxBadge.textContent = 'GIỚI HẠN: ' + choToiDaSec + ' GIÂY';
+      }
+      var pvpTimeoutTitle = document.querySelector('.pvp-timeout-title');
+      if (pvpTimeoutTitle) {
+        pvpTimeoutTitle.textContent = 'HẾT ' + choToiDaSec + ' GIÂY TÌM KIẾM NGƯỜI THẬT';
+      }
+      var btnPvpRetryText = document.querySelector('#btnPvpRetry strong');
+      if (btnPvpRetryText) {
+        btnPvpRetryText.textContent = 'TÌM TIẾP ' + choToiDaSec + ' GIÂY NỮA';
+      }
+      if (choPhepBot) {
+        if (modeLiveName) modeLiveName.textContent = 'Tự ghép Máy sau ' + choToiDaSec + 's';
+        if (logModeText) logModeText.textContent = 'Tự động ghép Đấu Thần Máy nếu sau ' + choToiDaSec + 's không có người thật';
+      }
+      updateProgressBar();
+    }
+
+    // Đồng bộ hiển thị ban đầu
+    syncConfigUI();
 
     function updateProgressBar() {
       if (radarTimerFill) {
@@ -216,16 +324,19 @@
       dachoClock.textContent = formatTime(daChoSec);
       updateProgressBar();
 
-      // Dynamic Esports Radar Logs
+      // Dynamic Esports Radar Logs: Bán kính nới rộng theo NGUONG_ELO_GHEP_DOI của Admin
       if (logLine2) {
-        if (daChoSec <= 6) {
-          logLine2.innerHTML = '<span class="log-bullet pulse"></span> Đang quét đối thủ trong bán kính Elo ±100...';
-        } else if (daChoSec <= 18) {
-          logLine2.innerHTML = '<span class="log-bullet pulse"></span> Mở rộng bán kính tìm kiếm Elo ±200...';
-        } else if (daChoSec <= 26) {
-          logLine2.innerHTML = '<span class="log-bullet pulse"></span> Đang kết nối tín hiệu Đấu Thần đối thủ...';
+        var radius = nguongEloVal * (1 + Math.floor(daChoSec / 10));
+        if (daChoSec < choToiDaSec - 4) {
+          if (daChoSec <= 6) {
+            logLine2.innerHTML = '<span class="log-bullet pulse"></span> Đang quét đối thủ trong bán kính Elo ±' + radius + '...';
+          } else if (daChoSec <= 15) {
+            logLine2.innerHTML = '<span class="log-bullet pulse"></span> Mở rộng bán kính tìm kiếm Elo ±' + radius + '...';
+          } else {
+            logLine2.innerHTML = '<span class="log-bullet pulse"></span> Tăng tốc rà quét toàn máy chủ (Elo ±' + radius + ')...';
+          }
         } else {
-          logLine2.innerHTML = '<span class="log-bullet pulse" style="background:#F59E0B;"></span> Sắp chạm mốc 30 giây...';
+          logLine2.innerHTML = '<span class="log-bullet pulse" style="background:#F59E0B;"></span> Sắp chạm mốc ' + choToiDaSec + ' giây...';
         }
       }
 
@@ -242,7 +353,7 @@
         pvpTimeoutOverlay.style.display = 'flex';
       }
       if (logLine2) {
-        logLine2.innerHTML = '<span class="log-bullet" style="background:#F59E0B;box-shadow:0 0 10px #F59E0B;"></span> <strong>Đã hết 30s tìm người. Vui lòng chọn hướng xử lý bên trên!</strong>';
+        logLine2.innerHTML = '<span class="log-bullet" style="background:#F59E0B;box-shadow:0 0 10px #F59E0B;"></span> <strong>Đã hết ' + choToiDaSec + 's tìm người. Vui lòng chọn hướng xử lý bên trên!</strong>';
       }
     }
 
@@ -256,6 +367,16 @@
         .then(function (res) { return res.json(); })
         .then(function (data) {
           isPolling = false;
+          if (data.choToiDa) {
+            var newChoToiDa = parseInt(data.choToiDa, 10);
+            if (newChoToiDa && newChoToiDa !== choToiDaSec) {
+              choToiDaSec = newChoToiDa;
+              syncConfigUI();
+            }
+          }
+          if (data.nguongElo) {
+            nguongEloVal = parseInt(data.nguongElo, 10) || nguongEloVal;
+          }
           if (data.coTran && data.maTran) {
             matchFound = true;
             clearInterval(timerInterval);
@@ -275,7 +396,7 @@
               window.location.href = phongUrl + data.maTran;
             }, 1200);
           } else if (data.pvpTimeout) {
-            // PvP 30s expired without bot
+            // PvP timeout expired without bot
             triggerPvpTimeout();
           } else if (!data.dangCho) {
             // Cancelled or removed
@@ -303,8 +424,8 @@
                 btnRadarModeToggle.classList.remove('is-pvp');
                 btnRadarModeToggle.classList.add('is-bot');
                 if (modeLiveIcon) modeLiveIcon.textContent = '🤖';
-                if (modeLiveName) modeLiveName.textContent = 'Tự ghép Máy sau 30s';
-                if (logModeText) logModeText.textContent = 'Tự động ghép Đấu Thần Máy nếu sau 30s không có người thật';
+                if (modeLiveName) modeLiveName.textContent = 'Tự ghép Máy sau ' + choToiDaSec + 's';
+                if (logModeText) logModeText.textContent = 'Tự động ghép Đấu Thần Máy nếu sau ' + choToiDaSec + 's không có người thật';
               } else {
                 btnRadarModeToggle.classList.remove('is-bot');
                 btnRadarModeToggle.classList.add('is-pvp');
@@ -318,7 +439,7 @@
       });
     }
 
-    // 4. Retry PvP Search for another 30 seconds
+    // 4. Retry PvP Search for another period
     if (btnPvpRetry && resetTimerUrl) {
       btnPvpRetry.addEventListener('click', function () {
         playPickSound();
@@ -336,7 +457,7 @@
               }
               isPvpTimeoutPaused = false;
               if (logLine2) {
-                logLine2.innerHTML = '<span class="log-bullet pulse"></span> Đã gia hạn hàng chờ 30 giây! Đang tiếp tục quét...';
+                logLine2.innerHTML = '<span class="log-bullet pulse"></span> Đã gia hạn hàng chờ ' + choToiDaSec + ' giây! Đang tiếp tục quét...';
               }
             }
           })

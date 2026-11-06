@@ -8,13 +8,14 @@ class CongDongHelper
     public const SUA_TOI_DA_PHUT  = 15;   // chủ bài chỉ được sửa trong 15 phút kể từ lúc đăng
 
     // Phân loại bài đăng (cột BAIDANG.LoaiBai). 'Thảo luận' là loại mặc định cho bài cũ và bài không chọn loại.
-    public const LOAI_BAI     = ['Thảo luận', 'Hỏi đáp', 'Chia sẻ mẹo', 'Tìm bạn ôn thi'];
+    public const LOAI_BAI     = ['Thảo luận', 'Hỏi đáp', 'Chia sẻ mẹo', 'Tìm bạn ôn thi', 'Khác'];
     public const LOAI_MAC_DINH = 'Thảo luận';
     private const LOAI_LOP = [
         'Thảo luận'      => 'cd-loai-tl',
         'Hỏi đáp'        => 'cd-loai-hd',
         'Chia sẻ mẹo'    => 'cd-loai-meo',
         'Tìm bạn ôn thi' => 'cd-loai-ban',
+        'Khác'           => 'cd-loai-khac',
     ];
 
     // Cột BAIDANG.LoaiBai có thể chưa tạo (chạy migration_baidang_loaibai.sql); chưa có thì ẩn mọi chức năng phân loại
@@ -312,13 +313,48 @@ class CongDongHelper
     // ================= HUY HIỆU ELO CẠNH TÊN (không thêm bảng, đọc từ ELOMONHOC) =================
     // Chỉ hiện huy hiệu khi người đó đã đấu từ ngần này trận trở lên ở môn tương ứng (tránh nhãn ảo cho người mới)
     public const HUY_HIEU_TOI_THIEU_TRAN = 5;
-    // [Elo tối thiểu, tên hạng, lớp CSS, biểu tượng], xếp từ cao xuống thấp; điểm khởi đầu là 1000
+    // [Elo tối thiểu, tên hạng, lớp CSS], xếp từ cao xuống thấp; điểm khởi đầu là 1000
     private const HANG_ELO = [
-        [1400, 'Kim cương', 'cd-elo-kc',   '💎'],
-        [1250, 'Vàng',      'cd-elo-vang', '🥇'],
-        [1100, 'Bạc',       'cd-elo-bac',  '🥈'],
-        [0,    'Đồng',      'cd-elo-dong', '🥉'],
+        [1400, 'Kim cương', 'cd-elo-kc'],
+        [1250, 'Vàng',      'cd-elo-vang'],
+        [1100, 'Bạc',       'cd-elo-bac'],
+        [0,    'Đồng',      'cd-elo-dong'],
     ];
+
+    public static function iconLua(int $size = 18): string
+    {
+        return '<svg class="svg-flame" viewBox="0 0 32 32" width="' . $size . '" height="' . $size . '" fill="none" style="vertical-align:-2px;margin-right:3px;display:inline-block;" aria-hidden="true">'
+             . '<defs>'
+             . '<linearGradient id="phxFlameOuter" x1="0" y1="0" x2="0" y2="1">'
+             . '<stop offset="0%" stop-color="#FFF0A3"/><stop offset="20%" stop-color="#FF9500"/><stop offset="60%" stop-color="#FF2D55"/><stop offset="100%" stop-color="#8E0A29"/>'
+             . '</linearGradient>'
+             . '<linearGradient id="phxFlameMid" x1="0" y1="0" x2="0" y2="1">'
+             . '<stop offset="0%" stop-color="#FFFFFF"/><stop offset="30%" stop-color="#FFF59D"/><stop offset="70%" stop-color="#FFB300"/><stop offset="100%" stop-color="#FF5722"/>'
+             . '</linearGradient>'
+             . '<linearGradient id="phxFlameCore" x1="0" y1="0" x2="0" y2="1">'
+             . '<stop offset="0%" stop-color="#FFFFFF"/><stop offset="100%" stop-color="#FFE082"/>'
+             . '</linearGradient>'
+             . '</defs>'
+             . '<path d="M16 2c1 2.8 3.2 5.8 2.2 9.2-.5 1.8-1.8 3.4-2.6 4.8 3.8-.7 7.5 1.3 8.4 5.2 1.1 4.3-1.1 8.8-4.8 10.6 1.5-1.5 2.2-3.4 1.8-5.4-.4-2.4-2.3-4.3-4.8-4.7.7 2.8-.3 5.7-2.3 7.6-2.3 2.2-2.4 5.2-.8 7.6-4.7-.9-8.4-4.2-9.5-8.9-1.4-5.6 1-11.1 5.3-14-.4 2 .4 4.2 1.9 5.6-.1-2.8 1-5.7 3.1-7.7 1.4-1.4 2.5-3.3 2.3-5.3-.4-1.6-.7-3.5-1.1-4.6z" fill="url(#phxFlameOuter)"/>'
+             . '<path d="M16.3 9.5c.6 1.8 1.8 3.8 1.4 5.7-.4 1.1-1.1 2-1.6 2.9 2.4-.4 4.8 1 5.4 3.3.7 2.7-.7 5.6-3 6.7.9-1 1.4-2.2 1.1-3.4-.3-1.5-1.5-2.7-3-3 .4 1.8-.2 3.6-1.5 4.8-1.5 1.4-1.5 3.3-.5 4.8-3-.6-5.3-2.7-6-5.7-.9-3.6.6-7.1 3.4-8.9-.3 1.4.3 2.7 1.2 3.6-.1-1.8.6-3.6 2-4.9.9-.9 1.5-2.1 1.5-3.4-.3-1-.5-2.2-.9-2.9z" fill="url(#phxFlameMid)"/>'
+             . '<path d="M16.4 18c.3 1.1 1 2.3.8 3.4-.2.7-.7 1.2-1 1.7 1.4-.2 2.7.5 3.1 2 .4 1.6-.4 3.2-1.7 3.9.5-.6.8-1.3.7-2-.2-.9-.9-1.6-1.8-1.8.2 1-.1 2-.9 2.8-.9.8-.9 1.9-.3 2.8-1.7-.4-3-1.6-3.5-3.3-.5-2.1.4-4.2 2-5.2-.2.8.2 1.6.7 2.1 0-1.1.4-2.2 1.2-3 .5-.5.9-1.2.9-2-.2-.5-.4-1.2-.5-1.7z" fill="url(#phxFlameCore)"/>'
+             . '<polygon points="16.5,0 17.5,1.8 19.3,2.8 17.5,3.8 16.5,5.6 15.5,3.8 13.7,2.8 15.5,1.8" fill="#FFF"/>'
+             . '</svg>';
+    }
+
+    public static function iconHang(string $css): string
+    {
+        switch ($css) {
+            case 'cd-elo-kc':
+                return '<svg class="svg-elo-rank" viewBox="0 0 16 16" width="13" height="13" fill="none" style="vertical-align:-1.5px;margin-right:3px" aria-hidden="true"><polygon points="8,1.5 14,7.5 8,13.5 2,7.5" fill="#38BDF8" stroke="#E0F2FE" stroke-width="1.3"/><polygon points="8,4 11.5,7.5 8,11 4.5,7.5" fill="#FFF"/></svg>';
+            case 'cd-elo-vang':
+                return '<svg class="svg-elo-rank" viewBox="0 0 16 16" width="13" height="13" fill="none" style="vertical-align:-1.5px;margin-right:3px" aria-hidden="true"><circle cx="8" cy="8" r="6.2" fill="#F59E0B" stroke="#FDE047" stroke-width="1.3"/><polygon points="8,4.2 9.1,6.5 11.6,6.7 9.8,8.4 10.3,10.9 8,9.6 5.7,10.9 6.2,8.4 4.4,6.7 6.9,6.5" fill="#FFF"/></svg>';
+            case 'cd-elo-bac':
+                return '<svg class="svg-elo-rank" viewBox="0 0 16 16" width="13" height="13" fill="none" style="vertical-align:-1.5px;margin-right:3px" aria-hidden="true"><circle cx="8" cy="8" r="6.2" fill="#94A3B8" stroke="#E2E8F0" stroke-width="1.3"/><polygon points="8,4.2 9.1,6.5 11.6,6.7 9.8,8.4 10.3,10.9 8,9.6 5.7,10.9 6.2,8.4 4.4,6.7 6.9,6.5" fill="#FFF"/></svg>';
+            default:
+                return '<svg class="svg-elo-rank" viewBox="0 0 16 16" width="13" height="13" fill="none" style="vertical-align:-1.5px;margin-right:3px" aria-hidden="true"><circle cx="8" cy="8" r="6.2" fill="#B45309" stroke="#FBBF24" stroke-width="1.3"/><polygon points="8,4.2 9.1,6.5 11.6,6.7 9.8,8.4 10.3,10.9 8,9.6 5.7,10.9 6.2,8.4 4.4,6.7 6.9,6.5" fill="#FFF"/></svg>';
+        }
+    }
 
     // Bảng hạng để hiển thị phần mô tả huy hiệu. Đọc thẳng từ HANG_ELO nên đổi mốc điểm ở một chỗ là mô tả tự khớp theo.
     // Trả về từ cao xuống thấp: [['ten' => ..., 'icon' => ..., 'css' => ..., 'tu' => int, 'khoang' => 'chuỗi mô tả khoảng điểm'], ...]
@@ -326,7 +362,7 @@ class CongDongHelper
     {
         $kq   = [];
         $tren = null; // mốc tối thiểu của hạng ngay phía trên
-        foreach (self::HANG_ELO as [$tu, $ten, $css, $icon]) {
+        foreach (self::HANG_ELO as [$tu, $ten, $css]) {
             if ($tren === null) {
                 $khoang = 'từ ' . number_format($tu) . ' trở lên';
             } elseif ($tu <= 0) {
@@ -334,7 +370,7 @@ class CongDongHelper
             } else {
                 $khoang = number_format($tu) . ' – ' . number_format($tren - 1);
             }
-            $kq[] = ['ten' => $ten, 'icon' => $icon, 'css' => $css, 'tu' => $tu, 'khoang' => $khoang];
+            $kq[] = ['ten' => $ten, 'icon' => self::iconHang($css), 'css' => $css, 'tu' => $tu, 'khoang' => $khoang];
             $tren = $tu;
         }
         return $kq;
@@ -395,6 +431,6 @@ class CongDongHelper
         }
         $goiY = 'Elo ' . number_format($d['elo']) . ' môn ' . $d['mon'] . ' · ' . $d['tran'] . ' trận';
         return '<span class="cd-elo ' . $hang[2] . '" title="' . e($goiY) . '">'
-             . $hang[3] . ' ' . e($hang[1]) . ' · ' . number_format($d['elo']) . '</span>';
+             . self::iconHang($hang[2]) . ' ' . e($hang[1]) . ' · ' . number_format($d['elo']) . '</span>';
     }
 }

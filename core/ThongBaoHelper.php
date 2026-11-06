@@ -1,0 +1,217 @@
+<?php
+// Quản lý thông báo người dùng (Đặc biệt thông báo khi có người rep bài, bình luận, v.v.)
+// Đặt tại: core/ThongBaoHelper.php
+class ThongBaoHelper
+{
+    private static ?bool $bangTonTai = null;
+
+    /**
+     * Tự động đảm bảo bảng THONGBAO tồn tại trong CSDL
+     */
+    public static function damBaoBang(): bool
+    {
+        if (self::$bangTonTai !== null) {
+            return self::$bangTonTai;
+        }
+        try {
+            $pdo = Database::pdo();
+            $pdo->exec("
+                CREATE TABLE IF NOT EXISTS THONGBAO (
+                    MaTB        INT UNSIGNED NOT NULL AUTO_INCREMENT,
+                    MaND        INT UNSIGNED NOT NULL COMMENT 'Người nhận thông báo',
+                    MaNguoiGui  INT UNSIGNED NOT NULL COMMENT 'Người thực hiện hành động',
+                    MaBaiDang   INT UNSIGNED NOT NULL COMMENT 'Bài viết liên quan',
+                    MaBinhLuan  INT UNSIGNED NULL COMMENT 'Bình luận liên quan nếu có',
+                    Loai        VARCHAR(30) NOT NULL DEFAULT 'binhluan' COMMENT 'binhluan, rep_bl, thich_bai, v.v.',
+                    TieuDe      VARCHAR(255) NOT NULL,
+                    NoiDung     VARCHAR(500) NULL,
+                    LienKet     VARCHAR(255) NOT NULL,
+                    DaDoc       TINYINT(1) NOT NULL DEFAULT 0,
+                    NgayTao     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    PRIMARY KEY (MaTB),
+                    KEY idx_thongbao_user (MaND, DaDoc, NgayTao),
+                    KEY idx_thongbao_baidang (MaBaiDang)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+            ");
+            self::$bangTonTai = true;
+        } catch (Throwable $e) {
+            self::$bangTonTai = false;
+        }
+        return self::$bangTonTai;
+    }
+
+    /**
+     * Tạo một thông báo mới
+     */
+    public static function taoThongBao(
+        PDO $pdo,
+        int $maNguoiNhan,
+        int $maNguoiGui,
+        int $maBaiDang,
+        ?int $maBinhLuan,
+        string $loai,
+        string $tieuDe,
+        ?string $noiDung,
+        string $lienKet
+    ): bool {
+        // Không gửi thông báo cho chính mình
+        if ($maNguoiNhan <= 0 || $maNguoiNhan === $maNguoiGui) {
+            return false;
+        }
+        if (!self::damBaoBang()) {
+            return false;
+        }
+        try {
+            $st = $pdo->prepare("
+                INSERT INTO THONGBAO (MaND, MaNguoiGui, MaBaiDang, MaBinhLuan, Loai, TieuDe, NoiDung, LienKet, DaDoc, NgayTao)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, NOW())
+            ");
+            return $st->execute([
+                $maNguoiNhan,
+                $maNguoiGui,
+                $maBaiDang,
+                $maBinhLuan,
+                $loai,
+                mb_substr($tieuDe, 0, 255),
+                $noiDung !== null ? mb_substr($noiDung, 0, 500) : null,
+                mb_substr($lienKet, 0, 255)
+            ]);
+        } catch (Throwable $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Lấy số lượng thông báo chưa đọc của người dùng
+     */
+    public static function laySoChuaDoc(PDO $pdo, int $maND): int
+    {
+        if ($maND <= 0 || !self::damBaoBang()) {
+            return 0;
+        }
+        try {
+            $st = $pdo->prepare("SELECT COUNT(*) FROM THONGBAO WHERE MaND = ? AND DaDoc = 0");
+            $st->execute([$maND]);
+            return (int) $st->fetchColumn();
+        } catch (Throwable $e) {
+            return 0;
+        }
+    }
+
+    /**
+     * Lấy danh sách thông báo kèm thông tin người gửi
+     */
+    public static function layDanhSach(PDO $pdo, int $maND, int $limit = 10, int $offset = 0, ?bool $chiChuaDoc = null): array
+    {
+        if ($maND <= 0 || !self::damBaoBang()) {
+            return [];
+        }
+        try {
+            $where = "t.MaND = :mand";
+            if ($chiChuaDoc === true) {
+                $where .= " AND t.DaDoc = 0";
+            }
+            $st = $pdo->prepare("
+                SELECT t.*, u.HoTen AS TenNguoiGui, u.AnhDaiDien AS AnhNguoiGui, b.TieuDe AS TieuDeBai
+                  FROM THONGBAO t
+                  LEFT JOIN NGUOIDUNG u ON u.MaND = t.MaNguoiGui
+                  LEFT JOIN BAIDANG b ON b.MaBaiDang = t.MaBaiDang
+                 WHERE $where
+                 ORDER BY t.NgayTao DESC, t.MaTB DESC
+                 LIMIT :limit OFFSET :offset
+            ");
+            $st->bindValue(':mand', $maND, PDO::PARAM_INT);
+            $st->bindValue(':limit', max(1, min(100, $limit)), PDO::PARAM_INT);
+            $st->bindValue(':offset', max(0, $offset), PDO::PARAM_INT);
+            $st->execute();
+            return $st->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Throwable $e) {
+            return [];
+        }
+    }
+
+    /**
+     * Đánh dấu 1 thông báo là đã đọc
+     */
+    public static function danhDauDaDoc(PDO $pdo, int $maTB, int $maND): bool
+    {
+        if ($maTB <= 0 || $maND <= 0 || !self::damBaoBang()) {
+            return false;
+        }
+        try {
+            $st = $pdo->prepare("UPDATE THONGBAO SET DaDoc = 1 WHERE MaTB = ? AND MaND = ?");
+            return $st->execute([$maTB, $maND]);
+        } catch (Throwable $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Đánh dấu tất cả thông báo của người dùng là đã đọc
+     */
+    public static function danhDauTatCaDaDoc(PDO $pdo, int $maND): bool
+    {
+        if ($maND <= 0 || !self::damBaoBang()) {
+            return false;
+        }
+        try {
+            $st = $pdo->prepare("UPDATE THONGBAO SET DaDoc = 1 WHERE MaND = ? AND DaDoc = 0");
+            return $st->execute([$maND]);
+        } catch (Throwable $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Xóa 1 thông báo
+     */
+    public static function xoaThongBao(PDO $pdo, int $maTB, int $maND): bool
+    {
+        if ($maTB <= 0 || $maND <= 0 || !self::damBaoBang()) {
+            return false;
+        }
+        try {
+            $st = $pdo->prepare("DELETE FROM THONGBAO WHERE MaTB = ? AND MaND = ?");
+            return $st->execute([$maTB, $maND]);
+        } catch (Throwable $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Xóa tất cả thông báo của người dùng
+     */
+    public static function xoaTatCa(PDO $pdo, int $maND): bool
+    {
+        if ($maND <= 0 || !self::damBaoBang()) {
+            return false;
+        }
+        try {
+            $st = $pdo->prepare("DELETE FROM THONGBAO WHERE MaND = ?");
+            return $st->execute([$maND]);
+        } catch (Throwable $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Định dạng khoảng thời gian tương đối theo tiếng Việt
+     */
+    public static function tinhThoiGian(string $datetime): string
+    {
+        $time = strtotime($datetime);
+        if (!$time) return '';
+        $diff = time() - $time;
+        if ($diff < 5) return 'Vừa xong';
+        if ($diff < 60) return $diff . ' giây trước';
+        $min = (int) floor($diff / 60);
+        if ($min < 60) return $min . ' phút trước';
+        $hours = (int) floor($diff / 3600);
+        if ($hours < 24) return $hours . ' giờ trước';
+        $days = (int) floor($diff / 86400);
+        if ($days === 1) return 'Hôm qua ' . date('H:i', $time);
+        if ($days < 7) return $days . ' ngày trước';
+        return date('d/m/Y H:i', $time);
+    }
+}
+

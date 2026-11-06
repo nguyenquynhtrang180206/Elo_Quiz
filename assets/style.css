@@ -262,6 +262,371 @@ label { display:block; margin:10px 0 4px; font-weight:600; color:var(--light-cya
 .topnav .nav-nut-chinh:hover { filter:brightness(1.12); box-shadow:0 0 24px rgba(0,217,255,.8) !important; }
 
 /* =====================================================================
+   TOPNAV NOTIFICATION BELL & DROPDOWN (REALTIME ESPORTS CYBER HUD)
+   ===================================================================== */
+.nav-notif-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.nav-notif-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #0e1b3d;
+  border: 1px solid rgba(0, 217, 255, 0.4);
+  color: var(--light-cyan);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+.nav-notif-btn:hover,
+.nav-notif-btn.is-active {
+  background: rgba(8, 123, 255, 0.35);
+  border-color: var(--cyan);
+  color: #FFFFFF;
+  box-shadow: 0 0 14px rgba(0, 217, 255, 0.6), inset 0 0 8px rgba(0, 217, 255, 0.3);
+  transform: translateY(-1px);
+}
+
+.notif-bell-svg {
+  display: block;
+  transition: transform 0.2s ease;
+}
+
+.nav-notif-btn:hover .notif-bell-svg {
+  transform: scale(1.1) rotate(12deg);
+}
+
+.notif-badge {
+  display: none;
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
+  border: 1.5px solid #060D24;
+  color: #FFFFFF;
+  font-size: 9.5px;
+  font-weight: 900;
+  line-height: 14px;
+  text-align: center;
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.9);
+  animation: notif-pulse 2s infinite;
+}
+
+.notif-badge.has-unread {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@keyframes notif-pulse {
+  0% { transform: scale(1); box-shadow: 0 0 6px rgba(239, 68, 68, 0.6); }
+  50% { transform: scale(1.15); box-shadow: 0 0 12px rgba(239, 68, 68, 0.95); }
+  100% { transform: scale(1); box-shadow: 0 0 6px rgba(239, 68, 68, 0.6); }
+}
+
+/* Dropdown Menu Thông Báo */
+.notif-dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 10px);
+  width: 360px;
+  max-width: calc(100vw - 24px);
+  border-radius: 16px;
+  background: linear-gradient(160deg, rgba(12, 24, 62, 0.98) 0%, rgba(5, 10, 30, 0.99) 100%);
+  border: 1.5px solid var(--cyan);
+  box-shadow: 0 0 20px rgba(0, 217, 255, 0.35), 0 16px 40px rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: notifDropIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.notif-dropdown[hidden] {
+  display: none !important;
+}
+
+@keyframes notifDropIn {
+  0% { opacity: 0; transform: translateY(-8px) scale(0.97); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.notif-drop-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(8, 16, 42, 0.6);
+}
+
+.notif-drop-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.notif-title-bell {
+  font-size: 14px;
+}
+
+.notif-title-text {
+  font-size: 12.5px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  color: #FFFFFF;
+}
+
+.notif-count-tag {
+  font-size: 9.5px;
+  font-weight: 800;
+  padding: 1.5px 7px;
+  border-radius: 999px;
+  background: rgba(0, 217, 255, 0.15);
+  color: #8AF5FF;
+  border: 1px solid rgba(0, 217, 255, 0.4);
+}
+
+.btn-mark-all-read {
+  background: transparent;
+  border: none;
+  font-size: 11px;
+  font-weight: 700;
+  color: #94A3B8;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+}
+
+.btn-mark-all-read:hover {
+  color: #38BDF8;
+  background: rgba(0, 217, 255, 0.1);
+}
+
+.notif-drop-body {
+  max-height: 380px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.notif-loading {
+  padding: 30px 20px;
+  text-align: center;
+  font-size: 12.5px;
+  color: #94A3B8;
+}
+
+.notif-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 36px 20px;
+  text-align: center;
+}
+
+.notif-empty .empty-icon {
+  font-size: 32px;
+  margin-bottom: 8px;
+}
+
+.notif-empty p {
+  margin: 0;
+  font-size: 12.5px;
+  color: #94A3B8;
+}
+
+.notif-drop-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 14px;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  transition: background 0.15s ease;
+  position: relative;
+}
+
+.notif-drop-item:hover {
+  background: rgba(0, 217, 255, 0.08);
+}
+
+.notif-drop-item.is-unread {
+  background: rgba(0, 217, 255, 0.09);
+  border-left: 3px solid #00D9FF;
+}
+
+.notif-drop-avatar {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  flex: none;
+}
+
+.drop-avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1.5px solid #00D9FF;
+}
+
+.drop-avatar-txt {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0284C7 0%, #0369A1 100%);
+  border: 1.5px solid #38BDF8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 900;
+  color: #FFFFFF;
+}
+
+.notif-drop-mini {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: #060D24;
+  border: 1px solid #FDE047;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+}
+
+.notif-drop-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.notif-drop-text {
+  font-size: 12px;
+  line-height: 1.4;
+  color: #CBD5E1;
+  margin-bottom: 2px;
+}
+
+.notif-drop-text strong {
+  color: #FFFFFF;
+}
+
+.notif-drop-snippet {
+  font-size: 11px;
+  font-style: italic;
+  color: #94A3B8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 3px;
+}
+
+.notif-drop-time {
+  font-size: 10px;
+  color: #64748B;
+  font-weight: 600;
+}
+
+.notif-drop-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #00D9FF;
+  box-shadow: 0 0 6px #00D9FF;
+  flex: none;
+  align-self: center;
+}
+
+.notif-drop-footer {
+  padding: 8px 14px;
+  background: rgba(8, 16, 42, 0.7);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  text-align: center;
+}
+
+.notif-view-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  font-weight: 800;
+  color: #38BDF8;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.notif-view-all:hover {
+  color: #8AF5FF;
+  text-decoration: underline;
+}
+
+/* Nút Trả Lời & Thẻ Tag Rep trên chi tiết bài đăng */
+.btn-rep-bl {
+  background: rgba(0, 217, 255, 0.09) !important;
+  border-color: rgba(0, 217, 255, 0.35) !important;
+  color: #8AF5FF !important;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.btn-rep-bl:hover {
+  background: rgba(0, 217, 255, 0.22) !important;
+  border-color: #00D9FF !important;
+  color: #FFFFFF !important;
+  transform: translateY(-1px);
+  box-shadow: 0 0 10px rgba(0, 217, 255, 0.35);
+}
+
+.cd-rep-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px;
+  margin-bottom: 8px;
+  border-radius: 8px;
+  background: rgba(0, 217, 255, 0.14);
+  border: 1px solid rgba(0, 217, 255, 0.4);
+  font-size: 12px;
+  color: #8AF5FF;
+}
+
+.cd-rep-indicator strong {
+  color: #FFFFFF;
+}
+
+.btn-cancel-rep {
+  background: transparent;
+  border: none;
+  color: #94A3B8;
+  font-weight: 900;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 0 4px;
+}
+.btn-cancel-rep:hover {
+  color: #EF4444;
+}
+
+/* =====================================================================
    MEGA HYBRID FOOTER: ESPORTS COMMAND HUB & HIGH-TECH TELEMETRY
    ===================================================================== */
 .site-mega-footer {

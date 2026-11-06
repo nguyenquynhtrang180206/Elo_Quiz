@@ -29,7 +29,9 @@ $cur = fn(string $f): string => $f === $trangHienTai ? ' aria-current="page"' : 
   <?php endforeach; ?>
   <link rel="stylesheet" href="<?= e(BASE_URL) ?>/assets/css/cosmic-fix.css?v=<?= (int) @filemtime(__DIR__ . '/../../assets/css/cosmic-fix.css') ?>">
   <script type="module" src="<?= e(BASE_URL) ?>/assets/js/effects/cosmic-bg.js"></script>
+  <script>window.BASE_URL = "<?= e(BASE_URL) ?>";</script>
   <script src="<?= e(BASE_URL) ?>/assets/js/ui.js" defer></script>
+  <script src="<?= e(BASE_URL) ?>/assets/js/thongbao.js" defer></script>
 </head>
 <body<?= !empty($bodyClass) ? ' class="' . e($bodyClass) . '"' : '' ?>>
 <header class="topnav">
@@ -149,8 +151,52 @@ $cur = fn(string $f): string => $f === $trangHienTai ? ' aria-current="page"' : 
     <span class="phai">
       <?php if ($daDangNhap): ?>
         <?php
-          $laNhomHoSo = in_array($trangHienTai, ['hoso.php', 'lichsutran.php', 'banbe.php', 'doimatkhau.php'], true);
+          $soThongBaoChuaDoc = ThongBaoHelper::laySoChuaDoc(Database::pdo(), (int) Auth::clientId());
+          $laNhomHoSo = in_array($trangHienTai, ['hoso.php', 'lichsutran.php', 'banbe.php', 'doimatkhau.php', 'thongbao.php'], true);
         ?>
+        <!-- CHUÔNG THÔNG BÁO CYBER ESPORTS (REALTIME REPLIES & NOTIFICATIONS) -->
+        <div class="nav-notif-wrap" id="navNotifWrap">
+          <button type="button" class="nav-notif-btn" id="btnNotifToggle" aria-label="Xem thông báo" aria-expanded="false" title="Thông báo phản hồi & tương tác">
+            <svg class="notif-bell-svg" viewBox="0 0 24 24" width="16" height="16" fill="none" aria-hidden="true">
+              <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M13.73 21a2 2 0 01-3.46 0" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span class="notif-badge<?= $soThongBaoChuaDoc > 0 ? ' has-unread' : '' ?>" id="notifBadge">
+              <?= $soThongBaoChuaDoc > 99 ? '99+' : ($soThongBaoChuaDoc > 0 ? (int) $soThongBaoChuaDoc : '') ?>
+            </span>
+          </button>
+
+          <!-- Dropdown Panel thông báo -->
+          <div class="notif-dropdown" id="notifDropdown" hidden>
+            <div class="notif-drop-header">
+              <div class="notif-drop-title">
+                <span class="notif-title-bell">🔔</span>
+                <span class="notif-title-text">THÔNG BÁO</span>
+                <span class="notif-count-tag" id="notifCountTag"><?= (int) $soThongBaoChuaDoc ?> mới</span>
+              </div>
+              <button type="button" class="btn-mark-all-read" id="btnMarkAllRead" title="Đánh dấu tất cả thông báo là đã đọc">
+                <span>✓ Đã đọc hết</span>
+              </button>
+            </div>
+
+            <div class="notif-drop-body" id="notifListContainer">
+              <div class="notif-loading" id="notifLoading">Đang tải thông báo...</div>
+              <div class="notif-list" id="notifList"></div>
+              <div class="notif-empty" id="notifEmpty" style="display:none;">
+                <span class="empty-icon">🔕</span>
+                <p>Bạn không có thông báo nào mới.</p>
+              </div>
+            </div>
+
+            <div class="notif-drop-footer">
+              <a href="<?= e(BASE_URL) ?>/client/thongbao.php" class="notif-view-all">
+                <span>Xem tất cả thông báo</span>
+                <svg viewBox="0 0 14 14" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 2.5l4.5 4.5-4.5 4.5"/></svg>
+              </a>
+            </div>
+          </div>
+        </div>
+
         <div class="nav-dropdown" data-dropdown>
           <a class="nav-drop-btn<?= $laNhomHoSo ? ' dang-chon' : '' ?>" href="<?= e(BASE_URL) ?>/client/hoso.php"<?= $cur('hoso.php') ?>>
             <svg class="nav-ico" viewBox="0 0 20 20" width="15" height="15" aria-hidden="true"><polygon points="10,2 17,6 17,14 10,18 3,14 3,6" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="10" cy="8" r="2.4" fill="var(--cyan)"/><path d="M6.5 14.5c.8-1.8 2-2.5 3.5-2.5s2.7.7 3.5 2.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
@@ -158,6 +204,10 @@ $cur = fn(string $f): string => $f === $trangHienTai ? ' aria-current="page"' : 
             <span class="nav-mui-ten" aria-hidden="true">▾</span>
           </a>
           <div class="nav-dropdown-menu">
+            <a href="<?= e(BASE_URL) ?>/client/thongbao.php"<?= $cur('thongbao.php') ?>>
+              <span class="menu-icon"><svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><path d="M15 7A5 5 0 005 7c0 5-2 7-2 7h14s-2-2-2-7" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M11.5 17a1.5 1.5 0 01-3 0" stroke="currentColor" stroke-width="1.6"/></svg></span>
+              Thông báo <?= $soThongBaoChuaDoc > 0 ? '(' . (int) $soThongBaoChuaDoc . ')' : '' ?>
+            </a>
             <a href="<?= e(BASE_URL) ?>/client/hoso.php"<?= $cur('hoso.php') ?>>
               <span class="menu-icon"><svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><rect x="2.5" y="3.5" width="15" height="13" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="7" cy="8.5" r="2" fill="var(--cyan)"/><line x1="11.5" y1="7.5" x2="15" y2="7.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><line x1="11.5" y1="10.5" x2="15" y2="10.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M4.5 13.5c.7-1.3 1.6-1.8 2.5-1.8s1.8.5 2.5 1.8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span>
               Thông tin hồ sơ
