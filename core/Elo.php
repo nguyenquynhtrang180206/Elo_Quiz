@@ -72,10 +72,33 @@ class Elo
         );
         $upTran = $pdo->prepare('UPDATE NGUOICHOITRANDAU SET EloTruoc = ?, EloSau = ? WHERE MaTran = ? AND MaND = ?');
 
+        // Nhận diện hiệu ứng bùa lợi từ Đấu Thần PvZ đang xuất trận
+        require_once __DIR__ . '/LoLChampions.php';
+        $champId = $_SESSION['tuong_chon'] ?? 'sunflower';
+        $champInfo = LoLChampions::layTuong($champId);
+        $buffLoai = $champInfo['buffLoai'] ?? '';
+        $currentLoggedND = (int) ($_SESSION['user']['MaND'] ?? 0);
+
         foreach ([$a => $b, $b => $a] as $minh => $doiThu) {
             $k    = $cu[$minh]['soTran'] < $nguong ? $kMoi : $kCu;   // dưới ngưỡng số trận dùng K lớn
             $moi  = self::tinhMoi($cu[$minh]['elo'], $cu[$doiThu]['elo'], $diemS[$kq[$minh]], $k);
             $eloC = $cu[$minh]['elo'];
+
+            // Áp dụng bùa Đấu Thần PvZ cho người chơi đang đăng nhập
+            if ($minh === $currentLoggedND) {
+                $delta = $moi - $eloC;
+                // 1. Sunflower (+20% Elo khi chiến thắng)
+                if ($buffLoai === 'bonus_elo' && $kq[$minh] === 'Thắng' && $delta > 0) {
+                    $delta = (int) round($delta * 1.20);
+                    $moi = $eloC + $delta;
+                }
+                // 2. Wall-nut (Giảm 50% lượng Elo bị trừ khi thua trận)
+                elseif ($buffLoai === 'elo_shield' && $kq[$minh] === 'Thua' && $delta < 0) {
+                    $delta = (int) round($delta * 0.50);
+                    $moi = $eloC + $delta;
+                }
+            }
+
             $upElo->execute([
                 $moi,
                 $kq[$minh] === 'Thắng' ? 1 : 0,

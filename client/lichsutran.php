@@ -66,8 +66,8 @@ require __DIR__ . '/layout/header.php';
           <td>
             <?php if ($dangChoi): ?>
               <a href="<?= e(BASE_URL) ?>/client/phong.php?tran=<?= (int) $r['MaTran'] ?>">Vào phòng</a>
-            <?php elseif ($r['TrangThai'] === 'Kết thúc'): ?>
-              <a href="<?= e(BASE_URL) ?>/client/xemlai.php?tran=<?= (int) $r['MaTran'] ?>">Xem lại</a>
+            <?php else: ?>
+              <span class="ghichu">Hoàn thành</span>
             <?php endif; ?>
           </td>
         </tr>

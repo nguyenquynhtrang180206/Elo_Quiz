@@ -4,28 +4,8 @@
 // Đáp án đúng và giải thích chỉ hiện khi trận đã kết thúc (C-27).
 require_once __DIR__ . '/../core/bootstrap.php';
 
-$maND   = Auth::requireClient(BASE_URL . '/client/login.php');
-$pdo    = Database::pdo();
-$maTran = (int) ($_GET['tran'] ?? 0);
-
-// Chỉ người chơi của trận mới được xem
-$st = $pdo->prepare(
-    'SELECT t.TrangThai, t.LyDoKetThuc, m.TenMon, k.TenLoaiKT, n.DiemSo, n.KetQua, n.EloTruoc, n.EloSau
-       FROM NGUOICHOITRANDAU n
-       JOIN TRANDAU t ON t.MaTran = n.MaTran
-       JOIN MONHOC m ON m.MaMon = t.MaMon
-       JOIN LOAIKYTHI k ON k.MaLoaiKT = t.MaLoaiKT
-      WHERE n.MaTran = ? AND n.MaND = ?'
-);
-$st->execute([$maTran, $maND]);
-$tran = $st->fetch();
-if (!$tran) {
-    redirect(BASE_URL . '/client/lichsutran.php');
-}
-// Trận chưa kết thúc: không cho xem đáp án đúng, quay về phòng thi
-if ($tran['TrangThai'] === 'Đã ghép' || $tran['TrangThai'] === 'Đang diễn ra') {
-    redirect(BASE_URL . '/client/phong.php?tran=' . $maTran);
-}
+// Bảo mật ngân hàng đề thi: Không công khai đáp án đúng để người chơi tự ôn luyện và thi đấu lại
+redirect(BASE_URL . '/client/timtran.php');
 
 $st = $pdo->prepare(
     'SELECT n.MaND, u.HoTen, n.DiemSo FROM NGUOICHOITRANDAU n JOIN NGUOIDUNG u ON u.MaND = n.MaND

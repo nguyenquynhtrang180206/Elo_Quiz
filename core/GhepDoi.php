@@ -39,10 +39,11 @@ class GhepDoi
     }
 
     // Thử ghép cho $maND. Trả về mã trận mới nếu ghép được, null nếu chưa.
-    public static function thuGhep(PDO $pdo, int $maND): ?int
+    // $choPhepBot: nếu false, không bao giờ ghép với máy, chỉ tìm người thật.
+    public static function thuGhep(PDO $pdo, int $maND, bool $choPhepBot = true): ?int
     {
         $base     = max(1, Config::int('NGUONG_ELO_GHEP_DOI', 100));
-        $choToiDa = max(1, Config::int('THOI_GIAN_CHO_GHEP_TOI_DA', 60));
+        $choToiDa = max(1, Config::int('THOI_GIAN_CHO_GHEP_TOI_DA', 30));
         $soCau    = max(1, Config::int('SO_CAU', 10));
         $buoc     = self::BUOC_NOI_GIAY;
 
@@ -78,6 +79,11 @@ class GhepDoi
             $st->execute([$maMon, $maKT, $maND, $choToiDa, $elo, $nguong, $base, $buoc, $elo]);
             $kia = $st->fetch();
             if (!$kia) {
+                // Nếu người chơi cho phép ghép với máy (Bot AI) và thời gian chờ đạt mốc 30 giây:
+                // Tự động ghép với Đấu Thần Máy để bắt đầu trận đấu
+                if ($choPhepBot && (int) $toi['DaCho'] >= $choToiDa) {
+                    return self::ghepVoiBot($pdo, $maND, $maMon, $maKT, $elo, $soCau);
+                }
                 return null;
             }
             $maKia  = (int) $kia['MaND'];
@@ -224,6 +230,100 @@ class GhepDoi
                 $pdo->rollBack();
             }
             throw $ex;
+        }
+    }
+
+    // Kiểm tra một người dùng có phải là Bot Đấu Thần Máy hay không
+    public static function laBot(PDO $pdo, int $maND): bool
+    {
+        $st = $pdo->prepare("SELECT 1 FROM NGUOIDUNG WHERE MaND = ? AND Email = 'bot@quizup.arena'");
+        $st->execute([$maND]);
+        return (bool) $st->fetchColumn();
+    }
+
+    // Lấy hoặc khởi tạo tài khoản Bot Đấu Thần Máy
+    public static function layMaBot(PDO $pdo): int
+    {
+        $st = $pdo->prepare("SELECT MaND FROM NGUOIDUNG WHERE Email = 'bot@quizup.arena'");
+        $st->execute();
+        $id = $st->fetchColumn();
+        if ($id) {
+            return (int) $id;
+        }
+        $hash = password_hash('bot_arena_2026', PASSWORD_DEFAULT);
+        $pdo->prepare("INSERT INTO NGUOIDUNG (HoTen, Email, MatKhau, TrangThai, Lop, Khoa) VALUES ('Yasuo [Đấu Thần Máy]', 'bot@quizup.arena', ?, 'Hoạt động', 'AI Arena', 'Đấu Thần Liên Minh')")
+            ->execute([$hash]);
+        return (int) $pdo->lastInsertId();
+    }
+
+    // Tạo trận đối kháng với Đấu Thần Máy (Bot AI)
+    public static function ghepVoiBot(PDO $pdo, int $maND, int $maMon, int $maKT, int $elo, int $soCau): ?int
+    {
+        $maBot = self::layMaBot($pdo);
+        if ($maND === $maBot) {
+            return null;
+        }
+
+        // Chọn ngẫu nhiên tên Tướng Bot cho sống động
+        $dsTuongNames = ['Yasuo [Đấu Thần Máy]', 'Ahri [Hồ Ly Máy]', 'Zed [Bóng Ma AI]', 'Lee Sin [Thần Quyền AI]', 'Jinx [Xạ Thủ AI]'];
+        $tenBot = $dsTuongNames[array_rand($dsTuongNames)];
+        $pdo->prepare("UPDATE NGUOIDUNG SET HoTen = ? WHERE MaND = ?")->execute([$tenBot, $maBot]);
+
+        $eloBot = max(800, $elo + rand(-35, 45));
+        $pdo->prepare('INSERT IGNORE INTO ELOMONHOC (MaND, MaMon, DiemElo) VALUES (?, ?, ?)')
+            ->execute([$maBot, $maMon, $eloBot]);
+
+        // Hủy bất kỳ trận cũ dở dang của bot nếu có
+        $st = $pdo->prepare("SELECT t.MaTran FROM NGUOICHOITRANDAU n JOIN TRANDAU t ON t.MaTran = n.MaTran WHERE n.MaND = ? AND t.TrangThai IN ('Đã ghép', 'Đang diễn ra')");
+        $st->execute([$maBot]);
+        foreach ($st->fetchAll(PDO::FETCH_COLUMN) as $tranCu) {
+            self::huyTran($pdo, (int) $tranCu, 'Hủy do ghép trận mới');
+        }
+
+        $pdo->beginTransaction();
+        try {
+            // Chọn ngẫu nhiên câu hỏi
+            $st = $pdo->prepare('SELECT c.MaCauHoi FROM CAUHOI c WHERE ' . self::DK_CAU_HOP_LE . ' ORDER BY RAND() LIMIT ' . $soCau);
+            $st->execute([$maMon, $maKT]);
+            $dsCau = $st->fetchAll(PDO::FETCH_COLUMN);
+            if (count($dsCau) < $soCau) {
+                $pdo->rollBack();
+                return null;
+            }
+
+            // Tạo trận
+            $pdo->prepare('INSERT INTO TRANDAU (MaMon, MaLoaiKT, TrangThai, ThoiGianBatDau) VALUES (?, ?, "Đang diễn ra", NOW(3))')
+                ->execute([$maMon, $maKT]);
+            $maTran = (int) $pdo->lastInsertId();
+
+            $diem = Config::int('DIEM_CO_BAN', 100);
+            $heSo = Config::int('HE_SO_THUONG', 50);
+            $tg   = max(1, Config::int('THOI_GIAN_MOI_CAU', 15));
+
+            // Người chơi: trạng thái đang chơi
+            $ins = $pdo->prepare('INSERT INTO NGUOICHOITRANDAU (MaTran, MaND, EloTruoc, LanHoatDongCuoi, TrangThaiThamGia) VALUES (?, ?, ?, NOW(3), "Đang chơi")');
+            $ins->execute([$maTran, $maND, $elo]);
+            // Bot: trạng thái đang chơi
+            $ins->execute([$maTran, $maBot, $eloBot]);
+
+            // Thêm các câu hỏi
+            $insQ = $pdo->prepare(
+                'INSERT INTO CAUHOITRANDAU (MaTran, MaCauHoi, ThuTu, DiemCoBan, HeSoThuong, ThoiGianQuyDinh) VALUES (?, ?, ?, ?, ?, ?)'
+            );
+            foreach ($dsCau as $i => $maCau) {
+                $insQ->execute([$maTran, (int) $maCau, $i + 1, $diem, $heSo, $tg]);
+            }
+
+            // Xóa người chơi khỏi hàng đợi
+            $pdo->prepare('DELETE FROM HANGDOIGHEPDOI WHERE MaND = ?')->execute([$maND]);
+            $pdo->commit();
+
+            return $maTran;
+        } catch (Throwable $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            return null;
         }
     }
 }

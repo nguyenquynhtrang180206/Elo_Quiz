@@ -1,12 +1,12 @@
-/* Trang Cộng đồng (client/congdong.php) */
+/* Trang Cộng đồng (client/congdong.php) - Theme Cosmic Esports Arena */
 (function () {
-  // Chọn môn xong thì tự lọc, không cần bấm nút
+  // 1. Tự động submit lọc khi thay đổi môn
   var chonMon = document.getElementById('loc_mon');
   if (chonMon) {
     chonMon.addEventListener('change', function () { chonMon.form.submit(); });
   }
 
-  // Nút "Đăng bài viết" ở banner: mở khung viết bài và đưa con trỏ vào ô tiêu đề
+  // 2. Mở khung đăng bài viết nhanh
   var khung = document.getElementById('dang-bai');
   function moKhung() {
     if (!khung) { return; }
@@ -22,4 +22,14 @@
     });
   });
   if (location.hash === '#dang-bai') { moKhung(); }
+
+  // 3. Hiệu ứng nhấp nháy / nảy vui nhộn khi click vào Chibi Faker
+  var fakerBtn = document.getElementById('cd-faker-btn');
+  if (fakerBtn) {
+    fakerBtn.addEventListener('click', function () {
+      fakerBtn.classList.remove('faker-bounce');
+      void fakerBtn.offsetWidth; // trigger reflow
+      fakerBtn.classList.add('faker-bounce');
+    });
+  }
 })();

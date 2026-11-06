@@ -204,31 +204,6 @@
   100% { transform:scale(1.1); opacity:1; }
 }
 
-/* Các vòng quỹ đạo thiên thể 3D quay quanh Faker */
-.hero-orbit-ring {
-  position:absolute; left:50%; top:52%; pointer-events:none; border-radius:50%;
-}
-.hero-orbit-ring.ring-1 {
-  width:380px; height:136px; margin-left:-190px; margin-top:-68px;
-  border:1.6px solid rgba(0,217,255,.55);
-  box-shadow:0 0 18px rgba(0,217,255,.45), inset 0 0 14px rgba(0,217,255,.25);
-  transform:rotateX(68deg) rotateZ(-20deg) translateZ(8px);
-  animation:orbit-quay 18s linear infinite;
-  z-index:1;
-}
-.hero-orbit-ring.ring-2 {
-  width:410px; height:146px; margin-left:-205px; margin-top:-73px;
-  border:1.4px dashed rgba(255,209,71,.6);
-  box-shadow:0 0 16px rgba(212,175,55,.4);
-  transform:rotateX(72deg) rotateZ(24deg) translateZ(-8px);
-  animation:orbit-quay 24s linear infinite reverse;
-  z-index:1;
-}
-@keyframes orbit-quay {
-  from { transform:rotateX(68deg) rotateZ(0deg); }
-  to { transform:rotateX(68deg) rotateZ(360deg); }
-}
-
 /* Bệ ánh sáng phản chiếu đế chân khung */
 .hero-faker-pedestal {
   position:absolute; bottom:0%; left:50%; width:340px; height:50px; margin-left:-170px;

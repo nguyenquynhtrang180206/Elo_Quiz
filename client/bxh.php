@@ -24,10 +24,12 @@ if (!$monHopLe) {
 // Mặc định mở tab "Tổng thể" giống bản thiết kế
 $dsLoai = $pdo->query('SELECT MaLoaiKT, TenLoaiKT FROM LOAIKYTHI ORDER BY MaLoaiKT')->fetchAll();
 $loai = (int) ($_GET['loai'] ?? 0);
-$loaiHopLe = false;
-foreach ($dsLoai as $l) {
-    if ((int) $l['MaLoaiKT'] === $loai) {
-        $loaiHopLe = true;
+$loaiHopLe = $loai === 0;
+if ($loai !== 0) {
+    foreach ($dsLoai as $l) {
+        if ((int) $l['MaLoaiKT'] === $loai) {
+            $loaiHopLe = true;
+        }
     }
 }
 if (!$loaiHopLe) {
@@ -58,7 +60,7 @@ $taiBanBe = '(SELECT MaNguoiNhan FROM BANBE WHERE MaNguoiGui = ? AND TrangThai =
 
 $canDangNhap = $phamVi === 'banbe' && $toi === null;
 $khongCoMon  = !in_array($phamVi, ['truong', 'loai'], true) && $mon === 0;
-$khongCoLoai = $phamVi === 'loai' && $loai === 0;
+$khongCoLoai = $phamVi === 'loai' && !$dsLoai;
 $core = null;
 $p = [];
 $kieu = '';   // quyết định các cột hiển thị
@@ -67,34 +69,41 @@ if ($phamVi === 'loai') {
     // Theo loại kỳ thi: xếp theo tổng Elo đã thắng/thua được trong các trận đã kết thúc của loại kỳ thi này
     if (!$khongCoLoai) {
         $kieu = 'loai';
-        $core = "SELECT u.MaND, u.HoTen, u.AnhDaiDien, SUM(n.EloSau - n.EloTruoc) AS Diem,
+        $core = "SELECT u.MaND, u.HoTen, u.AnhDaiDien, u.Khoa, SUM(n.EloSau - n.EloTruoc) AS Diem,
                         COUNT(*) AS SoTran, SUM(n.KetQua = 'Thắng') AS SoThang
                    FROM NGUOICHOITRANDAU n
                    JOIN TRANDAU t ON t.MaTran = n.MaTran
                    JOIN NGUOIDUNG u ON u.MaND = n.MaND
-                  WHERE t.MaLoaiKT = ? AND t.TrangThai = 'Kết thúc' AND n.EloSau IS NOT NULL
+                  WHERE t.TrangThai = 'Kết thúc' AND n.EloSau IS NOT NULL
                     AND u.TrangThai = 'Hoạt động'";
-        $p = [$loai];
+        if ($loai > 0) {
+            $core .= ' AND t.MaLoaiKT = ?';
+            $p[] = $loai;
+        }
         if ($tuNgay !== null) {
             $core .= ' AND t.ThoiGianKetThuc >= ?';
             $p[] = $tuNgay;
         }
-        $core .= ' GROUP BY u.MaND, u.HoTen, u.AnhDaiDien';
+        $core .= ' GROUP BY u.MaND, u.HoTen, u.AnhDaiDien, u.Khoa';
     }
 } elseif (!$canDangNhap && !$khongCoMon) {
     if ($ky === 'tong' && $phamVi === 'truong') {
         // C-37: Elo trung bình các môn đã đạt tối thiểu N trận; môn chưa đủ N không được tính
         $kieu = 'truong';
-        $core = "SELECT u.MaND, u.HoTen, u.AnhDaiDien, AVG(e.DiemElo) AS Diem, COUNT(*) AS SoMon,
-                        SUM(e.SoTran) AS SoTran, SUM(e.SoThang) AS SoThang
+        // MonChinh: môn người này đấu nhiều trận nhất (trong các môn đã đủ N trận, môn đang mở)
+        $core = "SELECT u.MaND, u.HoTen, u.AnhDaiDien, u.Khoa, AVG(e.DiemElo) AS Diem, COUNT(*) AS SoMon,
+                        SUM(e.SoTran) AS SoTran, SUM(e.SoThang) AS SoThang,
+                        (SELECT m.TenMon FROM ELOMONHOC x JOIN MONHOC m ON m.MaMon = x.MaMon
+                          WHERE x.MaND = u.MaND AND x.SoTran >= ? AND m.TrangThai = 'Đang mở'
+                          ORDER BY x.SoTran DESC, x.DiemElo DESC LIMIT 1) AS MonChinh
                    FROM ELOMONHOC e JOIN NGUOIDUNG u ON u.MaND = e.MaND
                   WHERE e.SoTran >= ? AND u.TrangThai = 'Hoạt động'
-                  GROUP BY u.MaND, u.HoTen, u.AnhDaiDien";
-        $p = [$nMin];
+                  GROUP BY u.MaND, u.HoTen, u.AnhDaiDien, u.Khoa";
+        $p = [$nMin, $nMin];
     } elseif ($ky === 'tong') {
         // C-36, C-38: theo môn, có thể giới hạn trong nhóm bạn bè
         $kieu = 'mon';
-        $core = "SELECT u.MaND, u.HoTen, u.AnhDaiDien, e.DiemElo AS Diem, e.SoTran, e.SoThang
+        $core = "SELECT u.MaND, u.HoTen, u.AnhDaiDien, u.Khoa, e.DiemElo AS Diem, e.SoTran, e.SoThang
                    FROM ELOMONHOC e JOIN NGUOIDUNG u ON u.MaND = e.MaND
                   WHERE e.MaMon = ? AND e.SoTran > 0 AND u.TrangThai = 'Hoạt động'";
         $p = [$mon];
@@ -106,14 +115,14 @@ if ($phamVi === 'loai') {
         // C-39: tổng mức thay đổi Elo trong kỳ; người không có trận trong kỳ không xuất hiện
         $kieu = 'ky';
         if ($phamVi === 'truong') {
-            $core = "SELECT u.MaND, u.HoTen, u.AnhDaiDien, SUM(l.ThayDoi) AS Diem, COUNT(*) AS SoTran,
+            $core = "SELECT u.MaND, u.HoTen, u.AnhDaiDien, u.Khoa, SUM(l.ThayDoi) AS Diem, COUNT(*) AS SoTran,
                             (SELECT AVG(x.DiemElo) FROM ELOMONHOC x WHERE x.MaND = l.MaND AND x.SoTran >= ?) AS EloHienTai
                        FROM LICHSUELO l JOIN NGUOIDUNG u ON u.MaND = l.MaND
                       WHERE l.ThoiGian >= ? AND u.TrangThai = 'Hoạt động'
-                      GROUP BY u.MaND, u.HoTen, u.AnhDaiDien";
+                      GROUP BY u.MaND, u.HoTen, u.AnhDaiDien, u.Khoa";
             $p = [$nMin, $tuNgay];
         } else {
-            $core = "SELECT u.MaND, u.HoTen, u.AnhDaiDien, SUM(l.ThayDoi) AS Diem, COUNT(*) AS SoTran, e.DiemElo AS EloHienTai
+            $core = "SELECT u.MaND, u.HoTen, u.AnhDaiDien, u.Khoa, SUM(l.ThayDoi) AS Diem, COUNT(*) AS SoTran, e.DiemElo AS EloHienTai
                        FROM LICHSUELO l
                        JOIN NGUOIDUNG u ON u.MaND = l.MaND
                        JOIN ELOMONHOC e ON e.MaND = l.MaND AND e.MaMon = l.MaMon
@@ -123,7 +132,7 @@ if ($phamVi === 'loai') {
                 $core .= " AND l.MaND IN $taiBanBe";
                 array_push($p, $toi, $toi, $toi);
             }
-            $core .= ' GROUP BY u.MaND, u.HoTen, u.AnhDaiDien, e.DiemElo';
+            $core .= ' GROUP BY u.MaND, u.HoTen, u.AnhDaiDien, u.Khoa, e.DiemElo';
         }
     }
 }
@@ -183,12 +192,12 @@ function bxhAvatar(array $r): string
 
 const BXH_VUONG_MIEN = '<svg class="bxh-vuongmien" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 7l4.5 4L12 4l4.5 7L21 7l-2 11H5L3 7zm2.2 13h13.6v2H5.2z"/></svg>';
 
-$tabs = ['truong' => 'Tổng thể', 'mon' => 'Theo môn học', 'loai' => 'Theo loại kỳ thi', 'banbe' => 'Bạn bè'];
+$tabs = ['truong' => 'Toàn hệ thống', 'mon' => 'Theo môn học', 'loai' => 'Theo loại kỳ thi', 'banbe' => 'Bạn bè'];
 $kyTen = ['tong' => 'Tất cả', 'tuan' => 'Tuần này', 'thang' => 'Tháng này'];
 
 // Danh sách cột theo kiểu bảng
 if ($kieu === 'truong') {
-    $cot = ['Người chơi', 'Số môn tính', 'Elo trung bình', 'Số trận', 'Tỉ lệ thắng'];
+    $cot = ['Người chơi', 'Môn học chính', 'Elo trung bình', 'Số trận', 'Tỉ lệ thắng'];
 } elseif ($kieu === 'mon') {
     $cot = ['Người chơi', 'Môn học', 'Điểm Elo', 'Số trận', 'Tỉ lệ thắng'];
 } elseif ($kieu === 'loai') {
@@ -199,131 +208,218 @@ if ($kieu === 'truong') {
         : ['Người chơi', 'Môn học', 'Thay đổi Elo', 'Số trận trong kỳ', 'Elo hiện tại'];
 }
 
+// Thống kê nổi bật (số liệu thật từ CSDL)
+function bxhRutGon(int $n): string
+{
+    if ($n >= 1000000) { return rtrim(rtrim(number_format($n / 1000000, 1), '0'), '.') . 'M'; }
+    if ($n >= 1000)    { return rtrim(rtrim(number_format($n / 1000, 1), '0'), '.') . 'K'; }
+    return (string) $n;
+}
+$thongKe = ['thanhvien' => 0, 'tran' => 0, 'cauhoi' => 0];
+$topMon = [];
+try {
+    $thongKe['thanhvien'] = (int) $pdo->query("SELECT COUNT(*) FROM NGUOIDUNG WHERE TrangThai = 'Hoạt động'")->fetchColumn();
+    $thongKe['tran']      = (int) $pdo->query("SELECT COUNT(*) FROM TRANDAU WHERE TrangThai = 'Kết thúc'")->fetchColumn();
+    $thongKe['cauhoi']    = (int) $pdo->query("SELECT COUNT(*) FROM CAUHOI WHERE TrangThai = 'Hiển thị'")->fetchColumn();
+    // Top môn học: môn có nhiều trận đã kết thúc nhất (môn đang mở)
+    $topMon = $pdo->query("SELECT m.MaMon, m.TenMon, COUNT(*) AS SoTran
+                             FROM TRANDAU t JOIN MONHOC m ON m.MaMon = t.MaMon
+                            WHERE t.TrangThai = 'Kết thúc' AND m.TrangThai = 'Đang mở'
+                            GROUP BY m.MaMon, m.TenMon ORDER BY SoTran DESC, m.TenMon LIMIT 3")->fetchAll();
+} catch (Throwable $ex) {
+    // lỗi truy vấn thì hiện 0 / danh sách rỗng, không làm hỏng bảng xếp hạng
+}
+$maxTranMon = $topMon ? max(1, (int) $topMon[0]['SoTran']) : 1;
+
 $tieuDe = 'Bảng xếp hạng';
 $cssTrang = 'bxh';
 $bodyClass = 'trang-bxh';
 require __DIR__ . '/layout/header.php';
 ?>
 <section class="bxh-hero">
-  <span class="bxh-cup" aria-hidden="true">&#127942;</span>
-  <div>
-    <h2>Bảng xếp hạng</h2>
-    <p>Vinh danh những người chơi xuất sắc nhất!</p>
+  <div class="bxh-hero-aurora" aria-hidden="true"></div>
+  <div class="bxh-hero-grid" aria-hidden="true"></div>
+  <span class="bxh-cup" aria-hidden="true"><img src="<?= e(BASE_URL) ?>/assets/images/hero-trophy-3d.jpg" alt="Cúp Vô Địch"></span>
+  <div class="bxh-hero-center">
+    <div class="bxh-live-pill">
+      <span class="bxh-live-ping" aria-hidden="true"></span>
+      <span>QUIZUP ARENA &bull; ĐẤU THẦN BẢNG</span>
+    </div>
+    <h2 class="bxh-hero-title">BẢNG XẾP HẠNG</h2>
+    <div class="bxh-hero-divider" aria-hidden="true"></div>
+    <p class="bxh-hero-sub">Chinh phục đỉnh cao và vinh danh <strong>Chiến Thần Tri Thức!</strong></p>
+  </div>
+  <div class="bxh-hero-quote-box">
+    <span class="bxh-quote-sparkle" aria-hidden="true">✨</span>
+    <p class="bxh-loi-dan">“Thi đấu hết mình,<br>tỏa sáng cùng QuizUp Arena!”</p>
   </div>
 </section>
 
-<nav class="bxh-tabs" aria-label="Phạm vi bảng xếp hạng">
-  <?php foreach ($tabs as $k => $ten): ?>
-    <a class="bxh-tab<?= $phamVi === $k ? ' dang-chon' : '' ?>" href="<?= e(bxhUrl(['pv' => $k])) ?>"><?= e($ten) ?></a>
-  <?php endforeach; ?>
-</nav>
+<div class="bxh-bocuc">
 
-<div class="bxh-loc">
-  <?php if ($phamVi === 'loai' && $dsLoai): ?>
-    <div class="bxh-nhom">
-      <span class="bxh-nhan">Loại kỳ thi</span>
-      <?php foreach ($dsLoai as $l): ?>
-        <a class="bxh-chip<?= (int) $l['MaLoaiKT'] === $loai ? ' dang-chon' : '' ?>" href="<?= e(bxhUrl(['loai' => (int) $l['MaLoaiKT']])) ?>"><?= e($l['TenLoaiKT']) ?></a>
-      <?php endforeach; ?>
-    </div>
-  <?php endif; ?>
-  <?php if (!in_array($phamVi, ['truong', 'loai'], true) && $dsMon): ?>
-    <div class="bxh-nhom">
-      <span class="bxh-nhan">Môn học</span>
-      <?php foreach ($dsMon as $m): ?>
-        <a class="bxh-chip<?= (int) $m['MaMon'] === $mon ? ' dang-chon' : '' ?>" href="<?= e(bxhUrl(['mon' => (int) $m['MaMon']])) ?>"><?= e($m['TenMon']) ?></a>
-      <?php endforeach; ?>
-    </div>
-  <?php endif; ?>
-  <div class="bxh-nhom">
-    <span class="bxh-nhan">Thời gian</span>
-    <?php foreach ($kyTen as $k => $ten): ?>
-      <a class="bxh-chip<?= $ky === $k ? ' dang-chon' : '' ?>" href="<?= e(bxhUrl(['ky' => $k])) ?>"><?= e($ten) ?></a>
-    <?php endforeach; ?>
-  </div>
-</div>
+  <!-- ===== Cột trái: bộ lọc + lời mời thi đấu ===== -->
+  <aside class="bxh-trai">
+    <div class="bxh-hop">
+      <h3 class="bxh-hop-tieude">&#127942; Bộ lọc</h3>
 
-<div class="bxh-the">
-<div class="bxh-podium" aria-hidden="true">
-  <span class="bxh-cup-lon">&#127942;</span>
-  <div class="bxh-bac-thang"><span class="b2">2</span><span class="b1">1</span><span class="b3">3</span></div>
-</div>
-<div class="bxh-khung">
-  <?php if ($khongCoLoai): ?>
-    <p class="bxh-rong">Chưa có loại kỳ thi nào.</p>
-  <?php elseif ($canDangNhap): ?>
-    <p class="bxh-rong">Hãy <a href="<?= e(BASE_URL) ?>/client/login.php">đăng nhập</a> để xem bảng xếp hạng bạn bè.</p>
-  <?php elseif ($khongCoMon): ?>
-    <p class="bxh-rong">Chưa có môn học nào đang mở.</p>
-  <?php elseif (!$ds): ?>
-    <p class="bxh-rong">Chưa có dữ liệu xếp hạng cho lựa chọn này.</p>
-  <?php else: ?>
-    <div class="bxh-cuon">
-      <table class="bxh-bang">
-        <thead>
-          <tr>
-            <th class="c-hang">#</th>
-            <?php foreach ($cot as $i => $ten): ?>
-              <th class="<?= $i === 0 ? 'c-ten' : 'c-so' ?>"><?= e($ten) ?></th>
+      <div class="bxh-nhom">
+        <span class="bxh-nhan">Theo môn học</span>
+        <div class="bxh-chips">
+          <a class="bxh-chip<?= $phamVi === 'truong' ? ' dang-chon' : '' ?>" href="<?= e(bxhUrl(['pv' => 'truong'])) ?>">&#9734; Tất cả</a>
+          <?php foreach ($dsMon as $m): ?>
+            <a class="bxh-chip<?= $phamVi === 'mon' && (int) $m['MaMon'] === $mon ? ' dang-chon' : '' ?>" href="<?= e(bxhUrl(['pv' => 'mon', 'mon' => (int) $m['MaMon']])) ?>"><?= e($m['TenMon']) ?></a>
+          <?php endforeach; ?>
+        </div>
+      </div>
+
+      <div class="bxh-nhom">
+        <span class="bxh-nhan">Theo loại kỳ thi</span>
+        <div class="bxh-chips">
+          <a class="bxh-chip<?= $phamVi === 'loai' && $loai === 0 ? ' dang-chon' : '' ?>" href="<?= e(bxhUrl(['pv' => 'loai', 'loai' => 0])) ?>">&#127775; Tất cả</a>
+          <?php foreach ($dsLoai as $l): ?>
+            <a class="bxh-chip<?= $phamVi === 'loai' && (int) $l['MaLoaiKT'] === $loai ? ' dang-chon' : '' ?>" href="<?= e(bxhUrl(['pv' => 'loai', 'loai' => (int) $l['MaLoaiKT']])) ?>"><?= e($l['TenLoaiKT']) ?></a>
+          <?php endforeach; ?>
+        </div>
+      </div>
+
+      <div class="bxh-nhom">
+        <span class="bxh-nhan">Thời gian</span>
+        <div class="bxh-chips">
+          <?php foreach ($kyTen as $k => $ten): ?>
+            <a class="bxh-chip<?= $ky === $k ? ' dang-chon' : '' ?>" href="<?= e(bxhUrl(['ky' => $k])) ?>"><?= e($ten) ?></a>
+          <?php endforeach; ?>
+        </div>
+      </div>
+    </div>
+
+    <div class="bxh-hop bxh-moi">
+      <span class="bxh-moi-mien" aria-hidden="true">&#128081;</span>
+      <p>Bạn đã sẵn sàng<br>để vươn lên vị trí dẫn đầu?</p>
+      <a class="bxh-nut-vang" href="<?= e(BASE_URL) ?>/client/timtran.php">Bắt đầu thi đấu &rarr;</a>
+    </div>
+  </aside>
+
+  <!-- ===== Cột giữa: tab + bảng xếp hạng ===== -->
+  <section class="bxh-giua">
+    <nav class="bxh-tabs" aria-label="Phạm vi bảng xếp hạng">
+      <?php foreach ($tabs as $k => $ten): ?>
+        <a class="bxh-tab<?= $phamVi === $k ? ' dang-chon' : '' ?>" href="<?= e(bxhUrl(['pv' => $k])) ?>"><?= e($ten) ?></a>
+      <?php endforeach; ?>
+    </nav>
+
+    <div class="bxh-khung">
+      <?php if ($khongCoLoai): ?>
+        <p class="bxh-rong">Chưa có loại kỳ thi nào.</p>
+      <?php elseif ($canDangNhap): ?>
+        <p class="bxh-rong">Hãy <a href="<?= e(BASE_URL) ?>/client/login.php">đăng nhập</a> để xem bảng xếp hạng bạn bè.</p>
+      <?php elseif ($khongCoMon): ?>
+        <p class="bxh-rong">Chưa có môn học nào đang mở.</p>
+      <?php elseif (!$ds): ?>
+        <p class="bxh-rong">Chưa có dữ liệu xếp hạng cho lựa chọn này.</p>
+      <?php else: ?>
+        <div class="bxh-cuon">
+          <table class="bxh-bang">
+            <thead>
+              <tr>
+                <th class="c-hang">Hạng</th>
+                <?php foreach ($cot as $i => $ten): ?>
+                  <th class="<?= $i === 0 ? 'c-ten' : 'c-so' ?>"><?= e($ten) ?></th>
+                <?php endforeach; ?>
+              </tr>
+            </thead>
+            <tbody>
+            <?php foreach ($ds as $r):
+                $laToi = $toi !== null && (int) $r['MaND'] === $toi;
+                $hang  = (int) $r['Hang'];
+                $tyLe  = isset($r['SoThang']) && (int) $r['SoTran'] > 0 ? round($r['SoThang'] * 100 / $r['SoTran'], 1) : 0;
+            ?>
+              <tr class="<?= $laToi ? 'la-toi ' : '' ?><?= $hang <= 3 ? 'top-' . $hang : '' ?>">
+                <td class="c-hang"><?= $hang <= 3 ? BXH_VUONG_MIEN : '' ?><span class="so-hang"><?= $hang ?></span></td>
+                <td class="c-ten"><div class="o-ten">
+                  <?= bxhAvatar($r) ?>
+                  <span class="o-ten-chu">
+                    <b><?= e($r['HoTen']) ?><?= $laToi ? ' <em>(bạn)</em>' : '' ?></b>
+                    <?php if (!empty($r['Khoa'])): ?><small><?= e($r['Khoa']) ?></small><?php endif; ?>
+                  </span>
+                </div></td>
+                <?php if ($kieu === 'truong'): ?>
+                  <td class="c-so"><?= $r['MonChinh'] !== null ? '<span class="bxh-mon">' . e($r['MonChinh']) . '</span>' : '&ndash;' ?></td>
+                  <td class="c-so"><strong><?= e((string) round((float) $r['Diem'], 1)) ?></strong></td>
+                  <td class="c-so"><?= (int) $r['SoTran'] ?></td>
+                  <td class="c-so"><?= $tyLe ?>%</td>
+                <?php elseif ($kieu === 'mon'): ?>
+                  <td class="c-so"><span class="bxh-mon"><?= e($tenMon) ?></span></td>
+                  <td class="c-so"><strong><?= (int) $r['Diem'] ?></strong></td>
+                  <td class="c-so"><?= (int) $r['SoTran'] ?></td>
+                  <td class="c-so"><?= $tyLe ?>%</td>
+                <?php elseif ($kieu === 'loai'): ?>
+                  <td class="c-so"><span class="bxh-mon"><?= e($tenLoai !== '' ? $tenLoai : 'Tất cả loại') ?></span></td>
+                  <td class="c-so"><strong class="<?= (int) $r['Diem'] < 0 ? 'giam' : 'tang' ?>"><?= dau((int) $r['Diem']) ?></strong></td>
+                  <td class="c-so"><?= (int) $r['SoTran'] ?></td>
+                  <td class="c-so"><?= $tyLe ?>%</td>
+                <?php else: ?>
+                  <?php if ($phamVi !== 'truong'): ?><td class="c-so"><span class="bxh-mon"><?= e($tenMon) ?></span></td><?php endif; ?>
+                  <td class="c-so"><strong class="<?= (int) $r['Diem'] < 0 ? 'giam' : 'tang' ?>"><?= dau((int) $r['Diem']) ?></strong></td>
+                  <td class="c-so"><?= (int) $r['SoTran'] ?></td>
+                  <td class="c-so"><?= $r['EloHienTai'] === null ? '&ndash;' : e((string) round((float) $r['EloHienTai'], $phamVi === 'truong' ? 1 : 0)) ?></td>
+                <?php endif; ?>
+              </tr>
             <?php endforeach; ?>
-          </tr>
-        </thead>
-        <tbody>
-        <?php foreach ($ds as $r):
-            $laToi = $toi !== null && (int) $r['MaND'] === $toi;
-            $hang  = (int) $r['Hang'];
-            $tyLe  = isset($r['SoThang']) && (int) $r['SoTran'] > 0 ? round($r['SoThang'] * 100 / $r['SoTran']) : 0;
-        ?>
-          <tr class="<?= $laToi ? 'la-toi ' : '' ?><?= $hang <= 3 ? 'top-' . $hang : '' ?>">
-            <td class="c-hang"><?= $hang <= 3 ? BXH_VUONG_MIEN : '' ?><span class="so-hang"><?= $hang ?></span></td>
-            <td class="c-ten"><div class="o-ten">
-              <?= bxhAvatar($r) ?>
-              <span><?= e($r['HoTen']) ?><?= $laToi ? ' <em>(bạn)</em>' : '' ?></span>
-            </div></td>
-            <?php if ($kieu === 'truong'): ?>
-              <td class="c-so"><?= (int) $r['SoMon'] ?> môn</td>
-              <td class="c-so"><strong><?= e((string) round((float) $r['Diem'], 1)) ?></strong></td>
-              <td class="c-so"><?= (int) $r['SoTran'] ?></td>
-              <td class="c-so"><?= $tyLe ?>%</td>
-            <?php elseif ($kieu === 'mon'): ?>
-              <td class="c-so"><?= e($tenMon) ?></td>
-              <td class="c-so"><strong><?= (int) $r['Diem'] ?></strong></td>
-              <td class="c-so"><?= (int) $r['SoTran'] ?></td>
-              <td class="c-so"><?= $tyLe ?>%</td>
-            <?php elseif ($kieu === 'loai'): ?>
-              <td class="c-so"><?= e($tenLoai) ?></td>
-              <td class="c-so"><strong class="<?= (int) $r['Diem'] < 0 ? 'giam' : 'tang' ?>"><?= dau((int) $r['Diem']) ?></strong></td>
-              <td class="c-so"><?= (int) $r['SoTran'] ?></td>
-              <td class="c-so"><?= $tyLe ?>%</td>
-            <?php else: ?>
-              <?php if ($phamVi !== 'truong'): ?><td class="c-so"><?= e($tenMon) ?></td><?php endif; ?>
-              <td class="c-so"><strong class="<?= (int) $r['Diem'] < 0 ? 'giam' : 'tang' ?>"><?= dau((int) $r['Diem']) ?></strong></td>
-              <td class="c-so"><?= (int) $r['SoTran'] ?></td>
-              <td class="c-so"><?= $r['EloHienTai'] === null ? '&ndash;' : e((string) round((float) $r['EloHienTai'], $phamVi === 'truong' ? 1 : 0)) ?></td>
-            <?php endif; ?>
-          </tr>
-        <?php endforeach; ?>
-        </tbody>
-      </table>
+            </tbody>
+          </table>
+        </div>
+        <?= $phanTrang->links() ?>
+      <?php endif; ?>
     </div>
-    <?= $phanTrang->links() ?>
-  <?php endif; ?>
-</div>
-</div>
 
-<p class="ghi-chu">
-  <?php if ($phamVi === 'loai'): ?>
-    Xếp theo tổng Elo thay đổi trong các trận đã kết thúc của loại kỳ thi này (mọi môn)<?= $ky !== 'tong' ? ' trong kỳ đã chọn' : '' ?>.
-  <?php elseif ($phamVi === 'truong'): ?>
-    <?php if ($ky === 'tong'): ?>
-      Elo trung bình chỉ tính các môn đã đấu từ <?= (int) $nMin ?> trận trở lên; số trận và tỉ lệ thắng cũng chỉ tính trong các môn đó.
-    <?php else: ?>
-      Xếp theo tổng mức thay đổi Elo của mọi môn trong kỳ; Elo hiện tại là Elo trung bình các môn đã đủ <?= (int) $nMin ?> trận.
-    <?php endif; ?>
-  <?php elseif ($ky !== 'tong'): ?>
-    Xếp theo tổng mức thay đổi Elo trong kỳ; người không có trận trong kỳ không hiện ở bảng này.
-  <?php else: ?>
-    Chỉ hiện người đã đấu ít nhất một trận ở môn này. Cùng Elo thì cùng hạng.
-  <?php endif; ?>
-</p>
+    <p class="ghi-chu">
+      <?php if ($phamVi === 'loai'): ?>
+        Xếp theo tổng Elo thay đổi trong các trận đã kết thúc của loại kỳ thi này (mọi môn)<?= $ky !== 'tong' ? ' trong kỳ đã chọn' : '' ?>.
+      <?php elseif ($phamVi === 'truong'): ?>
+        <?php if ($ky === 'tong'): ?>
+          Elo trung bình chỉ tính các môn đã đấu từ <?= (int) $nMin ?> trận trở lên; số trận và tỉ lệ thắng cũng chỉ tính trong các môn đó. Môn học chính là môn bạn đấu nhiều nhất.
+        <?php else: ?>
+          Xếp theo tổng mức thay đổi Elo của mọi môn trong kỳ; Elo hiện tại là Elo trung bình các môn đã đủ <?= (int) $nMin ?> trận.
+        <?php endif; ?>
+      <?php elseif ($ky !== 'tong'): ?>
+        Xếp theo tổng mức thay đổi Elo trong kỳ; người không có trận trong kỳ không hiện ở bảng này.
+      <?php else: ?>
+        Chỉ hiện người đã đấu ít nhất một trận ở môn này. Cùng Elo thì cùng hạng.
+      <?php endif; ?>
+    </p>
+  </section>
+
+  <!-- ===== Cột phải: thống kê nổi bật + top môn học ===== -->
+  <aside class="bxh-phai">
+    <div class="bxh-hop">
+      <h3 class="bxh-hop-tieude">&#128202; Thống kê nổi bật</h3>
+      <div class="bxh-thongke">
+        <div><span class="bxh-thongke-ico" aria-hidden="true">&#128101;</span><b><?= e(bxhRutGon($thongKe['thanhvien'])) ?></b><span>Thành viên</span></div>
+        <div><span class="bxh-thongke-ico" aria-hidden="true">&#9876;</span><b><?= e(bxhRutGon($thongKe['tran'])) ?></b><span>Trận đấu</span></div>
+        <div><span class="bxh-thongke-ico" aria-hidden="true">&#127942;</span><b><?= e(bxhRutGon($thongKe['cauhoi'])) ?></b><span>Câu hỏi</span></div>
+      </div>
+    </div>
+
+    <div class="bxh-hop">
+      <h3 class="bxh-hop-tieude">&#11088; Top môn học</h3>
+      <?php if (!$topMon): ?>
+        <p class="bxh-goiy">Chưa có trận nào kết thúc.</p>
+      <?php else: ?>
+        <ol class="bxh-topmon">
+          <?php foreach ($topMon as $i => $t): ?>
+            <li class="hang-<?= $i + 1 ?>">
+              <span class="bxh-huy"><?= $i + 1 ?></span>
+              <a href="<?= e(bxhUrl(['pv' => 'mon', 'mon' => (int) $t['MaMon'], 'ky' => 'tong'])) ?>">
+                <b><?= e($t['TenMon']) ?></b>
+                <small><?= (int) $t['SoTran'] ?> trận đã đấu</small>
+                <i style="width:<?= (int) round($t['SoTran'] * 100 / $maxTranMon) ?>%"></i>
+              </a>
+            </li>
+          <?php endforeach; ?>
+        </ol>
+      <?php endif; ?>
+    </div>
+  </aside>
+
+</div>
 <?php require __DIR__ . '/layout/footer.php'; ?>

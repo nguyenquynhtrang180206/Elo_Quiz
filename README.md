@@ -1,4 +1,4 @@
-# Đấu Trường Tri Thức (Elo Quiz) - giao diện Cosmic Nebula
+# Đấu Trường Tri Thức (Elo Quiz) - giao diện 
 
 Thi đấu trắc nghiệm 1 vs 1, xếp hạng Elo theo môn. PHP 8.2 + MySQL (PDO), không dùng framework.
 
@@ -17,7 +17,6 @@ Tài khoản thử: sinh viên `an@test.com` / `123456`; quản trị `admin` / 
 
 ## Giao diện / hiệu ứng
 | File | Vai trò |
-|---|---|
 | `assets/style.css`, `assets/style_admin.css` | Design system (CSS variables, glass card, nút neon, form, bảng, phân trang, modal, toast), sidebar admin |
 | `assets/css/cosmic-fix.css` | Ghi đè các màu sáng cố định trong CSS riêng từng trang |
 | `assets/js/effects/cosmic-bg.js` | Three.js: tinh vân (shader), ~5000 hạt 3 lớp, hút xoáy theo chuột, vệt chuột, click nổ + shockwave, parallax |

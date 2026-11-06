@@ -4,6 +4,7 @@
 // và mọi mốc thời gian lấy từ giờ máy chủ (NOW(3)); đồng hồ trên trình duyệt chỉ để hiển thị.
 // Elo sau trận: xem core/Elo.php (C-32, C-33). Chưa làm: màn xem lại (C-34).
 require_once __DIR__ . '/Elo.php';
+require_once __DIR__ . '/GhepDoi.php';
 class ThiDau
 {
     public const DEM_NGUOC_GIAY = 3;   // đếm ngược trước khi câu 1 hiện, để hai người bắt đầu gần như cùng lúc
@@ -192,6 +193,15 @@ class ThiDau
                     self::tienTrinh($pdo, $maTran, $maND);
                     $tt = self::khoaTran($pdo, $maTran);
                 }
+
+                // Nếu đối thủ là Đấu Thần Máy (Bot AI), xử lý hoạt động và đáp án tự động của Bot
+                $stBot = $pdo->prepare('SELECT MaND FROM NGUOICHOITRANDAU WHERE MaTran = ? AND MaND <> ?');
+                $stBot->execute([$maTran, $maND]);
+                $maDoiThu = (int) $stBot->fetchColumn();
+                if ($maDoiThu && GhepDoi::laBot($pdo, $maDoiThu)) {
+                    self::xuLyBot($pdo, $maTran, $maDoiThu, $daTroi);
+                    $tt = self::khoaTran($pdo, $maTran);
+                }
             }
             $kq = self::dungTrangThai($pdo, $maTran, $maND, (string) $tt, $daTroi);
             $pdo->commit();
@@ -279,26 +289,34 @@ class ThiDau
     public static function traLoi(PDO $pdo, int $maTran, int $maND, int $maCau, int $maDapAn): array
     {
         $dungSai = max(0, Config::int('DUNG_SAI_DO_TRE', 1));
-        $pdo->beginTransaction();
+        $batDauTx = false;
+        if (!$pdo->inTransaction()) {
+            $pdo->beginTransaction();
+            $batDauTx = true;
+        }
         try {
             if (self::khoaTran($pdo, $maTran) !== 'Đang diễn ra') {
-                $pdo->commit();
+                if ($batDauTx) $pdo->commit();
                 return ['loi' => 'Trận không còn diễn ra.'];
             }
             $dong = self::dongDangLam($pdo, $maTran, $maND);
             if (!$dong || (int) $dong['MaCauHoi'] !== $maCau) {
-                $pdo->commit();
+                if ($batDauTx) $pdo->commit();
                 return ['loi' => 'Câu hỏi này đã được chốt.'];
             }
             $gioiHan = (int) $dong['ThoiGianQuyDinh'];
             $daDung  = (float) $dong['DaDung'];
 
-            // Đến muộn quá dung sai độ trễ: tính hết giờ, 0 điểm
-            if ($daDung > $gioiHan + $dungSai) {
+            // Đến muộn quá dung sai độ trễ hoặc gửi 0 (hết giờ): tính hết giờ, 0 điểm (bảo mật: không gửi đáp án đúng)
+            if ($maDapAn === 0 || $daDung > $gioiHan + $dungSai) {
                 self::chotHetGio($pdo, $maTran, $maND, $maCau, $gioiHan);
                 self::capNhatDiem($pdo, $maTran, $maND);
-                $pdo->commit();
-                return ['hetGio' => true, 'dung' => false, 'diem' => 0];
+                if ($batDauTx) $pdo->commit();
+                return [
+                    'hetGio' => true,
+                    'dung'   => false,
+                    'diem'   => 0,
+                ];
             }
 
             // Đáp án phải thuộc đúng câu này
@@ -306,7 +324,7 @@ class ThiDau
             $st->execute([$maDapAn, $maCau]);
             $la = $st->fetchColumn();
             if ($la === false) {
-                $pdo->commit();
+                if ($batDauTx) $pdo->commit();
                 return ['loi' => 'Đáp án không hợp lệ.'];
             }
 
@@ -321,10 +339,14 @@ class ThiDau
                   WHERE MaTran = ? AND MaND = ? AND MaCauHoi = ? AND TrangThai = 'Không làm'"
             )->execute([$maDapAn, round($daDung, 3), $diem, $maTran, $maND, $maCau]);
             self::capNhatDiem($pdo, $maTran, $maND);
-            $pdo->commit();
-            return ['hetGio' => false, 'dung' => $dung, 'diem' => $diem];
+            if ($batDauTx) $pdo->commit();
+            return [
+                'hetGio' => false,
+                'dung'   => $dung,
+                'diem'   => $diem,
+            ];
         } catch (Throwable $ex) {
-            if ($pdo->inTransaction()) {
+            if ($batDauTx && $pdo->inTransaction()) {
                 $pdo->rollBack();
             }
             throw $ex;
@@ -387,5 +409,53 @@ class ThiDau
         $pdo->prepare("UPDATE TRANDAU SET TrangThai = 'Hủy', LyDoKetThuc = 'Quản trị viên hủy', ThoiGianKetThuc = NOW(3) WHERE MaTran = ?")
             ->execute([$maTran]);
         return true;
+    }
+
+    // Tự động xử lý lượt chơi, tiến trình và đáp án của Đấu Thần Máy (Bot AI)
+    public static function xuLyBot(PDO $pdo, int $maTran, int $botId, ?float $daTroi): void
+    {
+        // 1. Luôn cập nhật hoạt động của Bot để không bị xử thua do bỏ trận
+        $pdo->prepare("UPDATE NGUOICHOITRANDAU SET LanHoatDongCuoi = NOW(3) WHERE MaTran = ? AND MaND = ? AND TrangThaiThamGia = 'Đang chơi'")
+            ->execute([$maTran, $botId]);
+
+        // 2. Nếu qua thời gian đếm ngược, đẩy tiến trình câu hỏi cho Bot
+        if ($daTroi === null || $daTroi < self::DEM_NGUOC_GIAY) {
+            return;
+        }
+
+        self::tienTrinh($pdo, $maTran, $botId);
+
+        // 3. Kiểm tra câu Bot đang làm dở
+        $dong = self::dongDangLam($pdo, $maTran, $botId);
+        if (!$dong) {
+            return;
+        }
+
+        // Thời gian suy nghĩ của Bot: 3.2s đến 5.8s
+        $daDung = (float) $dong['DaDung'];
+        $tgNghi = 3.2 + ((((int) $dong['MaCauHoi'] * 7 + $maTran * 3) % 25) / 10.0);
+
+        if ($daDung >= $tgNghi) {
+            $maCau = (int) $dong['MaCauHoi'];
+            // Tìm đáp án đúng
+            $stD = $pdo->prepare('SELECT MaDapAn FROM DAPAN WHERE MaCauHoi = ? AND LaDapAnDung = 1 LIMIT 1');
+            $stD->execute([$maCau]);
+            $dapAnDung = (int) $stD->fetchColumn();
+
+            // Tỉ lệ trả lời đúng của Bot khoảng 75%
+            $seed = ((int) $dong['MaCauHoi'] * 13 + $maTran * 17) % 100;
+            if ($seed < 75 && $dapAnDung > 0) {
+                $dapAnChon = $dapAnDung;
+            } else {
+                // Chọn một đáp án sai ngẫu nhiên
+                $stS = $pdo->prepare('SELECT MaDapAn FROM DAPAN WHERE MaCauHoi = ? AND LaDapAnDung = 0 ORDER BY RAND() LIMIT 1');
+                $stS->execute([$maCau]);
+                $dapAnChon = (int) $stS->fetchColumn() ?: $dapAnDung;
+            }
+
+            self::traLoi($pdo, $maTran, $botId, $maCau, $dapAnChon);
+            self::capNhatDiem($pdo, $maTran, $botId);
+            self::tienTrinh($pdo, $maTran, $botId);
+        }
     }
 }

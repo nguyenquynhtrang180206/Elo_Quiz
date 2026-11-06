@@ -262,10 +262,6 @@ require __DIR__ . '/layout/header.php';
         <!-- Vầng hào quang vô địch phát sáng phía sau -->
         <div class="hero-faker-aura" aria-hidden="true"></div>
 
-        <!-- Các vòng quỹ đạo thiên thể 3D quay quanh -->
-        <div class="hero-orbit-ring ring-1" aria-hidden="true"></div>
-        <div class="hero-orbit-ring ring-2" aria-hidden="true"></div>
-
         <!-- Bệ ánh sáng chân đế -->
         <div class="hero-faker-pedestal" aria-hidden="true"></div>
 

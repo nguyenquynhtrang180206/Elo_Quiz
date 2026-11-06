@@ -20,6 +20,9 @@ $cur = fn(string $f): string => $f === $trangHienTai ? ' aria-current="page"' : 
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title><?= e($tieuDe) ?> - QUIZUP ARENA</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cpolygon points='24,2.5 39.2,8.8 45.5,24 39.2,39.2 24,45.5 8.8,39.2 2.5,24 8.8,8.8' fill='%23081436' stroke='%23D4AF37' stroke-width='2'/%3E%3Ccircle cx='24' cy='26' r='7.2' fill='none' stroke='%23F3DE8A' stroke-width='2.6'/%3E%3Cpath d='M26 28 L35.5 37.5 L37.5 35.5 L28 26 Z' fill='%23D4AF37'/%3E%3Cpath d='M17 18 L19.5 13.5 L24 16.5 L28.5 13.5 L31 18 Z' fill='%23D4AF37'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,600&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="<?= e(BASE_URL) ?>/assets/style.css?v=<?= (int) @filemtime(__DIR__ . '/../../assets/style.css') ?>">
   <?php foreach ($cssTrang as $f): ?>
   <link rel="stylesheet" href="<?= e(BASE_URL) ?>/assets/css/client/<?= e($f) ?>.css?v=<?= (int) @filemtime(__DIR__ . '/../../assets/css/client/' . $f . '.css') ?>">
@@ -28,7 +31,7 @@ $cur = fn(string $f): string => $f === $trangHienTai ? ' aria-current="page"' : 
   <script type="module" src="<?= e(BASE_URL) ?>/assets/js/effects/cosmic-bg.js"></script>
   <script src="<?= e(BASE_URL) ?>/assets/js/ui.js" defer></script>
 </head>
-<body>
+<body<?= !empty($bodyClass) ? ' class="' . e($bodyClass) . '"' : '' ?>>
 <header class="topnav">
   <div class="container">
     <a class="logo" href="<?= e(BASE_URL) ?>/client/index.php" title="QUIZUP ARENA - Đấu Trường Tri Thức Đỉnh Cao">
