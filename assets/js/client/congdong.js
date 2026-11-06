@@ -246,14 +246,30 @@
     var form = e.target;
     if (!form || !form.classList.contains('cd-like-form')) { return; }
     e.preventDefault();
+    thucHienThaLuaCD(form);
+  });
 
-    var btn = form.querySelector('.cd-tha-lua') || form.querySelector('button[type="submit"]');
-    if (!btn) { return; }
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest ? e.target.closest('.cd-tha-lua') : null;
+    if (!btn) return;
+    var form = btn.closest('form.cd-like-form');
+    if (!form) return;
+    e.preventDefault();
+    e.stopPropagation();
+    thucHienThaLuaCD(form, btn);
+  });
+
+  function thucHienThaLuaCD(form, btnTarget) {
+    var btn = btnTarget || form.querySelector('.cd-tha-lua') || form.querySelector('button[type="submit"]');
+    if (!btn || btn.dataset.loading === '1') { return; }
+
+    btn.dataset.loading = '1';
+    btn.style.pointerEvents = 'none';
 
     var formData = new FormData(form);
-    var actionUrl = form.getAttribute('action') || window.location.href;
+    formData.append('ajax', '1');
+    var actionUrl = form.action || form.getAttribute('action') || window.location.href;
 
-    btn.style.pointerEvents = 'none';
     fetch(actionUrl, {
       method: 'POST',
       body: formData,
@@ -263,7 +279,6 @@
     })
     .then(function (res) { return res.json(); })
     .then(function (data) {
-      btn.style.pointerEvents = '';
       if (data.yeuCauLogin && data.redirect) {
         window.location.href = data.redirect;
         return;
@@ -279,7 +294,7 @@
           var icon = btn.querySelector('.flame-icon');
           if (icon) {
             icon.style.transform = 'scale(1.55) rotate(-12deg)';
-            setTimeout(function () { icon.style.transform = ''; }, 300);
+            setTimeout(function () { icon.style.transform = ''; }, 320);
           }
         } else {
           btn.classList.remove('da-tha-lua');
@@ -287,9 +302,13 @@
         }
       }
     })
-    .catch(function () {
-      btn.style.pointerEvents = '';
+    .catch(function (err) {
+      console.warn('Lỗi AJAX thả lửa cộng đồng:', err);
       form.submit();
+    })
+    .finally(function () {
+      btn.dataset.loading = '0';
+      btn.style.pointerEvents = '';
     });
-  });
+  }
 })();

@@ -2318,6 +2318,16 @@ body.trang-cd .container { max-width: 1240px; }
   border: 1px solid rgba(255, 255, 255, 0.15);
   color: #E2E8F0;
   font-weight: 800;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.cd-chi-so.cd-tha-lua .flame-icon,
+.cd-chi-so.cd-tha-lua .flame-icon svg,
+.cd-chi-so.cd-tha-lua .flame-count {
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
 .cd-chi-so.cd-tha-lua:hover {
   color: #FED7AA;

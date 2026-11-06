@@ -5,7 +5,7 @@ require_once __DIR__ . '/../core/CongDongHelper.php';
 
 $maND = Auth::clientId();   // khách chưa đăng nhập vẫn xem được bài; bình luận/xóa/sửa cần đăng nhập
 $pdo  = Database::pdo();
-$id   = (int) ($_GET['id'] ?? 0);
+$id   = (int) ($_POST['id'] ?? $_GET['id'] ?? 0);
 $coLoai = CongDongHelper::coCotLoaiBai();
 
 // Bảng LUOTTHICH có thể chưa được tạo (chạy migration_luotthich.sql); chưa có thì ẩn nút thích
@@ -51,7 +51,19 @@ $coLikeBL = CongDongHelper::coLikeBL();
 $coAnBL   = CongDongHelper::coCotNguoiAnBL();
 
 if ($bai && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    $isAjax = (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest')
+           || (($_POST['ajax'] ?? '') === '1');
+
     if ($maND === null) {
+        if ($isAjax) {
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode([
+                'ok' => false,
+                'yeuCauLogin' => true,
+                'redirect' => BASE_URL . '/client/login.php'
+            ]);
+            exit;
+        }
         redirect(BASE_URL . '/client/login.php');
     }
     csrf_check();
@@ -142,7 +154,7 @@ if ($bai && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $stCount->execute([$id]);
         $soThichMoi = (int) $stCount->fetchColumn();
 
-        if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+        if ($isAjax) {
             header('Content-Type: application/json; charset=utf-8');
             echo json_encode([
                 'ok' => true,
@@ -170,7 +182,7 @@ if ($bai && $_SERVER['REQUEST_METHOD'] === 'POST') {
             $stDaThich->execute([$maBL, $maND]);
             $daThichBL = ((int) $stDaThich->fetchColumn()) > 0;
 
-            if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+            if ($isAjax) {
                 header('Content-Type: application/json; charset=utf-8');
                 echo json_encode([
                     'ok' => true,
@@ -310,6 +322,7 @@ require __DIR__ . '/layout/header.php';
       <?php if ($coLike): ?>
         <form method="post" action="?id=<?= (int) $id ?>" class="form-dong cd-like-form" data-bai-id="<?= (int) $id ?>">
           <?= csrf_field() ?>
+          <input type="hidden" name="id" value="<?= (int) $id ?>">
           <input type="hidden" name="hanh_dong" value="thich">
           <button type="submit" class="cd-chi-so cd-tha-lua<?= (int) $bai['DaThich'] > 0 ? ' da-tha-lua' : '' ?>"
                   title="<?= (int) $bai['DaThich'] > 0 ? 'Dập lửa (Bỏ thả lửa)' : 'Thả lửa bài viết này' ?>">
@@ -409,6 +422,7 @@ require __DIR__ . '/layout/header.php';
             <?php elseif ($coLikeBL): ?>
               <form method="post" action="?id=<?= (int) $id ?>" class="form-dong cd-like-bl-form" data-bl-id="<?= (int) $c['MaBinhLuan'] ?>">
                 <?= csrf_field() ?>
+                <input type="hidden" name="id" value="<?= (int) $id ?>">
                 <input type="hidden" name="hanh_dong" value="like_bl">
                 <?= $truongBL ?>
                 <button type="submit" class="cd-chi-so cd-tha-lua<?= (int) $c['DaThich'] > 0 ? ' da-tha-lua' : '' ?>"
