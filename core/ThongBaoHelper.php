@@ -20,9 +20,9 @@ class ThongBaoHelper
                     MaTB        INT UNSIGNED NOT NULL AUTO_INCREMENT,
                     MaND        INT UNSIGNED NOT NULL COMMENT 'Người nhận thông báo',
                     MaNguoiGui  INT UNSIGNED NOT NULL COMMENT 'Người thực hiện hành động',
-                    MaBaiDang   INT UNSIGNED NOT NULL COMMENT 'Bài viết liên quan',
+                    MaBaiDang   INT UNSIGNED NULL COMMENT 'Bài viết liên quan (NULL với thông báo kết bạn)',
                     MaBinhLuan  INT UNSIGNED NULL COMMENT 'Bình luận liên quan nếu có',
-                    Loai        VARCHAR(30) NOT NULL DEFAULT 'binhluan' COMMENT 'binhluan, rep_bl, thich_bai, v.v.',
+                    Loai        VARCHAR(30) NOT NULL DEFAULT 'binhluan' COMMENT 'binhluan, rep_bl, loi_moi_kb, chap_nhan_kb, v.v.',
                     TieuDe      VARCHAR(255) NOT NULL,
                     NoiDung     VARCHAR(500) NULL,
                     LienKet     VARCHAR(255) NOT NULL,
@@ -78,6 +78,60 @@ class ThongBaoHelper
             ]);
         } catch (Throwable $e) {
             return false;
+        }
+    }
+
+    /**
+     * Thông báo về bạn bè (lời mời, chấp nhận). Không gắn với bài đăng nên MaBaiDang = NULL.
+     * Xóa trước thông báo cùng loại, cùng cặp người còn chưa đọc để gửi đi gửi lại không bị trùng.
+     */
+    public static function taoThongBaoBanBe(
+        PDO $pdo,
+        int $maNguoiNhan,
+        int $maNguoiGui,
+        string $loai,
+        string $tieuDe,
+        string $lienKet
+    ): bool {
+        if ($maNguoiNhan <= 0 || $maNguoiNhan === $maNguoiGui || !self::damBaoBang()) {
+            return false;
+        }
+        self::xoaThongBaoBanBe($pdo, $maNguoiNhan, $maNguoiGui, $loai, true);
+
+        $sql = 'INSERT INTO THONGBAO (MaND, MaNguoiGui, MaBaiDang, MaBinhLuan, Loai, TieuDe, NoiDung, LienKet, DaDoc, NgayTao)
+                VALUES (?, ?, NULL, NULL, ?, ?, NULL, ?, 0, NOW())';
+        $tham = [$maNguoiNhan, $maNguoiGui, $loai, mb_substr($tieuDe, 0, 255), mb_substr($lienKet, 0, 255)];
+        try {
+            return $pdo->prepare($sql)->execute($tham);
+        } catch (PDOException $e) {
+            // Bảng THONGBAO tạo từ phiên bản cũ: MaBaiDang còn NOT NULL (lỗi MySQL 1048).
+            // Cho phép NULL một lần rồi thử lại.
+            if ((int) ($e->errorInfo[1] ?? 0) !== 1048) {
+                return false;
+            }
+            try {
+                $pdo->exec('ALTER TABLE THONGBAO MODIFY MaBaiDang INT UNSIGNED NULL');
+                return $pdo->prepare($sql)->execute($tham);
+            } catch (Throwable $e2) {
+                return false;
+            }
+        }
+    }
+
+    /**
+     * Xóa thông báo bạn bè (cùng loại, cùng cặp người gửi - nhận).
+     * Dùng khi lời mời đã được xử lý hoặc không còn đúng nữa.
+     */
+    public static function xoaThongBaoBanBe(PDO $pdo, int $maNguoiNhan, int $maNguoiGui, string $loai, bool $chiChuaDoc = false): void
+    {
+        if ($maNguoiNhan <= 0 || $maNguoiGui <= 0 || !self::damBaoBang()) {
+            return;
+        }
+        try {
+            $sql = 'DELETE FROM THONGBAO WHERE MaND = ? AND MaNguoiGui = ? AND Loai = ?' . ($chiChuaDoc ? ' AND DaDoc = 0' : '');
+            $pdo->prepare($sql)->execute([$maNguoiNhan, $maNguoiGui, $loai]);
+        } catch (Throwable $e) {
+            // thông báo chỉ là phụ, lỗi ở đây không được làm hỏng thao tác kết bạn
         }
     }
 
@@ -214,4 +268,3 @@ class ThongBaoHelper
         return date('d/m/Y H:i', $time);
     }
 }
-

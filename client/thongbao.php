@@ -123,7 +123,7 @@ require __DIR__ . '/layout/header.php';
       <div class="tb-items-list">
         <?php foreach ($danhSachTB as $item): 
           $chuaDoc = (int) $item['DaDoc'] === 0;
-          $iconLoai = $item['Loai'] === 'rep_bl' ? '💬' : '📝';
+          $iconLoai = ['rep_bl' => '💬', 'loi_moi_kb' => '👋', 'chap_nhan_kb' => '🤝'][$item['Loai']] ?? '📝';
           $letter = mb_strtoupper(mb_substr($item['TenNguoiGui'] ?? 'U', 0, 1));
         ?>
           <div class="tb-item-card <?= $chuaDoc ? 'is-unread' : 'is-read' ?>">
@@ -158,6 +158,8 @@ require __DIR__ . '/layout/header.php';
             <div class="tb-item-actions-col">
               <?php if ($chuaDoc): ?>
                 <span class="tb-unread-dot" title="Chưa đọc"></span>
+              <?php else: ?>
+                <span class="tb-read-label">✓ Đã đọc</span>
               <?php endif; ?>
               <form method="post" action="?tab=<?= e($tab) ?>" class="form-inline" onsubmit="return confirm('Xóa thông báo này?');">
                 <?= csrf_field() ?>
@@ -178,4 +180,3 @@ require __DIR__ . '/layout/header.php';
 </div>
 
 <?php require __DIR__ . '/layout/footer.php'; ?>
-

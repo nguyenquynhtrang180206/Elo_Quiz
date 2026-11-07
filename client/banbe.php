@@ -1,12 +1,12 @@
 <?php
-// Bạn bè: tìm sinh viên, gửi / chấp nhận / từ chối / hủy lời mời (C-41). Đặt tại: elo_quiz/client/banbe.php
+// Bạn bè: tìm sinh viên, gửi / chấp nhận / từ chối / hủy lời mời, hủy kết bạn (C-41). Đặt tại: elo_quiz/client/banbe.php
 require_once __DIR__ . '/../core/bootstrap.php';
 require_once __DIR__ . '/../core/BanBeHelper.php';
 
 $maND = Auth::requireClient(BASE_URL . '/client/login.php');
 $pdo  = Database::pdo();
 
-$q    = trim((string) ($_GET['q'] ?? ''));
+$q    = mb_substr(trim((string) ($_GET['q'] ?? '')), 0, 100);
 $trang = (int) ($_GET['page'] ?? 1);
 
 // ---- Xử lý thao tác (POST), xong thì quay lại đúng trang tìm kiếm ----
@@ -14,7 +14,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_check();
     $hanhDong = (string) ($_POST['hanh_dong'] ?? '');
     $nguoi    = (int) ($_POST['nguoi'] ?? 0);
-    $qGui     = trim((string) ($_POST['q'] ?? ''));
+    $qGui     = mb_substr(trim((string) ($_POST['q'] ?? '')), 0, 100);
     $trangGui = max(1, (int) ($_POST['page'] ?? 1));
 
     if ($hanhDong === 'gui') {
@@ -29,6 +29,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif ($hanhDong === 'tuchoi') {
         $ok = BanBeHelper::tuChoi($maND, $nguoi);
         BanBeHelper::flash($ok ? 'ok' : 'loi', $ok ? 'Đã từ chối lời mời.' : 'Lời mời không còn hiệu lực.');
+    } elseif ($hanhDong === 'huyketban') {
+        $ok = BanBeHelper::huyKetBan($maND, $nguoi);
+        BanBeHelper::flash($ok ? 'ok' : 'loi', $ok ? 'Đã hủy kết bạn.' : 'Hai bạn không còn là bạn bè.');
     }
 
     $url = BASE_URL . '/client/banbe.php';
@@ -40,10 +43,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $thongBao = BanBeHelper::flash();
 
-// Nút bấm nhỏ gửi một thao tác (kèm CSRF, giữ nguyên từ khóa tìm kiếm và trang)
-function nutBanBe(string $hanhDong, int $nguoi, string $nhan, string $q, int $trang, string $lop = 'btn'): string
+// Nút bấm nhỏ gửi một thao tác (kèm CSRF, giữ nguyên từ khóa tìm kiếm và trang).
+// $xacNhan khác rỗng thì hiện modal hỏi lại trước khi gửi (dùng cho thao tác khó hoàn tác như hủy kết bạn).
+function nutBanBe(string $hanhDong, int $nguoi, string $nhan, string $q, int $trang, string $lop = 'btn', string $xacNhan = ''): string
 {
-    return '<form method="post" action="" class="form-dong">'
+    return '<form method="post" action="" class="form-dong"' . ($xacNhan !== '' ? ' data-xacnhan="' . e($xacNhan) . '"' : '') . '>'
         . csrf_field()
         . '<input type="hidden" name="hanh_dong" value="' . e($hanhDong) . '">'
         . '<input type="hidden" name="nguoi" value="' . $nguoi . '">'
@@ -64,7 +68,7 @@ if ($q !== '') {
 
     // Quan hệ giữa mình và từng người tìm được: một dòng BANBE duy nhất cho mỗi cặp
     $st = $pdo->prepare(
-        "SELECT u.MaND, u.HoTen, u.Lop, u.Khoa, b.MaNguoiGui, b.TrangThai AS TrangThaiBan
+        "SELECT u.MaND, u.HoTen, u.Lop, u.Khoa, u.AnhDaiDien, b.MaNguoiGui, b.TrangThai AS TrangThaiBan
            FROM NGUOIDUNG u
            LEFT JOIN BANBE b ON b.CapNho = LEAST(?, u.MaND) AND b.CapLon = GREATEST(?, u.MaND)
           WHERE u.MaND <> ? AND u.TrangThai = 'Hoạt động' AND u.HoTen LIKE ?
@@ -74,39 +78,71 @@ if ($q !== '') {
     $st->execute([$maND, $maND, $maND, $mau]);
     $ketQua = $st->fetchAll();
 }
-$trangHienTai = $p ? $p->trang() : 1;
+$trangDangXem = $p ? $p->trang() : 1;
 
-// ---- Lời mời đã nhận, đã gửi, danh sách bạn bè ----
+// ---- Lời mời đã nhận, đã gửi, danh sách bạn bè (chỉ hiện tài khoản còn hoạt động) ----
 $st = $pdo->prepare(
-    "SELECT u.MaND, u.HoTen, u.Lop, u.Khoa, b.NgayGui
+    "SELECT u.MaND, u.HoTen, u.Lop, u.Khoa, u.AnhDaiDien, b.NgayGui
        FROM BANBE b JOIN NGUOIDUNG u ON u.MaND = b.MaNguoiGui
-      WHERE b.MaNguoiNhan = ? AND b.TrangThai = 'Chờ' ORDER BY b.NgayGui DESC"
+      WHERE b.MaNguoiNhan = ? AND b.TrangThai = 'Chờ' AND u.TrangThai = 'Hoạt động'
+      ORDER BY b.NgayGui DESC"
 );
 $st->execute([$maND]);
 $daNhan = $st->fetchAll();
 
 $st = $pdo->prepare(
-    "SELECT u.MaND, u.HoTen, u.Lop, u.Khoa, b.NgayGui
+    "SELECT u.MaND, u.HoTen, u.Lop, u.Khoa, u.AnhDaiDien, b.NgayGui
        FROM BANBE b JOIN NGUOIDUNG u ON u.MaND = b.MaNguoiNhan
-      WHERE b.MaNguoiGui = ? AND b.TrangThai = 'Chờ' ORDER BY b.NgayGui DESC"
+      WHERE b.MaNguoiGui = ? AND b.TrangThai = 'Chờ' AND u.TrangThai = 'Hoạt động'
+      ORDER BY b.NgayGui DESC"
 );
 $st->execute([$maND]);
 $daGui = $st->fetchAll();
 
 $st = $pdo->prepare(
-    "SELECT u.MaND, u.HoTen, u.Lop, u.Khoa
+    "SELECT u.MaND, u.HoTen, u.Lop, u.Khoa, u.AnhDaiDien,
+            (SELECT MAX(e.DiemElo) FROM ELOMONHOC e WHERE e.MaND = u.MaND) AS EloCao
        FROM BANBE b JOIN NGUOIDUNG u ON u.MaND = IF(b.MaNguoiGui = ?, b.MaNguoiNhan, b.MaNguoiGui)
-      WHERE (b.MaNguoiGui = ? OR b.MaNguoiNhan = ?) AND b.TrangThai = 'Đã chấp nhận'
+      WHERE (b.MaNguoiGui = ? OR b.MaNguoiNhan = ?) AND b.TrangThai = 'Đã chấp nhận' AND u.TrangThai = 'Hoạt động'
       ORDER BY u.HoTen"
 );
 $st->execute([$maND, $maND, $maND]);
 $banBe = $st->fetchAll();
 
+function anhNguoi(array $r): string
+{
+    if (!empty($r['AnhDaiDien'])) {
+        return '<img class="avatar-nho" src="' . e(BASE_URL . '/' . ltrim((string) $r['AnhDaiDien'], '/')) . '" alt="">';
+    }
+    return '<span class="avatar-nho avatar-chu" aria-hidden="true">'
+        . e(mb_strtoupper(mb_substr((string) $r['HoTen'], 0, 1))) . '</span>';
+}
+
 function thongTinNguoi(array $r): string
 {
     $phu = array_filter([$r['Lop'] ?? '', $r['Khoa'] ?? '']);
-    return '<b>' . e($r['HoTen']) . '</b>' . ($phu ? ' <span class="ghichu">(' . e(implode(' · ', $phu)) . ')</span>' : '');
+    return '<div class="nguoi">' . anhNguoi($r) . '<div>'
+        . '<b>' . e($r['HoTen']) . '</b>' . ($phu ? ' <span class="ghichu">(' . e(implode(' · ', $phu)) . ')</span>' : '')
+        . (isset($r['EloCao']) ? '<div class="ghichu">Elo cao nhất: <b>' . (int) $r['EloCao'] . '</b></div>' : '')
+        . '</div></div>';
 }
+
+// Khối "Lời mời đã nhận": có lời mời thì đặt lên đầu trang để dễ thấy, không có thì nằm sau ô tìm kiếm
+$veLoiMoiNhan = function () use ($daNhan, $q, $trangDangXem): void { ?>
+  <div class="card<?= $daNhan ? ' co-moi' : '' ?>" id="loimoi">
+    <h3>Lời mời đã nhận (<?= count($daNhan) ?>)</h3>
+    <?php if (!$daNhan): ?><p class="ghichu">Không có lời mời nào đang chờ.</p><?php endif; ?>
+    <?php foreach ($daNhan as $r): ?>
+      <div class="dong">
+        <div><?= thongTinNguoi($r) ?></div>
+        <div>
+          <?= nutBanBe('chapnhan', (int) $r['MaND'], 'Chấp nhận', $q, $trangDangXem) ?>
+          <?= nutBanBe('tuchoi', (int) $r['MaND'], 'Từ chối', $q, $trangDangXem, 'btn btn-phu') ?>
+        </div>
+      </div>
+    <?php endforeach; ?>
+  </div>
+<?php };
 
 $tieuDe = 'Bạn bè';
 $cssTrang = 'banbe';
@@ -118,6 +154,8 @@ require __DIR__ . '/layout/header.php';
   <?php if ($thongBao): ?>
     <div class="<?= $thongBao['loai'] === 'ok' ? 'thanhcong' : 'loi' ?>"><?= e($thongBao['nd']) ?></div>
   <?php endif; ?>
+
+  <?php if ($daNhan) { $veLoiMoiNhan(); } ?>
 
   <div class="card">
     <h3>Tìm sinh viên</h3>
@@ -143,13 +181,13 @@ require __DIR__ . '/layout/header.php';
                 <span class="ghichu">Đã là bạn bè</span>
               <?php elseif ($tt === 'Chờ' && $gui === $maND): ?>
                 <span class="ghichu">Đã gửi lời mời</span>
-                <?= nutBanBe('huy', $id, 'Hủy lời mời', $q, $trangHienTai, 'btn btn-phu') ?>
+                <?= nutBanBe('huy', $id, 'Hủy lời mời', $q, $trangDangXem, 'btn btn-phu') ?>
               <?php elseif ($tt === 'Chờ'): ?>
                 <span class="ghichu">Đã gửi lời mời cho bạn</span>
-                <?= nutBanBe('chapnhan', $id, 'Chấp nhận', $q, $trangHienTai) ?>
-                <?= nutBanBe('tuchoi', $id, 'Từ chối', $q, $trangHienTai, 'btn btn-phu') ?>
+                <?= nutBanBe('chapnhan', $id, 'Chấp nhận', $q, $trangDangXem) ?>
+                <?= nutBanBe('tuchoi', $id, 'Từ chối', $q, $trangDangXem, 'btn btn-phu') ?>
               <?php else: /* chưa có dòng, hoặc đã "Từ chối" thì được gửi lại */ ?>
-                <?= nutBanBe('gui', $id, 'Kết bạn', $q, $trangHienTai) ?>
+                <?= nutBanBe('gui', $id, 'Kết bạn', $q, $trangDangXem) ?>
               <?php endif; ?>
             </div>
           </div>
@@ -159,19 +197,7 @@ require __DIR__ . '/layout/header.php';
     <?php endif; ?>
   </div>
 
-  <div class="card">
-    <h3>Lời mời đã nhận (<?= count($daNhan) ?>)</h3>
-    <?php if (!$daNhan): ?><p class="ghichu">Không có lời mời nào đang chờ.</p><?php endif; ?>
-    <?php foreach ($daNhan as $r): ?>
-      <div class="dong">
-        <div><?= thongTinNguoi($r) ?></div>
-        <div>
-          <?= nutBanBe('chapnhan', (int) $r['MaND'], 'Chấp nhận', $q, $trangHienTai) ?>
-          <?= nutBanBe('tuchoi', (int) $r['MaND'], 'Từ chối', $q, $trangHienTai, 'btn btn-phu') ?>
-        </div>
-      </div>
-    <?php endforeach; ?>
-  </div>
+  <?php if (!$daNhan) { $veLoiMoiNhan(); } ?>
 
   <div class="card">
     <h3>Lời mời đã gửi (<?= count($daGui) ?>)</h3>
@@ -179,17 +205,26 @@ require __DIR__ . '/layout/header.php';
     <?php foreach ($daGui as $r): ?>
       <div class="dong">
         <div><?= thongTinNguoi($r) ?></div>
-        <div><?= nutBanBe('huy', (int) $r['MaND'], 'Hủy lời mời', $q, $trangHienTai, 'btn btn-phu') ?></div>
+        <div><?= nutBanBe('huy', (int) $r['MaND'], 'Hủy lời mời', $q, $trangDangXem, 'btn btn-phu') ?></div>
       </div>
     <?php endforeach; ?>
   </div>
 
-  <div class="card">
+  <div class="card" id="danhsach">
     <h3>Bạn bè của tôi (<?= count($banBe) ?>)</h3>
     <?php if (!$banBe): ?><p class="ghichu">Bạn chưa có bạn bè nào. Hãy tìm và gửi lời mời ở trên.</p><?php endif; ?>
     <?php foreach ($banBe as $r): ?>
-      <div class="dong"><div><?= thongTinNguoi($r) ?></div></div>
+      <div class="dong">
+        <div><?= thongTinNguoi($r) ?></div>
+        <div>
+          <?= nutBanBe('huyketban', (int) $r['MaND'], 'Hủy kết bạn', $q, $trangDangXem, 'btn btn-phu',
+                       'Hủy kết bạn với ' . $r['HoTen'] . '? Hai bạn sẽ không còn thấy nhau trong bảng xếp hạng bạn bè.') ?>
+        </div>
+      </div>
     <?php endforeach; ?>
+    <?php if ($banBe): ?>
+      <p class="ghichu lien-ket-bxh"><a href="<?= e(BASE_URL) ?>/client/bxh.php?pv=banbe">Xem bảng xếp hạng bạn bè →</a></p>
+    <?php endif; ?>
   </div>
 </div>
 <?php require __DIR__ . '/layout/footer.php'; ?>

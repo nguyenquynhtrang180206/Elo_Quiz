@@ -30,8 +30,8 @@ $cur = fn(string $f): string => $f === $trangHienTai ? ' aria-current="page"' : 
   <link rel="stylesheet" href="<?= e(BASE_URL) ?>/assets/css/cosmic-fix.css?v=<?= (int) @filemtime(__DIR__ . '/../../assets/css/cosmic-fix.css') ?>">
   <script type="module" src="<?= e(BASE_URL) ?>/assets/js/effects/cosmic-bg.js"></script>
   <script>window.BASE_URL = "<?= e(BASE_URL) ?>";</script>
-  <script src="<?= e(BASE_URL) ?>/assets/js/ui.js" defer></script>
-  <script src="<?= e(BASE_URL) ?>/assets/js/thongbao.js" defer></script>
+  <script src="<?= e(BASE_URL) ?>/assets/js/ui.js?v=<?= (int) @filemtime(__DIR__ . '/../../assets/js/ui.js') ?>" defer></script>
+  <script src="<?= e(BASE_URL) ?>/assets/js/thongbao.js?v=<?= (int) @filemtime(__DIR__ . '/../../assets/js/thongbao.js') ?>" defer></script>
 </head>
 <body<?= !empty($bodyClass) ? ' class="' . e($bodyClass) . '"' : '' ?>>
 <header class="topnav">
@@ -152,7 +152,9 @@ $cur = fn(string $f): string => $f === $trangHienTai ? ' aria-current="page"' : 
       <?php if ($daDangNhap): ?>
         <?php
           $soThongBaoChuaDoc = ThongBaoHelper::laySoChuaDoc(Database::pdo(), (int) Auth::clientId());
-          $laNhomHoSo = in_array($trangHienTai, ['hoso.php', 'lichsutran.php', 'banbe.php', 'doimatkhau.php', 'thongbao.php'], true);
+          require_once __DIR__ . '/../../core/BanBeHelper.php';
+          $soLoiMoiBanBe = BanBeHelper::demLoiMoiCho((int) Auth::clientId());   // lời mời kết bạn đang chờ mình xử lý
+          $laNhomHoSo = in_array($trangHienTai, ['hoso.php', 'lichsutran.php', 'banbe.php', 'doimatkhau.php'], true);
         ?>
         <!-- CHUÔNG THÔNG BÁO CYBER ESPORTS (REALTIME REPLIES & NOTIFICATIONS) -->
         <div class="nav-notif-wrap" id="navNotifWrap">
@@ -201,13 +203,10 @@ $cur = fn(string $f): string => $f === $trangHienTai ? ' aria-current="page"' : 
           <a class="nav-drop-btn<?= $laNhomHoSo ? ' dang-chon' : '' ?>" href="<?= e(BASE_URL) ?>/client/hoso.php"<?= $cur('hoso.php') ?>>
             <svg class="nav-ico" viewBox="0 0 20 20" width="15" height="15" aria-hidden="true"><polygon points="10,2 17,6 17,14 10,18 3,14 3,6" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="10" cy="8" r="2.4" fill="var(--cyan)"/><path d="M6.5 14.5c.8-1.8 2-2.5 3.5-2.5s2.7.7 3.5 2.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
             Hồ sơ
+            <?php if ($soLoiMoiBanBe > 0): ?><span class="cham-moi" title="Có lời mời kết bạn mới"></span><?php endif; ?>
             <span class="nav-mui-ten" aria-hidden="true">▾</span>
           </a>
           <div class="nav-dropdown-menu">
-            <a href="<?= e(BASE_URL) ?>/client/thongbao.php"<?= $cur('thongbao.php') ?>>
-              <span class="menu-icon"><svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><path d="M15 7A5 5 0 005 7c0 5-2 7-2 7h14s-2-2-2-7" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M11.5 17a1.5 1.5 0 01-3 0" stroke="currentColor" stroke-width="1.6"/></svg></span>
-              Thông báo <?= $soThongBaoChuaDoc > 0 ? '(' . (int) $soThongBaoChuaDoc . ')' : '' ?>
-            </a>
             <a href="<?= e(BASE_URL) ?>/client/hoso.php"<?= $cur('hoso.php') ?>>
               <span class="menu-icon"><svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><rect x="2.5" y="3.5" width="15" height="13" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="7" cy="8.5" r="2" fill="var(--cyan)"/><line x1="11.5" y1="7.5" x2="15" y2="7.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><line x1="11.5" y1="10.5" x2="15" y2="10.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M4.5 13.5c.7-1.3 1.6-1.8 2.5-1.8s1.8.5 2.5 1.8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span>
               Thông tin hồ sơ
@@ -218,7 +217,7 @@ $cur = fn(string $f): string => $f === $trangHienTai ? ' aria-current="page"' : 
             </a>
             <a href="<?= e(BASE_URL) ?>/client/banbe.php"<?= $cur('banbe.php') ?>>
               <span class="menu-icon"><svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><circle cx="10" cy="6" r="2.8" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M5.5 14c.8-2.4 2.4-3.5 4.5-3.5s3.7 1.1 4.5 3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="4" cy="8" r="2" fill="none" stroke="var(--cyan)" stroke-width="1.4"/><path d="M1.5 14.5c.5-1.5 1.4-2.2 2.5-2.2" stroke="var(--cyan)" stroke-width="1.4" stroke-linecap="round"/><circle cx="16" cy="8" r="2" fill="none" stroke="var(--cyan)" stroke-width="1.4"/><path d="M18.5 14.5c-.5-1.5-1.4-2.2-2.5-2.2" stroke="var(--cyan)" stroke-width="1.4" stroke-linecap="round"/></svg></span>
-              Bạn bè
+              Bạn bè <?= $soLoiMoiBanBe > 0 ? '(' . (int) $soLoiMoiBanBe . ')' : '' ?>
             </a>
             <a href="<?= e(BASE_URL) ?>/client/doimatkhau.php"<?= $cur('doimatkhau.php') ?>>
               <span class="menu-icon"><svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><path d="M10 2l6 2.5v5c0 4-2.5 7-6 8.5-3.5-1.5-6-4.5-6-8.5v-5L10 2z" fill="none" stroke="currentColor" stroke-width="1.6"/><rect x="7.5" y="8.5" width="5" height="4" rx="1" fill="var(--cyan)"/><path d="M8.5 8.5V7a1.5 1.5 0 013 0v1.5" fill="none" stroke="currentColor" stroke-width="1.4"/></svg></span>

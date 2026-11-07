@@ -6,6 +6,8 @@
 //   - hủy lời mời: xóa dòng
 //   - từ chối: giữ dòng, trạng thái "Từ chối"
 //   - gửi lại sau khi bị từ chối: cập nhật dòng cũ (đổi chiều gửi nếu người gửi lại là phía kia)
+//   - hủy kết bạn: xóa dòng (hai bên có thể kết bạn lại từ đầu)
+// Thông báo (bảng THONGBAO): người nhận được báo khi có lời mời; người gửi được báo khi lời mời được chấp nhận.
 class BanBeHelper
 {
     // Kết quả của guiLoiMoi()
@@ -16,6 +18,10 @@ class BanBeHelper
     public const DA_GUI = 'dagui';
     public const CO_CHO_XU_LY = 'cochoxuly';   // phía kia đã gửi cho mình, chưa xử lý
     public const XUNG_DOT = 'conflict';
+
+    // Loại thông báo (cột THONGBAO.Loai)
+    public const LOAI_LOI_MOI   = 'loi_moi_kb';
+    public const LOAI_CHAP_NHAN = 'chap_nhan_kb';
 
     public const THONG_BAO = [
         self::OK            => 'Đã gửi lời mời kết bạn.',
@@ -70,6 +76,13 @@ class BanBeHelper
             }
 
             $pdo->commit();
+
+            if ($kq === self::OK) {
+                ThongBaoHelper::taoThongBaoBanBe(
+                    $pdo, $nguoiKia, $toi, self::LOAI_LOI_MOI,
+                    'đã gửi cho bạn lời mời kết bạn', self::lienKet('loimoi')
+                );
+            }
             return $kq;
         } catch (PDOException $ex) {
             if ($pdo->inTransaction()) {
@@ -86,33 +99,96 @@ class BanBeHelper
     // Người gửi hủy lời mời còn "Chờ": xóa dòng
     public static function huyLoiMoi(int $toi, int $nguoiKia): bool
     {
-        $st = Database::pdo()->prepare(
+        $pdo = Database::pdo();
+        $st = $pdo->prepare(
             "DELETE FROM BANBE WHERE MaNguoiGui = ? AND MaNguoiNhan = ? AND TrangThai = 'Chờ'"
         );
         $st->execute([$toi, $nguoiKia]);
-        return $st->rowCount() > 0;
+        if ($st->rowCount() < 1) {
+            return false;
+        }
+        // Lời mời đã rút lại thì thông báo bên người nhận không còn đúng
+        ThongBaoHelper::xoaThongBaoBanBe($pdo, $nguoiKia, $toi, self::LOAI_LOI_MOI);
+        return true;
     }
 
     // Người nhận chấp nhận lời mời đang "Chờ"
     public static function chapNhan(int $toi, int $nguoiGui): bool
     {
-        $st = Database::pdo()->prepare(
+        $pdo = Database::pdo();
+        $st = $pdo->prepare(
             "UPDATE BANBE SET TrangThai = 'Đã chấp nhận'
               WHERE MaNguoiGui = ? AND MaNguoiNhan = ? AND TrangThai = 'Chờ'"
         );
         $st->execute([$nguoiGui, $toi]);
-        return $st->rowCount() > 0;
+        if ($st->rowCount() < 1) {
+            return false;
+        }
+        ThongBaoHelper::xoaThongBaoBanBe($pdo, $toi, $nguoiGui, self::LOAI_LOI_MOI);
+        ThongBaoHelper::taoThongBaoBanBe(
+            $pdo, $nguoiGui, $toi, self::LOAI_CHAP_NHAN,
+            'đã chấp nhận lời mời kết bạn của bạn', self::lienKet('danhsach')
+        );
+        return true;
     }
 
     // Người nhận từ chối: giữ dòng, trạng thái "Từ chối"
     public static function tuChoi(int $toi, int $nguoiGui): bool
     {
-        $st = Database::pdo()->prepare(
+        $pdo = Database::pdo();
+        $st = $pdo->prepare(
             "UPDATE BANBE SET TrangThai = 'Từ chối'
               WHERE MaNguoiGui = ? AND MaNguoiNhan = ? AND TrangThai = 'Chờ'"
         );
         $st->execute([$nguoiGui, $toi]);
-        return $st->rowCount() > 0;
+        if ($st->rowCount() < 1) {
+            return false;
+        }
+        // Từ chối thì im lặng với người gửi, chỉ dọn thông báo lời mời của chính mình
+        ThongBaoHelper::xoaThongBaoBanBe($pdo, $toi, $nguoiGui, self::LOAI_LOI_MOI);
+        return true;
+    }
+
+    // Hủy kết bạn: xóa dòng (chỉ khi hai bên đang là bạn bè)
+    public static function huyKetBan(int $toi, int $nguoiKia): bool
+    {
+        $pdo = Database::pdo();
+        $st = $pdo->prepare(
+            "DELETE FROM BANBE
+              WHERE CapNho = LEAST(?, ?) AND CapLon = GREATEST(?, ?) AND TrangThai = 'Đã chấp nhận'"
+        );
+        $st->execute([$toi, $nguoiKia, $toi, $nguoiKia]);
+        if ($st->rowCount() < 1) {
+            return false;
+        }
+        // Thông báo "đã chấp nhận" của cả hai chiều không còn đúng nữa
+        ThongBaoHelper::xoaThongBaoBanBe($pdo, $nguoiKia, $toi, self::LOAI_CHAP_NHAN);
+        ThongBaoHelper::xoaThongBaoBanBe($pdo, $toi, $nguoiKia, self::LOAI_CHAP_NHAN);
+        return true;
+    }
+
+    // Số lời mời đang chờ mình xử lý (hiện trên menu)
+    public static function demLoiMoiCho(int $maND): int
+    {
+        if ($maND <= 0) {
+            return 0;
+        }
+        try {
+            $st = Database::pdo()->prepare(
+                "SELECT COUNT(*) FROM BANBE b JOIN NGUOIDUNG u ON u.MaND = b.MaNguoiGui
+                  WHERE b.MaNguoiNhan = ? AND b.TrangThai = 'Chờ' AND u.TrangThai = 'Hoạt động'"
+            );
+            $st->execute([$maND]);
+            return (int) $st->fetchColumn();
+        } catch (Throwable $e) {
+            return 0;
+        }
+    }
+
+    // Đường dẫn tới trang Bạn bè (kèm mốc #...) để gắn vào thông báo
+    private static function lienKet(string $moc): string
+    {
+        return (defined('BASE_URL') ? BASE_URL : '') . '/client/banbe.php#' . $moc;
     }
 
     // Thông báo một lần: ['loai' => 'ok'|'loi', 'nd' => '...']

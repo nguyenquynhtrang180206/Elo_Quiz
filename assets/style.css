@@ -879,3 +879,14 @@ label { display:block; margin:10px 0 4px; font-weight:600; color:var(--light-cya
 @media (prefers-reduced-motion:reduce) {
   *, *::before, *::after { animation-duration:.001ms !important; transition-duration:.001ms !important; }
 }
+
+/* Chấm đỏ trên nút Hồ sơ khi có lời mời kết bạn đang chờ */
+.nav-drop-btn .cham-moi { display:inline-block; width:8px; height:8px; margin-left:6px; border-radius:50%;
+  background:#ff3c6e; box-shadow:0 0 8px rgba(255,60,110,.8); vertical-align:middle; }
+
+/* Khung chuông: thông báo đã đọc vẫn hiện nhưng mờ đi, chưa đọc thì nổi bật */
+.notif-drop-item { border-left: 3px solid transparent; }          /* chừa chỗ viền để hai loại thẳng hàng */
+.notif-drop-item.is-unread .notif-drop-text { color: #FFFFFF; font-weight: 600; }
+.notif-drop-item.is-read { opacity: 0.6; }
+.notif-drop-item.is-read:hover { opacity: 0.92; }
+.notif-drop-item.is-read .notif-drop-text strong { color: #CBD5E1; font-weight: 600; }

@@ -406,3 +406,18 @@
   }
 }
 
+/* ===== Phân biệt thông báo ĐÃ ĐỌC / CHƯA ĐỌC (cả hai đều hiển thị ở tab "Tất cả") ===== */
+.tb-item-card { border-left: 3.5px solid transparent; }          /* chừa chỗ viền để hai loại thẳng hàng */
+
+/* Chưa đọc: nền sáng, viền xanh (có sẵn ở trên), chữ nổi bật, có chấm */
+.tb-item-card.is-unread .tb-sender-name { color: #FFFFFF; }
+.tb-item-card.is-unread .tb-action-title { color: #FFFFFF; font-weight: 600; }
+
+/* Đã đọc: nền trong, chữ xám, ảnh đại diện mờ, có nhãn "Đã đọc" */
+.tb-item-card.is-read { background: transparent; }
+.tb-item-card.is-read:hover { background: rgba(255, 255, 255, 0.04); }
+.tb-item-card.is-read .tb-item-avatar-col { opacity: 0.55; filter: saturate(0.5); }
+.tb-item-card.is-read .tb-sender-name { color: #94A3B8; font-weight: 600; }
+.tb-item-card.is-read .tb-action-title { color: #64748B; }
+.tb-item-card.is-read .tb-item-snippet { color: #64748B; border-left-color: rgba(100, 116, 139, 0.5); }
+.tb-read-label { font-size: 11.5px; font-weight: 600; color: #64748B; white-space: nowrap; }

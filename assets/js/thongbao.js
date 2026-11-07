@@ -23,6 +23,15 @@
   var isLoaded = false;
   var isOpen = false;
 
+  // Thoát HTML: tên người gửi do người dùng tự đặt nên không được chèn thẳng vào innerHTML
+  function esc(v) {
+    return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  var ICON_LOAI = { rep_bl: '💬', loi_moi_kb: '👋', chap_nhan_kb: '🤝' };
+
   // Cập nhật số đếm trên badge
   function capNhatBadge(count) {
     count = parseInt(count, 10) || 0;
@@ -62,17 +71,17 @@
         var html = '';
         list.forEach(function (item) {
           var unreadClass = item.da_doc ? 'is-read' : 'is-unread';
-          var miniIcon = item.loai === 'rep_bl' ? '💬' : '📝';
+          var miniIcon = ICON_LOAI[item.loai] || '📝';
           var avatarHtml = item.anh_nguoi_gui
-            ? '<img src="' + item.anh_nguoi_gui + '" alt="' + item.ten_nguoi_gui + '" class="drop-avatar-img">'
-            : '<span class="drop-avatar-txt">' + item.chu_cai + '</span>';
+            ? '<img src="' + esc(item.anh_nguoi_gui) + '" alt="' + esc(item.ten_nguoi_gui) + '" class="drop-avatar-img">'
+            : '<span class="drop-avatar-txt">' + esc(item.chu_cai) + '</span>';
 
-          html += '<a href="' + item.lien_ket + '" class="notif-drop-item ' + unreadClass + '" data-matb="' + item.ma_tb + '">'
+          html += '<a href="' + esc(item.lien_ket) + '" class="notif-drop-item ' + unreadClass + '" data-matb="' + esc(item.ma_tb) + '">'
                 +   '<div class="notif-drop-avatar">' + avatarHtml + '<span class="notif-drop-mini">' + miniIcon + '</span></div>'
                 +   '<div class="notif-drop-content">'
-                +     '<div class="notif-drop-text"><strong>' + item.ten_nguoi_gui + '</strong> ' + item.tieu_de + '</div>'
-                +     (item.noi_dung ? '<div class="notif-drop-snippet">&ldquo;' + item.noi_dung + '&rdquo;</div>' : '')
-                +     '<div class="notif-drop-time">' + item.thoi_gian + '</div>'
+                +     '<div class="notif-drop-text"><strong>' + esc(item.ten_nguoi_gui) + '</strong> ' + esc(item.tieu_de) + '</div>'
+                +     (item.noi_dung ? '<div class="notif-drop-snippet">&ldquo;' + esc(item.noi_dung) + '&rdquo;</div>' : '')
+                +     '<div class="notif-drop-time">' + esc(item.thoi_gian) + '</div>'
                 +   '</div>'
                 +   (!item.da_doc ? '<span class="notif-drop-dot" title="Chưa đọc"></span>' : '')
                 + '</a>';
@@ -88,19 +97,22 @@
       });
   }
 
+  function dongDropdown() {
+    if (!isOpen) { return; }
+    isOpen = false;
+    notifDropdown.hidden = true;
+    btnNotifToggle.setAttribute('aria-expanded', 'false');
+    btnNotifToggle.classList.remove('is-active');
+  }
+
   // Đóng / mở dropdown khi bấm chuông
   function toggleDropdown() {
-    isOpen = !isOpen;
-    if (isOpen) {
-      notifDropdown.hidden = false;
-      btnNotifToggle.setAttribute('aria-expanded', 'true');
-      btnNotifToggle.classList.add('is-active');
-      taiDanhSachThongBao();
-    } else {
-      notifDropdown.hidden = true;
-      btnNotifToggle.setAttribute('aria-expanded', 'false');
-      btnNotifToggle.classList.remove('is-active');
-    }
+    if (isOpen) { dongDropdown(); return; }
+    isOpen = true;
+    notifDropdown.hidden = false;
+    btnNotifToggle.setAttribute('aria-expanded', 'true');
+    btnNotifToggle.classList.add('is-active');
+    taiDanhSachThongBao();
   }
 
   btnNotifToggle.addEventListener('click', function (e) {
@@ -111,11 +123,18 @@
   // Đóng dropdown khi click ra ngoài
   document.addEventListener('click', function (e) {
     if (isOpen && navNotifWrap && !navNotifWrap.contains(e.target)) {
-      isOpen = false;
-      notifDropdown.hidden = true;
-      btnNotifToggle.setAttribute('aria-expanded', 'false');
-      btnNotifToggle.classList.remove('is-active');
+      dongDropdown();
     }
+  });
+
+  // Chỉ mở một khung một lúc: rê chuột hoặc focus vào menu Hồ sơ thì đóng khung thông báo
+  var menuHoSo = document.querySelector('.nav-dropdown');
+  if (menuHoSo) {
+    menuHoSo.addEventListener('mouseenter', dongDropdown);
+    menuHoSo.addEventListener('focusin', dongDropdown);
+  }
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') { dongDropdown(); }
   });
 
   // Đánh dấu tất cả là đã đọc
@@ -171,4 +190,3 @@
   }, 20000);
 
 })();
-

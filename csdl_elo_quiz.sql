@@ -410,7 +410,7 @@ CREATE TABLE IF NOT EXISTS THONGBAO (
   MaTB        INT UNSIGNED NOT NULL AUTO_INCREMENT,
   MaND        INT UNSIGNED NOT NULL COMMENT 'Người nhận thông báo',
   MaNguoiGui  INT UNSIGNED NOT NULL COMMENT 'Người thực hiện hành động',
-  MaBaiDang   INT UNSIGNED NOT NULL COMMENT 'Bài viết liên quan',
+  MaBaiDang   INT UNSIGNED NULL COMMENT 'Bài viết liên quan (NULL với thông báo kết bạn)',
   MaBinhLuan  INT UNSIGNED NULL COMMENT 'Bình luận liên quan nếu có',
   Loai        VARCHAR(30) NOT NULL DEFAULT 'binhluan' COMMENT 'binhluan, rep_bl, thich_bai, v.v.',
   TieuDe      VARCHAR(255) NOT NULL,
@@ -425,3 +425,6 @@ CREATE TABLE IF NOT EXISTS THONGBAO (
   CONSTRAINT fk_thongbao_nguoigui FOREIGN KEY (MaNguoiGui) REFERENCES NGUOIDUNG (MaND) ON DELETE CASCADE,
   CONSTRAINT fk_thongbao_baidang  FOREIGN KEY (MaBaiDang)  REFERENCES BAIDANG (MaBaiDang) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+ALTER TABLE BINHLUAN ADD COLUMN MaBinhLuanCha INT NULL DEFAULT NULL AFTER MaND;
+ALTER TABLE BINHLUAN ADD INDEX idx_parent (MaBinhLuanCha);

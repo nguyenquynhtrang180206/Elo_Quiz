@@ -7,3 +7,11 @@
 .timkiem input { flex:1; }
 .form-dong { display:inline; }
 .khoi-ketqua { margin-top:12px; }
+.nguoi { display:flex; align-items:center; gap:10px; min-width:0; }
+.avatar-nho { width:38px; height:38px; flex:0 0 38px; border-radius:50%; object-fit:cover; border:1px solid var(--mau-vien); }
+.avatar-chu { display:inline-flex; align-items:center; justify-content:center; font-weight:700;
+              background:rgba(0,217,255,.14); color:var(--light-cyan); }
+.card.co-moi { border-color:var(--cyan); box-shadow:var(--glow-cyan); }   /* nổi bật khi có lời mời chờ xử lý */
+.lien-ket-bxh { margin:12px 0 0; }
+.lien-ket-bxh a { color:var(--light-cyan); }
+:target { scroll-margin-top:80px; }   /* mốc #loimoi, #danhsach không bị thanh menu che */
