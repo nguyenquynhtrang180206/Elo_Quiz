@@ -1,0 +1,34 @@
+/* Hộp thoại "Xuất" báo cáo thống kê (admin/index.php): rộng hơn bản đầu để có chỗ cho phần xem trước */
+.dash-thanhtren .btn { white-space:nowrap; }
+.xuat-hop { width:min(860px,100%); max-height:92vh; overflow-y:auto; }
+.xuat-hop h3 { margin:0 0 6px; }
+.xuat-luoi { display:grid; grid-template-columns:260px minmax(0,1fr); gap:16px; align-items:start; }
+@media (max-width:760px) { .xuat-luoi { grid-template-columns:1fr; } }
+.xuat-hop fieldset { border:1px solid rgba(0,217,255,.25); border-radius:12px; margin:0 0 10px; padding:4px 14px 10px; }
+.xuat-hop legend { padding:0 6px; font-weight:600; color:var(--light-cyan); font-size:14px; }
+.xuat-hop .xuat-chon { display:flex; align-items:center; gap:8px; margin:8px 0 0; font-weight:400; color:var(--white); cursor:pointer; font-size:14px; }
+.xuat-hop input[type=checkbox], .xuat-hop input[type=radio] { width:auto; margin:0; flex-shrink:0; }
+.xuat-hop .xuat-ghichu { margin:8px 0 0; font-size:13px; opacity:.8; }
+.xuat-xemDau { font-weight:600; color:var(--light-cyan); font-size:14px; margin-bottom:6px; }
+.xuat-xem { max-height:56vh; overflow-y:auto; padding-right:4px; }
+.xuat-the { background:#fff; color:#1b2a4a; border-radius:12px; padding:10px 12px; margin-bottom:10px; }
+.xuat-the-dau { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:6px; }
+.xuat-the-dau b { color:#14213d; font-size:14px; }
+.xuat-nhan { font-size:11px; font-weight:700; color:#1743c9; background:#e3ebff; border-radius:999px; padding:2px 9px; white-space:nowrap; }
+.xuat-so { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px; margin-bottom:8px; }
+.xuat-so-o { background:#f3f6fd; border-radius:8px; padding:6px 8px; display:flex; flex-direction:column; }
+.xuat-so-o strong { font-size:16px; color:#14213d; }
+.xuat-so-o span { font-size:11px; color:#5b6b8c; }
+.xuat-the .xuat-ghichu { color:#5b6b8c; opacity:1; }
+/* canvas có kích thước cố định để chụp; hiển thị co theo bề rộng khung */
+.xuat-hop canvas.xuat-cv { width:100% !important; height:auto !important; display:block; }
+.xuat-mon { display:flex; gap:14px; align-items:center; flex-wrap:wrap; }
+.xuat-hop canvas.xuat-cv-mon { width:180px !important; flex-shrink:0; }
+.xuat-chuthich { list-style:none; margin:0; padding:0; flex:1; min-width:160px; }
+.xuat-chuthich li { display:flex; align-items:center; gap:8px; padding:4px 0; font-size:13px; color:#24324f; }
+.xuat-chuthich i { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+.xuat-chuthich span { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.xuat-chuthich b { color:#14213d; font-size:12px; white-space:nowrap; }
+.xuat-hop .xuat-loi { margin:10px 0 0; padding:8px 12px; border-radius:10px; font-size:13px;
+  background:rgba(255,60,110,.14); color:#ffb3c8; border:1px solid rgba(255,80,130,.5); }
+.xuat-hop .xuat-loi[hidden] { display:none; }

@@ -19,6 +19,7 @@ require_once __DIR__ . '/NhatKy.php';
 require_once __DIR__ . '/Paginator.php';
 require_once __DIR__ . '/helpers.php';
 require_once __DIR__ . '/ThongBaoHelper.php';
+require_once __DIR__ . '/ThongBaoAdmin.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_set_cookie_params([
