@@ -1,0 +1,180 @@
+/* Khung giao diện sáng mới của Site Admin (sidebar xanh + thanh trên + vùng nội dung bo góc).
+   Chỉ có tác dụng khi trang khai báo $giaoDienMoi = true (body.admin-moi); các trang cũ không bị ảnh hưởng.
+   Đặt tại: assets/css/admin/khung.css */
+body.admin-moi {
+  --kh-navy:#0b2a8a; --kh-xanh:#1e5cf0; --kh-vang:#f5b82e;
+  --kh-chu:#12235e; --kh-phu:#6b7694; --kh-nen:#eef2fb; --kh-vien:#dfe6f6;
+  --kh-do:#e5484d; --kh-do-nen:#fde8ea; --kh-sua:#2563eb; --kh-sua-nen:#e3edff;
+  --kh-bong:0 6px 20px rgba(30,60,140,.08);
+  display:block; min-height:100vh; line-height:1.5;
+  font-family:'Be Vietnam Pro','Poppins','Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;
+  background:
+    radial-gradient(2px 2px at 12% 30%, rgba(255,255,255,.7), transparent 60%),
+    radial-gradient(1.5px 1.5px at 38% 62%, rgba(255,255,255,.55), transparent 60%),
+    radial-gradient(2px 2px at 71% 24%, rgba(255,255,255,.65), transparent 60%),
+    radial-gradient(1.5px 1.5px at 90% 70%, rgba(255,255,255,.5), transparent 60%),
+    radial-gradient(60% 120% at 80% 0%, rgba(60,120,255,.45), transparent 70%),
+    linear-gradient(135deg,#071b66,#0e3bb8 60%,#1a52d8);
+  background-attachment:fixed;
+  color:var(--kh-chu);
+}
+.admin-moi a { color:var(--kh-sua); text-shadow:none; }
+.admin-moi a:hover { color:var(--kh-xanh); text-shadow:none; }
+.admin-moi .bt { flex:none; display:block; }
+
+/* ---------- Khung chia hai cột ---------- */
+.admin-moi .admin-khung { display:grid; grid-template-columns:224px minmax(0,1fr); gap:0; padding:0; min-height:100vh; }
+.admin-moi .admin-chinh { display:flex; flex-direction:column; min-width:0; min-height:100vh; }
+
+/* ---------- Sidebar ---------- */
+.admin-moi .sidebar {
+  position:sticky; top:0; height:100vh; width:auto; padding:18px 8px 0; border:0; border-radius:0; overflow-y:auto; overflow-x:hidden;
+  display:flex; flex-direction:column; color:#fff; box-shadow:none;
+  background:
+    radial-gradient(1.5px 1.5px at 20% 12%, rgba(255,255,255,.8), transparent 60%),
+    radial-gradient(1.5px 1.5px at 78% 35%, rgba(255,255,255,.6), transparent 60%),
+    radial-gradient(2px 2px at 30% 55%, rgba(255,255,255,.55), transparent 60%),
+    linear-gradient(180deg,#0b2a8a 0%,#123fb8 55%,#1a56e0 100%);
+  scrollbar-width:none;
+}
+.admin-moi .sidebar::-webkit-scrollbar { display:none; }
+.admin-moi .sidebar .logo {
+  display:flex; flex-direction:column; align-items:center; padding:0 0 12px; margin:0 0 6px; border:0; text-align:center; text-decoration:none;
+}
+.admin-moi .sidebar .logo img { width:64px; height:64px; margin-bottom:2px; filter:drop-shadow(0 4px 10px rgba(245,184,46,.45)); }
+.admin-moi .sidebar .logo b { color:var(--kh-vang); font-size:22px; font-weight:800; line-height:1.15; letter-spacing:.01em; }
+.admin-moi .sidebar .logo small { color:#cfe0ff; font-size:10px; font-weight:500; letter-spacing:.02em; }
+.admin-moi .sidebar a { text-shadow:none; }
+.admin-moi .menu-chinh a, .admin-moi .menu-phu a {
+  display:flex; align-items:center; gap:10px; margin:0 0 2px; padding:0 10px; height:40px; border-radius:12px;
+  color:#fff; font-size:13px; font-weight:500; border:1px solid transparent; border-left-width:1px; background:transparent;
+  white-space:nowrap; transition:background .15s, border-color .15s;
+}
+.admin-moi .menu-chinh a span, .admin-moi .menu-phu a span { overflow:hidden; text-overflow:ellipsis; }
+.admin-moi .menu-chinh a:hover, .admin-moi .menu-phu a:hover { background:rgba(255,255,255,.1); color:#fff; border-color:transparent; }
+.admin-moi .menu-chinh a.dang-chon, .admin-moi .menu-phu a.dang-chon {
+  background:linear-gradient(135deg,#2f6bff,#1f55e6); border-color:rgba(160,200,255,.55); color:#fff; font-weight:700;
+  box-shadow:0 0 0 1px rgba(255,255,255,.08) inset, 0 4px 14px rgba(20,60,200,.55);
+}
+.admin-moi .menu-phu { margin-top:10px; padding-top:10px; border-top:1px solid rgba(255,255,255,.22); }
+.admin-moi .menu-phu a { height:34px; font-size:12.5px; gap:10px; opacity:.95; }
+.admin-moi .sidebar-cup { margin:auto auto 0; padding-top:12px; width:110px; height:auto; flex:none; filter:drop-shadow(0 0 18px rgba(255,214,102,.55)); pointer-events:none; }
+
+/* ---------- Thanh trên ---------- */
+.admin-moi .thanh-tren { display:flex; align-items:center; justify-content:space-between; gap:16px; height:72px; padding:0 24px 0 28px; flex:none; position:relative; z-index:20; }
+.admin-moi .tt-tim {
+  display:flex; align-items:center; gap:10px; margin:0; width:min(410px,100%); height:40px; padding:0 16px; border-radius:999px;
+  background:rgba(8,28,110,.55); border:1px solid rgba(150,190,255,.45); color:rgba(255,255,255,.85); font-weight:400;
+}
+.admin-moi .tt-tim input[type=search] {
+  flex:1; min-width:0; width:auto; height:100%; padding:0; border:0; border-radius:0; background:transparent !important; box-shadow:none; color:#fff; font-size:14px; outline:none;
+}
+.admin-moi .tt-tim input::placeholder { color:rgba(255,255,255,.7); }
+.admin-moi .tt-tim:focus-within { border-color:#9cc2ff; box-shadow:0 0 0 3px rgba(120,170,255,.25); }
+.admin-moi .tt-phai { display:flex; align-items:center; gap:14px; }
+.admin-moi .tt-chuong {
+  position:relative; display:flex; padding:6px; border:0; border-radius:50%; background:transparent; color:#fff; cursor:pointer; font-family:inherit;
+}
+.admin-moi .tt-chuong:hover { background:rgba(255,255,255,.12); }
+.admin-moi .tt-chuong em {
+  position:absolute; top:-3px; right:-4px; min-width:18px; height:18px; padding:0 4px; border-radius:9px; background:#ef476f; color:#fff;
+  font-size:11px; font-style:normal; font-weight:700; line-height:1; display:flex; align-items:center; justify-content:center;
+}
+.admin-moi .tt-chuong em[hidden] { display:none; }
+.admin-moi .tt-vach { width:1px; height:30px; background:rgba(255,255,255,.28); }
+.admin-moi .tt-admin { display:flex; align-items:center; gap:10px; color:#fff; font-size:16px; white-space:nowrap; }
+.admin-moi .tt-admin b { font-weight:700; max-width:160px; overflow:hidden; text-overflow:ellipsis; }
+.admin-moi .tt-ava {
+  width:44px; height:44px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:18px; color:#fff;
+  background:linear-gradient(135deg,#4f8bff,#8b5cf6); border:2px solid #fff; box-shadow:0 2px 8px rgba(0,0,0,.25);
+}
+
+/* ---------- Hộp thông báo (chuông): kiểu giống trang Tổng quan ---------- */
+.admin-moi .adm-tb { position:relative; }
+.admin-moi .adm-tb-hop { position:absolute; top:calc(100% + 10px); right:0; width:min(380px,92vw); background:#fff; border:1px solid #dbe3f4; border-radius:14px; box-shadow:0 14px 34px rgba(20,33,61,.22); z-index:50; overflow:hidden; color:#1b2a4a; }
+.admin-moi .adm-tb-hop[hidden] { display:none; }
+.admin-moi .adm-tb-dau { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 12px; border-bottom:1px solid #e6ecf8; }
+.admin-moi .adm-tb-tieude { font-weight:700; color:#14213d; font-size:14px; }
+.admin-moi .adm-tb-tieude b { margin-left:6px; font-size:11px; background:#ef476f; color:#fff; border-radius:999px; padding:1px 8px; }
+.admin-moi .adm-tb-docHet { background:none; border:0; color:#2f6bff; font-size:12px; font-weight:600; cursor:pointer; padding:4px 6px; }
+.admin-moi .adm-tb-docHet:hover { text-decoration:underline; }
+.admin-moi .adm-tb-ds { max-height:340px; overflow-y:auto; }
+.admin-moi .adm-tb-trong { margin:0; padding:22px 14px; text-align:center; color:#8a97b5; font-size:13px; }
+.admin-moi .adm-tb-muc { display:flex; align-items:center; gap:8px; padding:5px 12px; text-decoration:none; color:#1b2a4a; border-bottom:1px solid #eef2fb; position:relative; cursor:pointer; }
+.admin-moi .adm-tb-muc:hover, .admin-moi .adm-tb-muc:focus { background:#f3f6fd; color:#1b2a4a; }
+.admin-moi .adm-tb-muc.chua-doc { background:#eaf1ff; }
+.admin-moi .adm-tb-muc.chua-doc:hover { background:#dde9ff; }
+.admin-moi .adm-tb-muc.da-doc { opacity:.65; }
+.admin-moi .adm-tb-muc.da-doc .adm-tb-ten { font-weight:500; }
+.admin-moi .adm-tb-ava { flex:none; width:26px; height:26px; border-radius:50%; background:#2f6bff; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:12px; }
+.admin-moi .adm-tb-nd { flex:1; min-width:0; font-size:12.5px; line-height:1.25; }
+.admin-moi .adm-tb-ten { font-weight:700; }
+.admin-moi .adm-tb-trich { display:block; color:#5b6b8c; font-size:11.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.admin-moi .adm-tb-tg { display:block; font-size:10.5px; color:#8a97b5; }
+.admin-moi .adm-tb-cham { flex:none; width:8px; height:8px; border-radius:50%; background:#2f6bff; }
+.admin-moi .adm-tb-nhan { flex:none; font-size:10.5px; color:#8a97b5; white-space:nowrap; }
+.admin-moi .adm-tb-chan { padding:6px; border-top:1px solid #e6ecf8; text-align:center; }
+.admin-moi .adm-tb-chan a { display:block; width:100%; background:#f3f6fd; border-radius:8px; padding:8px; color:#2f6bff; font-weight:700; font-size:13px; }
+.admin-moi .adm-tb-chan a:hover { background:#e4ecfd; }
+
+/* ---------- Vùng nội dung (nền sáng, bo góc trên-trái đè lên thanh trên) ---------- */
+.admin-moi .admin-noidung {
+  flex:1; padding:20px 22px 28px; min-width:0; background:var(--kh-nen); border-top-left-radius:24px; color:var(--kh-chu);
+}
+.admin-moi .duong-dan { display:flex; align-items:center; gap:8px; margin:0 0 14px; font-size:14px; color:var(--kh-phu); }
+.admin-moi .duong-dan a { display:flex; color:var(--kh-xanh); }
+.admin-moi .duong-dan .phan-cach { color:#aab4cf; }
+
+/* ---------- Kiểu cơ bản cho nội dung (chuyển các thành phần tối của style.css sang tông sáng) ---------- */
+.admin-moi .admin-noidung h2, .admin-moi .admin-noidung h3, .admin-moi .admin-noidung h4 { color:var(--kh-chu); text-shadow:none; }
+.admin-moi .admin-noidung h2 { font-size:26px; margin:0 0 14px; }
+.admin-moi .admin-noidung h3 { font-size:18px; margin:18px 0 10px; }
+.admin-moi .admin-noidung p { color:inherit; }
+.admin-moi .admin-noidung .nhan-phu { color:var(--kh-phu); }
+.admin-moi .admin-noidung .card {
+  background:#fff; color:var(--kh-chu); border:1px solid #e6ecf8; border-radius:20px; box-shadow:var(--kh-bong); padding:18px;
+}
+.admin-moi .admin-noidung .card .card { background:#f7f9fe; box-shadow:none; }
+.admin-moi .admin-noidung table { display:table; width:100%; color:var(--kh-chu); }
+.admin-moi .admin-noidung .card { overflow-x:auto; }
+.admin-moi .admin-noidung th { background:var(--kh-nen); color:var(--kh-chu); font-weight:700; border-bottom:1px solid var(--kh-vien); }
+.admin-moi .admin-noidung td { border-bottom:1px solid #eef2fb; }
+.admin-moi .admin-noidung label { color:var(--kh-chu); }
+.admin-moi .admin-noidung input[type=text], .admin-moi .admin-noidung input[type=search], .admin-moi .admin-noidung input[type=email],
+.admin-moi .admin-noidung input[type=password], .admin-moi .admin-noidung input[type=number], .admin-moi .admin-noidung input[type=date],
+.admin-moi .admin-noidung select, .admin-moi .admin-noidung textarea {
+  background:#fff; color:var(--kh-chu); border:1px solid #cfd9f0; border-radius:12px; box-shadow:none;
+}
+.admin-moi .admin-noidung input::placeholder, .admin-moi .admin-noidung textarea::placeholder { color:#8a97b5; }
+.admin-moi .admin-noidung input:focus, .admin-moi .admin-noidung select:focus, .admin-moi .admin-noidung textarea:focus {
+  border-color:var(--kh-xanh); box-shadow:0 0 0 3px rgba(30,92,240,.15);
+}
+.admin-moi .admin-noidung select option { background:#fff; color:var(--kh-chu); }
+.admin-moi .admin-noidung .btn { background:var(--kh-xanh); color:#fff; border:0; border-radius:999px; box-shadow:0 4px 12px rgba(30,92,240,.3); text-shadow:none; }
+.admin-moi .admin-noidung .btn:hover { background:#1a4fd6; color:#fff; transform:none; filter:none; box-shadow:0 6px 16px rgba(30,92,240,.4); }
+.admin-moi .admin-noidung .btn-phu { background:var(--kh-sua-nen); color:var(--kh-sua); border:0; box-shadow:none; }
+.admin-moi .admin-noidung .btn-phu:hover { background:#d3e3ff; color:var(--kh-sua); box-shadow:none; }
+.admin-moi .admin-noidung .btn-do, .admin-moi .admin-noidung .btn-do-dam { background:var(--kh-do-nen); color:var(--kh-do); box-shadow:none; }
+.admin-moi .admin-noidung .thanhcong { background:#e8f8ef; color:#1a7a45; border:1px solid #b7e8cb; box-shadow:none; }
+.admin-moi .admin-noidung .loi { background:#fdecee; color:#b3262c; border:1px solid #f5c2c6; box-shadow:none; }
+.admin-moi .admin-noidung .mau-do { color:var(--kh-do); }
+.admin-moi .admin-noidung .mau-xanh { color:#1a7a45; }
+.admin-moi .admin-noidung .phantrang a, .admin-moi .admin-noidung .phantrang strong {
+  background:#fff; color:var(--kh-chu); border:1px solid var(--kh-vien); border-radius:8px; box-shadow:none;
+}
+.admin-moi .admin-noidung .phantrang a:hover { border-color:var(--kh-xanh); box-shadow:none; }
+.admin-moi .admin-noidung .phantrang strong { background:var(--kh-xanh); color:#fff; border-color:var(--kh-xanh); }
+
+/* ---------- Màn hình nhỏ ---------- */
+@media (max-width:900px) {
+  .admin-moi .admin-khung { grid-template-columns:1fr; }
+  .admin-moi .sidebar { position:static; height:auto; flex-direction:row; flex-wrap:wrap; align-items:center; gap:4px; padding:10px; overflow:visible; }
+  .admin-moi .sidebar .logo { flex-direction:row; gap:8px; width:100%; padding:0 6px 6px; }
+  .admin-moi .sidebar .logo img { width:36px; height:36px; }
+  .admin-moi .menu-chinh, .admin-moi .menu-phu { display:flex; flex-wrap:wrap; gap:4px; margin:0; padding:0; border:0; }
+  .admin-moi .menu-chinh a, .admin-moi .menu-phu a { height:36px; }
+  .admin-moi .sidebar-cup { display:none; }
+  .admin-moi .thanh-tren { padding:0 14px; }
+  .admin-moi .tt-admin b { display:none; }
+  .admin-moi .admin-noidung { border-top-left-radius:0; padding:14px; }
+}

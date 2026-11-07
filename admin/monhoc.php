@@ -14,6 +14,28 @@ function mh_chuan(string $s): string
     return trim((string) preg_replace('/\s+/u', ' ', $s));
 }
 
+// Biểu tượng của môn: CSDL chưa có cột biểu tượng nên chọn theo từ khóa trong tên môn, không khớp thì dùng quyển sách.
+function mh_bieu_tuong(string $ten): string
+{
+    $t = mb_strtolower($ten);
+    $bang = [
+        'calc'  => ['toán'],
+        'atom'  => ['vật lý', 'vật lí', 'lý ', 'physics'],
+        'flask' => ['hóa', 'hoá', 'chem'],
+        'dna'   => ['sinh', 'bio'],
+        'globe' => ['tiếng', 'english', 'ngoại ngữ', 'anh văn'],
+        'bank'  => ['lịch sử', 'địa lý', 'địa lí', 'history', 'giáo dục công dân', 'gdcd'],
+    ];
+    foreach ($bang as $k => $tuKhoa) {
+        foreach ($tuKhoa as $tk) {
+            if (mb_strpos($t, $tk) !== false) {
+                return $k;
+            }
+        }
+    }
+    return 'book';
+}
+
 // ---------------------------------------------------------------------
 // Xử lý POST (mô hình POST -> redirect -> GET)
 // ---------------------------------------------------------------------
@@ -23,7 +45,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $id   = (int) ($_POST['id'] ?? 0);
     $loi  = null;
     $ok   = null;
-    $xong = false;   // true: thành công và là thao tác sửa -> về trang sạch (bỏ ?sua=...)
 
     try {
         switch ($hd) {
@@ -59,8 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         if ((int) $co->fetchColumn() === 0) {
                             $loi = 'Không tìm thấy môn học này.';
                         } else {
-                            $ok   = 'Đã lưu thay đổi.';
-                            $xong = true;
+                            $ok = 'Đã lưu thay đổi.';
                         }
                     }
                 }
@@ -74,6 +94,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $ok = $up->rowCount() === 1
                     ? ($an ? 'Đã ẩn môn học.' : 'Đã hiện lại môn học.')
                     : 'Môn học đã ở trạng thái này rồi.';
+                break;
+
+            case 'xoa_mon':
+                // Chỉ xóa được môn chưa có câu hỏi và chưa có trận đấu (A-15); môn đã dùng thì chỉ ẩn
+                $del = $pdo->prepare(
+                    "DELETE FROM MONHOC WHERE MaMon = ? AND TrangThai IN ('Đang mở','Đã ẩn')
+                       AND NOT EXISTS (SELECT 1 FROM CAUHOI c WHERE c.MaMon = MONHOC.MaMon)
+                       AND NOT EXISTS (SELECT 1 FROM TRANDAU t WHERE t.MaMon = MONHOC.MaMon)"
+                );
+                try {
+                    $del->execute([$id]);
+                    $ok = $del->rowCount() === 1 ? 'Đã xóa môn học.' : null;
+                    if ($ok === null) {
+                        $loi = 'Môn này đã có câu hỏi hoặc trận đấu nên không xóa được, hãy dùng nút Ẩn.';
+                    }
+                } catch (PDOException $ex) {
+                    $loi = 'Môn này đã có dữ liệu tham chiếu nên không xóa được, hãy dùng nút Ẩn.';
+                }
+                break;
+
+            case 'xoa_kt':
+                $del = $pdo->prepare(
+                    'DELETE FROM LOAIKYTHI WHERE MaLoaiKT = ?
+                       AND NOT EXISTS (SELECT 1 FROM CAUHOI c WHERE c.MaLoaiKT = LOAIKYTHI.MaLoaiKT)
+                       AND NOT EXISTS (SELECT 1 FROM TRANDAU t WHERE t.MaLoaiKT = LOAIKYTHI.MaLoaiKT)'
+                );
+                try {
+                    $del->execute([$id]);
+                    if ($del->rowCount() === 1) {
+                        $ok = 'Đã xóa loại kỳ thi.';
+                    } else {
+                        $loi = 'Loại kỳ thi này đã có câu hỏi hoặc trận đấu nên không xóa được.';
+                    }
+                } catch (PDOException $ex) {
+                    $loi = 'Loại kỳ thi này đã có dữ liệu tham chiếu nên không xóa được.';
+                }
                 break;
 
             case 'duyet_mon':
@@ -120,8 +176,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         } else {
                             $pdo->prepare('UPDATE LOAIKYTHI SET TenLoaiKT = ?, MoTa = ? WHERE MaLoaiKT = ?')
                                 ->execute([$ten, $moTa === '' ? null : $moTa, $id]);
-                            $ok   = 'Đã lưu thay đổi.';
-                            $xong = true;
+                            $ok = 'Đã lưu thay đổi.';
                         }
                     }
                 }
@@ -135,9 +190,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     $_SESSION['mh_flash'] = $loi !== null ? ['loi', $loi] : ['ok', (string) $ok];
-    // Lỗi hoặc thao tác nhanh: ở lại đúng trang đang xem (giữ bộ lọc, trang, form đang sửa).
-    // Sửa thành công: về trang sạch.
-    redirect($xong ? $sach : (string) $_SERVER['REQUEST_URI']);
+    // Luôn quay lại đúng trang đang xem (giữ từ khóa tìm, trang, tab)
+    redirect((string) $_SERVER['REQUEST_URI']);
 }
 
 $flash = $_SESSION['mh_flash'] ?? null;
@@ -158,12 +212,8 @@ $dsCho   = $pdo->query(
      LIMIT " . $pCho->limit() . ' OFFSET ' . $pCho->offset()
 )->fetchAll();
 
-// ---- Danh sách môn (Đang mở / Đã ẩn), lọc và phân trang 20 dòng ----
-$q  = trim((string) ($_GET['q'] ?? ''));
-$tt = (string) ($_GET['tt'] ?? '');
-if (!in_array($tt, ['Đang mở', 'Đã ẩn'], true)) {
-    $tt = '';
-}
+// ---- Danh sách môn (Đang mở / Đã ẩn): tìm theo tên, 6 dòng/trang như ảnh thiết kế ----
+$q    = trim((string) ($_GET['q'] ?? ''));
 $dk   = ["m.TrangThai IN ('Đang mở','Đã ẩn')"];
 $tham = [];
 if ($q !== '') {
@@ -171,15 +221,11 @@ if ($q !== '') {
     $like   = '%' . addcslashes($q, '\\%_') . '%';
     array_push($tham, $like, $like);
 }
-if ($tt !== '') {
-    $dk[]   = 'm.TrangThai = ?';
-    $tham[] = $tt;
-}
 $where = 'WHERE ' . implode(' AND ', $dk);
 
 $st = $pdo->prepare("SELECT COUNT(*) FROM MONHOC m $where");
 $st->execute($tham);
-$p = new Paginator((int) $st->fetchColumn(), 20);
+$p = new Paginator((int) $st->fetchColumn(), 6, 'pmon');
 
 $st = $pdo->prepare(
     "SELECT m.MaMon, m.TenMon, m.MoTa, m.TrangThai,
@@ -192,57 +238,142 @@ $st = $pdo->prepare(
 $st->execute($tham);
 $dsMon = $st->fetchAll();
 
-// ---- Môn đang sửa (?sua=ID) ----
-$monSua = null;
-if (isset($_GET['sua'])) {
-    $st = $pdo->prepare("SELECT MaMon, TenMon, MoTa FROM MONHOC WHERE MaMon = ? AND TrangThai IN ('Đang mở','Đã ẩn')");
-    $st->execute([(int) $_GET['sua']]);
-    $monSua = $st->fetch() ?: null;
-}
-
-// ---- Loại kỳ thi ----
-$dsKT = $pdo->query(
-    'SELECT k.MaLoaiKT, k.TenLoaiKT, k.MoTa,
-            (SELECT COUNT(*) FROM CAUHOI c WHERE c.MaLoaiKT = k.MaLoaiKT) AS so_cau
-     FROM LOAIKYTHI k ORDER BY k.MaLoaiKT'
+// ---- Hàng thẻ nổi bật: 5 môn đang mở có nhiều câu hỏi nhất ----
+$noiBat = $pdo->query(
+    "SELECT m.MaMon, m.TenMon,
+            (SELECT COUNT(*) FROM CAUHOI c WHERE c.MaMon = m.MaMon) AS so_cau
+     FROM MONHOC m WHERE m.TrangThai = 'Đang mở'
+     ORDER BY so_cau DESC, m.MaMon LIMIT 5"
 )->fetchAll();
-$ktSua = null;
-if (isset($_GET['sua_kt'])) {
-    foreach ($dsKT as $k) {
-        if ((int) $k['MaLoaiKT'] === (int) $_GET['sua_kt']) {
-            $ktSua = $k;
-        }
+
+// Biểu tượng SVG (kiểu Lucide) dùng trong trang này
+$bieuTuongMon = [
+    'calc'  => '<rect width="16" height="20" x="4" y="2" rx="2"/><line x1="8" x2="16" y1="6" y2="6"/><line x1="16" x2="16" y1="14" y2="18"/><path d="M16 10h.01M12 10h.01M8 10h.01M12 14h.01M8 14h.01M12 18h.01M8 18h.01"/>',
+    'atom'  => '<circle cx="12" cy="12" r="1"/><path d="M20.2 20.2c2.04-2.03.02-7.36-4.5-11.9-4.54-4.52-9.87-6.54-11.9-4.5-2.04 2.03-.02 7.36 4.5 11.9 4.54 4.52 9.87 6.54 11.9 4.5Z"/><path d="M15.7 15.7c4.52-4.54 6.54-9.87 4.5-11.9-2.03-2.04-7.36-.02-11.9 4.5-4.52 4.54-6.54 9.87-4.5 11.9 2.03 2.04 7.36.02 11.9-4.5Z"/>',
+    'flask' => '<path d="M10 2v7.527a2 2 0 0 1-.211.896L4.72 20.55a1 1 0 0 0 .9 1.45h12.76a1 1 0 0 0 .9-1.45l-5.069-10.127A2 2 0 0 1 14 9.527V2"/><path d="M8.5 2h7"/><path d="M7 16h10"/>',
+    'dna'   => '<path d="m10 16 1.5 1.5"/><path d="m14 8-1.5-1.5"/><path d="M15 2c-1.798 1.998-2.518 3.995-2.807 5.993"/><path d="m16.5 10.5 1 1"/><path d="m17 6-2.891-2.891"/><path d="M2 15c6.667-6 13.333 0 20-6"/><path d="m20 9 .891.891"/><path d="M3.109 14.109 4 15"/><path d="m6.5 12.5 1 1"/><path d="m7 18 2.891 2.891"/><path d="M9 22c1.798-1.998 2.518-3.995 2.807-5.993"/>',
+    'globe' => '<circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/>',
+    'bank'  => '<line x1="3" x2="21" y1="22" y2="22"/><line x1="6" x2="6" y1="18" y2="11"/><line x1="10" x2="10" y1="18" y2="11"/><line x1="14" x2="14" y1="18" y2="11"/><line x1="18" x2="18" y1="18" y2="11"/><polygon points="12 2 20 7 4 7"/>',
+    'book'  => '<path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/>',
+    'more'  => '<circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/>',
+    'tim'   => '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
+    'mui'   => '<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>',
+    'cho'   => '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
+    'cup'   => '<path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>',
+    'cong'  => '<path d="M12 5v14M5 12h14"/>',
+    'star'   => '<path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/>',
+    'medal'  => '<path d="M7.21 15 2.66 7.14a2 2 0 0 1 .13-2.2L4.4 2.8A2 2 0 0 1 6 2h12a2 2 0 0 1 1.6.8l1.6 2.14a2 2 0 0 1 .14 2.2L16.79 15"/><path d="M11 12 5.12 2.2"/><path d="m13 12 5.88-9.8"/><path d="M8 7h8"/><circle cx="12" cy="17" r="5"/>',
+    'target' => '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',
+    'cap'    => '<path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z"/><path d="M22 10v6"/><path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5"/>',
+];
+$svgMon = static fn (string $k, int $px = 22): string =>
+    '<svg width="' . $px . '" height="' . $px . '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' . $bieuTuongMon[$k] . '</svg>';
+
+// ---- Loại kỳ thi: 5 dòng/trang như ảnh thiết kế ----
+$tongKT = (int) $pdo->query('SELECT COUNT(*) FROM LOAIKYTHI')->fetchColumn();
+$pKT    = new Paginator($tongKT, 5, 'pkt');
+$dsKT   = $pdo->query(
+    'SELECT k.MaLoaiKT, k.TenLoaiKT, k.MoTa,
+            (SELECT COUNT(*) FROM CAUHOI c  WHERE c.MaLoaiKT = k.MaLoaiKT) AS so_cau,
+            (SELECT COUNT(*) FROM TRANDAU t WHERE t.MaLoaiKT = k.MaLoaiKT) AS so_tran
+     FROM LOAIKYTHI k ORDER BY k.MaLoaiKT
+     LIMIT ' . $pKT->limit() . ' OFFSET ' . $pKT->offset()
+)->fetchAll();
+
+// Tab đang mở: Loại kỳ thi khi có ?tab=kt hoặc đang chuyển trang danh sách loại kỳ thi (?pkt=...)
+$tabKt = (($_GET['tab'] ?? '') === 'kt') || isset($_GET['pkt']);
+
+// Thanh phân trang kiểu ảnh thiết kế: ‹ 1 2 3 … ›  (giữ nguyên các tham số GET khác)
+$mhPhanTrang = static function (Paginator $pg, string $thamSo, string $neo): string {
+    if ($pg->soTrang() <= 1) {
+        return '';
     }
-}
+    $url = static function (int $n) use ($thamSo, $neo): string {
+        $q = $_GET;
+        $q[$thamSo] = $n;
+        return '?' . http_build_query($q) . $neo;
+    };
+    $t  = $pg->trang();
+    $so = $pg->soTrang();
+    $h  = '<nav class="mh-pt" aria-label="Phân trang">';
+    $h .= $t > 1 ? '<a href="' . e($url($t - 1)) . '" aria-label="Trang trước">&lsaquo;</a>' : '<span class="tat">&lsaquo;</span>';
+    $tu  = max(1, min($t - 1, $so - 2));
+    $den = min($so, $tu + 2);
+    for ($i = $tu; $i <= $den; $i++) {
+        $h .= $i === $t ? '<strong>' . $i . '</strong>' : '<a href="' . e($url($i)) . '">' . $i . '</a>';
+    }
+    if ($den < $so) {
+        $h .= '<a href="' . e($url($den + 1)) . '" aria-label="Các trang sau">&hellip;</a>';
+    }
+    $h .= $t < $so ? '<a href="' . e($url($t + 1)) . '" aria-label="Trang sau">&rsaquo;</a>' : '<span class="tat">&rsaquo;</span>';
+    return $h . '</nav>';
+};
 
 $tieuDe  = 'Môn học, loại kỳ thi';
 $mucChon = 'monhoc';
 $cssTrang = 'monhoc';
 $jsTrang  = 'monhoc';
+// Không bật $giaoDienMoi: dùng cùng khung (nền + sidebar) với trang Tổng quan
 require __DIR__ . '/layout/header.php';
 ?>
-<h2>Môn học và loại kỳ thi</h2>
+<div class="mh-khung">
+<section class="mh-hero">
+  <img class="mh-hero-hinh" src="<?= e(BASE_URL) ?>/assets/img/hero-sach.svg" alt="" width="150" height="100">
+  <div class="mh-hero-chu">
+    <h2>Môn học, loại kỳ thi</h2>
+    <p>Quản lý các môn học và loại kỳ thi trên hệ thống</p>
+  </div>
+  <button type="button" class="btn mh-nut-them" id="nutThemMon">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+    Thêm môn học
+  </button>
+</section>
 
 <?php if ($flash): ?>
   <div class="<?= $flash[0] === 'ok' ? 'thanhcong' : 'loi' ?>"><?= e($flash[1]) ?></div>
 <?php endif; ?>
 
+<div class="mh-tab" role="tablist">
+  <button type="button" class="mh-tab-nut<?= $tabKt ? '' : ' dang-chon' ?>" data-tab="mon" role="tab" aria-selected="<?= $tabKt ? 'false' : 'true' ?>"><?= $svgMon('book', 18) ?>Môn học</button>
+  <button type="button" class="mh-tab-nut<?= $tabKt ? ' dang-chon' : '' ?>" data-tab="kt" role="tab" aria-selected="<?= $tabKt ? 'true' : 'false' ?>"><?= $svgMon('cup', 18) ?>Loại kỳ thi</button>
+</div>
+
+<?php // Tab "Môn học": hàng thẻ + hai danh sách cạnh nhau (đúng ảnh). Tab "Loại kỳ thi": chỉ danh sách loại kỳ thi. CSS ẩn/hiện theo data-tab. ?>
+<div class="mh-trang" id="mhTrang" data-tab="<?= $tabKt ? 'kt' : 'mon' ?>">
+
+<?php if ($noiBat): ?>
+<div class="mh-noibat mh-chi-mon">
+  <?php foreach ($noiBat as $r): ?>
+    <a class="mh-the mh-c<?= (int) $r['MaMon'] % 5 ?>" href="?<?= e(http_build_query(['q' => $r['TenMon']])) ?>#ds-mon" title="Lọc danh sách theo môn này">
+      <span class="mh-the-icon"><?= $svgMon(mh_bieu_tuong($r['TenMon'])) ?></span>
+      <b><?= e($r['TenMon']) ?></b>
+      <small>(<?= (int) $r['so_cau'] ?> câu hỏi)</small>
+    </a>
+  <?php endforeach; ?>
+  <a class="mh-the mh-them" href="<?= e($sach) ?>#ds-mon">
+    <span class="mh-the-icon"><?= $svgMon('more') ?></span>
+    <b>Xem thêm</b>
+    <small><?= $svgMon('mui', 16) ?></small>
+  </a>
+</div>
+<?php endif; ?>
+
 <?php if ($tongCho > 0): ?>
-<h3 id="de-xuat" style="scroll-margin-top:80px">Môn sinh viên đề xuất, chờ duyệt (<?= $tongCho ?>)</h3>
-<div class="card">
-  <table>
+<div class="card mh-ds mh-cho mh-chi-mon" id="de-xuat" style="scroll-margin-top:80px">
+  <div class="mh-ds-dau"><span class="mh-ds-icon mh-icon-cam"><?= $svgMon('cho', 20) ?></span><h3>Môn sinh viên đề xuất, chờ duyệt (<?= $tongCho ?>)</h3></div>
+  <table class="mh-bang">
     <tr><th>Tên môn</th><th>Mô tả</th><th>Người đề xuất</th><th></th></tr>
     <?php foreach ($dsCho as $r): ?>
       <tr>
-        <td><?= e($r['TenMon']) ?></td>
+        <td><span class="mh-ten"><span class="mh-chip mh-c<?= (int) $r['MaMon'] % 5 ?>"><?= $svgMon(mh_bieu_tuong($r['TenMon']), 16) ?></span><?= e($r['TenMon']) ?></span></td>
         <td><?= e((string) $r['MoTa']) ?></td>
         <td><?= $r['HoTen'] !== null ? e($r['HoTen']) . ' <span class="nhan-phu">(' . e($r['Email']) . ')</span>' : '-' ?></td>
         <td class="khong-ngat">
           <form method="post" action="" class="form-dong">
             <?= csrf_field() ?>
             <input type="hidden" name="id" value="<?= (int) $r['MaMon'] ?>">
-            <button type="submit" name="hanh_dong" value="duyet_mon" class="btn">Duyệt</button>
-            <button type="submit" name="hanh_dong" value="tu_choi_mon" class="btn btn-phu"
+            <button type="submit" name="hanh_dong" value="duyet_mon" class="btn mh-nut-nho">Duyệt</button>
+            <button type="submit" name="hanh_dong" value="tu_choi_mon" class="btn btn-do mh-nut-nho"
                     data-xac-nhan="Từ chối và xóa đề xuất này?">Từ chối</button>
           </form>
         </td>
@@ -253,98 +384,134 @@ require __DIR__ . '/layout/header.php';
 </div>
 <?php endif; ?>
 
-<h3><?= $monSua ? 'Sửa môn học' : 'Thêm môn học' ?></h3>
-<div class="card">
+<div class="mh-hai-cot">
+
+  <!-- ===== Danh sách môn học ===== -->
+  <section class="card mh-ds mh-chi-mon" id="ds-mon" style="scroll-margin-top:16px">
+    <div class="mh-ds-dau"><span class="mh-ds-icon"><?= $svgMon('book', 22) ?></span><h3>Danh sách môn học</h3></div>
+    <form method="get" action="" class="mh-loc">
+      <label class="mh-tim"><?= $svgMon('tim', 18) ?><input type="text" name="q" value="<?= e($q) ?>" placeholder="Tìm kiếm môn học..." class="o-tim" aria-label="Tìm kiếm môn học"></label>
+    </form>
+
+    <?php if (!$dsMon): ?>
+      <p class="nhan-phu mh-rong">Không có môn học nào khớp.</p>
+    <?php else: ?>
+      <ul class="mh-dong-ds">
+        <?php foreach ($dsMon as $r):
+            $coThe = (int) $r['so_cau'] === 0 && (int) $r['so_tran'] === 0;   // chưa dùng ở đâu -> xóa được
+            $an    = $r['TrangThai'] === 'Đã ẩn'; ?>
+          <li<?= $an ? ' class="mh-da-an"' : '' ?>>
+            <span class="mh-ten"><span class="mh-chip mh-c<?= (int) $r['MaMon'] % 5 ?>"><?= $svgMon(mh_bieu_tuong($r['TenMon']), 18) ?></span><span class="mh-ten-chu"><?= e($r['TenMon']) ?></span><?= $an ? '<span class="mh-tt mh-tt-an">Đã ẩn</span>' : '' ?></span>
+            <span class="mh-so"><?= (int) $r['so_cau'] ?> câu hỏi</span>
+            <span class="mh-thao-tac">
+              <button type="button" class="mh-nut mh-nut-sua" data-sua-mon
+                      data-id="<?= (int) $r['MaMon'] ?>" data-ten="<?= e($r['TenMon']) ?>" data-mota="<?= e((string) $r['MoTa']) ?>">Sửa</button>
+              <form method="post" action="" class="form-dong">
+                <?= csrf_field() ?>
+                <input type="hidden" name="id" value="<?= (int) $r['MaMon'] ?>">
+                <?php if ($coThe): ?>
+                  <button type="submit" name="hanh_dong" value="xoa_mon" class="mh-nut mh-nut-xoa"
+                          data-xac-nhan="Xóa môn &quot;<?= e($r['TenMon']) ?>&quot;? Không thể hoàn tác.">Xóa</button>
+                <?php elseif ($an): ?>
+                  <button type="submit" name="hanh_dong" value="hien_mon" class="mh-nut mh-nut-hien" title="Môn đã có câu hỏi hoặc trận đấu nên không xóa được, chỉ hiện lại hoặc ẩn">Hiện</button>
+                <?php else: ?>
+                  <button type="submit" name="hanh_dong" value="an_mon" class="mh-nut mh-nut-xoa"
+                          title="Môn đã có câu hỏi hoặc trận đấu nên không xóa được, chỉ ẩn (A-15)"
+                          data-xac-nhan="Môn này đã có câu hỏi hoặc trận đấu nên không xóa được. Ẩn môn này? Sinh viên sẽ không chọn được để tìm trận nữa.">Ẩn</button>
+                <?php endif; ?>
+              </form>
+            </span>
+          </li>
+        <?php endforeach; ?>
+      </ul>
+    <?php endif; ?>
+    <?= $mhPhanTrang($p, 'pmon', '#ds-mon') ?>
+  </section>
+
+  <!-- ===== Danh sách loại kỳ thi ===== -->
+  <section class="card mh-ds" id="ds-kt" style="scroll-margin-top:16px">
+    <div class="mh-ds-dau">
+      <span class="mh-ds-icon mh-icon-vang"><?= $svgMon('cup', 22) ?></span><h3>Danh sách loại kỳ thi</h3>
+      <button type="button" class="btn mh-nut-them-kt" id="nutThemKt"><?= $svgMon('cong', 16) ?>Thêm loại kỳ thi</button>
+    </div>
+    <?php if (!$dsKT): ?>
+      <p class="nhan-phu mh-rong">Chưa có loại kỳ thi nào.</p>
+    <?php else: ?>
+    <div class="mh-cuon">
+      <table class="mh-bang mh-bang-kt">
+        <tr><th>Tên loại kỳ thi</th><th>Mô tả</th><th class="giua">Số câu hỏi</th><th class="giua">Thao tác</th></tr>
+        <?php
+        $iconKT = [['cup', 'vang'], ['star', 'vang'], ['medal', 'cam'], ['target', 'do'], ['cap', 'xanh']];
+        foreach ($dsKT as $i => $k):
+            [$bt, $mau] = $iconKT[$i % count($iconKT)];
+            $coThe = (int) $k['so_cau'] === 0 && (int) $k['so_tran'] === 0; ?>
+          <tr>
+            <td><span class="mh-ten"><span class="mh-kt-icon mh-kt-<?= $mau ?>"><?= $svgMon($bt, 22) ?></span><?= e($k['TenLoaiKT']) ?></span></td>
+            <td><?= e((string) $k['MoTa']) ?></td>
+            <td class="giua"><?= (int) $k['so_cau'] ?></td>
+            <td class="giua khong-ngat">
+              <span class="mh-thao-tac">
+                <button type="button" class="mh-nut mh-nut-sua" data-sua-kt
+                        data-id="<?= (int) $k['MaLoaiKT'] ?>" data-ten="<?= e($k['TenLoaiKT']) ?>" data-mota="<?= e((string) $k['MoTa']) ?>">Sửa</button>
+                <form method="post" action="" class="form-dong">
+                  <?= csrf_field() ?>
+                  <input type="hidden" name="id" value="<?= (int) $k['MaLoaiKT'] ?>">
+                  <?php if ($coThe): ?>
+                    <button type="submit" name="hanh_dong" value="xoa_kt" class="mh-nut mh-nut-xoa"
+                            data-xac-nhan="Xóa loại kỳ thi &quot;<?= e($k['TenLoaiKT']) ?>&quot;? Không thể hoàn tác.">Xóa</button>
+                  <?php else: ?>
+                    <button type="button" class="mh-nut mh-nut-xoa" disabled
+                            title="Đã có câu hỏi hoặc trận đấu gắn với loại kỳ thi này nên không xóa được">Xóa</button>
+                  <?php endif; ?>
+                </form>
+              </span>
+            </td>
+          </tr>
+        <?php endforeach; ?>
+      </table>
+    </div>
+    <?php endif; ?>
+    <?= $mhPhanTrang($pKT, 'pkt', '#ds-kt') ?>
+    <p class="nhan-phu">Câu hỏi để trống loại kỳ thi dùng được cho cả hai kỳ (A-19).</p>
+  </section>
+
+</div>
+</div>
+</div><!-- /.mh-khung -->
+
+<!-- ===== Popup thêm/sửa môn học (JS điền sẵn dữ liệu khi bấm Sửa) ===== -->
+<dialog class="mh-hop" id="hopMon" aria-labelledby="hopMonTieuDe">
   <form method="post" action="">
     <?= csrf_field() ?>
-    <input type="hidden" name="hanh_dong" value="<?= $monSua ? 'sua_mon' : 'them_mon' ?>">
-    <?php if ($monSua): ?><input type="hidden" name="id" value="<?= (int) $monSua['MaMon'] ?>"><?php endif; ?>
+    <input type="hidden" name="hanh_dong" id="hopMonHd" value="them_mon">
+    <input type="hidden" name="id" id="hopMonId" value="0">
+    <h3 id="hopMonTieuDe">Thêm môn học</h3>
     <label for="ten_mon">Tên môn (tối đa 150 ký tự)</label>
-    <input type="text" id="ten_mon" name="ten_mon" maxlength="150" required value="<?= e($monSua['TenMon'] ?? '') ?>">
+    <input type="text" id="ten_mon" name="ten_mon" maxlength="150" required>
     <label for="mo_ta">Mô tả (không bắt buộc, tối đa 500 ký tự)</label>
-    <textarea id="mo_ta" name="mo_ta" rows="2" maxlength="500"><?= e((string) ($monSua['MoTa'] ?? '')) ?></textarea>
-    <p>
-      <button type="submit" class="btn"><?= $monSua ? 'Lưu thay đổi' : 'Thêm môn' ?></button>
-      <?php if ($monSua): ?><a class="btn btn-phu" href="<?= e($sach) ?>">Hủy sửa</a><?php endif; ?>
+    <textarea id="mo_ta" name="mo_ta" rows="3" maxlength="500"></textarea>
+    <p class="mh-nut-form">
+      <button type="submit" class="btn" id="hopMonLuu">Thêm môn</button>
+      <button type="button" class="btn btn-phu" data-dong-hop>Hủy</button>
     </p>
   </form>
-</div>
+</dialog>
 
-<h3>Danh sách môn học</h3>
-<form method="get" action="" class="card form-loc">
-  <input type="text" name="q" value="<?= e($q) ?>" placeholder="Tìm theo tên hoặc mô tả" class="o-tim">
-  <select name="tt">
-    <option value="">Mọi trạng thái</option>
-    <option value="Đang mở"<?= $tt === 'Đang mở' ? ' selected' : '' ?>>Đang mở</option>
-    <option value="Đã ẩn"<?= $tt === 'Đã ẩn' ? ' selected' : '' ?>>Đã ẩn</option>
-  </select>
-  <button type="submit" class="btn">Tìm</button>
-  <a class="btn btn-phu" href="<?= e($sach) ?>">Xóa lọc</a>
-</form>
-
-<div class="card">
-  <?php if (!$dsMon): ?>
-    <p class="nhan-phu">Không có môn học nào khớp.</p>
-  <?php else: ?>
-    <table>
-      <tr><th>Mã</th><th>Tên môn</th><th>Mô tả</th><th>Câu hỏi</th><th>Trận</th><th>Trạng thái</th><th></th></tr>
-      <?php foreach ($dsMon as $r): ?>
-        <tr>
-          <td><?= (int) $r['MaMon'] ?></td>
-          <td><?= e($r['TenMon']) ?></td>
-          <td><?= e((string) $r['MoTa']) ?></td>
-          <td><?= (int) $r['so_cau'] ?></td>
-          <td><?= (int) $r['so_tran'] ?></td>
-          <td><?= $r['TrangThai'] === 'Đã ẩn' ? '<span class="mau-do dam">Đã ẩn</span>' : 'Đang mở' ?></td>
-          <td class="khong-ngat">
-            <a class="btn btn-phu" href="?<?= e(http_build_query(array_merge($_GET, ['sua' => (int) $r['MaMon']]))) ?>">Sửa</a>
-            <form method="post" action="" class="form-dong">
-              <?= csrf_field() ?>
-              <input type="hidden" name="id" value="<?= (int) $r['MaMon'] ?>">
-              <?php if ($r['TrangThai'] === 'Đang mở'): ?>
-                <button type="submit" name="hanh_dong" value="an_mon" class="btn btn-phu"
-                        data-xac-nhan="Ẩn môn này? Sinh viên sẽ không chọn được để tìm trận nữa.">Ẩn</button>
-              <?php else: ?>
-                <button type="submit" name="hanh_dong" value="hien_mon" class="btn">Hiện lại</button>
-              <?php endif; ?>
-            </form>
-          </td>
-        </tr>
-      <?php endforeach; ?>
-    </table>
-  <?php endif; ?>
-  <?= $p->links() ?>
-  <p class="nhan-phu">Môn đã có câu hỏi hoặc trận đấu không xóa được, chỉ ẩn (A-15).</p>
-</div>
-
-<h3><?= $ktSua ? 'Sửa loại kỳ thi' : 'Loại kỳ thi' ?></h3>
-<div class="card">
-  <table>
-    <tr><th>Mã</th><th>Tên loại kỳ thi</th><th>Mô tả</th><th>Câu hỏi gắn riêng</th><th></th></tr>
-    <?php foreach ($dsKT as $k): ?>
-      <tr>
-        <td><?= (int) $k['MaLoaiKT'] ?></td>
-        <td><?= e($k['TenLoaiKT']) ?></td>
-        <td><?= e((string) $k['MoTa']) ?></td>
-        <td><?= (int) $k['so_cau'] ?></td>
-        <td><a class="btn btn-phu" href="?sua_kt=<?= (int) $k['MaLoaiKT'] ?>">Sửa</a></td>
-      </tr>
-    <?php endforeach; ?>
-  </table>
-
-  <form method="post" action="" class="form-loaikt">
+<!-- ===== Popup thêm/sửa loại kỳ thi ===== -->
+<dialog class="mh-hop" id="hopKt" aria-labelledby="hopKtTieuDe">
+  <form method="post" action="">
     <?= csrf_field() ?>
-    <input type="hidden" name="hanh_dong" value="<?= $ktSua ? 'sua_kt' : 'them_kt' ?>">
-    <?php if ($ktSua): ?><input type="hidden" name="id" value="<?= (int) $ktSua['MaLoaiKT'] ?>"><?php endif; ?>
-    <label for="ten_kt"><?= $ktSua ? 'Tên loại kỳ thi' : 'Thêm loại kỳ thi mới' ?> (tối đa 50 ký tự)</label>
-    <input type="text" id="ten_kt" name="ten_kt" maxlength="50" required value="<?= e($ktSua['TenLoaiKT'] ?? '') ?>">
-    <label for="mo_ta_kt">Mô tả (không bắt buộc)</label>
-    <input type="text" id="mo_ta_kt" name="mo_ta_kt" maxlength="500" value="<?= e((string) ($ktSua['MoTa'] ?? '')) ?>">
-    <p>
-      <button type="submit" class="btn"><?= $ktSua ? 'Lưu thay đổi' : 'Thêm loại kỳ thi' ?></button>
-      <?php if ($ktSua): ?><a class="btn btn-phu" href="<?= e($sach) ?>">Hủy sửa</a><?php endif; ?>
+    <input type="hidden" name="hanh_dong" id="hopKtHd" value="them_kt">
+    <input type="hidden" name="id" id="hopKtId" value="0">
+    <h3 id="hopKtTieuDe">Thêm loại kỳ thi</h3>
+    <label for="ten_kt">Tên loại kỳ thi (tối đa 50 ký tự)</label>
+    <input type="text" id="ten_kt" name="ten_kt" maxlength="50" required>
+    <label for="mo_ta_kt">Mô tả (không bắt buộc, tối đa 500 ký tự)</label>
+    <input type="text" id="mo_ta_kt" name="mo_ta_kt" maxlength="500">
+    <p class="mh-nut-form">
+      <button type="submit" class="btn" id="hopKtLuu">Thêm loại kỳ thi</button>
+      <button type="button" class="btn btn-phu" data-dong-hop>Hủy</button>
     </p>
   </form>
-  <p class="nhan-phu">Loại kỳ thi không xóa được vì câu hỏi và trận đấu tham chiếu tới. Câu hỏi để trống loại kỳ thi dùng được cho cả hai kỳ (A-19).</p>
-</div>
+</dialog>
 <?php require __DIR__ . '/layout/footer.php'; ?>
