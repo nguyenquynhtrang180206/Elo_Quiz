@@ -1,4 +1,7 @@
-/* Trang Thêm/Sửa câu hỏi (admin/cauhoi_form.php) */
+/* Trang Thêm/Sửa câu hỏi (admin/cauhoi_form.php). Đặt tại: assets/css/admin/cauhoi_form.css */
 .cot-nhan { width:160px; }
 .hang-dapan { display:flex; gap:8px; align-items:center; margin-bottom:6px; }
 .hang-dapan input[type=radio] { width:auto; }
+/* Lưu ý khi sửa câu đã dùng trong trận */
+.luu-y { padding:10px 14px; margin-bottom:12px; border-radius:10px; border:1px solid rgba(255,196,0,.55); background:rgba(255,190,0,.12); color:#ffe08a; line-height:1.55; }
+.luu-y b { color:#fff; }

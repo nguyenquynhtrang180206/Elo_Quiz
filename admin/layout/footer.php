@@ -7,13 +7,13 @@
   $jsNap = (array) ($jsTrang ?? []);
   if (!in_array('thongbao_admin', $jsNap, true)) { $jsNap[] = 'thongbao_admin'; }
   foreach ($jsNap as $f): ?>
-<script src="<?= e(BASE_URL) ?>/assets/js/admin/<?= e($f) ?>.js"></script>
+<script src="<?= e(BASE_URL) ?>/assets/js/admin/<?= e($f) ?>.js?v=<?= (int) @filemtime(__DIR__ . '/../../assets/js/admin/' . $f . '.js') ?>"></script>
 <?php endforeach; ?>
 <?php else: ?>
   </main>
 </div>
 <?php foreach ((array) ($jsTrang ?? []) as $f): ?>
-<script src="<?= e(BASE_URL) ?>/assets/js/admin/<?= e($f) ?>.js"></script>
+<script src="<?= e(BASE_URL) ?>/assets/js/admin/<?= e($f) ?>.js?v=<?= (int) @filemtime(__DIR__ . '/../../assets/js/admin/' . $f . '.js') ?>"></script>
 <?php endforeach; ?>
 <?php endif; ?>
 </body>

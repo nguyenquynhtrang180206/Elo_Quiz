@@ -78,7 +78,7 @@ if ($giaoDienMoi) {
   <link rel="stylesheet" href="<?= e(BASE_URL) ?>/assets/css/admin/khung.css">
   <?php endif; ?>
   <?php foreach ($cssTrang as $f): ?>
-  <link rel="stylesheet" href="<?= e(BASE_URL) ?>/assets/css/admin/<?= e($f) ?>.css">
+  <link rel="stylesheet" href="<?= e(BASE_URL) ?>/assets/css/admin/<?= e($f) ?>.css?v=<?= (int) @filemtime(__DIR__ . '/../../assets/css/admin/' . $f . '.css') ?>">
   <?php endforeach; ?>
   <?php if (!$giaoDienMoi): ?>
   <link rel="stylesheet" href="<?= e(BASE_URL) ?>/assets/css/cosmic-fix.css">
