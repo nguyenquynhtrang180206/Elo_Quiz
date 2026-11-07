@@ -123,7 +123,10 @@ require __DIR__ . '/layout/header.php';
       <div class="tb-items-list">
         <?php foreach ($danhSachTB as $item): 
           $chuaDoc = (int) $item['DaDoc'] === 0;
-          $iconLoai = ['rep_bl' => '💬', 'loi_moi_kb' => '👋', 'chap_nhan_kb' => '🤝'][$item['Loai']] ?? '📝';
+          $iconLoai = ['rep_bl' => '💬', 'loi_moi_kb' => '👋', 'chap_nhan_kb' => '🤝',
+                       'an_bai' => '🚫', 'an_bl' => '🚫', 'hien_bai' => '✅', 'hien_bl' => '✅'][$item['Loai']] ?? '📝';
+          // Thông báo kiểm duyệt do quản trị viên gửi (MaNguoiGui = 0) nên không có tên người dùng
+          if (in_array($item['Loai'], ThongBaoHelper::LOAI_QUAN_TRI, true)) { $item['TenNguoiGui'] = ThongBaoHelper::TEN_QUAN_TRI; }
           $letter = mb_strtoupper(mb_substr($item['TenNguoiGui'] ?? 'U', 0, 1));
         ?>
           <div class="tb-item-card <?= $chuaDoc ? 'is-unread' : 'is-read' ?>">

@@ -29,6 +29,7 @@ if ($action === 'lay_danh_sach') {
 
     $danhSach = [];
     foreach ($rawList as $r) {
+        if (in_array($r['Loai'], ThongBaoHelper::LOAI_QUAN_TRI, true)) { $r['TenNguoiGui'] = ThongBaoHelper::TEN_QUAN_TRI; }
         $avatarUrl = !empty($r['AnhNguoiGui']) ? BASE_URL . '/' . ltrim($r['AnhNguoiGui'], '/') : '';
         $letter = mb_strtoupper(mb_substr($r['TenNguoiGui'] ?? 'U', 0, 1));
         
@@ -84,4 +85,3 @@ if ($action === 'xoa') {
 
 echo json_encode(['ok' => false, 'msg' => 'Hành động không hợp lệ']);
 exit;
-

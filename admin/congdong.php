@@ -4,6 +4,7 @@
 // A-33: bài sinh viên đã tự xóa ("Đã xóa") không được hiện lại. Admin chỉ chuyển qua lại Hiển thị <-> Bị ẩn.
 require_once __DIR__ . '/../core/bootstrap.php';
 require_once __DIR__ . '/../core/CongDongHelper.php';
+require_once __DIR__ . '/../core/ThongBaoHelper.php';
 Auth::requireAdmin(BASE_URL . '/admin/login.php');   // A-04
 
 $pdo  = Database::pdo();
@@ -68,6 +69,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $pdo->rollBack();
         }
         throw $ex;
+    }
+    // Báo cho chủ bài / chủ bình luận biết (kèm lý do quản trị viên đã nhập). Lỗi gửi thông báo không làm hỏng việc ẩn/hiện.
+    if ($doi) {
+        try {
+            if ($bang === 'BAIDANG') {
+                $st = $pdo->prepare('SELECT MaND, TieuDe FROM BAIDANG WHERE MaBaiDang = ?');
+                $st->execute([$ma]);
+                if ($r = $st->fetch()) {
+                    $ten = mb_substr((string) $r['TieuDe'], 0, 60);
+                    $an  = $moi === 'Bị ẩn';
+                    ThongBaoHelper::taoThongBaoQuanTri(
+                        $pdo, (int) $r['MaND'], $ma, null, $an ? 'an_bai' : 'hien_bai',
+                        ($an ? 'đã ẩn bài đăng "' : 'đã hiển thị lại bài đăng "') . $ten . '" của bạn.',
+                        'Lý do: ' . $ly,
+                        // bài đang bị ẩn thì chủ bài không xem được trang bài, đưa về trang Cộng đồng
+                        $an ? BASE_URL . '/client/congdong.php' : BASE_URL . '/client/baidang.php?id=' . $ma
+                    );
+                }
+            } else {
+                $st = $pdo->prepare('SELECT c.MaND, c.MaBaiDang, b.TieuDe FROM BINHLUAN c JOIN BAIDANG b ON b.MaBaiDang = c.MaBaiDang WHERE c.MaBinhLuan = ?');
+                $st->execute([$ma]);
+                if ($r = $st->fetch()) {
+                    $ten = mb_substr((string) $r['TieuDe'], 0, 60);
+                    $an  = $moi === 'Bị ẩn';
+                    ThongBaoHelper::taoThongBaoQuanTri(
+                        $pdo, (int) $r['MaND'], (int) $r['MaBaiDang'], $ma, $an ? 'an_bl' : 'hien_bl',
+                        ($an ? 'đã ẩn bình luận của bạn trong bài "' : 'đã hiển thị lại bình luận của bạn trong bài "') . $ten . '".',
+                        'Lý do: ' . $ly,
+                        BASE_URL . '/client/baidang.php?id=' . (int) $r['MaBaiDang'] . '#bl-' . $ma
+                    );
+                }
+            }
+        } catch (Throwable $ex) {
+            // bỏ qua
+        }
     }
     redirect($quayLai(['kq' => $doi ? 'ok' : 'khong']));
 }

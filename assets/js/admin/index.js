@@ -14,7 +14,7 @@
         labels: d.nhan,
         datasets: [
           { type: 'bar', label: 'Người dùng mới', data: d.dangky, order: 2,
-            backgroundColor: 'rgba(47,107,255,.35)', borderColor: '#2f6bff', borderWidth: 1, borderRadius: 6 },
+            backgroundColor: 'rgba(47,107,255,.35)', borderColor: '#2f6bff', borderWidth: 1, borderRadius: 6, pointStyle: 'rect' },
           { type: 'line', label: 'Trận đấu', data: d.tran, order: 1,
             borderColor: '#f5a524', backgroundColor: 'rgba(245,165,36,.12)', fill: true, tension: 0.35,
             pointBackgroundColor: '#f5a524', pointRadius: 4 }
@@ -23,7 +23,7 @@
       options: Object.assign({
         responsive: true, maintainAspectRatio: false,
         interaction: { mode: 'index', intersect: false },
-        plugins: { legend: { position: 'top', align: 'start', labels: { usePointStyle: true, boxWidth: 8 } } },
+        plugins: { legend: { position: 'top', align: 'start', labels: { usePointStyle: true, boxWidth: 14, boxHeight: 8, generateLabels: function (c) { var it = Chart.defaults.plugins.legend.labels.generateLabels(c); it.forEach(function (x) { if (c.data.datasets[x.datasetIndex].type === 'line') { x.pointStyle = 'line'; } }); return it; } } } },
         scales: {
           y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: 'rgba(20,33,61,.08)' } },
           x: { grid: { display: false } }

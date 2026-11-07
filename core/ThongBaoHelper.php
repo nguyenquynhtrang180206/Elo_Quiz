@@ -5,6 +5,27 @@ class ThongBaoHelper
 {
     private static ?bool $bangTonTai = null;
 
+    // Các loại thông báo do quản trị viên kiểm duyệt cộng đồng gửi tới chủ bài / chủ bình luận
+    public const LOAI_QUAN_TRI = ['an_bai', 'hien_bai', 'an_bl', 'hien_bl'];
+    public const TEN_QUAN_TRI  = 'Quản trị viên';
+
+    // Thông báo từ quản trị viên (không phải người dùng nên MaNguoiGui = 0; giao diện hiện tên "Quản trị viên")
+    public static function taoThongBaoQuanTri(
+        PDO $pdo,
+        int $maNguoiNhan,
+        int $maBaiDang,
+        ?int $maBinhLuan,
+        string $loai,
+        string $tieuDe,
+        ?string $noiDung,
+        string $lienKet
+    ): bool {
+        if (!in_array($loai, self::LOAI_QUAN_TRI, true)) {
+            return false;
+        }
+        return self::taoThongBao($pdo, $maNguoiNhan, 0, $maBaiDang, $maBinhLuan, $loai, $tieuDe, $noiDung, $lienKet);
+    }
+
     /**
      * Tự động đảm bảo bảng THONGBAO tồn tại trong CSDL
      */
