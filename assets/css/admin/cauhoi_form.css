@@ -1,7 +1,190 @@
-/* Trang Thêm/Sửa câu hỏi (admin/cauhoi_form.php). Đặt tại: assets/css/admin/cauhoi_form.css */
-.cot-nhan { width:160px; }
-.hang-dapan { display:flex; gap:8px; align-items:center; margin-bottom:6px; }
-.hang-dapan input[type=radio] { width:auto; }
-/* Lưu ý khi sửa câu đã dùng trong trận */
-.luu-y { padding:10px 14px; margin-bottom:12px; border-radius:10px; border:1px solid rgba(255,196,0,.55); background:rgba(255,190,0,.12); color:#ffe08a; line-height:1.55; }
-.luu-y b { color:#fff; }
+/* Trang Thêm/Sửa câu hỏi (admin/cauhoi_form.php). Đặt tại: assets/css/admin/cauhoi_form.css
+   Mọi luật nằm trong .cf-trang (và hộp thoại .cf-dlg) để không ảnh hưởng các trang admin khác.
+   Dùng tiền tố "cf-" để khỏi dính style chung (input/label/select tối màu trong style.css). */
+
+.admin-noidung .cf-trang {
+  --cf-chu:#15204a; --cf-phu:#6b7694; --cf-vien:#dbe1f3; --cf-xanh:#1f55d6; --cf-xanh-nhat:#e3edff;
+  --cf-dung:#17a673; --cf-sai:#d9546b;
+  --cf-de:#b9732f; --cf-tb:#7d8aa5; --cf-kho:#d99a14;
+  padding:22px; border-radius:28px; color:var(--cf-chu);
+  background:linear-gradient(180deg, rgba(228,233,248,.96), rgba(211,219,241,.95));
+  border:1px solid rgba(255,255,255,.45); box-shadow:0 24px 60px rgba(0,0,0,.35);
+}
+.cf-trang h2 { margin:0; font-size:26px; line-height:1.2; color:var(--cf-chu); text-shadow:none; }
+.cf-trang p  { margin:0; color:inherit; }
+.cf-trang a  { text-shadow:none; }
+.cf-quaylai  { display:inline-block; margin-bottom:2px; color:var(--cf-phu); font-size:14px; text-decoration:none; }
+.cf-quaylai:hover { color:var(--cf-xanh); }
+
+/* ---------- Đầu trang + vòng tiến độ ---------- */
+.cf-dau { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:14px; flex-wrap:wrap; }
+.cf-vong {
+  --p:0; position:relative; display:grid; place-items:center; width:60px; height:60px; border-radius:50%; flex:none;
+  background:conic-gradient(var(--cf-xanh) calc(var(--p) * 1%), #cdd5ee 0); font-weight:800; font-size:15px; color:var(--cf-chu);
+  transition:background .25s;
+}
+.cf-vong::before { content:''; position:absolute; inset:7px; border-radius:50%; background:#e6ebf9; }
+.cf-vong span { position:relative; }
+.cf-vong.xong { background:conic-gradient(var(--cf-dung) 100%, #cdd5ee 0); }
+
+/* ---------- Thông báo ---------- */
+.cf-luu-y {
+  display:flex; gap:10px; align-items:flex-start; margin-bottom:16px; padding:12px 16px; border-radius:14px; line-height:1.55;
+  background:#fdf0cf; border:1px solid #f0cf7b; color:#7a5300;
+}
+.cf-luu-y svg { flex:none; margin-top:2px; }
+.cf-loi {
+  margin-bottom:16px; padding:12px 16px; border-radius:14px; line-height:1.55;
+  background:#fde8ea; border:1px solid #f3b8bf; color:#a3202f; box-shadow:none;
+}
+
+/* ---------- Khung hai cột ---------- */
+.cf-luoi { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:18px; align-items:stretch; }
+@media (max-width:960px) { .cf-luoi { grid-template-columns:minmax(0,1fr); } }
+
+.cf-khoi {
+  padding:16px; border-radius:20px; background:#fff; border:1px solid var(--cf-vien); box-shadow:0 8px 24px rgba(30,60,140,.08);
+}
+.cf-truong + .cf-truong { margin-top:10px; }
+.cf-trang label, .cf-trang .cf-nhan { display:block; margin:0 0 6px; font-size:14px; font-weight:600; color:#3b4a78; }
+.cf-hang-nhan { display:flex; align-items:baseline; justify-content:space-between; gap:10px; }
+.cf-hang-nhan label { margin:0 0 6px; }
+.cf-dem { font-size:13px; font-weight:600; color:var(--cf-phu); }
+.cf-dem.gan-het { color:var(--cf-sai); }
+
+.cf-trang select, .cf-trang textarea, .cf-trang .cf-dap input[type=text] {
+  width:100%; padding:8px 12px; border:1px solid var(--cf-vien); border-radius:12px; background:#fff; color:var(--cf-chu);
+  font-size:15px; box-shadow:none; transition:border-color .15s, box-shadow .15s;
+}
+.cf-trang select option { background:#fff; color:var(--cf-chu); }
+.cf-trang textarea { resize:vertical; line-height:1.5; min-height:60px; }
+.cf-trang select:disabled { background:#eef1fb; color:#55618a; opacity:1; cursor:not-allowed; }
+.cf-trang ::placeholder { color:#9aa5c4; }
+.cf-trang select:focus, .cf-trang textarea:focus, .cf-trang .cf-dap input[type=text]:focus {
+  outline:none; border-color:#5b8cff; box-shadow:0 0 0 3px rgba(91,140,255,.25);
+}
+
+/* ---------- Thẻ độ khó ---------- */
+.cf-dokho { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:10px; }
+.cf-trang .cf-the-kho { position:relative; margin:0; cursor:pointer; }
+.cf-the-kho input { position:absolute; opacity:0; inset:0; margin:0; width:100%; height:100%; cursor:pointer; }
+.cf-the-nd {
+  display:flex; flex-direction:column; align-items:center; gap:1px; padding:6px 6px; border-radius:14px; text-align:center;
+  background:#fff; border:2px solid var(--cf-vien); transition:border-color .15s, background .15s, box-shadow .15s;
+}
+.cf-the-nd b { font-size:15px; color:var(--cf-chu); }
+.cf-the-nd small { font-size:12px; color:var(--cf-phu); }
+.cf-the-kho:hover .cf-the-nd { border-color:#b7c4ec; }
+.cf-the-kho input:focus-visible + .cf-the-nd { outline:3px solid rgba(91,140,255,.45); outline-offset:1px; }
+.cf-the-kho.h-de  input:checked + .cf-the-nd { border-color:var(--cf-de);  background:#fbf1e6; box-shadow:0 4px 14px rgba(185,115,47,.22); }
+.cf-the-kho.h-tb  input:checked + .cf-the-nd { border-color:var(--cf-tb);  background:#eef1f8; box-shadow:0 4px 14px rgba(125,138,165,.28); }
+.cf-the-kho.h-kho input:checked + .cf-the-nd { border-color:var(--cf-kho); background:#fdf4dc; box-shadow:0 4px 14px rgba(217,154,20,.26); }
+
+/* Huy chương theo hạng */
+.cf-hc.h-de  { color:var(--cf-de); }
+.cf-hc.h-tb  { color:var(--cf-tb); }
+.cf-hc.h-kho { color:var(--cf-kho); }
+
+/* ---------- Thẻ xem trước (cột phải) ---------- */
+.cf-xem {
+  display:flex; flex-direction:column; overflow:hidden; border-radius:22px; background:#fff; border:2px solid #b7c0dc; box-shadow:0 8px 24px rgba(30,60,140,.08);
+}
+.cf-xem-dau {
+  display:flex; align-items:center; justify-content:space-between; gap:10px; padding:13px 20px;
+  background:#eef1fb; border-bottom:1px solid var(--cf-vien); font-weight:700; color:var(--cf-chu);
+}
+.cf-hang { display:inline-flex; align-items:center; gap:6px; font-size:14px; font-weight:700; white-space:nowrap; }
+.cf-hang .cf-hc { width:18px; height:18px; }
+.cf-hang.h-de  { color:var(--cf-de); }
+.cf-hang.h-tb  { color:var(--cf-tb); }
+.cf-hang.h-kho { color:var(--cf-kho); }
+.cf-xem-than { flex:1; padding:16px; }
+.cf-xem-cau {
+  min-height:40px; margin-bottom:12px !important; font-size:17px; font-weight:700; line-height:1.5; color:var(--cf-chu);
+  white-space:pre-wrap; overflow-wrap:anywhere;
+}
+.cf-xem-cau.trong { color:#9aa5c4; }
+
+.cf-dsdap { display:grid; gap:8px; }
+.cf-dap {
+  display:flex; align-items:center; gap:10px; padding:5px 10px; border-radius:16px; background:#fff; border:2px solid var(--cf-vien);
+  transition:border-color .15s, background .15s;
+}
+.cf-dap:focus-within { border-color:#8fb0ff; }
+.cf-dap.dung { border-color:var(--cf-dung); background:#effaf5; }
+.cf-chu {
+  display:grid; place-items:center; width:32px; height:32px; flex:none; border-radius:50%; background:#eef1fb; color:var(--cf-chu); font-weight:800; font-size:14px;
+}
+.cf-dap.dung .cf-chu { background:var(--cf-dung); color:#fff; }
+.cf-dap input[type=text] { flex:1; min-width:0; }
+
+.cf-trang .cf-chon { position:relative; display:block; margin:0; flex:none; cursor:pointer; }
+.cf-chon input { position:absolute; opacity:0; inset:0; width:100%; height:100%; margin:0; cursor:pointer; }
+.cf-tron {
+  display:grid; place-items:center; width:32px; height:32px; border-radius:50%; background:#fff; border:2px solid #c3cbe4; color:transparent;
+  transition:background .15s, border-color .15s, color .15s;
+}
+.cf-chon:hover .cf-tron { border-color:var(--cf-dung); }
+.cf-chon input:focus-visible + .cf-tron { outline:3px solid rgba(23,166,115,.4); outline-offset:1px; }
+.cf-chon input:checked + .cf-tron { background:var(--cf-dung); border-color:var(--cf-dung); color:#fff; }
+.cf-goi-y { margin-top:14px !important; font-size:13.5px; line-height:1.5; color:var(--cf-phu); }
+
+/* ---------- Danh sách điều kiện ---------- */
+.cf-kt { display:flex; flex-wrap:wrap; gap:8px 26px; margin:18px 4px 0; padding:0; list-style:none; }
+.cf-kt li { display:flex; align-items:center; gap:8px; font-size:14px; color:var(--cf-phu); transition:color .15s; }
+.cf-kt li::before {
+  content:''; width:20px; height:20px; flex:none; border-radius:50%; border:2px solid #b7c0dc; background:#fff center/12px no-repeat;
+  transition:background-color .15s, border-color .15s;
+}
+.cf-kt li.ok { color:#127a53; font-weight:600; }
+.cf-kt li.ok::before {
+  border-color:var(--cf-dung); background-color:var(--cf-dung);
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E");
+}
+
+/* ---------- Nút ---------- */
+.cf-nut { display:flex; flex-wrap:wrap; gap:10px; margin-top:16px; }
+.cf-trang .cf-btn, .cf-dlg .cf-btn {
+  display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:11px 20px; border-radius:12px; cursor:pointer;
+  border:1px solid #c6d2f2; background:#fff; color:var(--cf-xanh, #1f55d6); font:600 15px/1.2 inherit; font-family:inherit;
+  text-shadow:none; box-shadow:none; transition:background .15s, box-shadow .15s, filter .15s;
+}
+.cf-trang .cf-btn:hover, .cf-dlg .cf-btn:hover { background:#f3f6ff; }
+.cf-trang .cf-btn-chinh, .cf-dlg .cf-btn-chinh { color:#fff; border-color:transparent; background:linear-gradient(135deg,#3b7bff,#1b4be0); box-shadow:0 6px 16px rgba(30,80,230,.32); }
+.cf-trang .cf-btn-chinh:hover, .cf-dlg .cf-btn-chinh:hover { background:linear-gradient(135deg,#3b7bff,#1b4be0); filter:brightness(1.08); }
+.cf-btn:focus-visible { outline:3px solid rgba(91,140,255,.45); outline-offset:2px; }
+.cf-btn:disabled { opacity:.55; cursor:not-allowed; filter:none; }
+.cf-thongbao { min-height:22px; margin-top:12px !important; font-size:14px; color:#a3202f; }
+.cf-thongbao.loi-luu { font-weight:700; }
+
+/* ---------- Bảng xem (câu đang nằm trong trận chưa kết thúc) ---------- */
+.admin-noidung .cf-trang table.cf-bang-xem { display:table; width:100%; border-collapse:collapse; color:var(--cf-chu); }
+.cf-bang-xem th { width:160px; text-align:left; vertical-align:top; padding:10px 12px; background:#eef1fb; color:var(--cf-chu); letter-spacing:0; }
+.cf-bang-xem td { padding:10px 12px; background:transparent; border-bottom:1px solid #e3e8f6; color:var(--cf-chu); }
+.cf-trang .cf-bang-xem tbody tr:hover td { background:transparent; }
+.cf-bang-xem .mau-xanh { color:#127a53; }
+.cf-bang-xem .xuong-dong { white-space:pre-wrap; }
+
+/* ---------- Hộp chạy thử ---------- */
+.cf-dlg { width:min(640px, 92vw); max-height:92vh; padding:0; border:0; border-radius:24px; background:transparent; color:#15204a; overflow:visible; }
+.cf-dlg::backdrop { background:rgba(7,20,70,.62); }
+.cf-dlg .cf-xem-dlg { box-shadow:0 30px 80px rgba(0,0,0,.45); }
+.cf-dlg .cf-xem-cau { min-height:0; }
+.cf-dlg-dap { display:grid; gap:10px; }
+.cf-dlg .cf-dlg-pa {
+  display:flex; align-items:center; gap:10px; width:100%; padding:8px 12px; border-radius:16px; cursor:pointer; text-align:left;
+  background:#fff; border:2px solid var(--cf-vien); color:#15204a; font:600 15px/1.4 inherit; font-family:inherit; text-shadow:none; box-shadow:none;
+  transition:border-color .15s, background .15s;
+}
+.cf-dlg .cf-dlg-pa:hover:not(:disabled) { border-color:#8fb0ff; background:#f3f6ff; }
+.cf-dlg .cf-dlg-pa:disabled { cursor:default; opacity:1; }
+.cf-dlg-chu { flex:1; min-width:0; overflow-wrap:anywhere; white-space:pre-wrap; }
+.cf-dlg .cf-dlg-pa.dung { border-color:var(--cf-dung); background:#effaf5; }
+.cf-dlg .cf-dlg-pa.dung .cf-chu { background:var(--cf-dung); color:#fff; }
+.cf-dlg .cf-dlg-pa.sai  { border-color:var(--cf-sai); background:#fdecef; }
+.cf-dlg .cf-dlg-pa.sai .cf-chu { background:var(--cf-sai); color:#fff; }
+.cf-dlg-kq { min-height:22px; margin-top:14px !important; font-weight:800; }
+.cf-dlg-kq.ok  { color:#127a53; }
+.cf-dlg-kq.sai { color:#a3202f; }
+.cf-dlg-gt { margin-top:8px !important; padding:10px 14px; border-radius:12px; background:#eef1fb; line-height:1.55; white-space:pre-wrap; overflow-wrap:anywhere; }
+.cf-dlg-gt[hidden] { display:none; }

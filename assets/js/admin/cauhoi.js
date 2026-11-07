@@ -67,6 +67,10 @@
         e.preventDefault();
         return;
       }
+      if (hd === 'xoa_nhieu' && !confirm('Xóa vĩnh viễn ' + ds.length + ' câu hỏi đã chọn? Câu đã dùng trong trận sẽ bị xóa cả bài làm liên quan (điểm, Elo đã lưu không đổi); câu đang nằm trong trận chưa kết thúc được giữ lại. Không thể hoàn tác.')) {
+        e.preventDefault();
+        return;
+      }
       [].forEach.call(thanh.querySelectorAll('input[name="ids[]"]'), function (x) { x.remove(); });
       ds.forEach(function (o) {
         var h = document.createElement('input');
@@ -76,17 +80,6 @@
     });
     window.addEventListener('pageshow', capNhatChon);   // trình duyệt có thể khôi phục ô đã tích khi bấm Back
     capNhatChon();
-  }
-
-  // ---------- Thẻ "Độ khó theo môn": Xem thêm / Thu gọn ----------
-  var nutMonThem = document.getElementById('chMonThem');
-  var luoiMon = document.getElementById('chLuoiMon');
-  if (nutMonThem && luoiMon) {
-    nutMonThem.addEventListener('click', function () {
-      var mo = luoiMon.classList.toggle('mo-het');
-      nutMonThem.setAttribute('aria-expanded', mo ? 'true' : 'false');
-      nutMonThem.textContent = mo ? 'Thu gọn' : nutMonThem.getAttribute('data-nhan');
-    });
   }
 
   // ---------- Bộ chọn môn trong bộ lọc: tìm kiếm, hiện 10 môn đầu, "Xem thêm" ----------
@@ -248,11 +241,15 @@
     var daDung = d.so_tran > 0;
     ghiChu.hidden = !daDung;
     ghiChu.textContent = daDung
-      ? 'Câu hỏi đã dùng trong ' + d.so_tran + ' trận. Vẫn sửa được để chữa lỗi (điểm và Elo của các trận cũ không tính lại), nhưng không xóa được; muốn ngừng dùng thì bấm Ẩn.'
+      ? 'Câu hỏi đã dùng trong ' + d.so_tran + ' trận. Vẫn sửa được để chữa lỗi (điểm và Elo của các trận cũ không tính lại), muốn ngừng dùng mà vẫn giữ lịch sử thì bấm Ẩn thay vì Xóa.'
       : '';
-    xoaNut.hidden = daDung;
+    xoaNut.hidden = false;
+    xoaNut.setAttribute('data-xac-nhan', daDung
+      ? 'Xóa vĩnh viễn câu hỏi này? Câu đã dùng trong ' + d.so_tran + ' trận: bài làm và dòng câu trong các trận đó cũng bị xóa (điểm, Elo đã lưu không đổi). Không thể hoàn tác.'
+      : 'Xóa vĩnh viễn câu hỏi này? Không thể hoàn tác.');
     nutSua.textContent = 'Sửa câu hỏi';
-    nutSua.href = ngan.getAttribute('data-form') + '?id=' + encodeURIComponent(d.id);
+    nutSua.href = ngan.getAttribute('data-form') + '?id=' + encodeURIComponent(d.id)
+      + '&ve=' + encodeURIComponent(window.location.search.replace(/^\?/, ''));
 
     // Nút Ẩn / Hiện lại: POST về chính trang này (giữ bộ lọc), đã có CSRF trong form
     anId.value = d.id;
@@ -330,4 +327,47 @@
     if (e.shiftKey && document.activeElement === dau) { e.preventDefault(); cuoi.focus(); }
     else if (!e.shiftKey && document.activeElement === cuoi) { e.preventDefault(); dau.focus(); }
   });
+})();
+
+// ---------- Biểu đồ phân bố tỉ lệ đúng (Chart.js, assets/vendor/chart.umd.js) ----------
+(function () {
+  'use strict';
+  var cv = document.getElementById('chBieuDo');
+  if (!cv || typeof Chart === 'undefined') { return; }
+  var nhan, so, mau;
+  try {
+    nhan = JSON.parse(cv.getAttribute('data-nhan'));
+    so   = JSON.parse(cv.getAttribute('data-so'));
+    mau  = JSON.parse(cv.getAttribute('data-mau'));
+  } catch (err) { return; }
+  new Chart(cv, {
+    type: 'bar',
+    data: { labels: nhan, datasets: [{ data: so, backgroundColor: mau, borderRadius: 5, maxBarThickness: 28 }] },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: function (c) { return c.parsed.y + ' câu'; } } }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: '#6b7694', font: { size: 10 }, maxRotation: 0, autoSkip: false,
+             callback: function (v) { return String(this.getLabelForValue(v)).replace('%', '').split('–')[0]; } } },
+        y: { beginAtZero: true, ticks: { precision: 0, color: '#6b7694', font: { size: 11 } }, grid: { color: '#e6eaf7' } }
+      }
+    }
+  });
+})();
+
+
+// ---------- Ghi chú cách đọc biểu đồ: bấm nút i để mở / đóng (cho màn hình cảm ứng, không có rê chuột) ----------
+(function () {
+  'use strict';
+  var gc = document.querySelector('.ch-ghichu');
+  if (!gc) { return; }
+  var nut = gc.querySelector('.ch-ghichu-nut');
+  function dat(mo) { gc.classList.toggle('mo', mo); nut.setAttribute('aria-expanded', mo ? 'true' : 'false'); }
+  nut.addEventListener('click', function (e) { e.stopPropagation(); dat(!gc.classList.contains('mo')); });
+  document.addEventListener('click', function (e) { if (!gc.contains(e.target)) { dat(false); } });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { dat(false); } });
 })();
