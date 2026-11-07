@@ -8,3 +8,6 @@
 input[type=file] { margin-top:4px; }
 .ghichu { color:var(--mau-phu); font-size:13px; }
 input[readonly] { background:#f3f4f6; }
+
+/* Chân trang Elo theo môn: dấu "…" báo có trang bị bỏ qua */
+.elo-dots { display:inline-block; padding:3px 4px; margin:0 2px 4px 0; color:var(--mau-phu); }

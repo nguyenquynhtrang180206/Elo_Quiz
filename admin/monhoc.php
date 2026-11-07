@@ -228,7 +228,7 @@ require __DIR__ . '/layout/header.php';
 <?php endif; ?>
 
 <?php if ($tongCho > 0): ?>
-<h3>Môn sinh viên đề xuất, chờ duyệt (<?= $tongCho ?>)</h3>
+<h3 id="de-xuat" style="scroll-margin-top:80px">Môn sinh viên đề xuất, chờ duyệt (<?= $tongCho ?>)</h3>
 <div class="card">
   <table>
     <tr><th>Tên môn</th><th>Mô tả</th><th>Người đề xuất</th><th></th></tr>

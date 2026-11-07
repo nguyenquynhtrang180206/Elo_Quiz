@@ -15,6 +15,7 @@ if (!in_array($tt, ['Hoạt động', 'Bị khóa'], true)) {
 
 $dieuKien = [];
 $tham     = [];
+$dieuKien[] = 'n.MaND NOT IN (SELECT MaND FROM ADMIN WHERE MaND IS NOT NULL)';   // không liệt kê tài khoản sinh viên liên kết của admin
 if ($q !== '') {
     $like       = '%' . addcslashes($q, '\\%_') . '%';   // thoát % và _ để tìm đúng chữ người dùng gõ
     $dieuKien[] = '(n.HoTen LIKE ? OR n.Email LIKE ? OR n.Lop LIKE ? OR n.Khoa LIKE ?)';

@@ -249,6 +249,22 @@ if ($tab === 'huyhieu') {
     $st->execute($thamSel);
     $baiDang = $st->fetchAll();
     $eloMap  = CongDongHelper::layElo($pdo, array_column($baiDang, 'MaND'));
+
+    // Xem trước 2 bình luận cấp 1 mới nhất của mỗi bài (chỉ bình luận 'Hiển thị', không lấy trả lời lồng bên trong); phần còn lại xem trong trang bài
+    $blXemTruoc = [];
+    $stBL = $pdo->prepare(
+        "SELECT c.NoiDung, c.NgayBinhLuan, u.HoTen, u.AnhDaiDien
+           FROM BINHLUAN c JOIN NGUOIDUNG u ON u.MaND = c.MaND
+          WHERE c.MaBaiDang = ? AND c.TrangThai = 'Hiển thị' AND c.MaBinhLuanCha IS NULL
+          ORDER BY c.NgayBinhLuan DESC, c.MaBinhLuan DESC
+          LIMIT 2"
+    );
+    foreach ($baiDang as $bx) {
+        if ((int) $bx['SoBL'] > 0) {
+            $stBL->execute([(int) $bx['MaBaiDang']]);
+            $blXemTruoc[(int) $bx['MaBaiDang']] = array_reverse($stBL->fetchAll());   // cũ trước, mới sau
+        }
+    }
 }
 
 // ---- Thống kê thời gian thực cho Hero Banner Cộng Đồng Đẳng Cấp ----
@@ -906,7 +922,7 @@ require __DIR__ . '/layout/header.php';
         $link = BASE_URL . '/client/baidang.php?id=' . (int) $b['MaBaiDang'];
         $dangAn = $b['TrangThai'] === 'Bị ẩn';
       ?>
-        <article class="cd-the" id="bai-<?= (int) $b['MaBaiDang'] ?>">
+        <article class="cd-the<?= $dangAn ? '' : ' cd-the-bam' ?>" id="bai-<?= (int) $b['MaBaiDang'] ?>"<?= $dangAn ? '' : ' data-href="' . e($link) . '#binh-luan"' ?>>
           <span class="pet-corner tl" aria-hidden="true"></span>
           <span class="pet-corner tr" aria-hidden="true"></span>
           <?= CongDongHelper::avatar((string) $b['HoTen'], $b['AnhDaiDien']) ?>
@@ -960,6 +976,24 @@ require __DIR__ . '/layout/header.php';
                 </a>
               <?php endif; ?>
             </div>
+
+            <?php if (!$dangAn && !empty($blXemTruoc[(int) $b['MaBaiDang']])): ?>
+              <div class="cd-bl-xem">
+                <?php foreach ($blXemTruoc[(int) $b['MaBaiDang']] as $bl): ?>
+                  <div class="cd-bl-xem-muc">
+                    <?= CongDongHelper::avatar((string) $bl['HoTen'], $bl['AnhDaiDien'], 'cd-av cd-av-nho') ?>
+                    <div class="cd-bl-xem-nd">
+                      <span class="cd-bl-xem-ten"><?= e($bl['HoTen']) ?></span>
+                      <span class="cd-gio">&middot; <?= e(CongDongHelper::truocDo($bl['NgayBinhLuan'])) ?></span>
+                      <p><?= e(mb_strimwidth(preg_replace('/\s+/u', ' ', $bl['NoiDung']), 0, 120, '…')) ?></p>
+                    </div>
+                  </div>
+                <?php endforeach; ?>
+                <?php if ((int) $b['SoBL'] > count($blXemTruoc[(int) $b['MaBaiDang']])): ?>
+                  <a class="cd-bl-xem-them" href="<?= e($link) ?>#binh-luan">Xem tất cả <?= (int) $b['SoBL'] ?> bình luận &rsaquo;</a>
+                <?php endif; ?>
+              </div>
+            <?php endif; ?>
 
             <?php if ($tab === 'cuatoi'): ?>
             <!-- Thao tác của chủ bài: sửa (trong 15 phút), ẩn/mở lại và xóa (mọi lúc) -->

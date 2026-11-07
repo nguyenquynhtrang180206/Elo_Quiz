@@ -2,6 +2,9 @@
 // Phòng thi đấu: chờ cả hai vào phòng, thi đấu (câu hỏi, đồng hồ, điểm), kết quả sơ bộ (C-23 đến C-31).
 // Đặt tại: elo_quiz/client/phong.php
 require_once __DIR__ . '/../core/bootstrap.php';
+if (Auth::laAdminSinhVien()) {   // admin không tìm trận và không đấu trận
+    redirect(BASE_URL . '/client/khong_dau_tran.php');
+}
 require_once __DIR__ . '/../core/GhepDoi.php';
 require_once __DIR__ . '/../core/LoLChampions.php';
 require_once __DIR__ . '/../core/ThiDau.php';

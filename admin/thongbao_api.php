@@ -31,14 +31,13 @@ if ($action === 'lay_danh_sach') {
     $rows  = ThongBaoAdmin::layDanhSach($pdo, $maAdmin, $tatCa ? 200 : 5, 0);
     $ds = [];
     foreach ($rows as $r) {
-        $la = (int) $r['loai'] === ThongBaoAdmin::LOAI_BAI;
         $tu = preg_split('/\s+/', trim((string) $r['ten']));
         $chuCai = mb_strtoupper(mb_substr((string) end($tu), 0, 1)) ?: 'U';
         $nd = preg_replace('/^(.{80}).+$/su', '$1…', trim((string) $r['noidung']));
         $ds[] = [
             'loai'      => (int) $r['loai'],
             'ma'        => (int) $r['ma'],
-            'tieu_de'   => $la ? 'đã đăng bài mới' : 'đã bình luận',
+            'tieu_de'   => 'đã đề xuất môn học:',
             'noi_dung'  => $nd,
             'ten'       => (string) $r['ten'],
             'chu_cai'   => $chuCai,

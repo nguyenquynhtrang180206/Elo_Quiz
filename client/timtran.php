@@ -4,6 +4,9 @@
 // Mỗi lần trang chờ tải lại thì gọi GhepDoi::thuGhep() (C-20); ghép được hoặc đã có trận thì chuyển sang phong.php.
 // Đặt tại: elo_quiz/client/timtran.php
 require_once __DIR__ . '/../core/bootstrap.php';
+if (Auth::laAdminSinhVien()) {   // admin không tìm trận và không đấu trận
+    redirect(BASE_URL . '/client/khong_dau_tran.php');
+}
 require_once __DIR__ . '/../core/GhepDoi.php';
 require_once __DIR__ . '/../core/LoLChampions.php';
 

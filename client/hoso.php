@@ -103,19 +103,72 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+$emailHienThi = Auth::laAdminSinhVien() ? 'Tài khoản quản trị' : $nd['Email'];   // tài khoản liên kết của admin dùng email nội bộ
 $thanhCong = $_SESSION['flash_hoso'] ?? null;
 unset($_SESSION['flash_hoso']);
 
-// ---- C-14: Elo từng môn, số trận, thắng/thua/hòa, tỷ lệ thắng ----
+// ---- C-14: Elo từng môn, số trận, thắng/thua/hòa, tỷ lệ thắng (phân trang: 4 môn/trang) ----
+const ELO_MOI_TRANG = 4;
+
+$st = $pdo->prepare('SELECT COUNT(*) FROM ELOMONHOC WHERE MaND = ?');
+$st->execute([$maND]);
+$pElo = new Paginator((int) $st->fetchColumn(), ELO_MOI_TRANG, 'elo_page');   // tham số riêng: ?elo_page=2
+
 $st = $pdo->prepare(
     'SELECT m.TenMon, e.DiemElo, e.SoTran, e.SoThang, e.SoThua, e.SoHoa
        FROM ELOMONHOC e
        JOIN MONHOC m ON m.MaMon = e.MaMon
       WHERE e.MaND = ?
-      ORDER BY e.DiemElo DESC, m.TenMon'
+      ORDER BY e.DiemElo DESC, m.TenMon, m.MaMon
+      LIMIT ' . $pElo->limit() . ' OFFSET ' . $pElo->offset()
 );
 $st->execute([$maND]);
 $elo = $st->fetchAll();
+
+// Chân trang Elo (ví dụ 10 trang): luôn hiện trang đầu và trang cuối, ở giữa là trang trước - hiện tại - sau,
+// chỗ nào bị bỏ qua thì có dấu "…".
+//   trang 1: 1 2 … 10 | trang 2: 1 2 3 … 10 | trang 3: 1 2 3 4 … 10 | trang 4: 1 … 3 4 5 … 10
+//   trang 5: 1 … 4 5 6 … 10 | trang 6: 1 … 5 6 7 … 10 | trang 8: 1 … 7 8 9 10 | trang 9: 1 … 8 9 10
+function chanTrangElo(Paginator $p): string
+{
+    $so = $p->soTrang();
+    if ($so <= 1) {
+        return '';
+    }
+    $hienTai = $p->trang();
+    $url = function (int $n): string {
+        $q = $_GET;
+        $q['elo_page'] = $n;
+        return '?' . http_build_query($q) . '#elo-theo-mon';   // giữ nguyên vị trí ở khung Elo
+    };
+    $mucTrang = function (int $i) use ($hienTai, $url): string {
+        return $i === $hienTai
+            ? '<strong aria-current="page">' . $i . '</strong> '
+            : '<a href="' . e($url($i)) . '">' . $i . '</a> ';
+    };
+    $dau = '<span class="elo-dots" aria-hidden="true">…</span> ';
+
+    $tu  = max(1, $hienTai - 1);
+    $den = min($so, $hienTai + 1);
+
+    $h = '<nav class="phantrang elo-phantrang" aria-label="Phân trang Elo theo môn">';
+    if ($tu > 1) {                                  // trang đầu luôn hiện
+        $h .= $mucTrang(1);
+        if ($tu > 2) {
+            $h .= $dau;                             // có trang bị bỏ qua giữa trang đầu và cửa sổ
+        }
+    }
+    for ($i = $tu; $i <= $den; $i++) {
+        $h .= $mucTrang($i);
+    }
+    if ($den < $so) {                               // trang cuối luôn hiện
+        if ($den < $so - 1) {
+            $h .= $dau;                             // có trang bị bỏ qua giữa cửa sổ và trang cuối
+        }
+        $h .= $mucTrang($so);
+    }
+    return $h . '</nav>';
+}
 
 $tieuDe = 'Hồ sơ cá nhân';
 $cssTrang = 'hoso';
@@ -149,7 +202,7 @@ require __DIR__ . '/layout/header.php';
         <input type="text" id="ho_ten" name="ho_ten" maxlength="100" value="<?= e($hoTen) ?>" required>
 
         <label for="email">Email</label>
-        <input type="email" id="email" value="<?= e($nd['Email']) ?>" readonly>
+        <input type="email" id="email" value="<?= e($emailHienThi) ?>" readonly>
 
         <label for="lop">Lớp</label>
         <input type="text" id="lop" name="lop" maxlength="50" value="<?= e($lop) ?>">
@@ -162,7 +215,7 @@ require __DIR__ . '/layout/header.php';
       </form>
     </div>
 
-    <div class="card">
+    <div class="card" id="elo-theo-mon">
       <h3>Elo theo môn</h3>
       <?php if (!$elo): ?>
         <p class="ghichu">Bạn chưa đấu trận nào. Elo sẽ xuất hiện sau trận đầu tiên.</p>
@@ -183,6 +236,7 @@ require __DIR__ . '/layout/header.php';
             </tr>
           <?php endforeach; ?>
         </table>
+        <?= chanTrangElo($pElo) ?>
       <?php endif; ?>
       <p class="ghichu">Elo chỉ thay đổi theo kết quả trận đấu, không chỉnh tay được.</p>
       <!-- TODO (C-15): biểu đồ biến động Elo theo môn, lấy dữ liệu từ LICHSUELO -->

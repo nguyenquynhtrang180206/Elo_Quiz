@@ -16,9 +16,10 @@ try {
     $coLike = false;
 }
 
-// C-44: chỉ thấy bài đang ở trạng thái "Hiển thị"
+// C-44: mọi người chỉ thấy bài "Hiển thị"; riêng chủ bài vẫn xem được bài của mình khi đang "Bị ẩn" (chỉ đọc, để xem thông báo và lý do)
 $st = $pdo->prepare(
-    "SELECT b.MaBaiDang, b.MaND, b.MaMon, b.TieuDe, b.NoiDung, b.NgayDang, u.HoTen, m.TenMon,
+    "SELECT b.MaBaiDang, b.MaND, b.MaMon, b.TieuDe, b.NoiDung, b.NgayDang, b.TrangThai, u.HoTen, m.TenMon,
+            " . (CongDongHelper::coCotNguoiAn() ? 'b.NguoiAn' : 'NULL AS NguoiAn') . ",
             " . ($coLoai ? 'b.LoaiBai' : "'" . CongDongHelper::LOAI_MAC_DINH . "' AS LoaiBai") . ",
             TIMESTAMPDIFF(SECOND, b.NgayDang, NOW()) AS GiayTuDang,
             " . ($coLike
@@ -28,10 +29,11 @@ $st = $pdo->prepare(
        FROM BAIDANG b
        JOIN NGUOIDUNG u ON u.MaND = b.MaND
        LEFT JOIN MONHOC m ON m.MaMon = b.MaMon
-      WHERE b.MaBaiDang = ? AND b.TrangThai = 'Hiển thị'"
+      WHERE b.MaBaiDang = ? AND (b.TrangThai = 'Hiển thị' OR (b.TrangThai = 'Bị ẩn' AND b.MaND = ?))"
 );
-$st->execute([$id]);
+$st->execute([$id, (int) $maND]);
 $bai = $st->fetch();
+$baiAn = $bai && $bai['TrangThai'] === 'Bị ẩn';   // chủ bài đang xem bài của mình bị ẩn: chỉ đọc
 
 $loi = [];
 $noiDungBL = '';
@@ -62,6 +64,11 @@ if ($bai && $_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     csrf_check();
     $hanhDong = (string) ($_POST['hanh_dong'] ?? '');
+
+    // Bài đang bị ẩn: không bình luận, không thả lửa; chủ bài chỉ còn xóa được
+    if ($baiAn && $hanhDong !== 'xoa') {
+        redirect(BASE_URL . '/client/baidang.php?id=' . $id);
+    }
 
     if ($hanhDong === 'binhluan') {
         $noiDungBL = trim((string) ($_POST['noi_dung'] ?? ''));
@@ -448,6 +455,16 @@ require __DIR__ . '/layout/header.php';
   <?php else: ?>
     <?php if ($thanhCong): ?><div class="thanhcong"><?= e($thanhCong) ?></div><?php endif; ?>
 
+    <?php if ($baiAn): ?>
+      <div class="loi">
+        <?php if ($bai['NguoiAn'] === 'Chủ bài'): ?>
+          Bạn đang ẩn bài này, chỉ mình bạn thấy. Mở lại trong mục <a href="<?= e(BASE_URL) ?>/client/congdong.php?tab=cuatoi">Bài của tôi</a>.
+        <?php else: ?>
+          Bài này đã bị quản trị viên ẩn, chỉ mình bạn thấy. Lý do nằm trong thông báo của bạn. Khi quản trị viên hiển thị lại, mọi người sẽ thấy bài.
+        <?php endif; ?>
+      </div>
+    <?php endif; ?>
+
     <div class="card">
       <h2 class="tieu-de-bai"><?= e($bai['TieuDe']) ?></h2>
       <div class="meta">
@@ -459,7 +476,7 @@ require __DIR__ . '/layout/header.php';
       </div>
       <p><?= nl2br(e($bai['NoiDung'])) ?></p>
 
-      <?php if ($coLike): ?>
+      <?php if ($coLike && !$baiAn): ?>
         <form method="post" action="?id=<?= (int) $id ?>" class="form-dong cd-like-form" data-bai-id="<?= (int) $id ?>">
           <?= csrf_field() ?>
           <input type="hidden" name="id" value="<?= (int) $id ?>">
@@ -476,7 +493,9 @@ require __DIR__ . '/layout/header.php';
 
       <?php if ((int) $bai['MaND'] === $maND): ?>
         <div class="thao-tac-chu-bai">
-          <?php if (CongDongHelper::conHanSua((int) $bai['GiayTuDang'])): ?>
+          <?php if ($baiAn): ?>
+            <?php /* bài đang ẩn: không sửa, không ẩn lại */ ?>
+          <?php elseif (CongDongHelper::conHanSua((int) $bai['GiayTuDang'])): ?>
             <a class="btn btn-phu" href="<?= e(BASE_URL) ?>/client/suabai.php?id=<?= (int) $id ?>">
               <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="vertical-align: -1.5px; margin-right: 3px;" aria-hidden="true"><path d="M11 2.5l2.5 2.5-8 8H3v-2.5l8-8z"/></svg>
               Sửa bài
@@ -484,7 +503,7 @@ require __DIR__ . '/layout/header.php';
           <?php else: ?>
             <span class="meta">Đã quá <?= CongDongHelper::SUA_TOI_DA_PHUT ?> phút kể từ lúc đăng nên không thể sửa bài.</span>
           <?php endif; ?>
-          <?php if (CongDongHelper::coCotNguoiAn()): ?>
+          <?php if (!$baiAn && CongDongHelper::coCotNguoiAn()): ?>
             <form method="post" action="?id=<?= (int) $id ?>" class="form-dong"
                   data-xac-nhan="Ẩn bài đăng này? Bạn có thể mở lại trong mục Bài của tôi.">
               <?= csrf_field() ?>
@@ -532,7 +551,9 @@ require __DIR__ . '/layout/header.php';
         <?php if ($loi): ?>
           <div class="loi"><?php foreach ($loi as $m): ?><div><?= e($m) ?></div><?php endforeach; ?></div>
         <?php endif; ?>
-        <?php if ($maND === null): ?>
+        <?php if ($baiAn): ?>
+          <p class="meta">Bài đang bị ẩn nên chưa thể bình luận.</p>
+        <?php elseif ($maND === null): ?>
           <p class="meta"><a href="<?= e(BASE_URL) ?>/client/login.php">Đăng nhập</a> để viết bình luận.</p>
         <?php else: ?>
         <form method="post" action="?id=<?= (int) $id ?>" novalidate id="formDangBL">

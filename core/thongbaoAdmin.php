@@ -1,11 +1,11 @@
 <?php
 // Thông báo cho quản trị viên (chuông ở trang Tổng quan). Đặt tại: core/ThongBaoAdmin.php
-// Nguồn thông báo: bài đăng mới và bình luận mới của cộng đồng trong 30 ngày gần nhất (không tính mục đã xóa).
+// Nguồn thông báo: CHỈ môn học do sinh viên đề xuất và đang chờ duyệt (MONHOC.TrangThai = 'Chờ duyệt').
+// Bài đăng và bình luận của cộng đồng không còn tạo thông báo. Duyệt hoặc từ chối đề xuất thì thông báo tự biến mất.
 // Trạng thái đã đọc lưu riêng cho từng admin ở bảng THONGBAO_ADMIN_DADOC (không có dòng = chưa đọc).
 class ThongBaoAdmin
 {
-    public const LOAI_BAI = 1;   // bài đăng mới
-    public const LOAI_BL  = 2;   // bình luận mới
+    public const LOAI_MON = 3;   // đề xuất môn học mới (giữ số 3 để không trùng dữ liệu "đã đọc" cũ của bài đăng/bình luận)
 
     private static ?bool $bangTonTai = null;
 
@@ -18,12 +18,17 @@ class ThongBaoAdmin
             Database::pdo()->exec("
                 CREATE TABLE IF NOT EXISTS THONGBAO_ADMIN_DADOC (
                     MaAdmin    INT UNSIGNED NOT NULL,
-                    Loai       TINYINT UNSIGNED NOT NULL COMMENT '1 = bài đăng, 2 = bình luận',
-                    MaDoiTuong INT UNSIGNED NOT NULL COMMENT 'MaBaiDang hoặc MaBinhLuan',
+                    Loai       TINYINT UNSIGNED NOT NULL COMMENT '3 = đề xuất môn học',
+                    MaDoiTuong INT UNSIGNED NOT NULL COMMENT 'MaMon',
                     NgayDoc    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     PRIMARY KEY (MaAdmin, Loai, MaDoiTuong)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             ");
+            // MONHOC chưa có thời điểm đề xuất: thêm cột (các đề xuất đang chờ sẽ lấy giờ lúc chạy lần đầu)
+            $co = Database::pdo()->query("SHOW COLUMNS FROM MONHOC LIKE 'NgayDeXuat'")->fetch();
+            if (!$co) {
+                Database::pdo()->exec('ALTER TABLE MONHOC ADD COLUMN NgayDeXuat DATETIME NULL DEFAULT CURRENT_TIMESTAMP');
+            }
             self::$bangTonTai = true;
         } catch (Throwable $e) {
             self::$bangTonTai = false;
@@ -31,16 +36,14 @@ class ThongBaoAdmin
         return self::$bangTonTai;
     }
 
-    // Truy vấn gộp bài đăng + bình luận (dùng chung cho đếm, liệt kê, đánh dấu đã đọc)
+    // Truy vấn nguồn: các môn đang chờ duyệt (dùng chung cho đếm, liệt kê, đánh dấu đã đọc)
     private static function nguon(): string
     {
-        return "SELECT 1 AS loai, b.MaBaiDang AS ma, b.MaBaiDang AS ma_bai, b.NgayDang AS tg, u.HoTen AS ten, b.TieuDe AS noidung
-                  FROM BAIDANG b JOIN NGUOIDUNG u ON u.MaND = b.MaND
-                 WHERE b.TrangThai <> 'Đã xóa' AND b.NgayDang >= NOW() - INTERVAL 30 DAY
-                UNION ALL
-                SELECT 2, c.MaBinhLuan, c.MaBaiDang, c.NgayBinhLuan, u.HoTen, c.NoiDung
-                  FROM BINHLUAN c JOIN NGUOIDUNG u ON u.MaND = c.MaND
-                 WHERE c.TrangThai <> 'Đã xóa' AND c.NgayBinhLuan >= NOW() - INTERVAL 30 DAY";
+        return "SELECT 3 AS loai, m.MaMon AS ma, m.MaMon AS ma_bai,
+                       COALESCE(m.NgayDeXuat, NOW()) AS tg,
+                       COALESCE(u.HoTen, 'Sinh viên') AS ten, m.TenMon AS noidung
+                  FROM MONHOC m LEFT JOIN NGUOIDUNG u ON u.MaND = m.MaNguoiDeXuat
+                 WHERE m.TrangThai = 'Chờ duyệt'";
     }
 
     public static function laySoChuaDoc(PDO $pdo, int $maAdmin): int
@@ -61,7 +64,7 @@ class ThongBaoAdmin
         }
     }
 
-    // Tổng số thông báo trong 30 ngày (đã đọc + chưa đọc)
+    // Tổng số đề xuất đang chờ duyệt (đã đọc + chưa đọc)
     public static function demTatCa(PDO $pdo): int
     {
         try {
@@ -96,7 +99,7 @@ class ThongBaoAdmin
 
     public static function danhDauDaDoc(PDO $pdo, int $maAdmin, int $loai, int $ma): bool
     {
-        if ($maAdmin <= 0 || $ma <= 0 || !in_array($loai, [self::LOAI_BAI, self::LOAI_BL], true) || !self::damBaoBang()) {
+        if ($maAdmin <= 0 || $ma <= 0 || !$loai === self::LOAI_MON || !self::damBaoBang()) {
             return false;
         }
         try {
@@ -122,9 +125,9 @@ class ThongBaoAdmin
         }
     }
 
-    // Đường dẫn trang xử lý: cả bài đăng và bình luận đều mở trang chi tiết bài
-    public static function lienKet(int $maBai): string
+    // Bấm thông báo: mở trang Môn học và cuộn tới mục "Môn sinh viên đề xuất, chờ duyệt"
+    public static function lienKet(int $maMon = 0): string
     {
-        return BASE_URL . '/admin/congdong_baidang.php?id=' . $maBai;
+        return BASE_URL . '/admin/monhoc.php#de-xuat';
     }
 }

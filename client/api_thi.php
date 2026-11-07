@@ -17,6 +17,10 @@ function traJson(array $d, int $ma = 200): never
     exit;
 }
 
+if (Auth::laAdminSinhVien()) {   // admin không đấu trận
+    traJson(['loi' => 'Tài khoản quản trị không thi đấu.'], 403);
+}
+
 $maND = Auth::clientId();
 if ($maND === null) {
     traJson(['loi' => 'Chưa đăng nhập.'], 401);

@@ -231,6 +231,21 @@
     });
   }
 
+  // 3b. Bấm vào bất kỳ chỗ nào trên khung bài đăng thì mở bài và nhảy tới phần bình luận
+  //     (bỏ qua khi bấm link, nút, form, ô nhập, hoặc đang bôi đen chữ)
+  document.addEventListener('click', function (e) {
+    var the = e.target.closest ? e.target.closest('.cd-the[data-href]') : null;
+    if (!the) { return; }
+    if (e.target.closest('a, button, form, input, textarea, select, label')) { return; }
+    var chon = window.getSelection ? window.getSelection().toString() : '';
+    if (chon) { return; }
+    if (e.ctrlKey || e.metaKey) {
+      window.open(the.getAttribute('data-href'), '_blank');
+      return;
+    }
+    window.location.href = the.getAttribute('data-href');
+  });
+
   // 4. Hiệu ứng nhấp nháy / nảy vui nhộn khi click vào Chibi Faker ở Sidebar
   var fakerBtn = document.getElementById('cd-faker-btn');
   if (fakerBtn) {

@@ -47,7 +47,7 @@ $menu = [
     <?php foreach ($menu as $ma => [$ten, $duong]): ?>
       <a href="<?= e(BASE_URL . $duong) ?>"<?= $ma === $mucChon ? ' class="dang-chon"' : '' ?>><?= e($ten) ?></a>
     <?php endforeach; ?>
-    <a href="<?= e(BASE_URL) ?>/client/index.php" class="tach">Về trang sinh viên</a>
-    <a href="<?= e(BASE_URL) ?>/admin/dangxuat.php">Đăng xuất</a>
+    <a href="<?= e(BASE_URL) ?>/admin/vesinhvien.php" class="tach">Về trang sinh viên</a>
+    <a href="<?= e(BASE_URL) ?>/admin/dangxuat.php" data-xacnhan="Bạn có chắc muốn đăng xuất không?" data-xacnhan2="Phiên đăng nhập hiện tại sẽ kết thúc và bạn cần đăng nhập lại để tiếp tục. Xác nhận đăng xuất?" data-xacnhan2-nut="Đăng xuất">Đăng xuất</a>
   </nav>
   <main class="admin-noidung">

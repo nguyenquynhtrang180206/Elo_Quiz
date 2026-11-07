@@ -36,7 +36,7 @@ require __DIR__ . '/layout/header.php';
   <div class="tbp-dau">
     <div>
       <h2>🔔 Thông báo</h2>
-      <p>Bài đăng và bình luận mới của cộng đồng trong 30 ngày gần nhất.</p>
+      <p>Sinh viên đề xuất môn học mới, đang chờ bạn duyệt.</p>
     </div>
     <div class="tbp-nut">
       <a class="tbp-ve" href="<?= e(BASE_URL) ?>/admin/index.php">← Về Tổng quan</a>
@@ -65,7 +65,6 @@ require __DIR__ . '/layout/header.php';
   <?php else: ?>
     <div class="tbp-ds">
       <?php foreach ($ds as $t):
-          $laBai  = (int) $t['loai'] === ThongBaoAdmin::LOAI_BAI;
           $chuaDoc = (int) $t['da_doc'] === 0;
           $tu = preg_split('/\s+/', trim((string) $t['ten']));
           $chuCai = mb_strtoupper(mb_substr((string) end($tu), 0, 1)) ?: 'U';
@@ -74,7 +73,7 @@ require __DIR__ . '/layout/header.php';
            data-loai="<?= (int) $t['loai'] ?>" data-ma="<?= (int) $t['ma'] ?>">
           <span class="tbp-ava"><?= e($chuCai) ?></span>
           <span class="tbp-nd">
-            <span class="tbp-ten"><?= e($t['ten']) ?></span> <?= $laBai ? 'đã đăng bài mới' : 'đã bình luận' ?>:
+            <span class="tbp-ten"><?= e($t['ten']) ?></span> đã đề xuất môn học:
             <span class="tbp-trich"><?= e($nd) ?></span>
           </span>
           <span class="tbp-tg"><?= e(ThongBaoHelper::tinhThoiGian((string) $t['tg'])) ?></span>

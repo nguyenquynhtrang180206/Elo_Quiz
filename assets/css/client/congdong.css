@@ -2599,3 +2599,21 @@ body.trang-cd .container { max-width: 1240px; }
   .cd-tieu-de { font-size: 16px; }
   .cd-hh-bang { grid-template-columns: 1fr; }
 }
+
+/* Khung bài đăng bấm được: mở bài và nhảy tới bình luận */
+.cd-the.cd-the-bam { cursor: pointer; }
+
+/* Xem trước 2 bình luận mới nhất dưới mỗi bài */
+.cd-bl-xem {
+  margin-top: 12px; padding: 10px 12px; border-radius: 12px;
+  background: rgba(0, 217, 255, 0.05);
+  border: 1px solid rgba(0, 217, 255, 0.14);
+  display: flex; flex-direction: column; gap: 10px;
+}
+.cd-bl-xem-muc { display: flex; gap: 10px; align-items: flex-start; }
+.cd-av.cd-av-nho { width: 28px; height: 28px; font-size: 12px; border-width: 1.5px; box-shadow: none; }
+.cd-bl-xem-nd { min-width: 0; flex: 1; }
+.cd-bl-xem-nd p { margin: 2px 0 0; color: #cbd5e1; font-size: 13.5px; line-height: 1.5; word-break: break-word; }
+.cd-bl-xem-ten { font-weight: 600; font-size: 13px; color: #e2e8f0; }
+.cd-bl-xem-them { align-self: flex-start; font-size: 13px; color: var(--cd-cyan, #00d9ff); text-decoration: none; }
+.cd-bl-xem-them:hover { text-decoration: underline; }

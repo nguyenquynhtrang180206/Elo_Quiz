@@ -9,6 +9,7 @@
 //   require __DIR__ . '/layout/footer.php';
 $tieuDe = $tieuDe ?? 'QUIZUP ARENA';
 $daDangNhap = Auth::clientId() !== null;
+$laAdminSV  = $daDangNhap && Auth::laAdminSinhVien();   // admin đang dùng khu sinh viên: ẩn Tìm trận, Đổi mật khẩu
 $cssTrang = (array) ($cssTrang ?? []);
 $trangHienTai = basename((string) ($_SERVER['SCRIPT_NAME'] ?? ''));
 $cur = fn(string $f): string => $f === $trangHienTai ? ' aria-current="page"' : '';
@@ -135,10 +136,12 @@ $cur = fn(string $f): string => $f === $trangHienTai ? ' aria-current="page"' : 
         <svg class="nav-ico" viewBox="0 0 20 20" width="15" height="15" aria-hidden="true"><path d="M3 8.5L10 3l7 5.5v8a1 1 0 01-1 1h-4.5v-5h-3v5H4a1 1 0 01-1-1v-8z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><circle cx="10" cy="8.5" r="1.5" fill="var(--cyan)"/></svg>
         Trang chủ
       </a>
+      <?php if (!$laAdminSV): ?>
       <a href="<?= e(BASE_URL) ?>/client/timtran.php"<?= $cur('timtran.php') ?>>
         <svg class="nav-ico" viewBox="0 0 20 20" width="15" height="15" aria-hidden="true"><path d="M4 4l4.5 4.5M16 4l-4.5 4.5M6 14l-2 2M14 14l2 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M7 7l6 6M13 7l-6 6" stroke="var(--cyan)" stroke-width="1.8" stroke-linecap="round"/><circle cx="10" cy="10" r="1.5" fill="#FFE27A"/></svg>
         Tìm trận
       </a>
+      <?php endif; ?>
       <a href="<?= e(BASE_URL) ?>/client/bxh.php"<?= $cur('bxh.php') ?>>
         <svg class="nav-ico" viewBox="0 0 20 20" width="15" height="15" aria-hidden="true"><path d="M6 3.5h8v4.5a4 4 0 01-8 0V3.5zM6 5.5H3.5a1.5 1.5 0 000 3H6M14 5.5h2.5a1.5 1.5 0 010 3H14M8 13.5h4v3H8zM6 16.5h8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><polygon points="10,5 10.7,6.6 12.3,6.8 11.1,7.9 11.4,9.5 10,8.7 8.6,9.5 8.9,7.9 7.7,6.8 9.3,6.6" fill="#FFD166"/></svg>
         Bảng xếp hạng
@@ -219,13 +222,18 @@ $cur = fn(string $f): string => $f === $trangHienTai ? ' aria-current="page"' : 
               <span class="menu-icon"><svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><circle cx="10" cy="6" r="2.8" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M5.5 14c.8-2.4 2.4-3.5 4.5-3.5s3.7 1.1 4.5 3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="4" cy="8" r="2" fill="none" stroke="var(--cyan)" stroke-width="1.4"/><path d="M1.5 14.5c.5-1.5 1.4-2.2 2.5-2.2" stroke="var(--cyan)" stroke-width="1.4" stroke-linecap="round"/><circle cx="16" cy="8" r="2" fill="none" stroke="var(--cyan)" stroke-width="1.4"/><path d="M18.5 14.5c-.5-1.5-1.4-2.2-2.5-2.2" stroke="var(--cyan)" stroke-width="1.4" stroke-linecap="round"/></svg></span>
               Bạn bè <?= $soLoiMoiBanBe > 0 ? '(' . (int) $soLoiMoiBanBe . ')' : '' ?>
             </a>
+      <?php if (!$laAdminSV): ?>
             <a href="<?= e(BASE_URL) ?>/client/doimatkhau.php"<?= $cur('doimatkhau.php') ?>>
               <span class="menu-icon"><svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><path d="M10 2l6 2.5v5c0 4-2.5 7-6 8.5-3.5-1.5-6-4.5-6-8.5v-5L10 2z" fill="none" stroke="currentColor" stroke-width="1.6"/><rect x="7.5" y="8.5" width="5" height="4" rx="1" fill="var(--cyan)"/><path d="M8.5 8.5V7a1.5 1.5 0 013 0v1.5" fill="none" stroke="currentColor" stroke-width="1.4"/></svg></span>
               Đổi mật khẩu
             </a>
+      <?php endif; ?>
           </div>
         </div>
-        <a class="nav-nut-phu" href="<?= e(BASE_URL) ?>/client/dangxuat.php"<?= $cur('dangxuat.php') ?>>
+        <?php if ($laAdminSV): ?>
+        <a class="nav-nut-phu" href="<?= e(BASE_URL) ?>/admin/index.php">Về trang quản trị</a>
+        <?php endif; ?>
+        <a class="nav-nut-phu" href="<?= e(BASE_URL) ?>/client/dangxuat.php" data-xacnhan="Bạn có chắc muốn đăng xuất không?" data-xacnhan2="Phiên đăng nhập hiện tại sẽ kết thúc và bạn cần đăng nhập lại để tiếp tục. Xác nhận đăng xuất?" data-xacnhan2-nut="Đăng xuất"<?= $cur('dangxuat.php') ?>>
           <svg viewBox="0 0 20 20" width="14" height="14" aria-hidden="true"><path d="M7 3H4a1 1 0 00-1 1v12a1 1 0 001 1h3M12 6l4 4-4 4M16 10H7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
           Đăng xuất
         </a>

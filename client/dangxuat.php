@@ -3,7 +3,7 @@
 require_once __DIR__ . '/../core/bootstrap.php';
 
 // Chỉ xóa khóa của sinh viên, không đụng tới phiên Admin nếu cùng trình duyệt
-unset($_SESSION['nd_id']);
+unset($_SESSION['nd_id'], $_SESSION['nd_la_admin']);   // phiên admin (nếu có) vẫn giữ nguyên
 session_regenerate_id(true);
 
 redirect(BASE_URL . '/client/login.php');

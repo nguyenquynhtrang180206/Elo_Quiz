@@ -74,7 +74,7 @@ require __DIR__ . '/layout/header.php';
     </div>
   <?php endif; ?>
 
-  <form method="post" action="" novalidate autocomplete="off">
+  <form method="post" action="" novalidate autocomplete="off" data-xacnhan="Bạn có chắc muốn đổi mật khẩu không?" data-xacnhan2="Sau khi đổi, bạn phải dùng mật khẩu mới ở các lần đăng nhập sau. Xác nhận đổi mật khẩu?" data-xacnhan2-nut="Đổi mật khẩu">
     <?= csrf_field() ?>
 
     <label for="mat_khau_cu">Mật khẩu hiện tại</label>

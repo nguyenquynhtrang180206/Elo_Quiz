@@ -5,6 +5,11 @@ require_once __DIR__ . '/../core/bootstrap.php';
 // Phải đăng nhập mới vào được (kiểm tra ở backend)
 $maND = Auth::requireClient(BASE_URL . '/client/login.php');
 
+// Admin dùng khu sinh viên thì đổi mật khẩu ở trang đổi mật khẩu của quản trị (tài khoản liên kết không có mật khẩu đăng nhập)
+if (Auth::laAdminSinhVien()) {
+    redirect(BASE_URL . '/admin/doimatkhau.php');
+}
+
 $pdo       = Database::pdo();
 $loi       = [];
 $thanhCong = false;
@@ -69,7 +74,7 @@ require __DIR__ . '/layout/header.php';
       </div>
     <?php endif; ?>
 
-    <form method="post" action="" novalidate>
+    <form method="post" action="" novalidate data-xacnhan="Bạn có chắc muốn đổi mật khẩu không?" data-xacnhan2="Sau khi đổi, bạn phải dùng mật khẩu mới ở các lần đăng nhập sau. Xác nhận đổi mật khẩu?" data-xacnhan2-nut="Đổi mật khẩu">
       <?= csrf_field() ?>
 
       <label for="mat_khau_cu">Mật khẩu hiện tại</label>

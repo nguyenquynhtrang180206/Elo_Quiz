@@ -122,7 +122,7 @@ $tinNong = $pdo->query(
       ORDER BY t.MaTran DESC LIMIT 3"
 )->fetchAll();
 
-// Bài đăng mới (chỉ bài đang hiển thị)
+// Bài đăng mới (chỉ bài đang hiển thị), 3 thẻ trong Báo Đấu Trường Gen Z
 $baiMoi = $pdo->query(
     "SELECT b.MaBaiDang, b.TieuDe, b.NoiDung, b.NgayDang, u.HoTen, m.TenMon,
             (SELECT COUNT(*) FROM BINHLUAN c WHERE c.MaBaiDang = b.MaBaiDang AND c.TrangThai = 'Hiển thị') AS SoBinhLuan

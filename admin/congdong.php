@@ -83,8 +83,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $pdo, (int) $r['MaND'], $ma, null, $an ? 'an_bai' : 'hien_bai',
                         ($an ? 'đã ẩn bài đăng "' : 'đã hiển thị lại bài đăng "') . $ten . '" của bạn.',
                         'Lý do: ' . $ly,
-                        // bài đang bị ẩn thì chủ bài không xem được trang bài, đưa về trang Cộng đồng
-                        $an ? BASE_URL . '/client/congdong.php' : BASE_URL . '/client/baidang.php?id=' . $ma
+                        // chủ bài vẫn mở được bài của mình khi bị ẩn (chỉ đọc, kèm thông báo lý do)
+                        BASE_URL . '/client/baidang.php?id=' . $ma
                     );
                 }
             } else {

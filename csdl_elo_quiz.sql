@@ -43,8 +43,11 @@ CREATE TABLE ADMIN (
   HoTen         VARCHAR(100) NOT NULL,
   TrangThai     ENUM('Hoạt động','Bị khóa') NOT NULL DEFAULT 'Hoạt động',
   NgayTao       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  MaND          INT UNSIGNED NULL COMMENT 'Tài khoản sinh viên liên kết: admin vào khu sinh viên bằng tài khoản này',
   PRIMARY KEY (MaAdmin),
-  UNIQUE KEY uq_admin_tendangnhap (TenDangNhap)
+  UNIQUE KEY uq_admin_tendangnhap (TenDangNhap),
+  UNIQUE KEY uq_admin_mand (MaND),
+  CONSTRAINT fk_admin_nd FOREIGN KEY (MaND) REFERENCES NGUOIDUNG (MaND) ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
 -- ---------------------------------------------------------------------
@@ -428,3 +431,7 @@ CREATE TABLE IF NOT EXISTS THONGBAO (
 
 ALTER TABLE BINHLUAN ADD COLUMN MaBinhLuanCha INT NULL DEFAULT NULL AFTER MaND;
 ALTER TABLE BINHLUAN ADD INDEX idx_parent (MaBinhLuanCha);
+
+UPDATE THONGBAO
+SET LienKet = REPLACE(LienKet, '/client/congdong.php', CONCAT('/client/baidang.php?id=', MaBaiDang))
+WHERE Loai = 'an_bai' AND MaBaiDang IS NOT NULL;

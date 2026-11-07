@@ -62,7 +62,8 @@ $p = null;
 if ($q !== '') {
     $mau = '%' . str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $q) . '%';
 
-    $st = $pdo->prepare("SELECT COUNT(*) FROM NGUOIDUNG WHERE MaND <> ? AND TrangThai = 'Hoạt động' AND HoTen LIKE ?");
+    $st = $pdo->prepare("SELECT COUNT(*) FROM NGUOIDUNG WHERE MaND <> ? AND TrangThai = 'Hoạt động' AND HoTen LIKE ?
+                          AND MaND NOT IN (SELECT MaND FROM ADMIN WHERE MaND IS NOT NULL)");
     $st->execute([$maND, $mau]);
     $p = new Paginator((int) $st->fetchColumn(), 10);
 
@@ -72,6 +73,7 @@ if ($q !== '') {
            FROM NGUOIDUNG u
            LEFT JOIN BANBE b ON b.CapNho = LEAST(?, u.MaND) AND b.CapLon = GREATEST(?, u.MaND)
           WHERE u.MaND <> ? AND u.TrangThai = 'Hoạt động' AND u.HoTen LIKE ?
+            AND u.MaND NOT IN (SELECT MaND FROM ADMIN WHERE MaND IS NOT NULL)
           ORDER BY u.HoTen
           LIMIT " . $p->limit() . ' OFFSET ' . $p->offset()
     );
