@@ -4,6 +4,7 @@ require_once __DIR__ . '/../core/bootstrap.php';
 require_once __DIR__ . '/../core/CongDongHelper.php';
 
 $maND = Auth::clientId();   // khách chưa đăng nhập vẫn xem được bài; bình luận/xóa/sửa cần đăng nhập
+$laQT = Auth::laQuanTriKiemDuyet();   // admin đang ở khu sinh viên: kiểm duyệt (ẩn/hiện kèm lý do) ngay tại đây
 $pdo  = Database::pdo();
 $id   = (int) ($_POST['id'] ?? $_GET['id'] ?? 0);
 $coLoai = CongDongHelper::coCotLoaiBai();
@@ -16,7 +17,7 @@ try {
     $coLike = false;
 }
 
-// C-44: mọi người chỉ thấy bài "Hiển thị"; riêng chủ bài vẫn xem được bài của mình khi đang "Bị ẩn" (chỉ đọc, để xem thông báo và lý do)
+// C-44: mọi người chỉ thấy bài "Hiển thị"; riêng chủ bài vẫn xem được bài của mình khi đang "Bị ẩn" (chỉ đọc, để xem thông báo và lý do); quản trị viên xem được cả bài bị ẩn để hiện lại
 $st = $pdo->prepare(
     "SELECT b.MaBaiDang, b.MaND, b.MaMon, b.TieuDe, b.NoiDung, b.NgayDang, b.TrangThai, u.HoTen, m.TenMon,
             " . (CongDongHelper::coCotNguoiAn() ? 'b.NguoiAn' : 'NULL AS NguoiAn') . ",
@@ -29,9 +30,9 @@ $st = $pdo->prepare(
        FROM BAIDANG b
        JOIN NGUOIDUNG u ON u.MaND = b.MaND
        LEFT JOIN MONHOC m ON m.MaMon = b.MaMon
-      WHERE b.MaBaiDang = ? AND (b.TrangThai = 'Hiển thị' OR (b.TrangThai = 'Bị ẩn' AND b.MaND = ?))"
+      WHERE b.MaBaiDang = ? AND (b.TrangThai = 'Hiển thị' OR (b.TrangThai = 'Bị ẩn' AND (b.MaND = ? OR ? = 1)))"
 );
-$st->execute([$id, (int) $maND]);
+$st->execute([$id, (int) $maND, (int) $laQT]);
 $bai = $st->fetch();
 $baiAn = $bai && $bai['TrangThai'] === 'Bị ẩn';   // chủ bài đang xem bài của mình bị ẩn: chỉ đọc
 
@@ -42,7 +43,7 @@ $dangSua = (int) ($_GET['sua'] ?? 0);   // bình luận đang mở khung sửa
 $noiDungSua = null;
 
 // Bình luận hiện trong danh sách: bình luận "Hiển thị" của mọi người, cộng bình luận đang ẩn của chính mình
-$dkBL = "c.MaBaiDang = :id AND (c.TrangThai = 'Hiển thị' OR (c.TrangThai = 'Bị ẩn' AND c.MaND = :me))";
+$dkBL = "c.MaBaiDang = :id AND (c.TrangThai = 'Hiển thị' OR (c.TrangThai = 'Bị ẩn' AND (c.MaND = :me OR :qt = 1)))";
 $coLikeBL = CongDongHelper::coLikeBL();
 $coAnBL   = CongDongHelper::coCotNguoiAnBL();
 
@@ -66,7 +67,7 @@ if ($bai && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $hanhDong = (string) ($_POST['hanh_dong'] ?? '');
 
     // Bài đang bị ẩn: không bình luận, không thả lửa; chủ bài chỉ còn xóa được
-    if ($baiAn && $hanhDong !== 'xoa') {
+    if ($baiAn && $hanhDong !== 'xoa' && strpos($hanhDong, 'qt_') !== 0) {
         redirect(BASE_URL . '/client/baidang.php?id=' . $id);
     }
 
@@ -147,6 +148,23 @@ if ($bai && $_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
         redirect(BASE_URL . '/client/baidang.php?id=' . $id);
+    } elseif (in_array($hanhDong, ['qt_an_bai', 'qt_hien_bai', 'qt_an_bl', 'qt_hien_bl'], true)) {
+        // ---- Quản trị viên kiểm duyệt ngay tại trang Cộng đồng (bắt buộc lý do, ghi nhật ký, báo cho chủ bài/bình luận) ----
+        if (!$laQT) {
+            redirect(BASE_URL . '/client/baidang.php?id=' . $id);
+        }
+        $laBL = substr($hanhDong, -3) === '_bl';
+        $ma   = $laBL ? (int) ($_POST['ma_bl'] ?? 0) : $id;
+        $kq   = CongDongHelper::kiemDuyet($pdo, substr($hanhDong, 3), $ma, (string) ($_POST['ly_do'] ?? ''));
+        $an   = strpos($hanhDong, 'qt_an_') === 0;
+        $doi  = $laBL ? 'bình luận' : 'bài đăng';
+        $msg  = [
+            'ok'      => ($an ? 'Đã ẩn ' : 'Đã hiện lại ') . $doi . ' và gửi thông báo kèm lý do cho người đăng.',
+            'thieuly' => 'Không thực hiện được: hãy nhập lý do.',
+            'khong'   => 'Không thực hiện được: trạng thái đã thay đổi (hoặc người đăng đã tự xóa). Hãy tải lại trang.',
+        ][$kq] ?? 'Không thực hiện được.';
+        CongDongHelper::flash($msg, $laBL ? 'flash_bl' : 'flash_cd');
+        redirect(BASE_URL . '/client/baidang.php?id=' . $id . ($laBL ? '#bl-' . $ma : ''));
     } elseif (in_array($hanhDong, ['like_bl', 'an_bl', 'mo_bl', 'xoa_bl', 'sua_bl'], true)) {
         // ---- Bình luận: thích, ẩn, mở lại, xóa, sửa ----
         $maBL     = (int) ($_POST['ma_bl'] ?? 0);
@@ -230,7 +248,7 @@ if ($bai) {
         ? '(SELECT COUNT(*) FROM LUOTTHICH_BL l WHERE l.MaBinhLuan = c.MaBinhLuan) AS SoThich,
            (SELECT COUNT(*) FROM LUOTTHICH_BL l2 WHERE l2.MaBinhLuan = c.MaBinhLuan AND l2.MaND = :nd) AS DaThich'
         : '0 AS SoThich, 0 AS DaThich';
-    $thamBL = [':id' => $id, ':me' => (int) $maND];
+    $thamBL = [':id' => $id, ':me' => (int) $maND, ':qt' => (int) $laQT];
     if ($coLikeBL) {
         $thamBL[':nd'] = (int) $maND;
     }
@@ -270,6 +288,7 @@ if ($bai) {
  */
 function renderBinhLuan($c, $level, $maND, $coAnBL, $coLikeBL, $bai, $eloMap, $coLike, $id, $dangSua, $loiSua, $noiDungSua, &$loiSuaDaHien) {
     $laChu   = $maND !== null && (int) $c['MaND'] === $maND;
+    $laQT    = Auth::laQuanTriKiemDuyet();
     $dangAn  = $c['TrangThai'] === 'Bị ẩn';
     $conSua  = $laChu && !$dangAn && CongDongHelper::conHanSua((int) $c['GiayTuLuc']);
     $moSua   = $conSua && $dangSua === (int) $c['MaBinhLuan'];
@@ -288,7 +307,7 @@ function renderBinhLuan($c, $level, $maND, $coAnBL, $coLikeBL, $bai, $eloMap, $c
             <b><?= e($c['HoTen']) ?></b>
             <?= CongDongHelper::huyHieuElo($eloMap[(int) $c['MaND']] ?? [], $bai['MaMon'] !== null ? (int) $bai['MaMon'] : null) ?>
             · <?= e(CongDongHelper::ngay($c['NgayBinhLuan'])) ?>
-            <?php if ($dangAn): ?><span class="nhan-an">Đang ẩn (chỉ bạn thấy)</span><?php endif; ?>
+            <?php if ($dangAn): ?><span class="nhan-an"><?= $laChu ? 'Đang ẩn (chỉ bạn thấy)' : 'Đang ẩn (bạn thấy vì là quản trị viên)' ?></span><?php endif; ?>
         </div>
 
         <?php if ($moSua): ?>
@@ -388,6 +407,18 @@ function renderBinhLuan($c, $level, $maND, $coAnBL, $coLikeBL, $bai, $eloMap, $c
                 <?php endif; ?>
             <?php endif; ?>
         </div>
+        <?php if ($laQT): ?>
+        <div class="qt-khoi">
+            <span class="qt-nhan">Quản trị</span>
+            <?php if (!$dangAn): ?>
+                <?= CongDongHelper::formQuanTri('?id=' . (int) $id, 'an_bl', (int) $c['MaBinhLuan'], 'Ẩn bình luận', true) ?>
+            <?php elseif ($c['NguoiAn'] !== 'Chủ bình luận'): ?>
+                <?= CongDongHelper::formQuanTri('?id=' . (int) $id, 'hien_bl', (int) $c['MaBinhLuan'], 'Hiện lại bình luận', false) ?>
+            <?php else: ?>
+                <span class="meta">Chủ bình luận tự ẩn nên quản trị không hiện lại được.</span>
+            <?php endif; ?>
+        </div>
+        <?php endif; ?>
         <?php endif; ?>
     </div>
     <?php
@@ -457,7 +488,9 @@ require __DIR__ . '/layout/header.php';
 
     <?php if ($baiAn): ?>
       <div class="loi">
-        <?php if ($bai['NguoiAn'] === 'Chủ bài'): ?>
+        <?php if ($laQT && (int) $bai['MaND'] !== (int) $maND): ?>
+          Bài này đang bị ẩn, người dùng khác không thấy. Bạn xem được vì là quản trị viên.
+        <?php elseif ($bai['NguoiAn'] === 'Chủ bài'): ?>
           Bạn đang ẩn bài này, chỉ mình bạn thấy. Mở lại trong mục <a href="<?= e(BASE_URL) ?>/client/congdong.php?tab=cuatoi">Bài của tôi</a>.
         <?php else: ?>
           Bài này đã bị quản trị viên ẩn, chỉ mình bạn thấy. Lý do nằm trong thông báo của bạn. Khi quản trị viên hiển thị lại, mọi người sẽ thấy bài.
@@ -523,6 +556,19 @@ require __DIR__ . '/layout/header.php';
               Xóa bài
             </button>
           </form>
+        </div>
+      <?php endif; ?>
+
+      <?php if ($laQT): ?>
+        <div class="qt-khoi">
+          <span class="qt-nhan">Quản trị</span>
+          <?php if ($bai['TrangThai'] === 'Hiển thị'): ?>
+            <?= CongDongHelper::formQuanTri('?id=' . (int) $id, 'an_bai', (int) $id, 'Ẩn bài', true) ?>
+          <?php elseif ($bai['NguoiAn'] !== 'Chủ bài'): ?>
+            <?= CongDongHelper::formQuanTri('?id=' . (int) $id, 'hien_bai', (int) $id, 'Hiện lại bài', false) ?>
+          <?php else: ?>
+            <span class="meta">Chủ bài tự ẩn nên quản trị không hiện lại được.</span>
+          <?php endif; ?>
         </div>
       <?php endif; ?>
     </div>

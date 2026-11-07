@@ -26,6 +26,24 @@ class Auth
         return self::clientId() !== null && isset($_SESSION['nd_la_admin']);
     }
 
+    // Admin đang dùng khu sinh viên và phiên admin còn hiệu lực (tài khoản chưa bị khóa):
+    // được kiểm duyệt ngay trên trang Cộng đồng, giống trang quản trị.
+    public static function laQuanTriKiemDuyet(): bool
+    {
+        static $kq = null;
+        if ($kq !== null) {
+            return $kq;
+        }
+        $kq = false;
+        if (self::laAdminSinhVien() && self::adminId() !== null
+            && (int) $_SESSION['nd_la_admin'] === self::adminId()) {
+            $st = Database::pdo()->prepare('SELECT TrangThai FROM ADMIN WHERE MaAdmin = ?');
+            $st->execute([self::adminId()]);
+            $kq = $st->fetchColumn() === 'Hoạt động';
+        }
+        return $kq;
+    }
+
     // Đặt ở đầu mọi trang cần đăng nhập của sinh viên
     public static function requireClient(string $loginUrl = 'login.php'): int
     {

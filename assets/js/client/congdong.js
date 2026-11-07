@@ -236,7 +236,7 @@
   document.addEventListener('click', function (e) {
     var the = e.target.closest ? e.target.closest('.cd-the[data-href]') : null;
     if (!the) { return; }
-    if (e.target.closest('a, button, form, input, textarea, select, label')) { return; }
+    if (e.target.closest('a, button, form, input, textarea, select, label, summary, details')) { return; }
     var chon = window.getSelection ? window.getSelection().toString() : '';
     if (chon) { return; }
     if (e.ctrlKey || e.metaKey) {

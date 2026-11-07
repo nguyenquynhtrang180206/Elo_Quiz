@@ -890,3 +890,16 @@ label { display:block; margin:10px 0 4px; font-weight:600; color:var(--light-cya
 .notif-drop-item.is-read { opacity: 0.6; }
 .notif-drop-item.is-read:hover { opacity: 0.92; }
 .notif-drop-item.is-read .notif-drop-text strong { color: #CBD5E1; font-weight: 600; }
+
+/* Kiểm duyệt của quản trị viên ngay trên trang Cộng đồng (client/congdong.php, client/baidang.php) */
+.qt-khoi { display:flex; flex-wrap:wrap; align-items:flex-start; gap:8px; margin-top:8px; padding-top:8px; border-top:1px dashed var(--mau-vien); }
+.qt-nhan { padding:1px 9px; border-radius:99px; font-size:12px; font-weight:700; color:#ffd08a; background:rgba(255,180,60,.12); border:1px solid rgba(255,190,80,.55); }
+.qt-kd { display:inline-block; }
+.qt-nut { display:inline-block; cursor:pointer; list-style:none; padding:2px 12px; border-radius:99px; font-size:13px; font-weight:600; color:var(--mau-phu); border:1px solid rgba(138,245,255,.25); background:rgba(138,245,255,.06); }
+.qt-nut::-webkit-details-marker { display:none; }
+.qt-nut:hover { color:#fff; border-color:var(--cyan); }
+.qt-nut.qt-do { color:#ff9aa8; border-color:rgba(255,100,120,.5); background:rgba(255,80,100,.08); }
+.qt-form { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:0; flex:1 1 320px; }
+.qt-lydo { min-width:240px; flex:1 1 240px; }
+
+.btn-do { border-color:rgba(255,100,120,.6); color:#ff9aa8; }

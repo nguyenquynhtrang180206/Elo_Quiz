@@ -433,4 +433,104 @@ class CongDongHelper
         return '<span class="cd-elo ' . $hang[2] . '" title="' . e($goiY) . '">'
              . self::iconHang($hang[2]) . ' ' . e($hang[1]) . ' · ' . number_format($d['elo']) . '</span>';
     }
+
+    // ================= KIỂM DUYỆT CỦA QUẢN TRỊ (dùng chung: trang admin và trang Cộng đồng) =================
+    // Chỉ ẩn/hiện, không xóa cứng. Bắt buộc lý do, ghi nhật ký, gửi thông báo kèm lý do cho chủ bài / chủ bình luận.
+    // Bài sinh viên đã tự xóa ("Đã xóa") không khớp điều kiện trạng thái cũ nên không hiện lại được (A-33).
+    // Trả về: 'ok' | 'khong' (trạng thái đã đổi) | 'thieuly' | 'sai' (hành động không hợp lệ).
+    // Nơi gọi phải tự kiểm tra quyền admin trước (Auth::requireAdmin hoặc Auth::laQuanTriKiemDuyet).
+    private const KIEM_DUYET = [
+        // hành động => [bảng, cột khóa, trạng thái mới, trạng thái cũ bắt buộc, tên nhật ký, tiền tố đối tượng]
+        'an_bai'   => ['BAIDANG', 'MaBaiDang', 'Bị ẩn',    'Hiển thị', 'Ẩn bài đăng',    'BAIDANG'],
+        'hien_bai' => ['BAIDANG', 'MaBaiDang', 'Hiển thị', 'Bị ẩn',    'Hiện bài đăng',  'BAIDANG'],
+        'an_bl'    => ['BINHLUAN', 'MaBinhLuan', 'Bị ẩn',    'Hiển thị', 'Ẩn bình luận',  'BINHLUAN'],
+        'hien_bl'  => ['BINHLUAN', 'MaBinhLuan', 'Hiển thị', 'Bị ẩn',    'Hiện bình luận', 'BINHLUAN'],
+    ];
+
+    public static function kiemDuyet(PDO $pdo, string $hanhDong, int $ma, string $lyDo): string
+    {
+        require_once __DIR__ . '/ThongBaoHelper.php';
+        if (!isset(self::KIEM_DUYET[$hanhDong]) || $ma <= 0) {
+            return 'sai';
+        }
+        $ly = preg_replace('/^(.{300}).+$/su', '$1', trim($lyDo));
+        if ($ly === '') {
+            return 'thieuly';
+        }
+        [$bang, $cotKhoa, $moi, $cu, $tenNk, $doiTuong] = self::KIEM_DUYET[$hanhDong];
+
+        $pdo->beginTransaction();
+        try {
+            // Bấm lặp hoặc hai quản trị viên cùng bấm thì chỉ ghi nhật ký một lần.
+            // Ghi nhận ai ẩn: quản trị ẩn thì chủ không tự mở lại được; hiện lại thì xóa dấu.
+            $set    = 'TrangThai = ?';
+            $thamUp = [$moi];
+            if (($bang === 'BAIDANG' && self::coCotNguoiAn()) || ($bang === 'BINHLUAN' && self::coCotNguoiAnBL())) {
+                $set .= ', NguoiAn = ?';
+                $thamUp[] = $moi === 'Bị ẩn' ? 'Quản trị' : null;
+            }
+            $up = $pdo->prepare("UPDATE $bang SET $set WHERE $cotKhoa = ? AND TrangThai = ?");
+            $up->execute(array_merge($thamUp, [$ma, $cu]));
+            $doi = $up->rowCount() === 1;
+            if ($doi) {
+                NhatKy::ghi($tenNk, $doiTuong . ' #' . $ma, 'Lý do: ' . $ly);
+            }
+            $pdo->commit();
+        } catch (Throwable $ex) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            throw $ex;
+        }
+        if (!$doi) {
+            return 'khong';
+        }
+
+        // Thông báo cho chủ bài / chủ bình luận (kèm lý do). Lỗi gửi thông báo không làm hỏng việc ẩn/hiện.
+        try {
+            $an = $moi === 'Bị ẩn';
+            if ($bang === 'BAIDANG') {
+                $st = $pdo->prepare('SELECT MaND, TieuDe FROM BAIDANG WHERE MaBaiDang = ?');
+                $st->execute([$ma]);
+                if ($r = $st->fetch()) {
+                    ThongBaoHelper::taoThongBaoQuanTri(
+                        $pdo, (int) $r['MaND'], $ma, null, $an ? 'an_bai' : 'hien_bai',
+                        ($an ? 'đã ẩn bài đăng "' : 'đã hiển thị lại bài đăng "') . mb_substr((string) $r['TieuDe'], 0, 60) . '" của bạn.',
+                        'Lý do: ' . $ly,
+                        BASE_URL . '/client/baidang.php?id=' . $ma   // chủ bài vẫn mở được bài của mình khi bị ẩn (chỉ đọc)
+                    );
+                }
+            } else {
+                $st = $pdo->prepare('SELECT c.MaND, c.MaBaiDang, b.TieuDe FROM BINHLUAN c JOIN BAIDANG b ON b.MaBaiDang = c.MaBaiDang WHERE c.MaBinhLuan = ?');
+                $st->execute([$ma]);
+                if ($r = $st->fetch()) {
+                    ThongBaoHelper::taoThongBaoQuanTri(
+                        $pdo, (int) $r['MaND'], (int) $r['MaBaiDang'], $ma, $an ? 'an_bl' : 'hien_bl',
+                        ($an ? 'đã ẩn bình luận của bạn trong bài "' : 'đã hiển thị lại bình luận của bạn trong bài "') . mb_substr((string) $r['TieuDe'], 0, 60) . '".',
+                        'Lý do: ' . $ly,
+                        BASE_URL . '/client/baidang.php?id=' . (int) $r['MaBaiDang'] . '#bl-' . $ma
+                    );
+                }
+            }
+        } catch (Throwable $ex) {
+            // bỏ qua
+        }
+        return 'ok';
+    }
+
+    // Ô kiểm duyệt hiện sẵn: nhập lý do (bắt buộc) rồi bấm nút để ẩn/hiện, gửi thông báo cho người đăng.
+    // $hanhDong: an_bai | hien_bai | an_bl | hien_bl (form gửi đi với tiền tố qt_). $them: các trường ẩn kèm theo.
+    public static function formQuanTri(string $action, string $hanhDong, int $ma, string $nhan, bool $nutDo, array $them = []): string
+    {
+        $h = '<form method="post" action="' . e($action) . '" class="qt-form">' . csrf_field()
+           . '<input type="hidden" name="hanh_dong" value="qt_' . e($hanhDong) . '">'
+           . '<input type="hidden" name="ma" value="' . $ma . '">'
+           . '<input type="hidden" name="ma_bl" value="' . $ma . '">';
+        foreach ($them as $k => $v) {
+            $h .= '<input type="hidden" name="' . e((string) $k) . '" value="' . e((string) $v) . '">';
+        }
+        return $h . '<input type="text" name="ly_do" maxlength="300" required placeholder="Lý do (bắt buộc, gửi cho người đăng)" class="qt-lydo">'
+             . '<button type="submit" class="btn btn-nho' . ($nutDo ? ' btn-do' : '') . '">' . e($nhan) . '</button>'
+             . '</form>';
+    }
 }

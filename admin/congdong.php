@@ -19,93 +19,16 @@ if (!in_array($tt, $dsTT, true)) {
 }
 $q = trim((string) ($_GET['q'] ?? ''));
 
-// ---- Xử lý ẩn / hiện ----
+// ---- Xử lý ẩn / hiện (logic dùng chung với trang Cộng đồng: CongDongHelper::kiemDuyet) ----
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_check();
-    $hd  = (string) ($_POST['hanh_dong'] ?? '');
-    $ma  = (int) ($_POST['ma'] ?? 0);
-    $ly  = preg_replace('/^(.{300}).+$/su', '$1', trim((string) ($_POST['ly_do'] ?? '')));
-    $cauHinh = [
-        // hành động => [bảng, cột khóa, trạng thái mới, trạng thái cũ bắt buộc, tên nhật ký, tiền tố đối tượng]
-        'an_bai'  => ['BAIDANG', 'MaBaiDang', 'Bị ẩn',    'Hiển thị', 'Ẩn bài đăng',   'BAIDANG'],
-        'hien_bai' => ['BAIDANG', 'MaBaiDang', 'Hiển thị', 'Bị ẩn',    'Hiện bài đăng',  'BAIDANG'],
-        'an_bl'   => ['BINHLUAN', 'MaBinhLuan', 'Bị ẩn',    'Hiển thị', 'Ẩn bình luận',  'BINHLUAN'],
-        'hien_bl' => ['BINHLUAN', 'MaBinhLuan', 'Hiển thị', 'Bị ẩn',    'Hiện bình luận', 'BINHLUAN'],
-    ];
     // Gửi từ trang xem bài (congdong_baidang.php) thì sau khi xử lý quay lại đúng trang đó
     $veBai   = (int) ($_POST['ve_bai'] ?? 0);
     $quayLai = static fn (array $them): string => $veBai > 0
         ? 'congdong_baidang.php?' . http_build_query(['id' => $veBai] + $them)
         : 'congdong.php?' . http_build_query(array_merge($_GET, $them));
-    if (!isset($cauHinh[$hd]) || $ma <= 0) {
-        redirect($quayLai([]));
-    }
-    if ($ly === '') {
-        redirect($quayLai(['kq' => 'thieuly']));
-    }
-    [$bang, $cotKhoa, $moi, $cu, $tenNk, $doiTuong] = $cauHinh[$hd];
-
-    $pdo->beginTransaction();
-    try {
-        // Điều kiện theo trạng thái cũ: bài "Đã xóa" không khớp nên không hiện lại được (A-33);
-        // bấm lặp hoặc hai quản trị viên cùng bấm thì chỉ ghi nhật ký một lần.
-        // Bài đăng: ghi nhận ai ẩn. Quản trị ẩn thì chủ bài không tự mở lại được; hiện lại thì xóa dấu.
-        $set  = 'TrangThai = ?';
-        $thamUp = [$moi];
-        if (($bang === 'BAIDANG' && CongDongHelper::coCotNguoiAn())
-            || ($bang === 'BINHLUAN' && CongDongHelper::coCotNguoiAnBL())) {
-            $set .= ', NguoiAn = ?';
-            $thamUp[] = $moi === 'Bị ẩn' ? 'Quản trị' : null;
-        }
-        $up = $pdo->prepare("UPDATE $bang SET $set WHERE $cotKhoa = ? AND TrangThai = ?");
-        $up->execute(array_merge($thamUp, [$ma, $cu]));
-        $doi = $up->rowCount() === 1;
-        if ($doi) {
-            NhatKy::ghi($tenNk, $doiTuong . ' #' . $ma, 'Lý do: ' . $ly);
-        }
-        $pdo->commit();
-    } catch (Throwable $ex) {
-        if ($pdo->inTransaction()) {
-            $pdo->rollBack();
-        }
-        throw $ex;
-    }
-    // Báo cho chủ bài / chủ bình luận biết (kèm lý do quản trị viên đã nhập). Lỗi gửi thông báo không làm hỏng việc ẩn/hiện.
-    if ($doi) {
-        try {
-            if ($bang === 'BAIDANG') {
-                $st = $pdo->prepare('SELECT MaND, TieuDe FROM BAIDANG WHERE MaBaiDang = ?');
-                $st->execute([$ma]);
-                if ($r = $st->fetch()) {
-                    $ten = mb_substr((string) $r['TieuDe'], 0, 60);
-                    $an  = $moi === 'Bị ẩn';
-                    ThongBaoHelper::taoThongBaoQuanTri(
-                        $pdo, (int) $r['MaND'], $ma, null, $an ? 'an_bai' : 'hien_bai',
-                        ($an ? 'đã ẩn bài đăng "' : 'đã hiển thị lại bài đăng "') . $ten . '" của bạn.',
-                        'Lý do: ' . $ly,
-                        // chủ bài vẫn mở được bài của mình khi bị ẩn (chỉ đọc, kèm thông báo lý do)
-                        BASE_URL . '/client/baidang.php?id=' . $ma
-                    );
-                }
-            } else {
-                $st = $pdo->prepare('SELECT c.MaND, c.MaBaiDang, b.TieuDe FROM BINHLUAN c JOIN BAIDANG b ON b.MaBaiDang = c.MaBaiDang WHERE c.MaBinhLuan = ?');
-                $st->execute([$ma]);
-                if ($r = $st->fetch()) {
-                    $ten = mb_substr((string) $r['TieuDe'], 0, 60);
-                    $an  = $moi === 'Bị ẩn';
-                    ThongBaoHelper::taoThongBaoQuanTri(
-                        $pdo, (int) $r['MaND'], (int) $r['MaBaiDang'], $ma, $an ? 'an_bl' : 'hien_bl',
-                        ($an ? 'đã ẩn bình luận của bạn trong bài "' : 'đã hiển thị lại bình luận của bạn trong bài "') . $ten . '".',
-                        'Lý do: ' . $ly,
-                        BASE_URL . '/client/baidang.php?id=' . (int) $r['MaBaiDang'] . '#bl-' . $ma
-                    );
-                }
-            }
-        } catch (Throwable $ex) {
-            // bỏ qua
-        }
-    }
-    redirect($quayLai(['kq' => $doi ? 'ok' : 'khong']));
+    $kq = CongDongHelper::kiemDuyet($pdo, (string) ($_POST['hanh_dong'] ?? ''), (int) ($_POST['ma'] ?? 0), (string) ($_POST['ly_do'] ?? ''));
+    redirect($quayLai($kq === 'sai' ? [] : ['kq' => $kq]));
 }
 
 $thongBao = ['ok' => 'Đã cập nhật và ghi nhật ký.'][$_GET['kq'] ?? ''] ?? '';

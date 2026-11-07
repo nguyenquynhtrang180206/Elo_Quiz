@@ -5,6 +5,7 @@ require_once __DIR__ . '/../core/bootstrap.php';
 require_once __DIR__ . '/../core/CongDongHelper.php';
 
 $maND = Auth::clientId();
+$laQT = Auth::laQuanTriKiemDuyet();   // admin đang ở khu sinh viên: ẩn bài kèm lý do ngay trên bảng tin
 $pdo  = Database::pdo();
 $monDangMo = CongDongHelper::monDangMo();
 
@@ -55,6 +56,27 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         redirect(BASE_URL . '/client/login.php');
     }
     csrf_check();
+
+    if (($_POST['hanh_dong'] ?? '') === 'qt_an_bai') {
+        // ---- Quản trị viên ẩn bài ngay trên bảng tin (bắt buộc lý do, ghi nhật ký, báo cho chủ bài) ----
+        $kq  = $laQT ? CongDongHelper::kiemDuyet($pdo, 'an_bai', (int) ($_POST['ma'] ?? 0), (string) ($_POST['ly_do'] ?? '')) : 'khong';
+        CongDongHelper::flash([
+            'ok'      => 'Đã ẩn bài đăng và gửi thông báo kèm lý do cho người đăng.',
+            'thieuly' => 'Không thực hiện được: hãy nhập lý do.',
+        ][$kq] ?? 'Không thực hiện được: bài đã đổi trạng thái hoặc bạn không có quyền.');
+        $quayLai = ['tab' => in_array((string) ($_POST['tab'] ?? ''), array_keys($cacTab), true) ? (string) $_POST['tab'] : 'moi'];
+        foreach (['mon', 'page'] as $k) {
+            if ((int) ($_POST[$k] ?? 0) > 0) {
+                $quayLai[$k] = (int) $_POST[$k];
+            }
+        }
+        foreach (['loai', 'q'] as $k) {
+            if (trim((string) ($_POST[$k] ?? '')) !== '') {
+                $quayLai[$k] = mb_substr(trim((string) $_POST[$k]), 0, 100);
+            }
+        }
+        redirect(BASE_URL . '/client/congdong.php?' . http_build_query($quayLai));
+    }
 
     if (($_POST['hanh_dong'] ?? '') === 'thich') {
         // ---- Thả lửa / dập lửa một bài viết ----
@@ -1048,6 +1070,15 @@ require __DIR__ . '/layout/header.php';
                 </button>
               </form>
             </div>
+            <?php endif; ?>
+
+            <?php if ($laQT && !$dangAn && $tab !== 'cuatoi'): ?>
+              <div class="qt-khoi">
+                <span class="qt-nhan">Quản trị</span>
+                <?= CongDongHelper::formQuanTri('', 'an_bai', (int) $b['MaBaiDang'], 'Ẩn bài', true, [
+                    'tab' => $tab, 'mon' => (int) $monLoc, 'loai' => $loaiLoc, 'q' => $tuKhoa, 'page' => $p ? (int) $p->trang() : 1,
+                ]) ?>
+              </div>
             <?php endif; ?>
           </div>
         </article>
