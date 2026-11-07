@@ -37,6 +37,17 @@ document.addEventListener('click', function (e) {
     n.addEventListener('click', function () { chonTab(n.getAttribute('data-tab')); });
   });
 
+  // Tìm kiếm khi đang ở tab Loại kỳ thi: gửi kèm tab=kt để sau khi tìm vẫn ở đúng tab
+  document.querySelectorAll('.mh-loc').forEach(function (f) {
+    f.addEventListener('submit', function () {
+      if (trang && trang.getAttribute('data-tab') === 'kt' && !f.querySelector('[name="tab"]')) {
+        var h = document.createElement('input');
+        h.type = 'hidden'; h.name = 'tab'; h.value = 'kt';
+        f.appendChild(h);
+      }
+    });
+  });
+
   // ---------- Popup thêm / sửa ----------
   function $(id) { return document.getElementById(id); }
 
@@ -77,8 +88,9 @@ document.addEventListener('click', function (e) {
     mo($(c.hop), $(c.ten));
   }
 
-  var nutThemMon = $('nutThemMon');
-  if (nutThemMon) { nutThemMon.addEventListener('click', function () { moPopup('mon', null); }); }
+  document.querySelectorAll('[data-them-mon]').forEach(function (n) {
+    n.addEventListener('click', function () { moPopup('mon', null); });
+  });
   var nutThemKt = $('nutThemKt');
   if (nutThemKt) { nutThemKt.addEventListener('click', function () { moPopup('kt', null); }); }
 

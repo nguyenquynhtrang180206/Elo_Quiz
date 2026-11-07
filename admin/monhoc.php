@@ -270,15 +270,30 @@ $svgMon = static fn (string $k, int $px = 22): string =>
     '<svg width="' . $px . '" height="' . $px . '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' . $bieuTuongMon[$k] . '</svg>';
 
 // ---- Loại kỳ thi: 5 dòng/trang như ảnh thiết kế ----
-$tongKT = (int) $pdo->query('SELECT COUNT(*) FROM LOAIKYTHI')->fetchColumn();
-$pKT    = new Paginator($tongKT, 5, 'pkt');
-$dsKT   = $pdo->query(
-    'SELECT k.MaLoaiKT, k.TenLoaiKT, k.MoTa,
+$qkt     = trim((string) ($_GET['qkt'] ?? ''));
+$whereKT = '';
+$thamKT  = [];
+if ($qkt !== '') {
+    $whereKT = 'WHERE (k.TenLoaiKT LIKE ? OR k.MoTa LIKE ?)';
+    $likeKT  = '%' . addcslashes($qkt, '\\%_') . '%';
+    $thamKT  = [$likeKT, $likeKT];
+}
+$st = $pdo->prepare("SELECT COUNT(*) FROM LOAIKYTHI k $whereKT");
+$st->execute($thamKT);
+$pKT = new Paginator((int) $st->fetchColumn(), 5, 'pkt');
+$st  = $pdo->prepare(
+    "SELECT k.MaLoaiKT, k.TenLoaiKT, k.MoTa,
             (SELECT COUNT(*) FROM CAUHOI c  WHERE c.MaLoaiKT = k.MaLoaiKT) AS so_cau,
             (SELECT COUNT(*) FROM TRANDAU t WHERE t.MaLoaiKT = k.MaLoaiKT) AS so_tran
-     FROM LOAIKYTHI k ORDER BY k.MaLoaiKT
-     LIMIT ' . $pKT->limit() . ' OFFSET ' . $pKT->offset()
-)->fetchAll();
+     FROM LOAIKYTHI k $whereKT ORDER BY k.MaLoaiKT
+     LIMIT " . $pKT->limit() . ' OFFSET ' . $pKT->offset()
+);
+$st->execute($thamKT);
+$dsKT = $st->fetchAll();
+
+// Địa chỉ nút xóa tìm kiếm: bỏ từ khóa và số trang của đúng danh sách đó, giữ phần còn lại
+$urlXoaTim = static fn (string $tuKhoa, string $trang, string $neo): string =>
+    '?' . http_build_query(array_diff_key($_GET, [$tuKhoa => 1, $trang => 1])) . $neo;
 
 // Tab đang mở: Loại kỳ thi khi có ?tab=kt hoặc đang chuyển trang danh sách loại kỳ thi (?pkt=...)
 $tabKt = (($_GET['tab'] ?? '') === 'kt') || isset($_GET['pkt']);
@@ -323,7 +338,7 @@ require __DIR__ . '/layout/header.php';
     <h2>Môn học, loại kỳ thi</h2>
     <p>Quản lý các môn học và loại kỳ thi trên hệ thống</p>
   </div>
-  <button type="button" class="btn mh-nut-them" id="nutThemMon">
+  <button type="button" class="btn mh-nut-them" id="nutThemMon" data-them-mon>
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
     Thêm môn học
   </button>
@@ -388,10 +403,17 @@ require __DIR__ . '/layout/header.php';
 
   <!-- ===== Danh sách môn học ===== -->
   <section class="card mh-ds mh-chi-mon" id="ds-mon" style="scroll-margin-top:16px">
-    <div class="mh-ds-dau"><span class="mh-ds-icon"><?= $svgMon('book', 22) ?></span><h3>Danh sách môn học</h3></div>
-    <form method="get" action="" class="mh-loc">
-      <label class="mh-tim"><?= $svgMon('tim', 18) ?><input type="text" name="q" value="<?= e($q) ?>" placeholder="Tìm kiếm môn học..." class="o-tim" aria-label="Tìm kiếm môn học"></label>
+    <div class="mh-ds-dau"><span class="mh-ds-icon"><?= $svgMon('book', 22) ?></span><h3>Danh sách môn học</h3>
+      <button type="button" class="btn mh-nut-them-kt" data-them-mon><?= $svgMon('cong', 16) ?>Thêm môn học</button>
+    </div>
+    <form method="get" action="<?= e($sach) ?>#ds-mon" class="mh-loc" role="search">
+      <?php if ($qkt !== ''): ?><input type="hidden" name="qkt" value="<?= e($qkt) ?>"><?php endif; ?>
+      <label class="mh-tim"><?= $svgMon('tim', 18) ?><input type="search" name="q" value="<?= e($q) ?>" placeholder="Tìm môn học theo tên hoặc mô tả..." class="o-tim" aria-label="Tìm kiếm môn học" autocomplete="off">
+        <?php if ($q !== ''): ?><a class="mh-xoa-tim" href="<?= e($urlXoaTim('q', 'pmon', '#ds-mon')) ?>" title="Xóa tìm kiếm" aria-label="Xóa tìm kiếm">&times;</a><?php endif; ?>
+      </label>
+      <button type="submit" class="btn mh-nut-tim">Tìm</button>
     </form>
+    <?php if ($q !== ''): ?><p class="mh-ket-qua">Tìm thấy <b><?= $p->tong() ?></b> môn khớp với &ldquo;<?= e($q) ?>&rdquo;</p><?php endif; ?>
 
     <?php if (!$dsMon): ?>
       <p class="nhan-phu mh-rong">Không có môn học nào khớp.</p>
@@ -434,8 +456,16 @@ require __DIR__ . '/layout/header.php';
       <span class="mh-ds-icon mh-icon-vang"><?= $svgMon('cup', 22) ?></span><h3>Danh sách loại kỳ thi</h3>
       <button type="button" class="btn mh-nut-them-kt" id="nutThemKt"><?= $svgMon('cong', 16) ?>Thêm loại kỳ thi</button>
     </div>
+    <form method="get" action="<?= e($sach) ?>#ds-kt" class="mh-loc" role="search">
+      <?php if ($q !== ''): ?><input type="hidden" name="q" value="<?= e($q) ?>"><?php endif; ?>
+      <label class="mh-tim"><?= $svgMon('tim', 18) ?><input type="search" name="qkt" value="<?= e($qkt) ?>" placeholder="Tìm loại kỳ thi theo tên hoặc mô tả..." class="o-tim" aria-label="Tìm kiếm loại kỳ thi" autocomplete="off">
+        <?php if ($qkt !== ''): ?><a class="mh-xoa-tim" href="<?= e($urlXoaTim('qkt', 'pkt', '#ds-kt')) ?>" title="Xóa tìm kiếm" aria-label="Xóa tìm kiếm">&times;</a><?php endif; ?>
+      </label>
+      <button type="submit" class="btn mh-nut-tim">Tìm</button>
+    </form>
+    <?php if ($qkt !== ''): ?><p class="mh-ket-qua">Tìm thấy <b><?= $pKT->tong() ?></b> loại kỳ thi khớp với &ldquo;<?= e($qkt) ?>&rdquo;</p><?php endif; ?>
     <?php if (!$dsKT): ?>
-      <p class="nhan-phu mh-rong">Chưa có loại kỳ thi nào.</p>
+      <p class="nhan-phu mh-rong"><?= $qkt !== '' ? 'Không có loại kỳ thi nào khớp.' : 'Chưa có loại kỳ thi nào.' ?></p>
     <?php else: ?>
     <div class="mh-cuon">
       <table class="mh-bang mh-bang-kt">
