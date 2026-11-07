@@ -15,6 +15,6 @@ if (!$ds) {
 $pdo = Database::pdo();
 $kq = [];
 foreach ($ds as $n) {
-    $kq[$n] = ['nhan' => ThongKe::nhanKhoang($n), 'tq' => ThongKe::tongQuan($pdo, $n), 'mon' => ThongKe::theoMon($pdo, $n)];
+    $kq[$n] = ['nhan' => ThongKe::nhanKhoang($n), 'khoang' => ThongKe::khoangNgay($n), 'tq' => ThongKe::tongQuan($pdo, $n), 'mon' => ThongKe::theoMon($pdo, $n)];
 }
 echo json_encode($kq, JSON_UNESCAPED_UNICODE);

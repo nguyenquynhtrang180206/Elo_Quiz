@@ -23,6 +23,16 @@ class ThongKe
         return $ngay === 365 ? '1 năm' : $ngay . ' ngày';
     }
 
+    // Khoảng ngày cụ thể của mốc, tính đến hôm nay: 7 ngày -> "01/11 đến 07/11/2026"
+    // (khác năm thì ghi rõ năm cả hai đầu: 1 năm -> "08/11/2025 đến 07/11/2026")
+    public static function khoangNgay(int $ngay): string
+    {
+        $tu  = strtotime('-' . ($ngay - 1) . ' days');
+        $den = time();
+        $khacNam = date('Y', $tu) !== date('Y', $den);
+        return date($khacNam ? 'd/m/Y' : 'd/m', $tu) . ' đến ' . date('d/m/Y', $den);
+    }
+
     public static function chuanHoaNgay($v): int
     {
         $n = (int) $v;

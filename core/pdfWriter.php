@@ -1,7 +1,9 @@
 <?php
-// Ghi file PDF khổ A4 dọc (portrait), không cần thư viện ngoài. Chữ tiếng Việt dùng font TrueType nhúng thẳng
+// Ghi file PDF khổ A4, không cần thư viện ngoài. Chữ tiếng Việt dùng font TrueType nhúng thẳng
 // vào file (assets/fonts/DejaVuSans*.ttf); ảnh biểu đồ là JPEG nên giữ nguyên màu như trên màn hình.
-// Toàn bộ nội dung chảy theo MỘT luồng dọc: hết trang thì tự sang trang mới, không chia ngang, không cắt cột.
+// Mặc định A4 dọc. Gọi khoTrang(true) để các trang từ đó trở đi là A4 ngang, khoTrang(false) để quay lại dọc;
+// mỗi trang giữ đúng khổ của nhóm nội dung đó (một file có thể có cả trang ngang và trang dọc).
+// Nội dung chảy theo một luồng: hết trang thì tự sang trang mới, không cắt cột.
 //
 //   $pdf = new PdfWriter(__DIR__ . '/../assets/fonts');
 //   $pdf->tieuDe('Báo cáo'); $pdf->doan('Nội dung...'); $pdf->anh($jpeg);
@@ -118,8 +120,10 @@ class PdfWriter
 
     private array $font = [];     // 'r' / 'b' => PdfFontTtf
     private array $doi = [];      // các đối tượng PDF, chỉ số = mã đối tượng (từ 1)
-    private array $trang = [];    // nội dung (content stream) từng trang
+    private array $trang = [];    // từng trang: ['nd' => content stream, 'w' => rộng, 'h' => cao]
     private string $nd = '';
+    private float $w = self::RONG;   // khổ của trang đang viết
+    private float $h = self::CAO;
     private float $y;
     private array $anh = [];      // tên ảnh => mã đối tượng
     private int $resId;
@@ -131,7 +135,7 @@ class PdfWriter
         $this->doi[1] = null;   // Catalog
         $this->doi[2] = null;   // Pages
         $this->resId  = $this->giu();
-        $this->y = self::CAO - self::LE;
+        $this->y = $this->h - self::LE;
     }
 
     private function giu(): int { $this->doi[] = null; return array_key_last($this->doi); }
@@ -216,18 +220,28 @@ class PdfWriter
         if ($this->y - $h < self::LE + 14) { $this->trangMoi(); }
     }
 
+    // Sang trang mới, giữ nguyên khổ hiện tại
     public function trangMoi(): void
     {
-        if ($this->nd !== '') { $this->trang[] = $this->nd; }
+        if ($this->nd !== '') { $this->trang[] = ['nd' => $this->nd, 'w' => $this->w, 'h' => $this->h]; }
         $this->nd = '';
-        $this->y = self::CAO - self::LE;
+        $this->y = $this->h - self::LE;
+    }
+
+    // Bắt đầu một trang mới với khổ ngang (true) hoặc dọc (false); các trang sau giữ khổ này cho đến lần gọi tiếp theo
+    public function khoTrang(bool $ngang): void
+    {
+        $this->trangMoi();
+        $this->w = $ngang ? self::CAO : self::RONG;
+        $this->h = $ngang ? self::RONG : self::CAO;
+        $this->y = $this->h - self::LE;
     }
 
     public function khoang(float $pt): void { $this->y -= $pt; }
 
     public function tieuDe(string $s, float $co = 18, string $mau = '#14213d'): void
     {
-        foreach ($this->ngat($s, $co, true, self::RONG - 2 * self::LE) as $d) {
+        foreach ($this->ngat($s, $co, true, $this->w - 2 * self::LE) as $d) {
             $this->canCho($co * 1.4);
             $this->y -= $co * 1.2;
             $this->ghiChu(self::LE, $this->y, $d, $co, true, $mau);
@@ -237,7 +251,7 @@ class PdfWriter
 
     public function doan(string $s, float $co = 10, bool $dam = false, string $mau = '#24324f'): void
     {
-        foreach ($this->ngat($s, $co, $dam, self::RONG - 2 * self::LE) as $d) {
+        foreach ($this->ngat($s, $co, $dam, $this->w - 2 * self::LE) as $d) {
             $this->canCho($co * 1.5);
             $this->y -= $co * 1.3;
             $this->ghiChu(self::LE, $this->y, $d, $co, $dam, $mau);
@@ -245,25 +259,103 @@ class PdfWriter
         }
     }
 
-    // Ảnh JPEG (đã có nền trắng, giữ nguyên màu) rộng hết khổ chữ, tự co nếu quá cao
-    public function anh(string $jpeg): void
+    // Nhúng một ảnh JPEG vào file, trả về [tên tài nguyên, rộng px, cao px] (null nếu không phải JPEG)
+    private function nhungAnh(string $jpeg): ?array
     {
         $kt = @getimagesizefromstring($jpeg);
-        if (!$kt || $kt[2] !== IMAGETYPE_JPEG) { return; }
+        if (!$kt || $kt[2] !== IMAGETYPE_JPEG) { return null; }
         [$wPx, $hPx] = $kt;
         $kenh = $kt['channels'] ?? 3;
         $cs = $kenh === 1 ? '/DeviceGray' : ($kenh === 4 ? '/DeviceCMYK' : '/DeviceRGB');
         $ten = 'Im' . (count($this->anh) + 1);
         $this->anh[$ten] = $this->luong('/Type /XObject /Subtype /Image /Width ' . $wPx . ' /Height ' . $hPx
             . ' /ColorSpace ' . $cs . ' /BitsPerComponent 8 /Filter /DCTDecode' . ($kenh === 4 ? ' /Decode [1 0 1 0 1 0 1 0]' : ''), $jpeg, false);
+        return [$ten, $wPx, $hPx];
+    }
 
-        $w = self::RONG - 2 * self::LE;
+    // Ảnh JPEG (đã có nền trắng, giữ nguyên màu) rộng hết khổ chữ, tự co nếu quá cao
+    public function anh(string $jpeg): void
+    {
+        $a = $this->nhungAnh($jpeg);
+        if (!$a) { return; }
+        [$ten, $wPx, $hPx] = $a;
+        $w = $this->w - 2 * self::LE;
         $h = $w * $hPx / $wPx;
-        $toiDa = self::CAO - 2 * self::LE - 20;
+        $toiDa = $this->h - 2 * self::LE - 20;
         if ($h > $toiDa) { $w *= $toiDa / $h; $h = $toiDa; }
         $this->canCho($h + 6);
         $this->y -= $h;
         $this->nd .= sprintf("q %.2F 0 0 %.2F %.2F %.2F cm /%s Do Q\n", $w, $h, self::LE, $this->y, $ten);
+        $this->y -= 8;
+    }
+
+    // Nhiều ảnh JPEG đặt NGANG CẠNH NHAU trên một hàng, cùng chiều cao (giữ tỷ lệ từng ảnh), tổng vừa khít bề ngang trang;
+    // chiều cao không vượt $caoToiDa. Dùng cho trang tóm tắt khổ ngang (biểu đồ cột/đường + biểu đồ tròn).
+    public function anhHang(array $dsJpeg, float $caoToiDa = 230, float $khe = 14): void
+    {
+        $cac = [];
+        foreach ($dsJpeg as $j) {
+            $a = $this->nhungAnh((string) $j);
+            if ($a) { $cac[] = $a; }
+        }
+        if (!$cac) { return; }
+        $tiLe = 0.0;
+        foreach ($cac as $a) { $tiLe += $a[1] / $a[2]; }
+        $kho = $this->w - 2 * self::LE - $khe * (count($cac) - 1);
+        $h = min($caoToiDa, $kho / $tiLe);
+        $this->canCho($h + 6);
+        $this->y -= $h;
+        $x = self::LE;
+        foreach ($cac as $a) {
+            $w = $h * $a[1] / $a[2];
+            $this->nd .= sprintf("q %.2F 0 0 %.2F %.2F %.2F cm /%s Do Q\n", $w, $h, $x, $this->y, $a[0]);
+            $x += $w + $khe;
+        }
+        $this->y -= 8;
+    }
+
+    // Hàng ô số liệu chính. $cac: [[nhãn, giá trị, so với kỳ trước], ...] chia đều bề ngang trang
+    public function oSoLieu(array $cac, float $khe = 10): void
+    {
+        $n = count($cac);
+        if ($n === 0) { return; }
+        $cao = 54.0;
+        $rong = ($this->w - 2 * self::LE - $khe * ($n - 1)) / $n;
+        $this->canCho($cao + 6);
+        $top = $this->y;
+        foreach (array_values($cac) as $i => $c) {
+            $x = self::LE + $i * ($rong + $khe);
+            $this->hinhChuNhat($x, $top - $cao, $rong, $cao, '#f3f6fd');
+            $this->ghiChu($x + 10, $top - 15, (string) $c[0], 8.5, false, '#5b6b8c');
+            $this->ghiChu($x + 10, $top - 36, (string) $c[1], 17, true, '#14213d');
+            if (($c[2] ?? '') !== '') {
+                $this->ghiChu($x + 10, $top - 49, 'So với kỳ trước: ' . $c[2], 8, false, '#5b6b8c');
+            }
+        }
+        $this->y = $top - $cao - 8;
+    }
+
+    // Chú thích biểu đồ tròn: mỗi mục một chấm màu + "tên: số trận (tỷ lệ)", xếp liên tiếp trên hàng, hết chỗ thì xuống dòng.
+    // $ds: [['ten' => ..., 'so' => ..., 'phantram' => ..., 'mau' => '#rrggbb'], ...]
+    public function chuThich(array $ds): void
+    {
+        $co = 8.5; $cao = $co * 1.6; $khe = 16.0;
+        $toiDa = $this->w - 2 * self::LE;
+        $this->canCho($cao + 4);
+        $this->y -= $cao;
+        $x = 0.0;
+        foreach ($ds as $m) {
+            $chu = self::chuan($m['ten'] . ': ' . $m['so'] . ' trận (' . $m['phantram'] . '%)');
+            $rong = 12 + $this->doRong($chu, $co, false);
+            if ($x > 0 && $x + $rong > $toiDa) {
+                $x = 0.0;
+                $this->canCho($cao + 2);
+                $this->y -= $cao;
+            }
+            $this->hinhChuNhat(self::LE + $x, $this->y + 0.5, 7, 7, $m['mau']);
+            $this->ghiChu(self::LE + $x + 12, $this->y, $chu, $co, false, '#24324f');
+            $x += $rong + $khe;
+        }
         $this->y -= 8;
     }
 
@@ -274,7 +366,7 @@ class PdfWriter
         $soCot = count($tieuDe);
         $tyLe = $tyLe ?: array_fill(0, $soCot, 1);
         $tong = array_sum($tyLe);
-        $kho  = self::RONG - 2 * self::LE;
+        $kho  = $this->w - 2 * self::LE;
         $rong = array_map(static fn ($t) => $kho * $t / $tong, $tyLe);
         $co = 9.0; $dem = 4.0; $caoDong = $co * 1.3;
 
@@ -340,15 +432,15 @@ class PdfWriter
     public function noiDung(): string
     {
         $this->trangMoi();
-        if (!$this->trang) { $this->trang[] = ''; }
+        if (!$this->trang) { $this->trang[] = ['nd' => '', 'w' => self::RONG, 'h' => self::CAO]; }
         $tong = count($this->trang);
 
-        // Số trang ở chân mỗi trang
-        foreach ($this->trang as $i => $nd) {
-            $this->nd = $nd;
+        // Số trang ở chân mỗi trang (căn giữa theo bề ngang của chính trang đó)
+        foreach ($this->trang as $i => $p) {
+            $this->nd = $p['nd'];
             $s = 'Trang ' . ($i + 1) . '/' . $tong;
-            $this->ghiChu((self::RONG - $this->doRong($s, 8, false)) / 2, self::LE - 14, $s, 8, false, '#7a88a8');
-            $this->trang[$i] = $this->nd;
+            $this->ghiChu(($p['w'] - $this->doRong($s, 8, false)) / 2, self::LE - 14, $s, 8, false, '#7a88a8');
+            $this->trang[$i]['nd'] = $this->nd;
         }
         $this->nd = '';
 
@@ -359,9 +451,9 @@ class PdfWriter
         $this->doi[$this->resId] = '<< /Font << /F1 ' . $f1 . ' 0 R /F2 ' . $f2 . ' 0 R >> /XObject << ' . $xo . '>> /ProcSet [/PDF /Text /ImageC] >>';
 
         $kids = '';
-        foreach ($this->trang as $nd) {
-            $c = $this->luong('', $nd);
-            $p = $this->them(sprintf('<< /Type /Page /Parent 2 0 R /MediaBox [0 0 %.2F %.2F] /Resources %d 0 R /Contents %d 0 R >>', self::RONG, self::CAO, $this->resId, $c));
+        foreach ($this->trang as $tr) {
+            $c = $this->luong('', $tr['nd']);
+            $p = $this->them(sprintf('<< /Type /Page /Parent 2 0 R /MediaBox [0 0 %.2F %.2F] /Resources %d 0 R /Contents %d 0 R >>', $tr['w'], $tr['h'], $this->resId, $c));
             $kids .= $p . ' 0 R ';
         }
         $this->doi[1] = '<< /Type /Catalog /Pages 2 0 R >>';

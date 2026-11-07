@@ -105,12 +105,15 @@ class XlsxWriter
         exit;
     }
 
-    // Xuất nhiều sheet trong một file, mỗi sheet có thể kèm một ảnh (biểu đồ) đặt dưới dữ liệu.
-    // $sheets: [['ten' => 'Tổng quan',
-    //            'dong' => [['kieu' => 2, 'o' => ['Tiêu đề']], ['kieu' => 1, 'o' => ['Cột A', 'Cột B']], ['kieu' => 0, 'o' => ['x', 1]]],
-    //            'anh'  => ['jpeg' => '<nhị phân JPEG>', 'rong' => 720, 'cao' => 320]   // không bắt buộc
+    // Xuất nhiều sheet trong một file. Ảnh (biểu đồ) đặt được ở BẤT KỲ chỗ nào giữa các dòng, nhiều ảnh cạnh nhau trên một hàng.
+    // $sheets: [['ten' => 'Ngày - 7 ngày',
+    //            'rongToiThieu' => 16,   // không bắt buộc: độ rộng cột tối thiểu (ký tự), mặc định 10
+    //            'dong' => [['kieu' => 2, 'o' => ['Tiêu đề']], ['kieu' => 6, 'o' => ['Cột A', 'Cột B']], ['kieu' => 0, 'o' => ['x', 1]],
+    //                       ['anh' => [['jpeg' => '<nhị phân JPEG>', 'rong' => 635, 'cao' => 240, 'x' => 0],     // dòng chứa ảnh: chừa chỗ
+    //                                  ['jpeg' => '...', 'rong' => 240, 'cao' => 240, 'x' => 651]]]]           // x = pixel tính từ mép trái
     //          ], ...]
-    // kieu: 0 = thường, 1 = chữ đậm, 2 = tiêu đề lớn. Ảnh JPEG giữ nguyên màu như trên màn hình.
+    // kieu: 0 = thường, 1 = chữ đậm, 2 = tiêu đề lớn, 3 = nhãn ô số liệu, 4 = giá trị ô số liệu, 5 = ghi chú ô số liệu,
+    //       6 = dòng tiêu đề bảng (chữ trắng đậm trên nền xanh). Ảnh JPEG giữ nguyên màu như trên màn hình.
     public static function taiNhieuSheet(string $tenFile, array $sheets): never
     {
         if (!class_exists('ZipArchive')) {
@@ -149,12 +152,13 @@ class XlsxWriter
             $relWb     .= '<Relationship Id="rId' . $n . '" Type="' . $rel . '/worksheet" Target="worksheets/sheet' . $n . '.xml"/>';
             $ct        .= '<Override PartName="/xl/worksheets/sheet' . $n . '.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>';
 
-            // Độ rộng cột: theo nội dung dài nhất (10 đến 50), ô tiêu đề lớn (kieu 2) không tính
-            $rong = [10];
+            // Độ rộng cột: theo nội dung dài nhất (tối thiểu 10 hoặc 'rongToiThieu', tối đa 50), ô tiêu đề lớn (kieu 2) không tính
+            $toiThieu = (int) ($sh['rongToiThieu'] ?? 10);
+            $rong = [$toiThieu];
             foreach ($sh['dong'] as $d) {
-                if (($d['kieu'] ?? 0) === 2) { continue; }
+                if (isset($d['anh']) || ($d['kieu'] ?? 0) === 2) { continue; }
                 foreach (array_values($d['o']) as $c => $gt) {
-                    $rong[$c] = max($rong[$c] ?? 10, min(50, mb_strlen((string) $gt, 'UTF-8') + 2));
+                    $rong[$c] = max($rong[$c] ?? $toiThieu, min(50, mb_strlen((string) $gt, 'UTF-8') + 2));
                 }
             }
             $cols = '';
@@ -163,34 +167,64 @@ class XlsxWriter
             }
             $xml = $khai . '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="' . $rel . '">'
                  . '<cols>' . $cols . '</cols><sheetData>';
-            $hang = 0;
+            $hang = 0;          // số dòng đã dùng (kể cả dòng chừa chỗ cho ảnh)
+            $anhSheet = [];     // ảnh của sheet: [dòng bắt đầu (từ 0), ảnh]
             foreach ($sh['dong'] as $d) {
+                if (isset($d['anh'])) {
+                    // Dòng chứa ảnh: ghi nhớ vị trí, chừa đủ dòng trống (mỗi dòng ~20 px) cộng một dòng đệm
+                    $cao = 0;
+                    foreach ($d['anh'] as $a) {
+                        $anhSheet[] = [$hang, $a];
+                        $cao = max($cao, (int) $a['cao']);
+                    }
+                    $hang += (int) ceil($cao / 20) + 1;
+                    continue;
+                }
                 $hang++;
                 $xml .= self::dong($hang, $d['o'], (int) ($d['kieu'] ?? 0));
             }
             $xml .= '</sheetData>';
 
-            if (!empty($sh['anh']['jpeg'])) {
-                $soAnh++;
+            if ($anhSheet) {
+                // Vị trí cột (pixel) để đặt ảnh theo toạ độ x: cột rộng w ký tự ~ w*7+5 pixel, cột chưa khai báo ~ 64 px
+                $batDauCot = [0];
+                foreach ($rong as $c => $w) { $batDauCot[$c + 1] = $batDauCot[$c] + (int) round($w * 7 + 5); }
+                $nCot = count($rong);
+
                 $xml .= '<drawing r:id="rId1"/>';
-                $zip->addFromString('xl/media/anh' . $soAnh . '.jpeg', $sh['anh']['jpeg']);
                 $zip->addFromString('xl/worksheets/_rels/sheet' . $n . '.xml.rels',
                     $khai . '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
                     . '<Relationship Id="rId1" Type="' . $rel . '/drawing" Target="../drawings/drawing' . $n . '.xml"/></Relationships>');
+                $dr = '';       // nội dung drawing
+                $drRel = '';    // quan hệ drawing -> ảnh
+                foreach ($anhSheet as $k => [$dongBD, $a]) {
+                    $soAnh++;
+                    $zip->addFromString('xl/media/anh' . $soAnh . '.jpeg', $a['jpeg']);
+                    $rid = 'rId' . ($k + 1);
+                    $drRel .= '<Relationship Id="' . $rid . '" Type="' . $rel . '/image" Target="../media/anh' . $soAnh . '.jpeg"/>';
+                    $x = (int) ($a['x'] ?? 0);
+                    if ($x < $batDauCot[$nCot]) {
+                        $c = $nCot - 1;
+                        while ($c > 0 && $batDauCot[$c] > $x) { $c--; }
+                    } else {
+                        $c = $nCot + intdiv($x - $batDauCot[$nCot], 64);
+                        $batDauCot[$c] = $batDauCot[$nCot] + ($c - $nCot) * 64;
+                    }
+                    $lech = ($x - $batDauCot[$c]) * 9525;
+                    $cx = (int) $a['rong'] * 9525;   // pixel -> EMU
+                    $cy = (int) $a['cao'] * 9525;
+                    $dr .= '<xdr:oneCellAnchor><xdr:from><xdr:col>' . $c . '</xdr:col><xdr:colOff>' . $lech . '</xdr:colOff><xdr:row>' . $dongBD . '</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:from>'
+                        . '<xdr:ext cx="' . $cx . '" cy="' . $cy . '"/>'
+                        . '<xdr:pic><xdr:nvPicPr><xdr:cNvPr id="' . ($k + 2) . '" name="Bieu do ' . $soAnh . '"/><xdr:cNvPicPr><a:picLocks noChangeAspect="1"/></xdr:cNvPicPr></xdr:nvPicPr>'
+                        . '<xdr:blipFill><a:blip r:embed="' . $rid . '"/><a:stretch><a:fillRect/></a:stretch></xdr:blipFill>'
+                        . '<xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="' . $cx . '" cy="' . $cy . '"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></xdr:spPr>'
+                        . '</xdr:pic><xdr:clientData/></xdr:oneCellAnchor>';
+                }
                 $zip->addFromString('xl/drawings/_rels/drawing' . $n . '.xml.rels',
-                    $khai . '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
-                    . '<Relationship Id="rId1" Type="' . $rel . '/image" Target="../media/anh' . $soAnh . '.jpeg"/></Relationships>');
-                $cx = (int) $sh['anh']['rong'] * 9525;   // pixel -> EMU
-                $cy = (int) $sh['anh']['cao'] * 9525;
+                    $khai . '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' . $drRel . '</Relationships>');
                 $zip->addFromString('xl/drawings/drawing' . $n . '.xml',
                     $khai . '<xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing" '
-                    . 'xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="' . $rel . '">'
-                    . '<xdr:oneCellAnchor><xdr:from><xdr:col>0</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>' . ($hang + 1) . '</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:from>'
-                    . '<xdr:ext cx="' . $cx . '" cy="' . $cy . '"/>'
-                    . '<xdr:pic><xdr:nvPicPr><xdr:cNvPr id="2" name="Bieu do ' . $n . '"/><xdr:cNvPicPr><a:picLocks noChangeAspect="1"/></xdr:cNvPicPr></xdr:nvPicPr>'
-                    . '<xdr:blipFill><a:blip r:embed="rId1"/><a:stretch><a:fillRect/></a:stretch></xdr:blipFill>'
-                    . '<xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="' . $cx . '" cy="' . $cy . '"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></xdr:spPr>'
-                    . '</xdr:pic><xdr:clientData/></xdr:oneCellAnchor></xdr:wsDr>');
+                    . 'xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="' . $rel . '">' . $dr . '</xdr:wsDr>');
                 $ct .= '<Override PartName="/xl/drawings/drawing' . $n . '.xml" ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/>';
             }
             $zip->addFromString('xl/worksheets/sheet' . $n . '.xml', $xml . '</worksheet>');
@@ -204,15 +238,29 @@ class XlsxWriter
         $zip->addFromString('xl/workbook.xml', $khai . '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="' . $rel . '">'
             . '<sheets>' . $bangSheet . '</sheets></workbook>');
         $zip->addFromString('xl/_rels/workbook.xml.rels', $khai . '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' . $relWb . '</Relationships>');
-        // Ba kiểu ô: 0 = thường, 1 = chữ đậm, 2 = tiêu đề lớn
+        // Bảy kiểu ô: 0 thường, 1 chữ đậm, 2 tiêu đề lớn, 3 nhãn ô số liệu, 4 giá trị ô số liệu, 5 ghi chú ô số liệu, 6 tiêu đề bảng
         $zip->addFromString('xl/styles.xml', $khai . '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
-            . '<fonts count="3"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="14"/><name val="Calibri"/></font></fonts>'
-            . '<fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills>'
+            . '<fonts count="7">'
+            . '<font><sz val="11"/><name val="Calibri"/></font>'
+            . '<font><b/><sz val="11"/><name val="Calibri"/></font>'
+            . '<font><b/><sz val="14"/><name val="Calibri"/></font>'
+            . '<font><sz val="10"/><color rgb="FF5B6B8C"/><name val="Calibri"/></font>'
+            . '<font><b/><sz val="16"/><color rgb="FF14213D"/><name val="Calibri"/></font>'
+            . '<font><sz val="9"/><color rgb="FF5B6B8C"/><name val="Calibri"/></font>'
+            . '<font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font>'
+            . '</fonts>'
+            . '<fills count="4"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill>'
+            . '<fill><patternFill patternType="solid"><fgColor rgb="FFF3F6FD"/><bgColor indexed="64"/></patternFill></fill>'
+            . '<fill><patternFill patternType="solid"><fgColor rgb="FF2F6BFF"/><bgColor indexed="64"/></patternFill></fill></fills>'
             . '<borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders>'
             . '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>'
-            . '<cellXfs count="3"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>'
+            . '<cellXfs count="7"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>'
             . '<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/>'
-            . '<xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1"/></cellXfs>'
+            . '<xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1"/>'
+            . '<xf numFmtId="0" fontId="3" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment horizontal="center"/></xf>'
+            . '<xf numFmtId="0" fontId="4" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment horizontal="center"/></xf>'
+            . '<xf numFmtId="0" fontId="5" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment horizontal="center"/></xf>'
+            . '<xf numFmtId="0" fontId="6" fillId="3" borderId="0" xfId="0" applyFont="1" applyFill="1"/></cellXfs>'
             . '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>');
         $zip->close();
 

@@ -498,20 +498,30 @@ require __DIR__ . '/layout/header.php';
     <div class="xuat-luoi">
       <div class="xuat-chonCot">
         <fieldset>
-          <legend>Xuất trang nào? (chọn 1 hoặc cả 2)</legend>
-          <label class="xuat-chon"><input type="checkbox" name="trang[]" value="tongquan" checked> Thống kê tổng quan</label>
-          <label class="xuat-chon"><input type="checkbox" name="trang[]" value="mon"> Thống kê theo môn học</label>
+          <legend>Xuất trang nào?</legend>
+          <label class="xuat-chon"><input type="radio" name="trang" value="tongquan" checked> Thống kê tổng quan</label>
+          <label class="xuat-chon"><input type="radio" name="trang" value="mon"> Thống kê theo môn học</label>
+          <label class="xuat-chon"><input type="radio" name="trang" value="ca"> Cả hai</label>
         </fieldset>
         <fieldset>
           <legend>Mốc thời gian (chọn được nhiều)</legend>
           <?php foreach ([7 => '7 ngày', 30 => '30 ngày', 90 => '90 ngày', 365 => '1 năm'] as $n => $ten): ?>
             <label class="xuat-chon"><input type="checkbox" name="ngay[]" value="<?= $n ?>"<?= $n === $ngay ? ' checked' : '' ?>> <?= e($ten) ?></label>
           <?php endforeach; ?>
+          <button type="button" class="btn btn-phu xuat-tatca" id="xuatChonHet">Chọn tất cả</button>
         </fieldset>
         <fieldset>
           <legend>Định dạng</legend>
-          <label class="xuat-chon"><input type="radio" name="dinhdang" value="excel" checked> Excel (.xlsx) - mỗi trang và mốc một sheet</label>
-          <label class="xuat-chon"><input type="radio" name="dinhdang" value="pdf"> PDF (khổ dọc)</label>
+          <label class="xuat-chon"><input type="radio" name="dinhdang" value="excel" checked> Excel (.xlsx)</label>
+          <label class="xuat-chon"><input type="radio" name="dinhdang" value="pdf"> PDF</label>
+          <label class="xuat-chon"><input type="radio" name="dinhdang" value="ca"> Cả hai (tải liên tiếp 2 file)</label>
+        </fieldset>
+        <fieldset>
+          <legend>Cách chia sheet / trang</legend>
+          <label class="xuat-chon"><input type="radio" name="chia" value="ngay" checked> Theo mốc ngày</label>
+          <label class="xuat-chon"><input type="radio" name="chia" value="loai"> Theo loại biểu đồ</label>
+          <label class="xuat-chon"><input type="radio" name="chia" value="ca"> Cả hai</label>
+          <p class="xuat-ghichu" id="xuatGhiChuChia"></p>
         </fieldset>
       </div>
       <div class="xuat-xemCot">
