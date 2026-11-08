@@ -393,7 +393,7 @@ $where = $dieuKien ? 'WHERE ' . implode(' AND ', $dieuKien) : '';
 
 $st = $pdo->prepare("SELECT COUNT(*) FROM CAUHOI c $joinTL $where");
 $st->execute($tham);
-$p = new Paginator((int) $st->fetchColumn(), 5);
+$p = new Paginator((int) $st->fetchColumn(), 20);
 
 // Số câu chưa dùng trong trận của môn đang lọc (cho nút "Xóa câu chưa dùng của môn này")
 $soXoaDuocMon = 0;
@@ -502,7 +502,7 @@ foreach ($dsMon as $m) {
 
 $tieuDe   = 'Ngân hàng câu hỏi';
 $mucChon  = 'cauhoi';
-$cssTrang = 'cauhoi';
+$cssTrang = ['cauhoi', 'thongke_xuat'];   // thongke_xuat: dùng chung giao diện hộp thoại Xuất của trang Tổng quan
 $jsTrang  = 'cauhoi';
 require __DIR__ . '/layout/header.php';
 ?>
@@ -517,6 +517,7 @@ require __DIR__ . '/layout/header.php';
       <p>Quản lý câu hỏi, độ khó và sức khỏe của ngân hàng để trước khi ghép trận</p>
     </div>
     <div class="ch-dau-nut">
+      <button type="button" class="ch-nut ch-nut-vien" id="cxMo" aria-haspopup="dialog">Xuất</button>
       <a class="ch-nut ch-nut-vien" href="<?= e(BASE_URL) ?>/admin/cauhoi_nhap.php">Nhập từ Word/Excel</a>
       <a class="ch-nut ch-nut-chinh" href="<?= e(BASE_URL) ?>/admin/cauhoi_form.php?<?= e(($mon > 0 ? 'mon=' . $mon . '&' : '') . 've=' . $veQuery) ?>">+ Thêm câu hỏi</a>
     </div>
@@ -843,5 +844,51 @@ require __DIR__ . '/layout/header.php';
     </div>
   </div>
 </aside>
+<!-- Hộp thoại Xuất ngân hàng câu hỏi (Excel / PDF): cùng giao diện với hộp thoại Xuất của trang Tổng quan, xử lý ở cauhoi_xuat.php -->
+<div class="modal-nen" id="cxHop" hidden>
+  <form class="modal xuat-hop" id="cxForm" method="post" action="<?= e(BASE_URL) ?>/admin/cauhoi_xuat.php" role="dialog" aria-modal="true" aria-labelledby="cxTieuDe">
+    <h3 id="cxTieuDe">Xuất ngân hàng câu hỏi</h3>
+    <?= csrf_field() ?>
+    <input type="hidden" name="q" value="<?= e($q) ?>">
+    <input type="hidden" name="mon" value="<?= $mon > 0 ? (int) $mon : 0 ?>">
+    <input type="hidden" name="kt" value="<?= e($kt) ?>">
+    <input type="hidden" name="dk" value="<?= e($dk) ?>">
+    <input type="hidden" name="tt" value="<?= e($tt) ?>">
+    <input type="hidden" name="loc" value="<?= e($loc) ?>">
+    <div class="xuat-luoi">
+      <div class="xuat-chonCot">
+        <fieldset>
+          <legend>Xuất phạm vi nào?</legend>
+          <label class="xuat-chon"><input type="radio" name="pham_vi" value="loc" data-so="<?= (int) $p->tong() ?>" checked> Đang lọc <span class="xuat-phu">(<?= $so($p->tong()) ?> câu, mọi trang)</span></label>
+          <label class="xuat-chon"><input type="radio" name="pham_vi" value="chon" id="cxChon" disabled> Các câu đã chọn <span class="xuat-phu" id="cxSoChon">(chưa tích câu nào)</span></label>
+          <label class="xuat-chon"><input type="radio" name="pham_vi" value="lech" data-so="<?= (int) $tongLech ?>"> Chỉ câu lệch độ khó <span class="xuat-phu">(<?= $so($tongLech) ?> câu)</span></label>
+          <label class="xuat-chon"><input type="radio" name="pham_vi" value="tatca" data-so="<?= (int) $tongCau ?>"> Toàn bộ ngân hàng <span class="xuat-phu">(<?= $so($tongCau) ?> câu)</span></label>
+        </fieldset>
+        <fieldset>
+          <legend>Nội dung (chọn được nhiều)</legend>
+          <label class="xuat-chon"><input type="checkbox" name="noidung[]" value="danhsach" checked> Danh sách câu hỏi</label>
+          <label class="xuat-chon"><input type="checkbox" name="noidung[]" value="hieuchinh" id="cxHieuChinh"> Báo cáo hiệu chỉnh độ khó</label>
+          <label class="xuat-chon"><input type="checkbox" name="noidung[]" value="bando" id="cxBando"> Bản đồ phủ câu hỏi</label>
+          <p class="xuat-ghichu">Bản đồ phủ không phụ thuộc phạm vi: luôn là các môn đang mở (chỉ riêng môn đó nếu bạn đang lọc một môn).</p>
+        </fieldset>
+        <fieldset>
+          <legend>Định dạng</legend>
+          <label class="xuat-chon"><input type="radio" name="dinhdang" value="excel" checked> Excel (.xlsx)</label>
+          <label class="xuat-chon"><input type="radio" name="dinhdang" value="pdf"> PDF</label>
+          <label class="xuat-chon"><input type="radio" name="dinhdang" value="ca"> Cả hai (tải liên tiếp 2 file)</label>
+        </fieldset>
+      </div>
+      <div class="xuat-xemCot">
+        <div class="xuat-xemDau">Xem trước <small id="cxXemGhiChu"></small></div>
+        <div class="xuat-xem" id="cxXem"><p class="xuat-ghichu">Đang tải...</p></div>
+      </div>
+    </div>
+    <p class="xuat-loi" id="cxLoi" hidden></p>
+    <div class="hanh-dong">
+      <button type="button" class="btn btn-phu" id="cxHuy">Hủy</button>
+      <button type="submit" class="btn" id="cxXuat">Xuất</button>
+    </div>
+  </form>
+</div>
 <script src="<?= e(BASE_URL) ?>/assets/vendor/chart.umd.js"></script>
 <?php require __DIR__ . '/layout/footer.php'; ?>

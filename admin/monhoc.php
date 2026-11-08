@@ -221,6 +221,21 @@ if ($q !== '') {
     $like   = '%' . addcslashes($q, '\\%_') . '%';
     array_push($tham, $like, $like);
 }
+// Lọc theo tình trạng (bấm ở khung Toàn cảnh): ok | thieu | chua | an
+$tt       = (string) ($_GET['tt'] ?? '');
+$sqlThieu = "EXISTS (SELECT 1 FROM LOAIKYTHI k WHERE NOT EXISTS (SELECT 1 FROM CAUHOI c2 WHERE c2.MaMon = m.MaMon AND c2.MaLoaiKT = k.MaLoaiKT))";
+$sqlCoCau = "EXISTS (SELECT 1 FROM CAUHOI c3 WHERE c3.MaMon = m.MaMon)";
+$locTT = [
+    'an'    => "m.TrangThai = 'Đã ẩn'",
+    'chua'  => "m.TrangThai = 'Đang mở' AND NOT $sqlCoCau",
+    'thieu' => "m.TrangThai = 'Đang mở' AND $sqlCoCau AND $sqlThieu",
+    'ok'    => "m.TrangThai = 'Đang mở' AND $sqlCoCau AND NOT $sqlThieu",
+];
+if (!isset($locTT[$tt])) {
+    $tt = '';
+} else {
+    $dk[] = $locTT[$tt];
+}
 $where = 'WHERE ' . implode(' AND ', $dk);
 
 $st = $pdo->prepare("SELECT COUNT(*) FROM MONHOC m $where");
@@ -238,13 +253,75 @@ $st = $pdo->prepare(
 $st->execute($tham);
 $dsMon = $st->fetchAll();
 
-// ---- Hàng thẻ nổi bật: 5 môn đang mở có nhiều câu hỏi nhất ----
-$noiBat = $pdo->query(
-    "SELECT m.MaMon, m.TenMon,
-            (SELECT COUNT(*) FROM CAUHOI c WHERE c.MaMon = m.MaMon) AS so_cau
-     FROM MONHOC m WHERE m.TrangThai = 'Đang mở'
-     ORDER BY so_cau DESC, m.MaMon LIMIT 5"
+// ---- Bản đồ môn x loại kỳ thi: cột = mọi loại kỳ thi, ô = số câu hỏi của các môn đang hiển thị ----
+$cotKT = $pdo->query('SELECT MaLoaiKT, TenLoaiKT FROM LOAIKYTHI ORDER BY MaLoaiKT')->fetchAll();
+$soO   = [];   // $soO[MaMon]['chung' | MaLoaiKT] = số câu hỏi (MaLoaiKT NULL = dùng chung cho cả hai kỳ, A-19)
+if ($dsMon) {
+    $in = implode(',', array_map(static fn ($r) => (int) $r['MaMon'], $dsMon));   // chỉ số nguyên
+    foreach ($pdo->query("SELECT MaMon, MaLoaiKT, COUNT(*) AS n FROM CAUHOI WHERE MaMon IN ($in) GROUP BY MaMon, MaLoaiKT") as $r) {
+        $soO[(int) $r['MaMon']][$r['MaLoaiKT'] === null ? 'chung' : (int) $r['MaLoaiKT']] = (int) $r['n'];
+    }
+}
+// ---- Toàn cảnh: mỗi ô vuông là một môn (quá nhiều môn thì mỗi ô là một nhóm môn) ----
+$tenTT = ['ok' => 'Sẵn sàng', 'thieu' => 'Thiếu câu hỏi', 'chua' => 'Chưa có câu hỏi', 'an' => 'Đã ẩn'];
+$tatCa = $pdo->query(
+    "SELECT m.MaMon, m.TenMon, m.TrangThai,
+            (SELECT COUNT(*) FROM CAUHOI c WHERE c.MaMon = m.MaMon) AS so_cau,
+            (SELECT COUNT(*) FROM LOAIKYTHI k WHERE NOT EXISTS
+                (SELECT 1 FROM CAUHOI c2 WHERE c2.MaMon = m.MaMon AND c2.MaLoaiKT = k.MaLoaiKT)) AS so_thieu
+     FROM MONHOC m WHERE m.TrangThai IN ('Đang mở','Đã ẩn') ORDER BY m.MaMon"
 )->fetchAll();
+$dem = ['ok' => 0, 'thieu' => 0, 'chua' => 0, 'an' => 0];
+foreach ($tatCa as $i => $r) {
+    // Đã ẩn > chưa có câu > thiếu câu (chưa có câu cho ít nhất một loại kỳ thi) > sẵn sàng
+    $s = $r['TrangThai'] === 'Đã ẩn' ? 'an'
+        : ((int) $r['so_cau'] === 0 ? 'chua' : ((int) $r['so_thieu'] > 0 ? 'thieu' : 'ok'));
+    $tatCa[$i]['tt'] = $s;
+    $dem[$s]++;
+}
+$tongMon = count($tatCa);
+$moiO    = $tongMon > 400 ? (int) ceil($tongMon / 400) : 1;             // trên 400 môn: gộp nhóm
+$coO     = $tongMon <= 24 ? 'to' : ($tongMon <= 150 ? 'vua' : 'nho');   // cỡ ô theo số môn
+$trongTrang = array_flip(array_map(static fn ($r) => (int) $r['MaMon'], $dsMon));   // các môn đang xem ở bảng
+$doNang  = ['an' => 0, 'ok' => 1, 'thieu' => 2, 'chua' => 3];           // nhóm lấy tình trạng nặng nhất
+$dsO     = [];
+foreach (array_chunk($tatCa, $moiO) as $nhom) {
+    $s = 'an'; $moSang = false; $dangXem = false;
+    foreach ($nhom as $r) {
+        if ($doNang[$r['tt']] > $doNang[$s]) { $s = $r['tt']; }
+        $khop = ($q === '' || mb_stripos($r['TenMon'], $q) !== false) && ($tt === '' || $r['tt'] === $tt);
+        $moSang = $moSang || $khop;
+        $dangXem = $dangXem || isset($trongTrang[(int) $r['MaMon']]);
+    }
+    $dau = $nhom[0];
+    $dsO[] = [
+        'tt' => $s, 'mo' => !$moSang, 'xem' => $dangXem, 'mon' => (int) $dau['MaMon'],
+        'ten' => $moiO === 1 ? $dau['TenMon'] : ($dau['TenMon'] . ' … ' . end($nhom)['TenMon'] . ' (' . count($nhom) . ' môn)'),
+    ];
+}
+$urlTT = static fn (string $k): string =>
+    '?' . http_build_query(array_diff_key($_GET, ['pmon' => 1, 'tt' => 1]) + ($k !== '' && $k !== $tt ? ['tt' => $k] : [])) . '#ds-mon';
+
+// Môn đang mở được chơi nhiều nhưng còn thiếu câu hỏi (theo số trận đấu)
+$canBoSung = $pdo->query(
+    "SELECT m.MaMon, m.TenMon,
+            (SELECT COUNT(*) FROM TRANDAU t WHERE t.MaMon = m.MaMon) AS so_tran,
+            (SELECT COUNT(*) FROM LOAIKYTHI k WHERE NOT EXISTS
+                (SELECT 1 FROM CAUHOI c2 WHERE c2.MaMon = m.MaMon AND c2.MaLoaiKT = k.MaLoaiKT)) AS so_thieu,
+            (SELECT k.TenLoaiKT FROM LOAIKYTHI k WHERE NOT EXISTS
+                (SELECT 1 FROM CAUHOI c3 WHERE c3.MaMon = m.MaMon AND c3.MaLoaiKT = k.MaLoaiKT)
+             ORDER BY k.MaLoaiKT LIMIT 1) AS kt_thieu
+     FROM MONHOC m
+     WHERE m.TrangThai = 'Đang mở'
+       AND EXISTS (SELECT 1 FROM LOAIKYTHI k WHERE NOT EXISTS
+                (SELECT 1 FROM CAUHOI c4 WHERE c4.MaMon = m.MaMon AND c4.MaLoaiKT = k.MaLoaiKT))
+     ORDER BY so_tran DESC, m.MaMon LIMIT 4"
+)->fetchAll();
+$tranMax = 0;
+foreach ($canBoSung as $r) { $tranMax = max($tranMax, (int) $r['so_tran']); }
+
+$tuDong    = $dsMon ? $p->offset() + 1 : 0;
+$denDong   = $p->offset() + count($dsMon);
 
 // Biểu tượng SVG (kiểu Lucide) dùng trong trang này
 $bieuTuongMon = [
@@ -295,9 +372,6 @@ $dsKT = $st->fetchAll();
 $urlXoaTim = static fn (string $tuKhoa, string $trang, string $neo): string =>
     '?' . http_build_query(array_diff_key($_GET, [$tuKhoa => 1, $trang => 1])) . $neo;
 
-// Tab đang mở: Loại kỳ thi khi có ?tab=kt hoặc đang chuyển trang danh sách loại kỳ thi (?pkt=...)
-$tabKt = (($_GET['tab'] ?? '') === 'kt') || isset($_GET['pkt']);
-
 // Thanh phân trang kiểu ảnh thiết kế: ‹ 1 2 3 … ›  (giữ nguyên các tham số GET khác)
 $mhPhanTrang = static function (Paginator $pg, string $thamSo, string $neo): string {
     if ($pg->soTrang() <= 1) {
@@ -335,55 +409,164 @@ require __DIR__ . '/layout/header.php';
 <section class="mh-hero">
   <img class="mh-hero-hinh" src="<?= e(BASE_URL) ?>/assets/img/hero-sach.svg" alt="" width="150" height="100">
   <div class="mh-hero-chu">
-    <h2>Môn học, loại kỳ thi</h2>
-    <p>Quản lý các môn học và loại kỳ thi trên hệ thống</p>
+    <h2>Môn học × Loại kỳ thi</h2>
+    <p>Nhìn toàn cảnh mọi môn trong một khung, rồi xem chi tiết từng môn ở bảng bên dưới.</p>
   </div>
-  <button type="button" class="btn mh-nut-them" id="nutThemMon" data-them-mon>
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-    Thêm môn học
-  </button>
+  <button type="button" class="btn btn-phu mh-nut-them" id="nutThemKt"><?= $svgMon('cong', 18) ?>Thêm loại kỳ thi</button>
+  <button type="button" class="btn mh-nut-them" id="nutThemMon" data-them-mon><?= $svgMon('cong', 18) ?>Thêm môn học</button>
 </section>
 
 <?php if ($flash): ?>
   <div class="<?= $flash[0] === 'ok' ? 'thanhcong' : 'loi' ?>"><?= e($flash[1]) ?></div>
 <?php endif; ?>
 
-<div class="mh-tab" role="tablist">
-  <button type="button" class="mh-tab-nut<?= $tabKt ? '' : ' dang-chon' ?>" data-tab="mon" role="tab" aria-selected="<?= $tabKt ? 'false' : 'true' ?>"><?= $svgMon('book', 18) ?>Môn học</button>
-  <button type="button" class="mh-tab-nut<?= $tabKt ? ' dang-chon' : '' ?>" data-tab="kt" role="tab" aria-selected="<?= $tabKt ? 'true' : 'false' ?>"><?= $svgMon('cup', 18) ?>Loại kỳ thi</button>
-</div>
+<!-- ===== Toàn cảnh: mỗi ô vuông là một môn ===== -->
+<section class="card mh-tc" id="toan-canh">
+  <div class="mh-tc-cot">
+    <h3>Toàn cảnh <?= $tongMon ?> môn</h3>
+    <?php if ($tongMon === 0): ?>
+      <p class="nhan-phu">Chưa có môn học nào. Bấm &ldquo;Thêm môn học&rdquo; để bắt đầu.</p>
+    <?php else: ?>
+      <p class="nhan-phu">Mỗi ô vuông là một môn<?= $moiO > 1 ? ' (mỗi ô gộp ' . $moiO . ' môn, tô theo tình trạng nặng nhất)' : '' ?>. Viền đậm là các môn đang xem ở bảng bên dưới.</p>
+      <div class="mh-tuong" data-co="<?= $coO ?>" role="group" aria-label="Toàn cảnh các môn học">
+        <?php foreach ($dsO as $o): ?>
+          <a class="mh-ov mh-ov-<?= $o['tt'] ?><?= $o['mo'] ? ' mh-ov-mo' : '' ?><?= $o['xem'] ? ' mh-ov-xem' : '' ?>"
+             href="<?= e($moiO === 1 ? '?' . http_build_query(['q' => $o['ten']]) . '#ds-mon' : '?' . http_build_query(['pmon' => (int) floor(array_search($o['mon'], array_column($tatCa, 'MaMon')) / 6) + 1]) . '#ds-mon') ?>"
+             title="<?= e($o['ten'] . ' – ' . $tenTT[$o['tt']]) ?>"><?= $coO === 'to' ? '<span>' . e($o['ten']) . '</span>' : '' ?></a>
+        <?php endforeach; ?>
+      </div>
+    <?php endif; ?>
+  </div>
+  <div class="mh-tc-cot mh-tc-tt">
+    <h3>Tình trạng</h3>
+    <?php foreach ($tenTT as $k => $ten): ?>
+      <a class="mh-chip-tt<?= $tt === $k ? ' dang-chon' : '' ?>" href="<?= e($urlTT($k)) ?>"><span class="mh-ov mh-ov-<?= $k ?>"></span><span class="mh-chip-tt-ten"><?= e($ten) ?></span><b><?= $dem[$k] ?></b></a>
+    <?php endforeach; ?>
+    <p class="nhan-phu"><?= $tt === '' ? 'Bấm một dòng để bảng bên dưới chỉ hiện nhóm môn đó.' : 'Đang lọc theo &ldquo;' . e($tenTT[$tt]) . '&rdquo;. Bấm lại dòng đó để bỏ lọc.' ?></p>
+    <p class="nhan-phu">Thiếu câu hỏi: môn đang mở chưa có câu hỏi cho ít nhất một loại kỳ thi.</p>
+  </div>
+  <div class="mh-tc-cot mh-tc-bs">
+    <h3>Nên bổ sung trước</h3>
+    <p class="nhan-phu">Môn được chơi nhiều nhưng còn thiếu câu hỏi, xếp theo số trận đấu.</p>
+    <?php if (!$canBoSung): ?>
+      <p class="nhan-phu">Mọi môn đang mở đều đã có câu hỏi cho từng loại kỳ thi.</p>
+    <?php endif; ?>
+    <?php foreach ($canBoSung as $r): $nt = (int) $r['so_tran']; ?>
+      <div class="mh-bs">
+        <div class="mh-bs-dau">
+          <a href="<?= e(BASE_URL . '/admin/cauhoi_form.php?mon=' . (int) $r['MaMon']) ?>"><b><?= e($r['TenMon']) ?></b></a>
+          <span>chưa có câu <?= e((string) $r['kt_thieu']) ?><?= (int) $r['so_thieu'] > 1 ? ' và ' . ((int) $r['so_thieu'] - 1) . ' loại khác' : '' ?></span>
+        </div>
+        <div class="mh-bs-thanh"><span class="mh-bs-nen"><span style="width:<?= $tranMax > 0 ? (int) round($nt * 100 / $tranMax) : 0 ?>%"></span></span><small><?= $nt ?> trận</small></div>
+      </div>
+    <?php endforeach; ?>
+  </div>
+</section>
 
-<?php // Tab "Môn học": hàng thẻ + hai danh sách cạnh nhau (đúng ảnh). Tab "Loại kỳ thi": chỉ danh sách loại kỳ thi. CSS ẩn/hiện theo data-tab. ?>
-<div class="mh-trang" id="mhTrang" data-tab="<?= $tabKt ? 'kt' : 'mon' ?>">
+<div class="mh-bd-khung">
 
-<?php if ($noiBat): ?>
-<div class="mh-noibat mh-chi-mon">
-  <?php foreach ($noiBat as $r): ?>
-    <a class="mh-the mh-c<?= (int) $r['MaMon'] % 5 ?>" href="?<?= e(http_build_query(['q' => $r['TenMon']])) ?>#ds-mon" title="Lọc danh sách theo môn này">
-      <span class="mh-the-icon"><?= $svgMon(mh_bieu_tuong($r['TenMon'])) ?></span>
-      <b><?= e($r['TenMon']) ?></b>
-      <small>(<?= (int) $r['so_cau'] ?> câu hỏi)</small>
-    </a>
-  <?php endforeach; ?>
-  <a class="mh-the mh-them" href="<?= e($sach) ?>#ds-mon">
-    <span class="mh-the-icon"><?= $svgMon('more') ?></span>
-    <b>Xem thêm</b>
-    <small><?= $svgMon('mui', 16) ?></small>
-  </a>
-</div>
-<?php endif; ?>
+  <!-- ===== Bản đồ môn học × loại kỳ thi ===== -->
+  <section class="card mh-ds" id="ds-mon" style="scroll-margin-top:16px">
+    <form method="get" action="<?= e($sach) ?>#ds-mon" class="mh-loc" role="search">
+      <?php if ($qkt !== ''): ?><input type="hidden" name="qkt" value="<?= e($qkt) ?>"><?php endif; ?>
+      <?php if ($tt !== ''): ?><input type="hidden" name="tt" value="<?= e($tt) ?>"><?php endif; ?>
+      <label class="mh-tim"><?= $svgMon('tim', 18) ?><input type="search" name="q" value="<?= e($q) ?>" placeholder="Tìm môn học theo tên hoặc mô tả..." class="o-tim" aria-label="Tìm kiếm môn học" autocomplete="off">
+        <?php if ($q !== ''): ?><a class="mh-xoa-tim" href="<?= e($urlXoaTim('q', 'pmon', '#ds-mon')) ?>" title="Xóa tìm kiếm" aria-label="Xóa tìm kiếm">&times;</a><?php endif; ?>
+      </label>
+      <button type="submit" class="btn mh-nut-tim">Tìm</button>
+      <?php $conTrong = $dem['thieu'] + $dem['chua']; ?>
+      <span class="mh-troi<?= $conTrong === 0 ? ' mh-troi-het' : '' ?>"><?= $conTrong ?> môn còn ô trống</span>
+    </form>
+    <?php if ($q !== ''): ?><p class="mh-ket-qua">Tìm thấy <b><?= $p->tong() ?></b> môn khớp với &ldquo;<?= e($q) ?>&rdquo;</p><?php endif; ?>
 
-<?php if ($tongCho > 0): ?>
-<div class="card mh-ds mh-cho mh-chi-mon" id="de-xuat" style="scroll-margin-top:80px">
-  <div class="mh-ds-dau"><span class="mh-ds-icon mh-icon-cam"><?= $svgMon('cho', 20) ?></span><h3>Môn sinh viên đề xuất, chờ duyệt (<?= $tongCho ?>)</h3></div>
-  <table class="mh-bang">
-    <tr><th>Tên môn</th><th>Mô tả</th><th>Người đề xuất</th><th></th></tr>
-    <?php foreach ($dsCho as $r): ?>
-      <tr>
-        <td><span class="mh-ten"><span class="mh-chip mh-c<?= (int) $r['MaMon'] % 5 ?>"><?= $svgMon(mh_bieu_tuong($r['TenMon']), 16) ?></span><?= e($r['TenMon']) ?></span></td>
-        <td><?= e((string) $r['MoTa']) ?></td>
-        <td><?= $r['HoTen'] !== null ? e($r['HoTen']) . ' <span class="nhan-phu">(' . e($r['Email']) . ')</span>' : '-' ?></td>
-        <td class="khong-ngat">
+    <?php if (!$dsMon): ?>
+      <p class="nhan-phu mh-rong">Không có môn học nào khớp.</p>
+    <?php else: ?>
+    <div class="mh-cuon">
+      <table class="mh-bang mh-bando">
+        <thead>
+          <tr>
+            <th>Môn học</th>
+            <?php foreach ($cotKT as $k): ?><th class="giua"><?= e($k['TenLoaiKT']) ?></th><?php endforeach; ?>
+            <th class="giua">Dùng chung cả hai</th>
+            <th class="giua">Trận đấu</th>
+            <th class="giua">Thao tác</th>
+          </tr>
+        </thead>
+        <tbody>
+        <?php foreach ($dsMon as $r):
+            $mm    = (int) $r['MaMon'];
+            $coThe = (int) $r['so_cau'] === 0 && (int) $r['so_tran'] === 0;   // chưa dùng ở đâu -> xóa được
+            $an    = $r['TrangThai'] === 'Đã ẩn';
+            $mucO  = static fn (int $n): string => $n >= 80 ? 'mh-o3' : ($n >= 30 ? 'mh-o2' : 'mh-o1'); ?>
+          <tr<?= $an ? ' class="mh-da-an"' : '' ?>>
+            <td><span class="mh-ten"><span class="mh-chip mh-c<?= $mm % 5 ?>"><?= $svgMon(mh_bieu_tuong($r['TenMon']), 18) ?></span><span class="mh-ten-chu" title="<?= e((string) $r['MoTa']) ?>"><?= e($r['TenMon']) ?></span><?= $an ? '<span class="mh-tt mh-tt-an">Đã ẩn</span>' : '' ?></span></td>
+            <?php foreach ($cotKT as $k):
+                $n = $soO[$mm][(int) $k['MaLoaiKT']] ?? 0; ?>
+              <td class="giua">
+                <?php if ($n > 0): ?>
+                  <a class="mh-o <?= $mucO($n) ?>" href="<?= e(BASE_URL . '/admin/cauhoi.php?' . http_build_query(['mon' => $mm, 'kt' => (int) $k['MaLoaiKT']])) ?>" title="Xem <?= $n ?> câu hỏi"><?= $n ?></a>
+                <?php elseif (!$an): ?>
+                  <a class="mh-o mh-o-trong" href="<?= e(BASE_URL . '/admin/cauhoi_form.php?mon=' . $mm) ?>">+ Thêm câu hỏi</a>
+                <?php else: ?>
+                  <span class="mh-o mh-o0">0</span>
+                <?php endif; ?>
+              </td>
+            <?php endforeach; ?>
+            <td class="giua">
+              <?php $nc = $soO[$mm]['chung'] ?? 0; ?>
+              <?php if ($nc > 0): ?>
+                <a class="mh-o <?= $mucO($nc) ?>" href="<?= e(BASE_URL . '/admin/cauhoi.php?' . http_build_query(['mon' => $mm, 'kt' => 'chung'])) ?>" title="Xem <?= $nc ?> câu hỏi dùng chung"><?= $nc ?></a>
+              <?php else: ?>
+                <span class="mh-o mh-o0">&mdash;</span>
+              <?php endif; ?>
+            </td>
+            <td class="giua"><?= (int) $r['so_tran'] ?></td>
+            <td class="giua khong-ngat">
+              <span class="mh-thao-tac">
+                <button type="button" class="mh-nut mh-nut-sua" data-sua-mon
+                        data-id="<?= $mm ?>" data-ten="<?= e($r['TenMon']) ?>" data-mota="<?= e((string) $r['MoTa']) ?>">Sửa</button>
+                <form method="post" action="" class="form-dong">
+                  <?= csrf_field() ?>
+                  <input type="hidden" name="id" value="<?= $mm ?>">
+                  <?php if ($coThe): ?>
+                    <button type="submit" name="hanh_dong" value="xoa_mon" class="mh-nut mh-nut-xoa"
+                            data-xac-nhan="Xóa môn &quot;<?= e($r['TenMon']) ?>&quot;? Không thể hoàn tác.">Xóa</button>
+                  <?php elseif ($an): ?>
+                    <button type="submit" name="hanh_dong" value="hien_mon" class="mh-nut mh-nut-hien" title="Môn đã có câu hỏi hoặc trận đấu nên không xóa được, chỉ hiện lại hoặc ẩn">Hiện</button>
+                  <?php else: ?>
+                    <button type="submit" name="hanh_dong" value="an_mon" class="mh-nut mh-nut-xoa"
+                            title="Môn đã có câu hỏi hoặc trận đấu nên không xóa được, chỉ ẩn (A-15)"
+                            data-xac-nhan="Môn này đã có câu hỏi hoặc trận đấu nên không xóa được. Ẩn môn này? Sinh viên sẽ không chọn được để tìm trận nữa.">Ẩn</button>
+                  <?php endif; ?>
+                </form>
+              </span>
+            </td>
+          </tr>
+        <?php endforeach; ?>
+        </tbody>
+      </table>
+    </div>
+    <?php endif; ?>
+
+    <div class="mh-chan">
+      <span class="mh-chan-chu"><?= $p->tong() > 0 ? 'Hiển thị <b>' . $tuDong . '&ndash;' . $denDong . '</b> trên <b>' . $p->tong() . '</b> môn học' : 'Không có môn học nào' ?></span>
+      <?= $mhPhanTrang($p, 'pmon', '#ds-mon') ?>
+    </div>
+    <p class="nhan-phu">Mỗi trang 6 môn. Bấm vào ô để xem câu hỏi của môn và loại kỳ thi đó. Môn chưa có câu hỏi hoặc trận đấu hiện nút Xóa; môn đã có dữ liệu chỉ được Ẩn (rồi Hiện lại).</p>
+  </section>
+
+  <!-- ===== Cột bên phải ===== -->
+  <aside class="mh-bd-ben">
+
+    <?php if ($tongCho > 0): ?>
+    <div class="card mh-ds mh-cho" id="de-xuat" style="scroll-margin-top:80px">
+      <div class="mh-ds-dau"><span class="mh-ds-icon mh-icon-cam"><?= $svgMon('cho', 20) ?></span><h3>Chờ duyệt (<?= $tongCho ?>)</h3></div>
+      <?php foreach ($dsCho as $r): ?>
+        <div class="mh-de-xuat">
+          <b><?= e($r['TenMon']) ?></b>
+          <?php if ((string) $r['MoTa'] !== ''): ?><span class="nhan-phu"><?= e((string) $r['MoTa']) ?></span><?php endif; ?>
+          <span class="nhan-phu">Đề xuất bởi <?= $r['HoTen'] !== null ? e($r['HoTen']) . ' (' . e($r['Email']) . ')' : '-' ?></span>
           <form method="post" action="" class="form-dong">
             <?= csrf_field() ?>
             <input type="hidden" name="id" value="<?= (int) $r['MaMon'] ?>">
@@ -391,121 +574,57 @@ require __DIR__ . '/layout/header.php';
             <button type="submit" name="hanh_dong" value="tu_choi_mon" class="btn btn-do mh-nut-nho"
                     data-xac-nhan="Từ chối và xóa đề xuất này?">Từ chối</button>
           </form>
-        </td>
-      </tr>
-    <?php endforeach; ?>
-  </table>
-  <?= $pCho->links() ?>
-</div>
-<?php endif; ?>
-
-<div class="mh-hai-cot">
-
-  <!-- ===== Danh sách môn học ===== -->
-  <section class="card mh-ds mh-chi-mon" id="ds-mon" style="scroll-margin-top:16px">
-    <div class="mh-ds-dau"><span class="mh-ds-icon"><?= $svgMon('book', 22) ?></span><h3>Danh sách môn học</h3>
-      <button type="button" class="btn mh-nut-them-kt" data-them-mon><?= $svgMon('cong', 16) ?>Thêm môn học</button>
+        </div>
+      <?php endforeach; ?>
+      <?= $pCho->links() ?>
     </div>
-    <form method="get" action="<?= e($sach) ?>#ds-mon" class="mh-loc" role="search">
-      <?php if ($qkt !== ''): ?><input type="hidden" name="qkt" value="<?= e($qkt) ?>"><?php endif; ?>
-      <label class="mh-tim"><?= $svgMon('tim', 18) ?><input type="search" name="q" value="<?= e($q) ?>" placeholder="Tìm môn học theo tên hoặc mô tả..." class="o-tim" aria-label="Tìm kiếm môn học" autocomplete="off">
-        <?php if ($q !== ''): ?><a class="mh-xoa-tim" href="<?= e($urlXoaTim('q', 'pmon', '#ds-mon')) ?>" title="Xóa tìm kiếm" aria-label="Xóa tìm kiếm">&times;</a><?php endif; ?>
-      </label>
-      <button type="submit" class="btn mh-nut-tim">Tìm</button>
-    </form>
-    <?php if ($q !== ''): ?><p class="mh-ket-qua">Tìm thấy <b><?= $p->tong() ?></b> môn khớp với &ldquo;<?= e($q) ?>&rdquo;</p><?php endif; ?>
+    <?php endif; ?>
 
-    <?php if (!$dsMon): ?>
-      <p class="nhan-phu mh-rong">Không có môn học nào khớp.</p>
-    <?php else: ?>
+    <!-- Loại kỳ thi: giữ đủ tìm kiếm, phân trang, sửa, xóa như trước -->
+    <section class="card mh-ds" id="ds-kt" style="scroll-margin-top:16px">
+      <div class="mh-ds-dau"><span class="mh-ds-icon mh-icon-vang"><?= $svgMon('cup', 22) ?></span><h3>Loại kỳ thi</h3></div>
+      <form method="get" action="<?= e($sach) ?>#ds-kt" class="mh-loc" role="search">
+        <?php if ($q !== ''): ?><input type="hidden" name="q" value="<?= e($q) ?>"><?php endif; ?>
+        <label class="mh-tim"><?= $svgMon('tim', 18) ?><input type="search" name="qkt" value="<?= e($qkt) ?>" placeholder="Tìm loại kỳ thi..." class="o-tim" aria-label="Tìm kiếm loại kỳ thi" autocomplete="off">
+          <?php if ($qkt !== ''): ?><a class="mh-xoa-tim" href="<?= e($urlXoaTim('qkt', 'pkt', '#ds-kt')) ?>" title="Xóa tìm kiếm" aria-label="Xóa tìm kiếm">&times;</a><?php endif; ?>
+        </label>
+        <button type="submit" class="btn mh-nut-tim">Tìm</button>
+      </form>
+      <?php if ($qkt !== ''): ?><p class="mh-ket-qua">Tìm thấy <b><?= $pKT->tong() ?></b> loại kỳ thi khớp với &ldquo;<?= e($qkt) ?>&rdquo;</p><?php endif; ?>
+      <?php if (!$dsKT): ?>
+        <p class="nhan-phu mh-rong"><?= $qkt !== '' ? 'Không có loại kỳ thi nào khớp.' : 'Chưa có loại kỳ thi nào.' ?></p>
+      <?php else: ?>
       <ul class="mh-dong-ds">
-        <?php foreach ($dsMon as $r):
-            $coThe = (int) $r['so_cau'] === 0 && (int) $r['so_tran'] === 0;   // chưa dùng ở đâu -> xóa được
-            $an    = $r['TrangThai'] === 'Đã ẩn'; ?>
-          <li<?= $an ? ' class="mh-da-an"' : '' ?>>
-            <span class="mh-ten"><span class="mh-chip mh-c<?= (int) $r['MaMon'] % 5 ?>"><?= $svgMon(mh_bieu_tuong($r['TenMon']), 18) ?></span><span class="mh-ten-chu"><?= e($r['TenMon']) ?></span><?= $an ? '<span class="mh-tt mh-tt-an">Đã ẩn</span>' : '' ?></span>
-            <span class="mh-so"><?= (int) $r['so_cau'] ?> câu hỏi</span>
+        <?php foreach ($dsKT as $k):
+            $coThe = (int) $k['so_cau'] === 0 && (int) $k['so_tran'] === 0; ?>
+          <li>
+            <span class="mh-ten"><span class="mh-ten-chu" title="<?= e((string) $k['MoTa']) ?>"><?= e($k['TenLoaiKT']) ?></span></span>
+            <span class="mh-so"><?= (int) $k['so_cau'] ?> câu hỏi</span>
             <span class="mh-thao-tac">
-              <button type="button" class="mh-nut mh-nut-sua" data-sua-mon
-                      data-id="<?= (int) $r['MaMon'] ?>" data-ten="<?= e($r['TenMon']) ?>" data-mota="<?= e((string) $r['MoTa']) ?>">Sửa</button>
+              <button type="button" class="mh-nut mh-nut-sua" data-sua-kt
+                      data-id="<?= (int) $k['MaLoaiKT'] ?>" data-ten="<?= e($k['TenLoaiKT']) ?>" data-mota="<?= e((string) $k['MoTa']) ?>">Sửa</button>
               <form method="post" action="" class="form-dong">
                 <?= csrf_field() ?>
-                <input type="hidden" name="id" value="<?= (int) $r['MaMon'] ?>">
+                <input type="hidden" name="id" value="<?= (int) $k['MaLoaiKT'] ?>">
                 <?php if ($coThe): ?>
-                  <button type="submit" name="hanh_dong" value="xoa_mon" class="mh-nut mh-nut-xoa"
-                          data-xac-nhan="Xóa môn &quot;<?= e($r['TenMon']) ?>&quot;? Không thể hoàn tác.">Xóa</button>
-                <?php elseif ($an): ?>
-                  <button type="submit" name="hanh_dong" value="hien_mon" class="mh-nut mh-nut-hien" title="Môn đã có câu hỏi hoặc trận đấu nên không xóa được, chỉ hiện lại hoặc ẩn">Hiện</button>
+                  <button type="submit" name="hanh_dong" value="xoa_kt" class="mh-nut mh-nut-xoa"
+                          data-xac-nhan="Xóa loại kỳ thi &quot;<?= e($k['TenLoaiKT']) ?>&quot;? Không thể hoàn tác.">Xóa</button>
                 <?php else: ?>
-                  <button type="submit" name="hanh_dong" value="an_mon" class="mh-nut mh-nut-xoa"
-                          title="Môn đã có câu hỏi hoặc trận đấu nên không xóa được, chỉ ẩn (A-15)"
-                          data-xac-nhan="Môn này đã có câu hỏi hoặc trận đấu nên không xóa được. Ẩn môn này? Sinh viên sẽ không chọn được để tìm trận nữa.">Ẩn</button>
+                  <button type="button" class="mh-nut mh-nut-xoa" disabled
+                          title="Đã có câu hỏi hoặc trận đấu gắn với loại kỳ thi này nên không xóa được">Xóa</button>
                 <?php endif; ?>
               </form>
             </span>
           </li>
         <?php endforeach; ?>
       </ul>
-    <?php endif; ?>
-    <?= $mhPhanTrang($p, 'pmon', '#ds-mon') ?>
-  </section>
+      <?php endif; ?>
+      <?= $mhPhanTrang($pKT, 'pkt', '#ds-kt') ?>
+      <p class="nhan-phu">Câu hỏi để trống loại kỳ thi dùng được cho cả hai kỳ (A-19).</p>
+    </section>
 
-  <!-- ===== Danh sách loại kỳ thi ===== -->
-  <section class="card mh-ds" id="ds-kt" style="scroll-margin-top:16px">
-    <div class="mh-ds-dau">
-      <span class="mh-ds-icon mh-icon-vang"><?= $svgMon('cup', 22) ?></span><h3>Danh sách loại kỳ thi</h3>
-      <button type="button" class="btn mh-nut-them-kt" id="nutThemKt"><?= $svgMon('cong', 16) ?>Thêm loại kỳ thi</button>
-    </div>
-    <form method="get" action="<?= e($sach) ?>#ds-kt" class="mh-loc" role="search">
-      <?php if ($q !== ''): ?><input type="hidden" name="q" value="<?= e($q) ?>"><?php endif; ?>
-      <label class="mh-tim"><?= $svgMon('tim', 18) ?><input type="search" name="qkt" value="<?= e($qkt) ?>" placeholder="Tìm loại kỳ thi theo tên hoặc mô tả..." class="o-tim" aria-label="Tìm kiếm loại kỳ thi" autocomplete="off">
-        <?php if ($qkt !== ''): ?><a class="mh-xoa-tim" href="<?= e($urlXoaTim('qkt', 'pkt', '#ds-kt')) ?>" title="Xóa tìm kiếm" aria-label="Xóa tìm kiếm">&times;</a><?php endif; ?>
-      </label>
-      <button type="submit" class="btn mh-nut-tim">Tìm</button>
-    </form>
-    <?php if ($qkt !== ''): ?><p class="mh-ket-qua">Tìm thấy <b><?= $pKT->tong() ?></b> loại kỳ thi khớp với &ldquo;<?= e($qkt) ?>&rdquo;</p><?php endif; ?>
-    <?php if (!$dsKT): ?>
-      <p class="nhan-phu mh-rong"><?= $qkt !== '' ? 'Không có loại kỳ thi nào khớp.' : 'Chưa có loại kỳ thi nào.' ?></p>
-    <?php else: ?>
-    <div class="mh-cuon">
-      <table class="mh-bang mh-bang-kt">
-        <tr><th>Tên loại kỳ thi</th><th>Mô tả</th><th class="giua">Số câu hỏi</th><th class="giua">Thao tác</th></tr>
-        <?php
-        $iconKT = [['cup', 'vang'], ['star', 'vang'], ['medal', 'cam'], ['target', 'do'], ['cap', 'xanh']];
-        foreach ($dsKT as $i => $k):
-            [$bt, $mau] = $iconKT[$i % count($iconKT)];
-            $coThe = (int) $k['so_cau'] === 0 && (int) $k['so_tran'] === 0; ?>
-          <tr>
-            <td><span class="mh-ten"><span class="mh-kt-icon mh-kt-<?= $mau ?>"><?= $svgMon($bt, 22) ?></span><?= e($k['TenLoaiKT']) ?></span></td>
-            <td><?= e((string) $k['MoTa']) ?></td>
-            <td class="giua"><?= (int) $k['so_cau'] ?></td>
-            <td class="giua khong-ngat">
-              <span class="mh-thao-tac">
-                <button type="button" class="mh-nut mh-nut-sua" data-sua-kt
-                        data-id="<?= (int) $k['MaLoaiKT'] ?>" data-ten="<?= e($k['TenLoaiKT']) ?>" data-mota="<?= e((string) $k['MoTa']) ?>">Sửa</button>
-                <form method="post" action="" class="form-dong">
-                  <?= csrf_field() ?>
-                  <input type="hidden" name="id" value="<?= (int) $k['MaLoaiKT'] ?>">
-                  <?php if ($coThe): ?>
-                    <button type="submit" name="hanh_dong" value="xoa_kt" class="mh-nut mh-nut-xoa"
-                            data-xac-nhan="Xóa loại kỳ thi &quot;<?= e($k['TenLoaiKT']) ?>&quot;? Không thể hoàn tác.">Xóa</button>
-                  <?php else: ?>
-                    <button type="button" class="mh-nut mh-nut-xoa" disabled
-                            title="Đã có câu hỏi hoặc trận đấu gắn với loại kỳ thi này nên không xóa được">Xóa</button>
-                  <?php endif; ?>
-                </form>
-              </span>
-            </td>
-          </tr>
-        <?php endforeach; ?>
-      </table>
-    </div>
-    <?php endif; ?>
-    <?= $mhPhanTrang($pKT, 'pkt', '#ds-kt') ?>
-    <p class="nhan-phu">Câu hỏi để trống loại kỳ thi dùng được cho cả hai kỳ (A-19).</p>
-  </section>
 
-</div>
+  </aside>
 </div>
 </div><!-- /.mh-khung -->
 

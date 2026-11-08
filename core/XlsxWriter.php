@@ -156,8 +156,9 @@ class XlsxWriter
             $toiThieu = (int) ($sh['rongToiThieu'] ?? 10);
             $rong = [$toiThieu];
             foreach ($sh['dong'] as $d) {
-                if (isset($d['anh']) || ($d['kieu'] ?? 0) === 2) { continue; }
+                if (isset($d['anh']) || in_array(($d['kieu'] ?? 0), [2, 16], true)) { continue; }
                 foreach (array_values($d['o']) as $c => $gt) {
+                    if (is_array($gt)) { $gt = $gt['g'] ?? ''; }   // ô có kiểu riêng: ['g' => giá trị, 's' => kiểu]
                     $rong[$c] = max($rong[$c] ?? $toiThieu, min(50, mb_strlen((string) $gt, 'UTF-8') + 2));
                 }
             }
@@ -238,9 +239,11 @@ class XlsxWriter
         $zip->addFromString('xl/workbook.xml', $khai . '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="' . $rel . '">'
             . '<sheets>' . $bangSheet . '</sheets></workbook>');
         $zip->addFromString('xl/_rels/workbook.xml.rels', $khai . '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' . $relWb . '</Relationships>');
-        // Bảy kiểu ô: 0 thường, 1 chữ đậm, 2 tiêu đề lớn, 3 nhãn ô số liệu, 4 giá trị ô số liệu, 5 ghi chú ô số liệu, 6 tiêu đề bảng
+        // Kiểu ô: 0 thường, 1 chữ đậm, 2 tiêu đề lớn, 3 nhãn ô số liệu, 4 giá trị ô số liệu, 5 ghi chú ô số liệu, 6 tiêu đề bảng,
+        // 7 chữ tự xuống dòng (canh trên), 8 ô nền đỏ nhạt, 9 nền vàng nhạt, 10 nền xanh nhạt, 11 nền xanh đậm (đều canh giữa, chữ đậm),
+        // 12 canh giữa, 13 chữ đỏ, 14 chữ vàng, 15 chữ xanh lá, 16 ghi chú nhỏ canh trái (không tính vào độ rộng cột)
         $zip->addFromString('xl/styles.xml', $khai . '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
-            . '<fonts count="7">'
+            . '<fonts count="10">'
             . '<font><sz val="11"/><name val="Calibri"/></font>'
             . '<font><b/><sz val="11"/><name val="Calibri"/></font>'
             . '<font><b/><sz val="14"/><name val="Calibri"/></font>'
@@ -248,19 +251,36 @@ class XlsxWriter
             . '<font><b/><sz val="16"/><color rgb="FF14213D"/><name val="Calibri"/></font>'
             . '<font><sz val="9"/><color rgb="FF5B6B8C"/><name val="Calibri"/></font>'
             . '<font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font>'
+            . '<font><sz val="11"/><color rgb="FFE5484D"/><name val="Calibri"/></font>'
+            . '<font><sz val="11"/><color rgb="FFE3A93B"/><name val="Calibri"/></font>'
+            . '<font><sz val="11"/><color rgb="FF22A06B"/><name val="Calibri"/></font>'
             . '</fonts>'
-            . '<fills count="4"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill>'
+            . '<fills count="8"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill>'
             . '<fill><patternFill patternType="solid"><fgColor rgb="FFF3F6FD"/><bgColor indexed="64"/></patternFill></fill>'
-            . '<fill><patternFill patternType="solid"><fgColor rgb="FF2F6BFF"/><bgColor indexed="64"/></patternFill></fill></fills>'
+            . '<fill><patternFill patternType="solid"><fgColor rgb="FF2F6BFF"/><bgColor indexed="64"/></patternFill></fill>'
+            . '<fill><patternFill patternType="solid"><fgColor rgb="FFFDDDE2"/><bgColor indexed="64"/></patternFill></fill>'
+            . '<fill><patternFill patternType="solid"><fgColor rgb="FFFDECC4"/><bgColor indexed="64"/></patternFill></fill>'
+            . '<fill><patternFill patternType="solid"><fgColor rgb="FFD9F3E5"/><bgColor indexed="64"/></patternFill></fill>'
+            . '<fill><patternFill patternType="solid"><fgColor rgb="FFA9E5C8"/><bgColor indexed="64"/></patternFill></fill></fills>'
             . '<borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders>'
             . '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>'
-            . '<cellXfs count="7"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>'
+            . '<cellXfs count="17"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>'
             . '<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/>'
             . '<xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1"/>'
             . '<xf numFmtId="0" fontId="3" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment horizontal="center"/></xf>'
             . '<xf numFmtId="0" fontId="4" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment horizontal="center"/></xf>'
             . '<xf numFmtId="0" fontId="5" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment horizontal="center"/></xf>'
-            . '<xf numFmtId="0" fontId="6" fillId="3" borderId="0" xfId="0" applyFont="1" applyFill="1"/></cellXfs>'
+            . '<xf numFmtId="0" fontId="6" fillId="3" borderId="0" xfId="0" applyFont="1" applyFill="1"/>'
+            . '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>'
+            . '<xf numFmtId="0" fontId="1" fillId="4" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment horizontal="center"/></xf>'
+            . '<xf numFmtId="0" fontId="1" fillId="5" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment horizontal="center"/></xf>'
+            . '<xf numFmtId="0" fontId="1" fillId="6" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment horizontal="center"/></xf>'
+            . '<xf numFmtId="0" fontId="1" fillId="7" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment horizontal="center"/></xf>'
+            . '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment horizontal="center"/></xf>'
+            . '<xf numFmtId="0" fontId="7" fillId="0" borderId="0" xfId="0" applyFont="1"/>'
+            . '<xf numFmtId="0" fontId="8" fillId="0" borderId="0" xfId="0" applyFont="1"/>'
+            . '<xf numFmtId="0" fontId="9" fillId="0" borderId="0" xfId="0" applyFont="1"/>'
+            . '<xf numFmtId="0" fontId="3" fillId="0" borderId="0" xfId="0" applyFont="1"/></cellXfs>'
             . '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>');
         $zip->close();
 
@@ -278,15 +298,20 @@ class XlsxWriter
     {
         $h = '<row r="' . $so . '">';
         foreach (array_values($gioTri) as $i => $gt) {
+            $kieuO = $kieu;
+            if (is_array($gt)) {   // ô có kiểu riêng: ['g' => giá trị, 's' => kiểu]
+                $kieuO = (int) ($gt['s'] ?? $kieu);
+                $gt = $gt['g'] ?? '';
+            }
             if ($gt === null || $gt === '') {
                 continue;
             }
             $o = self::cot($i) . $so;
             if (is_int($gt) || is_float($gt)) {
-                $h .= '<c r="' . $o . '" s="' . $kieu . '"><v>' . $gt . '</v></c>';
+                $h .= '<c r="' . $o . '" s="' . $kieuO . '"><v>' . $gt . '</v></c>';
             } else {
                 // inlineStr: luôn là chữ, Excel không hiểu nhầm thành công thức
-                $h .= '<c r="' . $o . '" s="' . $kieu . '" t="inlineStr"><is><t xml:space="preserve">'
+                $h .= '<c r="' . $o . '" s="' . $kieuO . '" t="inlineStr"><is><t xml:space="preserve">'
                     . self::xml((string) $gt) . '</t></is></c>';
             }
         }

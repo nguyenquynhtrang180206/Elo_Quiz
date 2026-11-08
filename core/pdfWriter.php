@@ -361,7 +361,8 @@ class PdfWriter
 
     // Bảng nằm gọn trong chiều ngang trang: chữ tự xuống dòng trong ô, không cắt cột.
     // $tyLe: tỷ lệ rộng các cột. $mauHang[$i]: màu (#rrggbb) vẽ chấm ở đầu ô đầu của dòng $i (dùng cho chú thích biểu đồ).
-    public function bang(array $tieuDe, array $dong, array $tyLe = [], array $mauHang = []): void
+    // $mauO[$i][$j]: màu nền (#rrggbb) tô cả ô ở dòng $i, cột $j (dùng cho bản đồ phủ). $canGiua: danh sách chỉ số cột canh giữa chữ.
+    public function bang(array $tieuDe, array $dong, array $tyLe = [], array $mauHang = [], array $mauO = [], array $canGiua = []): void
     {
         $soCot = count($tieuDe);
         $tyLe = $tyLe ?: array_fill(0, $soCot, 1);
@@ -370,7 +371,7 @@ class PdfWriter
         $rong = array_map(static fn ($t) => $kho * $t / $tong, $tyLe);
         $co = 9.0; $dem = 4.0; $caoDong = $co * 1.3;
 
-        $veDong = function (array $o, bool $dau, ?string $chamMau) use ($co, $dem, $caoDong, $rong, $kho): void {
+        $veDong = function (array $o, bool $dau, ?string $chamMau, array $nenO = []) use ($co, $dem, $caoDong, $rong, $kho, $canGiua): void {
             $cac = []; $nhieu = 1;
             foreach ($o as $i => $gt) {
                 $le = ($i === 0 && $chamMau !== null) ? 14.0 : 0.0;
@@ -384,9 +385,12 @@ class PdfWriter
             $x = self::LE;
             foreach ($cac as $i => $lines) {
                 $le = ($i === 0 && $chamMau !== null) ? 14.0 : 0.0;
+                if (isset($nenO[$i])) { $this->hinhChuNhat($x, $top - $h, $rong[$i], $h, $nenO[$i]); }   // tô nền cả ô
                 if ($le > 0) { $this->hinhChuNhat($x + $dem, $top - $dem - $caoDong * 0.85, 8, 8, $chamMau); }
                 foreach ($lines as $k => $d) {
-                    $this->ghiChu($x + $dem + $le, $top - $dem - $co - $k * $caoDong, $d, $co, $dau, $dau ? '#ffffff' : '#24324f');
+                    $lech = 0.0;
+                    if (in_array($i, $canGiua, true)) { $lech = max(0.0, ($rong[$i] - 2 * $dem - $le - $this->doRong($d, $co, $dau)) / 2); }
+                    $this->ghiChu($x + $dem + $le + $lech, $top - $dem - $co - $k * $caoDong, $d, $co, $dau, $dau ? '#ffffff' : '#24324f');
                 }
                 $x += $rong[$i];
             }
@@ -400,9 +404,38 @@ class PdfWriter
                 $this->trangMoi();
                 $veDong($tieuDe, true, null);
             }
-            $veDong($d, false, $mauHang[$i] ?? null);
+            $veDong($d, false, $mauHang[$i] ?? null, $mauO[$i] ?? []);
         }
         $this->y -= 8;
+    }
+
+    // Biểu đồ cột đơn giản vẽ bằng hình chữ nhật (không cần ảnh). $nhan: nhãn dưới mỗi cột, $so: giá trị, $mau: màu #rrggbb từng cột.
+    public function bieuDoCot(array $nhan, array $so, array $mau, float $cao = 130): void
+    {
+        $n = count($so);
+        if ($n === 0) { return; }
+        $kho   = $this->w - 2 * self::LE;
+        $duoi  = 16.0;   // chỗ cho nhãn dưới cột
+        $tren  = 12.0;   // chỗ cho số trên đỉnh cột
+        $this->canCho($cao + $duoi + $tren + 8);
+        $top   = $this->y;
+        $day   = $top - $tren - $cao;            // đường đáy của các cột
+        $max   = max(1, (int) max($so));
+        $o     = $kho / $n;
+        $rongC = min(34.0, $o * 0.62);
+        $this->duong(self::LE, $day, self::LE + $kho, $day, '#c9d2ee');
+        foreach (array_values($so) as $i => $v) {
+            $x = self::LE + $i * $o + ($o - $rongC) / 2;
+            $h = $v > 0 ? max(2.0, $cao * $v / $max) : 0.0;
+            if ($h > 0) {
+                $this->hinhChuNhat($x, $day, $rongC, $h, $mau[$i] ?? '#2f6bff');
+                $chu = (string) $v;
+                $this->ghiChu($x + ($rongC - $this->doRong($chu, 8, true)) / 2, $day + $h + 3, $chu, 8, true, '#24324f');
+            }
+            $nh = (string) ($nhan[$i] ?? '');
+            $this->ghiChu(self::LE + $i * $o + ($o - $this->doRong($nh, 7.5, false)) / 2, $day - 11, $nh, 7.5, false, '#5b6b8c');
+        }
+        $this->y = $day - $duoi - 4;
     }
 
     private function nhungFont(PdfFontTtf $f, string $ten): int

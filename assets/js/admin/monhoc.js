@@ -9,45 +9,6 @@ document.addEventListener('click', function (e) {
 (function () {
   'use strict';
 
-  // ---------- Tab Môn học / Loại kỳ thi ----------
-  var trang  = document.getElementById('mhTrang');
-  var nutTab = document.querySelectorAll('.mh-tab-nut');
-
-  function chonTab(ten) {
-    if (!trang) { return; }
-    trang.setAttribute('data-tab', ten);
-    nutTab.forEach(function (n) {
-      var dang = n.getAttribute('data-tab') === ten;
-      n.classList.toggle('dang-chon', dang);
-      n.setAttribute('aria-selected', dang ? 'true' : 'false');
-    });
-    // Ghi ?tab=kt lên địa chỉ để tải lại trang và chuyển hướng sau khi lưu vẫn ở đúng tab
-    if (window.history && history.replaceState) {
-      var u = new URL(window.location.href);
-      if (ten === 'kt') {
-        u.searchParams.set('tab', 'kt');
-      } else {
-        u.searchParams.delete('tab');
-        u.searchParams.delete('pkt');   // ?pkt=... tự bật tab Loại kỳ thi nên bỏ đi khi về tab Môn học
-      }
-      history.replaceState(null, '', u.pathname + u.search + u.hash);
-    }
-  }
-  nutTab.forEach(function (n) {
-    n.addEventListener('click', function () { chonTab(n.getAttribute('data-tab')); });
-  });
-
-  // Tìm kiếm khi đang ở tab Loại kỳ thi: gửi kèm tab=kt để sau khi tìm vẫn ở đúng tab
-  document.querySelectorAll('.mh-loc').forEach(function (f) {
-    f.addEventListener('submit', function () {
-      if (trang && trang.getAttribute('data-tab') === 'kt' && !f.querySelector('[name="tab"]')) {
-        var h = document.createElement('input');
-        h.type = 'hidden'; h.name = 'tab'; h.value = 'kt';
-        f.appendChild(h);
-      }
-    });
-  });
-
   // ---------- Popup thêm / sửa ----------
   function $(id) { return document.getElementById(id); }
 
