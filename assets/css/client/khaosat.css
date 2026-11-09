@@ -6,3 +6,5 @@
 .the-muctieu input { margin-right:10px; }
 .the-muctieu:has(input:checked) { border-color:var(--mau-chinh); background:#eff6ff; }
 .nut-khaosat { display:flex; gap:10px; margin-top:14px; }
+.cau-khaosat { margin:22px 0 6px; font-size:1.02rem; }
+.cau-khaosat .ghi-chu { font-weight:400; font-size:.85rem; }

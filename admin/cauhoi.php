@@ -393,7 +393,7 @@ $where = $dieuKien ? 'WHERE ' . implode(' AND ', $dieuKien) : '';
 
 $st = $pdo->prepare("SELECT COUNT(*) FROM CAUHOI c $joinTL $where");
 $st->execute($tham);
-$p = new Paginator((int) $st->fetchColumn(), 20);
+$p = new Paginator((int) $st->fetchColumn(), 5);
 
 // Số câu chưa dùng trong trận của môn đang lọc (cho nút "Xóa câu chưa dùng của môn này")
 $soXoaDuocMon = 0;

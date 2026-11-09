@@ -29,6 +29,9 @@ CREATE TABLE NGUOIDUNG (
   NgayTao           DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   TrangThaiKhaoSat  ENUM('Chưa làm','Hoàn tất','Bỏ qua') NOT NULL DEFAULT 'Chưa làm',
   MucTieuKhaoSat    VARCHAR(255) NULL COMMENT 'Danh sách mã mục tiêu, phân tách bằng dấu phẩy',
+  LinhVucYeuThich   VARCHAR(255) NULL COMMENT 'Danh sách mã lĩnh vực yêu thích, phân tách bằng dấu phẩy',
+  TrinhDoTuDanhGia  ENUM('Mới bắt đầu','Trung bình','Khá','Nâng cao') NULL COMMENT 'Trình độ tự đánh giá khi làm khảo sát',
+  NgayKhaoSat       DATETIME NULL COMMENT 'Thời điểm bấm Hoàn tất hoặc Bỏ qua khảo sát',
   PRIMARY KEY (MaND),
   UNIQUE KEY uq_nguoidung_email (Email)
 ) ENGINE=InnoDB;
@@ -435,3 +438,8 @@ ALTER TABLE BINHLUAN ADD INDEX idx_parent (MaBinhLuanCha);
 UPDATE THONGBAO
 SET LienKet = REPLACE(LienKet, '/client/congdong.php', CONCAT('/client/baidang.php?id=', MaBaiDang))
 WHERE Loai = 'an_bai' AND MaBaiDang IS NOT NULL;
+
+ALTER TABLE NHATKYQUANTRI
+  ADD COLUMN DiaChiIP  VARCHAR(45) NULL AFTER MoTa,
+  ADD COLUMN TrangThai ENUM('Thành công','Thất bại') NOT NULL DEFAULT 'Thành công' AFTER DiaChiIP,
+  ADD KEY idx_nhatky_tt (TrangThai, ThoiGian);

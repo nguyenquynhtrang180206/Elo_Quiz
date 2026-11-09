@@ -120,6 +120,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
 
+            if ($bangLoi) {
+                // Có dòng không hợp lệ: không lưu câu nào, ghi nhật ký là thao tác thất bại (chưa mở giao dịch nên không bị hoàn tác)
+                NhatKy::ghiThatBai('Import câu hỏi từ Excel', 'CAUHOI',
+                    count($bangLoi) . '/' . $tongDong . ' dòng không hợp lệ, chưa lưu câu nào. File ' . $tenGoc);
+            }
+
             if (!$bangLoi) {
                 $pdo->beginTransaction();
                 try {
@@ -140,6 +146,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         } catch (RuntimeException $ex) {
             $loi[] = $ex->getMessage();
+            // Đã rollBack (nếu có) ở trên nên bản ghi thất bại này được giữ lại
+            NhatKy::ghiThatBai('Import câu hỏi từ Excel', 'CAUHOI', mb_substr($ex->getMessage(), 0, 300));
         } finally {
             if ($tam !== null && is_file($tam)) {
                 @unlink($tam);
