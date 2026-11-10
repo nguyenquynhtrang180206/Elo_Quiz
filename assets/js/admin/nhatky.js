@@ -1,29 +1,164 @@
-// Trang Nhật ký quản trị: bấm nút "…" ở cuối dòng để xem chi tiết bản ghi (chỉ xem, không sửa/xóa: A-42).
-// Dữ liệu nằm trong thuộc tính data-nk (JSON do PHP tạo); gán vào hộp bằng textContent nên không chèn HTML.
+// Trang Nhật ký quản trị (chỉ xem, không sửa/xóa: A-42).
+// 1) Bấm một thẻ trong dòng thời gian: chi tiết hiện ở panel bên phải (mặc định chọn dòng đầu tiên).
+//    Dữ liệu nằm trong thuộc tính data-nk (JSON do PHP tạo); gán bằng textContent nên không chèn HTML.
+// 2) Vẽ biểu đồ "Nhịp hoạt động hôm nay" (48 mốc 30 phút) bằng Chart.js; cột thất bại tô đỏ.
 (function () {
   'use strict';
-  var hop = document.getElementById('nkChiTiet');
-  if (!hop || typeof hop.showModal !== 'function') { return; }
 
-  document.addEventListener('click', function (ev) {
-    var nut = ev.target.closest ? ev.target.closest('.nk-more') : null;
-    if (nut) {
+  // ---------- Panel chi tiết ----------
+  var ds = document.getElementById('nkDanhSach');
+  var panel = document.getElementById('nkPanel');
+  var bang = document.getElementById('nkPanelDs');
+  var rong = document.getElementById('nkPanelRong');
+  if (ds && panel && bang && rong) {
+    var dangChon = null;
+
+    function chon(the, cuonTheo) {
       var d;
-      try { d = JSON.parse(nut.getAttribute('data-nk') || '{}'); } catch (e) { return; }
-      hop.querySelectorAll('[data-f]').forEach(function (el) {
+      try { d = JSON.parse(the.getAttribute('data-nk') || '{}'); } catch (e) { return; }
+      panel.querySelectorAll('[data-f]').forEach(function (el) {
         var v = d[el.getAttribute('data-f')];
         el.textContent = (v === undefined || v === null || v === '') ? '—' : String(v);
       });
-      var tt = hop.querySelector('.nk-tt[data-f="tt"]');
+      var tt = panel.querySelector('.nk-tt[data-f="tt"]');
       if (tt) { tt.className = 'nk-tt ' + (d.tt === 'Thất bại' ? 'nk-tt-loi' : 'nk-tt-ok'); }
-      hop.showModal();
-      return;
+      if (dangChon) {
+        dangChon.classList.remove('dang-chon');
+        dangChon.removeAttribute('aria-current');
+      }
+      the.classList.add('dang-chon');
+      the.setAttribute('aria-current', 'true');
+      dangChon = the;
+      rong.hidden = true;
+      bang.hidden = false;
+      // Màn hình hẹp: panel nằm dưới danh sách, kéo xuống cho người dùng thấy
+      if (cuonTheo && window.matchMedia && window.matchMedia('(max-width: 1100px)').matches) {
+        panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
     }
-    // Đóng: bấm nút ×, hoặc bấm ra vùng nền tối (target chính là thẻ dialog)
-    if (ev.target === hop || (ev.target.closest && ev.target.closest('[data-dong]'))) {
-      hop.close();
+
+    ds.addEventListener('click', function (ev) {
+      var the = ev.target.closest ? ev.target.closest('.nk-card') : null;
+      if (the && ds.contains(the)) { chon(the, true); }
+    });
+    var dau = ds.querySelector('.nk-card');
+    if (dau) { chon(dau, false); }
+  }
+
+  // ---------- Biểu đồ hoạt động theo ngày (mỗi cột = 1 ngày; xem 7 hoặc 30 ngày, lùi/tiến không tải lại trang) ----------
+  var cv = document.getElementById('nkNhip');
+  var khung = document.getElementById('nkNhipKhung');
+  if (cv && khung && typeof Chart !== 'undefined') {
+    var TEN_THU = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
+    function hai(n) { return (n < 10 ? '0' : '') + n; }
+    function dinhDang(d) { return d.getFullYear() + '-' + hai(d.getMonth() + 1) + '-' + hai(d.getDate()); }
+    function lech(iso, soNgay) {   // cộng/trừ ngày mà không dính múi giờ
+      var p = iso.split('-');
+      return dinhDang(new Date(+p[0], +p[1] - 1, +p[2] + soNgay));
     }
-  });
+    function nhanNgay(iso) { var p = iso.split('-'); return p[2] + '/' + p[1] + '/' + p[0]; }
+    function ddmm(iso) { var p = iso.split('-'); return p[2] + '/' + p[1]; }
+    function thuCua(iso) { var p = iso.split('-'); return TEN_THU[new Date(+p[0], +p[1] - 1, +p[2]).getDay()]; }
+    function so(n) { return Number(n).toLocaleString('vi-VN'); }
+
+    var nhip;
+    try { nhip = JSON.parse(cv.getAttribute('data-nhip') || '[]'); } catch (e) { nhip = []; }
+    var url = khung.getAttribute('data-url');
+    var homNay = khung.getAttribute('data-homnay');   // YYYY-MM-DD theo giờ máy chủ
+    var ngayCu = khung.getAttribute('data-cu');       // ngày xa nhất còn lưu nhật ký
+    var soNgay = parseInt(khung.getAttribute('data-so'), 10) === 30 ? 30 : 7;
+    var den = nhip.length ? nhip[nhip.length - 1].ngay : homNay;   // ngày cuối của khoảng đang xem
+
+    var bieuDo = null;
+    if (nhip.length) {
+      bieuDo = new Chart(cv, {
+        type: 'bar',
+        data: {
+          labels: nhip.map(function (m) { return ddmm(m.ngay); }),
+          datasets: [
+            { label: 'Thao tác', data: nhip.map(function (m) { return m.tong - m.loi; }), backgroundColor: '#4f46e5', borderRadius: 4, maxBarThickness: 44, stack: 'nhip' },
+            { label: 'Thất bại', data: nhip.map(function (m) { return m.loi; }),          backgroundColor: '#d6293e', borderRadius: 4, maxBarThickness: 44, stack: 'nhip' }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },   // chú thích đã có sẵn trong HTML
+            tooltip: {
+              callbacks: {
+                title: function (items) {   // đọc biến nhip hiện tại (đổi khoảng thì nhip được gán lại)
+                  var m = nhip[items[0].dataIndex];
+                  return thuCua(m.ngay) + ', ' + nhanNgay(m.ngay);
+                },
+                footer: function (items) { return 'Tổng: ' + so(nhip[items[0].dataIndex].tong); }
+              }
+            }
+          },
+          scales: {
+            x: { stacked: true, grid: { display: false }, ticks: { autoSkip: true, maxTicksLimit: 10, maxRotation: 0 } },
+            y: { stacked: true, beginAtZero: true, ticks: { precision: 0 }, grid: { color: '#e8ecf7' } }
+          }
+        }
+      });
+    }
+
+    var nut7 = document.getElementById('nkNhip7');
+    var nut30 = document.getElementById('nkNhip30');
+    var nutTruoc = document.getElementById('nkNhipTruoc');
+    var nutSau = document.getElementById('nkNhipSau');
+    var nutMoi = document.getElementById('nkNhipMoiNhat');
+    var phu = document.getElementById('nkNhipPhu');
+    var luotNhip = 0;   // chống kết quả cũ ghi đè kết quả mới khi bấm nhanh
+
+    function veTomTat() {
+      var tong = 0, loi = 0;
+      nhip.forEach(function (m) { tong += m.tong; loi += m.loi; });
+      phu.textContent = soNgay + ' ngày · ' + nhanNgay(lech(den, -(soNgay - 1))) + ' – ' + nhanNgay(den)
+        + ' · ' + so(tong) + ' hoạt động' + (loi > 0 ? ' · ' + so(loi) + ' thất bại' : '');
+    }
+    function capNut() {
+      nut7.setAttribute('aria-pressed', String(soNgay === 7));
+      nut30.setAttribute('aria-pressed', String(soNgay === 30));
+      nutTruoc.disabled = lech(den, -(soNgay - 1)) <= ngayCu;   // đã chạm ngày cũ nhất còn lưu
+      nutSau.disabled = den >= homNay;
+      nutMoi.disabled = den >= homNay;
+    }
+
+    function xem(denMoi, soMoi) {
+      if (denMoi > homNay) { denMoi = homNay; }
+      var mine = ++luotNhip;
+      phu.textContent = 'Đang tải…';
+      fetch(url + '?den=' + encodeURIComponent(denMoi) + '&so=' + soMoi, { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
+        .then(function (r) { if (!r.ok) { throw new Error('http'); } return r.json(); })
+        .then(function (d) {
+          if (mine !== luotNhip) { return; }
+          nhip = d.nhip;
+          den = d.den;
+          soNgay = d.so === 30 ? 30 : 7;
+          if (bieuDo) {
+            bieuDo.data.labels = nhip.map(function (m) { return ddmm(m.ngay); });
+            bieuDo.data.datasets[0].data = nhip.map(function (m) { return m.tong - m.loi; });
+            bieuDo.data.datasets[1].data = nhip.map(function (m) { return m.loi; });
+            bieuDo.update();
+          }
+          veTomTat();
+          capNut();
+        })
+        .catch(function () {
+          if (mine !== luotNhip) { return; }
+          phu.textContent = 'Không tải được dữ liệu (có thể phiên đăng nhập đã hết).';
+          capNut();
+        });
+    }
+
+    nut7.addEventListener('click', function () { if (soNgay !== 7) { xem(den, 7); } });
+    nut30.addEventListener('click', function () { if (soNgay !== 30) { xem(den, 30); } });
+    nutTruoc.addEventListener('click', function () { xem(lech(den, -soNgay), soNgay); });
+    nutSau.addEventListener('click', function () { xem(lech(den, soNgay), soNgay); });
+    nutMoi.addEventListener('click', function () { xem(homNay, soNgay); });
+    capNut();
+  }
 })();
 
 // ---------- Hộp thoại Xuất (Excel / PDF) có khung XEM TRƯỚC, gửi tới nhatky_xuat.php rồi tải file về ----------

@@ -164,3 +164,100 @@
 .xuat-the .nk-xb-ok  { background:#dcf5ea; color:#0b7f62; }
 .xuat-the .nk-xb-loi { background:#fde3e6; color:#c11f35; }
 .xuat-the .xuat-canhbao { margin:8px 0 0; padding:6px 10px; border-radius:8px; font-size:12.5px; background:#fff0d6; color:#a86400; }
+
+/* =====================================================================
+   Giao diện mới: biểu đồ nhịp hoạt động + chip nhóm + dòng thời gian + panel bên phải
+   Mọi luật bắt đầu bằng .nk-khung (thắng các luật chung của style.css). Các luật bảng cũ ở trên không còn dùng nhưng để nguyên.
+   ===================================================================== */
+
+/* ---- Biểu đồ nhịp hoạt động hôm nay ---- */
+.nk-khung .nk-nhip { background:#fff; border-radius:16px; padding:16px 18px 12px; margin-bottom:20px; box-shadow:0 4px 14px rgba(20,33,61,.08); }
+.nk-nhip-dau { display:flex; flex-wrap:wrap; align-items:center; gap:6px 12px; margin-bottom:10px; }
+.nk-nhip-dau h3 { font-size:16px; }
+.nk-nhip-phu { font-size:13px; color:#5b6b8c; }
+.nk-chuthich { margin-left:6px; display:inline-flex; align-items:center; font-size:13px; color:#5b6b8c; }
+.nk-nhip-ngay { margin-left:auto; display:flex; align-items:center; gap:6px; }
+.nk-khung .nk-nhip-ngay button { height:34px; min-width:34px; padding:0 12px; border-radius:10px; border:1px solid #d7def0; background:#fff; color:#3b4a7a; font:inherit; font-size:13.5px; font-weight:600; text-shadow:none; box-shadow:none; transform:none; cursor:pointer; }
+.nk-khung .nk-nhip-ngay button:hover:not(:disabled) { background:#eef1fb; }
+.nk-khung .nk-nhip-ngay button:disabled { opacity:.4; cursor:default; }
+.nk-khung .nk-nhip-ngay button[aria-pressed="true"] { background:#4f46e5; border-color:#4f46e5; color:#fff; }
+.nk-cd { display:inline-block; width:10px; height:10px; border-radius:50%; margin:0 6px 0 14px; }
+.nk-cd:first-child { margin-left:0; }
+.nk-cd-tao { background:#4f46e5; }
+.nk-cd-loi { background:#d6293e; }
+.nk-nhip-khung { position:relative; height:170px; }
+
+/* ---- Chip nhóm hành động ---- */
+.nk-chips { display:flex; flex-wrap:wrap; gap:8px; margin:0 0 16px; }
+.nk-khung .nk-chip { display:inline-flex; align-items:center; gap:7px; height:36px; padding:0 14px; border-radius:999px; border:1px solid #d7def0; background:#fff; color:#3b4a7a; font-size:13.5px; font-weight:600; text-decoration:none; white-space:nowrap; }
+.nk-khung .nk-chip:hover { background:#eef1fb; color:#1b2a4a; }
+.nk-khung .nk-chip.on { background:var(--bg, #4f46e5); color:var(--c, #fff); border-color:var(--c, #4f46e5); }
+.nk-cham { width:8px; height:8px; border-radius:50%; background:var(--c, #8a96b3); }
+.nk-chip-luc  { --c:#0b7f62; --bg:#dcf5ea; }
+.nk-chip-xanh { --c:#1743c9; --bg:#e0ebff; }
+.nk-chip-do   { --c:#c11f35; --bg:#fde3e6; }
+.nk-chip-cam  { --c:#a86400; --bg:#fff0d6; }
+.nk-chip-tim  { --c:#5b2fc9; --bg:#ece9fb; }
+
+/* ---- Hai cột: dòng thời gian | panel bên phải ---- */
+.nk-luoi { display:grid; grid-template-columns:minmax(0, 1fr) 400px; gap:18px; align-items:start; }
+.nk-ben { position:sticky; top:16px; display:flex; flex-direction:column; gap:16px; }
+
+/* ---- Dòng thời gian ---- */
+.nk-tl .nk-trong { text-align:center; color:#5b6b8c; padding:28px 14px; margin:0; }
+.nk-ngay-dau { display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 12px; margin:20px 0 8px; }
+.nk-ngay-dau:first-child { margin-top:0; }
+.nk-ngay-dau b { font-size:14.5px; font-weight:700; color:#2f4fb8; }
+.nk-ngay-dau span { font-size:13px; color:#5b6b8c; }
+.nk-ngay-dau em { font-style:normal; font-weight:600; color:#c11f35; }
+
+.nk-dong { --g:62px; --v:36px; position:relative; list-style:none; margin:0; padding:0; }
+.nk-dong::before { content:""; position:absolute; top:22px; bottom:22px; left:calc(var(--g) + 10px + var(--v) / 2 - 1px); width:2px; background:#dde3f5; }
+.nk-muc { position:relative; display:grid; grid-template-columns:var(--g) var(--v) minmax(0, 1fr); gap:10px; align-items:center; margin:0; padding:5px 0; }
+.nk-gio { text-align:right; font-size:12.5px; color:#5b6b8c; font-variant-numeric:tabular-nums; }
+.nk-vong { position:relative; z-index:1; width:var(--v); height:var(--v); border-radius:50%; display:flex; align-items:center; justify-content:center; border:2px solid currentColor; }
+
+.nk-khung .nk-card { display:flex; align-items:center; gap:12px; width:100%; margin:0; padding:10px 14px; text-align:left; font:inherit; font-size:14px; letter-spacing:0; text-transform:none; text-shadow:none; background:#f7f9ff; background-image:none; color:#1b2a4a; border:1px solid #e8ecf7; border-radius:12px; box-shadow:none; transform:none; cursor:pointer; }
+.nk-khung .nk-card:hover { border-color:#c3cdee; background:#f1f5ff; }
+.nk-khung .nk-card:focus-visible { outline:none; border-color:#4f46e5; box-shadow:0 0 0 3px rgba(79,70,229,.15); }
+.nk-khung .nk-card.dang-chon { background:#fff; border-color:#4f46e5; box-shadow:0 0 0 3px rgba(79,70,229,.12); }
+.nk-khung .nk-card.loi { background:#fdf1f2; border-color:#f8cfd5; }
+.nk-khung .nk-card.loi.dang-chon { background:#fff; border-color:#d6293e; box-shadow:0 0 0 3px rgba(214,41,62,.12); }
+.nk-card-chinh { flex:1; min-width:0; display:flex; flex-direction:column; gap:3px; }
+.nk-card-tren { display:flex; flex-wrap:wrap; align-items:center; gap:4px 8px; }
+.nk-card-tren b { font-weight:700; color:#14213d; }
+.nk-chip-dt { padding:2px 8px; border-radius:6px; background:#eef1fb; color:#3b4a7a; font-family:ui-monospace, Consolas, monospace; font-size:11.5px; font-weight:700; letter-spacing:.02em; }
+.nk-card .nk-mota { font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.nk-card .nk-mota .bt { display:inline-block; vertical-align:-2px; margin-right:5px; }
+.nk-card .nk-mota.loi { color:#c11f35; }
+.nk-card .nk-tt { flex:none; }
+
+/* ---- Panel bên phải ---- */
+.nk-pn { background:#f7f9ff; border:1px solid #e8ecf7; border-radius:14px; padding:16px; }
+.nk-pn-dau { display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin-bottom:12px; }
+.nk-pn-dau h3 { font-size:16px; }
+.nk-pn-dau span { font-size:13px; color:#5b6b8c; }
+.nk-pn-rong { margin:0 0 4px; font-size:14px; color:#5b6b8c; }
+.nk-pn .nk-hop-ds { grid-template-columns:104px minmax(0, 1fr); gap:9px 12px; font-size:14px; }
+.nk-pn .nk-hop-ds[hidden] { display:none; }
+.nk-pn .nk-hop-chu { margin-top:14px; padding:9px 12px; border-radius:10px; background:#eef1fb; color:#5b6b8c; }
+
+.nk-cc { margin-bottom:12px; }
+.nk-cc:last-child { margin-bottom:0; }
+.nk-cc-dong { display:flex; justify-content:space-between; margin-bottom:5px; font-size:13.5px; color:#1b2a4a; }
+.nk-cc-dong b { font-weight:700; }
+.nk-thanh { height:8px; border-radius:999px; background:#e8ecf7; overflow:hidden; }
+.nk-thanh i { display:block; height:100%; border-radius:999px; }
+.nk-thanh-xanh { background:#2f6bff; } .nk-thanh-luc { background:#0b9b74; } .nk-thanh-do { background:#d6293e; }
+.nk-thanh-cam { background:#d98a0a; } .nk-thanh-tim { background:#5b2fc9; }
+
+/* ---- Màn hình hẹp ---- */
+@media (max-width:1100px) {
+  .nk-luoi { grid-template-columns:minmax(0, 1fr); }
+  .nk-ben { position:static; }
+}
+@media (max-width:560px) {
+  .nk-dong { --g:46px; --v:32px; }
+  .nk-nhip-khung { height:140px; }
+  .nk-khung .nk-card { flex-wrap:wrap; }
+}

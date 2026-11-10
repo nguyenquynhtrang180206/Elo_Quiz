@@ -21,6 +21,7 @@ $hd  = (string) ($thamLoc['hd']  ?? '');
 $tu  = (string) ($thamLoc['tu']  ?? '');
 $den = (string) ($thamLoc['den'] ?? '');
 $tt  = (string) ($thamLoc['tt']  ?? '');   // trạng thái: Thành công | Thất bại (đã kiểm tra trong NhatKy::dieuKien)
+$nhom = (string) ($thamLoc['nhom'] ?? '');   // nhóm hành động (chip lọc nhanh): mo | sua | xoa | khoa, đã kiểm tra trong NhatKy::dieuKien
 
 // Sắp xếp theo thời gian: mặc định mới nhất trước; ?sx=asc là cũ nhất trước. Chỉ nhận hai giá trị này.
 $sx      = (($_GET['sx'] ?? '') === 'asc') ? 'asc' : 'desc';
@@ -60,13 +61,20 @@ $lopTang = $chenh > 0 ? 'len' : ($chenh < 0 ? 'xuong' : 'ngang');
 
 $so = static fn (int $n): string => number_format($n, 0, ',', '.');
 
+// ---- Dữ liệu cho biểu đồ "Nhịp hoạt động hôm nay" và khối "Cơ cấu hành động" (tính trên toàn bộ nhật ký, không phụ thuộc bộ lọc) ----
+$nhip   = NhatKy::nhipTheoNgay($pdo, 7);   // mặc định 7 ngày gần nhất; đổi tuần/tháng hoặc lùi ngày thì JS gọi nhatky_nhip.php
+$nhipTong = array_sum(array_column($nhip, 'tong'));
+$nhipLoi  = array_sum(array_column($nhip, 'loi'));
+$ngayCu   = date('Y-m-d', strtotime('-' . NhatKy::GIU_THANG . ' months'));   // nhật ký chỉ giữ GIU_THANG tháng nên không chọn xa hơn
+$coCau  = NhatKy::coCau30Ngay($pdo);
+
 // ---- Danh sách có phân trang (20 dòng/trang, có hiển thị tổng số) ----
 $st = $pdo->prepare("SELECT COUNT(*) FROM NHATKYQUANTRI n JOIN ADMIN a ON a.MaAdmin = n.MaAdmin $where");
 $st->execute($tham);
-$p = new Paginator((int) $st->fetchColumn(), 5);
+$p = new Paginator((int) $st->fetchColumn(), 10);
 
 $st = $pdo->prepare(
-    "SELECT n.MaNhatKy, n.HanhDong, n.DoiTuong, n.ThoiGian, n.MoTa, n.TrangThai
+    "SELECT n.MaNhatKy, n.HanhDong, n.DoiTuong, n.ThoiGian, n.MoTa, CAST(n.TrangThai AS CHAR) AS TrangThai, n.DiaChiIP, a.HoTen, a.TenDangNhap
      FROM NHATKYQUANTRI n
      JOIN ADMIN a ON a.MaAdmin = n.MaAdmin
      $where
@@ -75,6 +83,35 @@ $st = $pdo->prepare(
 );
 $st->execute($tham);
 $ds = $st->fetchAll();
+
+// ---- Gom theo ngày cho dạng dòng thời gian ----
+// Số hoạt động / số thất bại ở tiêu đề mỗi ngày tính trên CẢ NGÀY (theo bộ lọc đang chọn), không chỉ phần nằm trong trang này.
+$tenThu   = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
+$nhomNgay = [];
+foreach ($ds as $r) {
+    $ts = strtotime($r['ThoiGian']);
+    $kn = date('Y-m-d', $ts);
+    if (!isset($nhomNgay[$kn])) {
+        $nhomNgay[$kn] = ['nhan' => $tenThu[(int) date('w', $ts)] . ', ' . date('d/m/Y', $ts), 'tong' => 0, 'loi' => 0, 'dong' => []];
+    }
+    $nhomNgay[$kn]['dong'][] = $r;
+}
+if ($nhomNgay) {
+    $cacNgay  = array_keys($nhomNgay);
+    $whereNgay = ($where === '' ? 'WHERE' : $where . ' AND') . ' DATE(n.ThoiGian) IN (' . implode(',', array_fill(0, count($cacNgay), '?')) . ')';
+    $st = $pdo->prepare(
+        "SELECT DATE(n.ThoiGian) AS ngay, COUNT(*) AS tong, COALESCE(SUM(n.TrangThai = 'Thất bại'), 0) AS loi
+         FROM NHATKYQUANTRI n
+         JOIN ADMIN a ON a.MaAdmin = n.MaAdmin
+         $whereNgay
+         GROUP BY DATE(n.ThoiGian)"
+    );
+    $st->execute(array_merge($tham, $cacNgay));
+    foreach ($st->fetchAll() as $r) {
+        $nhomNgay[$r['ngay']]['tong'] = (int) $r['tong'];
+        $nhomNgay[$r['ngay']]['loi']  = (int) $r['loi'];
+    }
+}
 
 // ---- Biểu tượng (SVG nội tuyến, kiểu Lucide) ----
 $bt = [
@@ -103,22 +140,13 @@ $svg = static function (string $k, int $px = 20) use ($bt): string {
          . 'stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' . $bt[$k] . '</svg>';
 };
 
-// Nhãn hành động: màu và biểu tượng theo từ khóa trong tên hành động (kiểm tra theo thứ tự)
+// Nhãn hành động: màu và biểu tượng theo nhóm (NhatKy::NHOM, cùng nguồn với chip lọc và biểu đồ cơ cấu)
 $kieuHanhDong = static function (string $hd): array {
-    $theo = [
-        ['do',   'xoa',  ['Xóa', 'Hủy']],
-        ['luc',  'them', ['Mở khóa', 'Hiện', 'Thêm', 'Import']],
-        ['cam',  'khoa', ['Khóa', 'Ẩn']],
-        ['xanh', 'sua',  ['Sửa', 'Đổi', 'Cập nhật']],
-    ];
-    foreach ($theo as [$lop, $icon, $tuKhoa]) {
-        foreach ($tuKhoa as $k) {
-            if (mb_stripos($hd, $k) !== false) {
-                return [$lop, $icon];
-            }
-        }
+    $khoa = NhatKy::nhomCuaHanhDong($hd);
+    if ($khoa === null) {
+        return ['tim', 'khac'];
     }
-    return ['tim', 'khac'];
+    return [NhatKy::NHOM[$khoa][1], ['xoa' => 'xoa', 'mo' => 'them', 'khoa' => 'khoa', 'sua' => 'sua', 'xuat' => 'tai'][$khoa]];
 };
 
 // Thanh phân trang kiểu ảnh thiết kế: ‹ 1 2 3 … ›  (giữ nguyên các tham số lọc)
@@ -144,6 +172,10 @@ $phanTrang = static function (Paginator $pg) use ($thamLink): string {
 };
 
 $coLoc   = $thamLoc !== [];
+$urlNhom = static function (string $khoa) use ($thamLoc, $sx): string {   // '' = bỏ lọc nhóm
+    $t = array_diff_key($thamLoc, ['nhom' => 1]) + ($khoa !== '' ? ['nhom' => $khoa] : []) + ($sx === 'asc' ? ['sx' => 'asc'] : []);
+    return '?' . http_build_query($t);
+};
 $urlSx   = '?' . http_build_query($thamLoc + ($sx === 'asc' ? [] : ['sx' => 'asc']));   // bấm tiêu đề cột Thời gian để đảo chiều
 $tu1     = $ds ? $p->offset() + 1 : 0;
 $den1    = $ds ? $p->offset() + count($ds) : 0;
@@ -151,7 +183,7 @@ $den1    = $ds ? $p->offset() + count($ds) : 0;
 $tieuDe  = 'Nhật ký quản trị';
 $mucChon = 'nhatky';
 $cssTrang = ['thongke_xuat', 'nhatky'];   // thongke_xuat: giao diện hộp thoại Xuất dùng chung với trang Tổng quan; nhatky nạp sau để ghi đè phần riêng
-$jsTrang  = 'nhatky';   // hộp xem chi tiết (nút …)
+$jsTrang  = 'nhatky';   // panel chi tiết bên phải + biểu đồ nhịp hoạt động
 require __DIR__ . '/layout/header.php';
 ?>
 <div class="nk-khung">
@@ -195,6 +227,24 @@ require __DIR__ . '/layout/header.php';
     <div class="loi"><?= e($loi) ?></div>
   <?php endif; ?>
 
+  <section class="nk-nhip" id="nkNhipKhung" data-url="<?= e(BASE_URL) ?>/admin/nhatky_nhip.php" data-homnay="<?= e(date('Y-m-d')) ?>" data-cu="<?= e($ngayCu) ?>" data-so="7">
+    <div class="nk-nhip-dau">
+      <h3>Hoạt động theo ngày</h3>
+      <span class="nk-nhip-phu" id="nkNhipPhu">7 ngày · <?= e(date('d/m/Y', strtotime($nhip[0]['ngay']))) ?> – <?= e(date('d/m/Y', strtotime($nhip[count($nhip) - 1]['ngay']))) ?> · <?= $so($nhipTong) ?> hoạt động<?= $nhipLoi > 0 ? ' · ' . $so($nhipLoi) . ' thất bại' : '' ?></span>
+      <div class="nk-nhip-ngay">
+        <button type="button" id="nkNhip7" aria-pressed="true" title="7 ngày gần nhất">7 ngày</button>
+        <button type="button" id="nkNhip30" aria-pressed="false" title="30 ngày gần nhất">30 ngày</button>
+        <button type="button" id="nkNhipTruoc" aria-label="Lùi lại một khoảng" title="Lùi lại">&lsaquo;</button>
+        <button type="button" id="nkNhipSau" aria-label="Tiến tới một khoảng" title="Tiến tới">&rsaquo;</button>
+        <button type="button" id="nkNhipMoiNhat">Mới nhất</button>
+      </div>
+      <span class="nk-chuthich"><i class="nk-cd nk-cd-tao"></i>Thao tác<i class="nk-cd nk-cd-loi"></i>Thất bại</span>
+    </div>
+    <div class="nk-nhip-khung">
+      <canvas id="nkNhip" data-nhip="<?= e(json_encode($nhip, JSON_UNESCAPED_UNICODE)) ?>" role="img" aria-label="Biểu đồ số thao tác theo từng ngày"></canvas>
+    </div>
+  </section>
+
   <section class="nk-ds">
     <div class="nk-ds-dau">
       <span class="nk-ds-icon"><?= $svg('danhsach', 22) ?></span>
@@ -202,8 +252,10 @@ require __DIR__ . '/layout/header.php';
       <button type="button" class="nk-nut nk-nut-phu nk-nut-xuat" id="nkMoXuat" aria-haspopup="dialog" title="Xuất nhật ký ra Excel hoặc PDF"><?= $svg('tai', 18) ?>Xuất Excel / PDF</button>
     </div>
 
+
     <form method="get" action="" class="nk-loc">
       <?php if ($sx === 'asc'): ?><input type="hidden" name="sx" value="asc"><?php endif; ?>
+      <?php if ($nhom !== ''): ?><input type="hidden" name="nhom" value="<?= e($nhom) ?>"><?php endif; ?>
       <label class="nk-tim-o">
         <?= $svg('tim', 18) ?>
         <input type="search" name="q" value="<?= e($q) ?>" placeholder="Tìm theo hành động, đối tượng, mô tả..." aria-label="Tìm kiếm" autocomplete="off">
@@ -225,71 +277,93 @@ require __DIR__ . '/layout/header.php';
       <a class="nk-nut nk-nut-chinh" href="?"><?= $svg('datlai', 18) ?>Đặt lại</a>
     </form>
 
-    <div class="nk-cuon">
-      <table class="nk-bang">
-        <thead>
-          <tr>
-            <th><a class="nk-sx" href="<?= e($urlSx) ?>" title="<?= $sx === 'asc' ? 'Đang xếp cũ nhất trước, bấm để xếp mới nhất trước' : 'Đang xếp mới nhất trước, bấm để xếp cũ nhất trước' ?>">Thời gian <?= $svg('sapxep', 14) ?></a></th>
-            <th>Hành động</th><th>Nội dung</th><th>Trạng thái</th><th class="nk-th-tt">Thao tác</th>
-          </tr>
-        </thead>
-        <tbody>
-        <?php if (!$ds): ?>
-          <tr><td colspan="5" class="nk-trong"><?= $coLoc ? 'Không có bản ghi nhật ký nào khớp bộ lọc.' : 'Chưa có bản ghi nhật ký nào.' ?></td></tr>
-        <?php else: foreach ($ds as $r):
+    <div class="nk-chips" role="group" aria-label="Lọc theo nhóm hành động">
+      <a class="nk-chip<?= $nhom === '' ? ' on' : '' ?>" href="<?= e($urlNhom('')) ?>">Tất cả</a>
+      <?php foreach (NhatKy::NHOM_HIEN_THI as $k): ?>
+        <a class="nk-chip nk-chip-<?= e(NhatKy::NHOM[$k][1]) ?><?= $nhom === $k ? ' on' : '' ?>" href="<?= e($urlNhom($k)) ?>"><i class="nk-cham"></i><?= e(NhatKy::NHOM[$k][0]) ?></a>
+      <?php endforeach; ?>
+    </div>
+
+    <div class="nk-luoi">
+      <div class="nk-tl" id="nkDanhSach">
+      <?php if (!$nhomNgay): ?>
+        <p class="nk-trong"><?= $coLoc ? 'Không có bản ghi nhật ký nào khớp bộ lọc.' : 'Chưa có bản ghi nhật ký nào.' ?></p>
+      <?php else: foreach ($nhomNgay as $nd): ?>
+        <div class="nk-ngay-dau">
+          <b><?= e($nd['nhan']) ?></b>
+          <span><?= $so($nd['tong']) ?> hoạt động<?= $nd['loi'] > 0 ? ' · <em>' . $so($nd['loi']) . ' thất bại</em>' : '' ?></span>
+        </div>
+        <ol class="nk-dong">
+        <?php foreach ($nd['dong'] as $r):
             [$lopHd, $iconHd] = $kieuHanhDong((string) $r['HanhDong']);
-            $thatBai  = ($r['TrangThai'] ?? '') === 'Thất bại';
-            $coDT     = $r['DoiTuong'] !== null && $r['DoiTuong'] !== '';
-            $coMT     = $r['MoTa'] !== null && $r['MoTa'] !== '';
-            // Dữ liệu cho hộp chi tiết (JS đọc bằng JSON.parse rồi gán bằng textContent nên không chèn HTML)
-            $chiTiet  = json_encode([
+            $thatBai = ($r['TrangThai'] ?? '') === 'Thất bại';
+            $coDT    = $r['DoiTuong'] !== null && $r['DoiTuong'] !== '';
+            $coMT    = $r['MoTa'] !== null && $r['MoTa'] !== '';
+            // Dữ liệu cho panel chi tiết (JS đọc bằng JSON.parse rồi gán bằng textContent nên không chèn HTML)
+            $chiTiet = json_encode([
                 'tg'   => date('d/m/Y H:i:s', strtotime($r['ThoiGian'])),
                 'hd'   => (string) $r['HanhDong'],
                 'dt'   => (string) $r['DoiTuong'],
                 'mota' => (string) $r['MoTa'],
                 'tt'   => (string) $r['TrangThai'],
                 'ma'   => '#' . (int) $r['MaNhatKy'],
+                'ip'   => (string) $r['DiaChiIP'],
+                'ad'   => trim($r['HoTen'] . ' (' . $r['TenDangNhap'] . ')'),
             ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>
-          <tr>
-            <td class="nk-tg"><?= e(date('d/m/Y H:i:s', strtotime($r['ThoiGian']))) ?></td>
-            <td><span class="nk-hd nk-hd-<?= $lopHd ?>"><?= $svg($iconHd, 14) ?><?= e($r['HanhDong']) ?></span></td>
-            <td class="nk-nd">
-              <?php if ($coDT): ?><span class="nk-dt"><?= e($r['DoiTuong']) ?></span><?php endif; ?>
-              <?php if ($coMT): ?><span class="nk-mota" title="<?= e($r['MoTa']) ?>"><?= e(mb_strimwidth((string) $r['MoTa'], 0, 90, '…', 'UTF-8')) ?></span><?php endif; ?>
-              <?php if (!$coDT && !$coMT): ?><span class="nk-rong">—</span><?php endif; ?>
-            </td>
-            <td>
+          <li class="nk-muc">
+            <span class="nk-gio"><?= e(date('H:i:s', strtotime($r['ThoiGian']))) ?></span>
+            <span class="nk-vong nk-hd-<?= $lopHd ?>"><?= $svg($iconHd, 18) ?></span>
+            <button type="button" class="nk-card<?= $thatBai ? ' loi' : '' ?>" data-nk="<?= e($chiTiet) ?>" aria-label="Xem chi tiết bản ghi <?= (int) $r['MaNhatKy'] ?>">
+              <span class="nk-card-chinh">
+                <span class="nk-card-tren">
+                  <b><?= e($r['HanhDong']) ?></b>
+                  <?php if ($coDT): ?><span class="nk-chip-dt"><?= e($r['DoiTuong']) ?></span><?php endif; ?>
+                </span>
+                <?php if ($coMT): ?>
+                  <span class="nk-mota<?= $thatBai ? ' loi' : '' ?>" title="<?= e($r['MoTa']) ?>"><?= $thatBai ? $svg('canhbao', 14) : '' ?><?= e(mb_strimwidth((string) $r['MoTa'], 0, 90, '…', 'UTF-8')) ?></span>
+                <?php endif; ?>
+              </span>
               <?php if ($thatBai): ?>
                 <span class="nk-tt nk-tt-loi"><?= $svg('canhbao', 14) ?>Thất bại</span>
               <?php else: ?>
                 <span class="nk-tt nk-tt-ok"><?= $svg('dung', 14) ?>Thành công</span>
               <?php endif; ?>
-            </td>
-            <td class="nk-td-tt">
-              <button type="button" class="nk-more" data-nk="<?= e($chiTiet) ?>" aria-label="Xem chi tiết bản ghi <?= (int) $r['MaNhatKy'] ?>" title="Xem chi tiết"><?= $svg('cham', 18) ?></button>
-            </td>
-          </tr>
-        <?php endforeach; endif; ?>
-        </tbody>
-      </table>
-    </div>
-
-    <dialog class="nk-hop" id="nkChiTiet" aria-labelledby="nkHopTieuDe">
-      <div class="nk-hop-nd">
-        <div class="nk-hop-dau">
-          <h3 id="nkHopTieuDe">Chi tiết nhật ký <span data-f="ma"></span></h3>
-          <button type="button" class="nk-hop-dong" data-dong aria-label="Đóng">&times;</button>
-        </div>
-        <dl class="nk-hop-ds">
-          <dt>Thời gian</dt><dd data-f="tg"></dd>
-          <dt>Hành động</dt><dd data-f="hd"></dd>
-          <dt>Đối tượng</dt><dd data-f="dt"></dd>
-          <dt>Mô tả</dt><dd class="nk-hop-mota" data-f="mota"></dd>
-          <dt>Trạng thái</dt><dd><span class="nk-tt" data-f="tt"></span></dd>
-        </dl>
-        <p class="nk-hop-chu">Nhật ký chỉ để xem, không thể sửa hoặc xóa.</p>
+            </button>
+          </li>
+        <?php endforeach; ?>
+        </ol>
+      <?php endforeach; endif; ?>
       </div>
-    </dialog>
+
+      <aside class="nk-ben">
+        <section class="nk-pn" id="nkPanel">
+          <div class="nk-pn-dau"><h3>Chi tiết bản ghi</h3><span data-f="ma"></span></div>
+          <p class="nk-pn-rong" id="nkPanelRong">Chọn một dòng trong danh sách để xem chi tiết.</p>
+          <dl class="nk-hop-ds" id="nkPanelDs" hidden>
+            <dt>Thời gian</dt><dd data-f="tg"></dd>
+            <dt>Hành động</dt><dd data-f="hd"></dd>
+            <dt>Đối tượng</dt><dd data-f="dt"></dd>
+            <dt>Mô tả</dt><dd class="nk-hop-mota" data-f="mota"></dd>
+            <dt>Quản trị viên</dt><dd data-f="ad"></dd>
+            <dt>Địa chỉ IP</dt><dd data-f="ip"></dd>
+            <dt>Trạng thái</dt><dd><span class="nk-tt" data-f="tt"></span></dd>
+          </dl>
+          <p class="nk-hop-chu">Nhật ký chỉ để xem, không thể sửa hoặc xóa. Hệ thống chỉ lưu <?= (int) NhatKy::GIU_THANG ?> tháng gần nhất.</p>
+        </section>
+
+        <section class="nk-pn">
+          <div class="nk-pn-dau"><h3>Cơ cấu hành động</h3><span>30 ngày</span></div>
+          <?php if (!$coCau): ?>
+            <p class="nk-pn-rong">Chưa có hoạt động nào trong 30 ngày qua.</p>
+          <?php else: foreach ($coCau as $c): ?>
+            <div class="nk-cc">
+              <div class="nk-cc-dong"><span><?= e($c['nhan']) ?></span><b><?= (int) $c['pt'] ?>%</b></div>
+              <div class="nk-thanh" title="<?= e($so($c['so'])) ?> hoạt động"><i class="nk-thanh-<?= e($c['lop']) ?>" style="width:<?= max(2, (int) $c['pt']) ?>%"></i></div>
+            </div>
+          <?php endforeach; endif; ?>
+        </section>
+      </aside>
+    </div>
 
     <div class="nk-chan">
       <span class="nk-tong">
@@ -350,4 +424,5 @@ require __DIR__ . '/layout/header.php';
     </div>
   </form>
 </div>
+<script src="<?= e(BASE_URL) ?>/assets/vendor/chart.umd.js"></script>
 <?php require __DIR__ . '/layout/footer.php'; ?>
