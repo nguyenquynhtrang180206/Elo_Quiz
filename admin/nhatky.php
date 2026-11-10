@@ -394,7 +394,13 @@ require __DIR__ . '/layout/header.php';
           <label class="xuat-chon"><input type="radio" name="pham_vi" value="tatca"> Toàn bộ nhật ký <span class="xuat-phu">(<?= $so($tk['tong']) ?> bản ghi)</span></label>
         </fieldset>
         <fieldset>
-          <legend>Chọn trường cần xuất</legend>
+          <legend>Nội dung xuất</legend>
+          <label class="xuat-chon"><input type="checkbox" name="noidung[]" value="ds" checked> Danh sách nhật ký <span class="xuat-phu">(bảng)</span></label>
+          <label class="xuat-chon"><input type="checkbox" name="noidung[]" value="nhip" checked> Biểu đồ thao tác theo ngày</label>
+          <label class="xuat-chon"><input type="checkbox" name="noidung[]" value="cocau" checked> Biểu đồ cơ cấu hành động</label>
+        </fieldset>
+        <fieldset id="nkTruongBox">
+          <legend>Chọn trường của danh sách</legend>
           <?php foreach ([
               'tg' => 'Thời gian', 'hd' => 'Hành động', 'dt' => 'Đối tượng', 'mota' => 'Mô tả', 'tt' => 'Trạng thái',
           ] as $k => $ten): ?>
@@ -406,17 +412,24 @@ require __DIR__ . '/layout/header.php';
           </div>
         </fieldset>
         <fieldset>
+          <legend>Mốc thời gian</legend>
+          <label class="xuat-chon"><input type="checkbox" name="moc[]" value="d7"> 7 ngày gần nhất</label>
+          <label class="xuat-chon"><input type="checkbox" name="moc[]" value="d30"> 30 ngày gần nhất</label>
+          <label class="xuat-chon"><input type="checkbox" name="moc[]" value="tatca" checked> Toàn bộ phạm vi đang xuất</label>
+          <p class="xuat-ghichu">Tích nhiều mốc để có nhiều sheet / nhiều trang. Mốc 7 và 30 ngày tính đến hôm nay, vẫn trong phạm vi đã chọn ở trên.</p>
+        </fieldset>
+        <fieldset>
+          <legend>Chia sheet / trang</legend>
+          <label class="xuat-chon"><input type="radio" name="chia" value="moc" checked> Theo mốc thời gian</label>
+          <label class="xuat-chon"><input type="radio" name="chia" value="loai"> Theo loại nội dung</label>
+          <label class="xuat-chon"><input type="radio" name="chia" value="ca"> Cả hai</label>
+          <p class="xuat-ghichu" id="nkGhiChuChia"></p>
+        </fieldset>
+        <fieldset>
           <legend>Định dạng</legend>
           <label class="xuat-chon"><input type="radio" name="dinhdang" value="excel" checked> Excel (.xlsx)</label>
           <label class="xuat-chon"><input type="radio" name="dinhdang" value="pdf"> PDF</label>
           <label class="xuat-chon"><input type="radio" name="dinhdang" value="ca"> Cả hai (tải liên tiếp 2 file)</label>
-        </fieldset>
-        <fieldset>
-          <legend>Biểu đồ</legend>
-          <label class="xuat-chon"><input type="checkbox" name="bieudo" value="1" checked> Kèm biểu đồ <span class="xuat-phu">(thao tác theo ngày, cơ cấu hành động)</span></label>
-          <label class="xuat-chon"><input type="radio" name="bd_ngay" value="7" checked> 7 ngày gần nhất</label>
-          <label class="xuat-chon"><input type="radio" name="bd_ngay" value="30"> 30 ngày gần nhất</label>
-          <label class="xuat-chon"><input type="radio" name="bd_ngay" value="tatca"> Toàn bộ phạm vi đang xuất</label>
         </fieldset>
       </div>
       <div class="xuat-xemCot">
