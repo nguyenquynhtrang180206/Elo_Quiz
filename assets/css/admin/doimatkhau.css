@@ -1,2 +1,63 @@
-/* Trang Đổi mật khẩu (admin/doimatkhau.php) */
-.card.khung-doimatkhau { max-width:440px; }
+/* Trang Đổi mật khẩu (admin/doimatkhau.php): nền ngoài + sidebar giữ tông tối như các trang khác, khối nội dung bên trong nền trắng.
+   Màu của riêng trang đặt ở các biến --d-* ngay bên dưới. */
+.card.dmk {
+  --d-navy:#0b2a8a; --d-xanh:#1e5cf0; --d-vang:#f5b82e; --d-chu:#12235e; --d-phu:#6b7694; --d-vien:#dfe6f6;
+  display:grid; grid-template-columns:minmax(260px,.85fr) minmax(0,1.15fr); padding:0; max-width:1180px; overflow:hidden;
+  background:#fff; color:var(--d-chu); border:1px solid #e6ecf8; border-radius:20px; box-shadow:0 10px 30px rgba(0,0,0,.28);
+}
+.dmk h2, .dmk p, .dmk li { text-shadow:none; }
+
+/* Cột trái: ảnh + khẩu hiệu */
+.dmk-trai { display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:34px 28px; }
+.dmk-anh { width:100%; max-width:340px; height:auto; display:block; border-radius:20px; }
+.dmk .dmk-cau { margin:22px 0 6px; font-size:21px; font-weight:800; font-style:italic; line-height:1.4; color:var(--d-navy); }
+.dmk-gach { width:150px; height:4px; border-radius:99px; background:linear-gradient(90deg,transparent,var(--d-vang) 30%,var(--d-vang) 70%,transparent); }
+
+/* Cột phải */
+.dmk-phai { padding:34px 40px 36px; border-left:1px solid var(--d-vien); min-width:0; }
+.dmk-dau { display:flex; align-items:center; gap:18px; margin-bottom:22px; }
+.dmk-icon { width:76px; height:76px; border-radius:50%; flex:none; display:grid; place-items:center; color:var(--d-xanh); background:#e3edff; }
+.dmk .dmk-dau h2 { margin:0 0 6px; font-size:30px; font-weight:800; color:var(--d-navy); }
+.dmk .dmk-dau p { margin:0; font-size:15px; color:var(--d-phu); }
+.dmk .loi, .dmk .thanhcong { margin:0 0 16px; border-radius:12px; box-shadow:none; }
+.dmk .thanhcong { background:#e8f8ef; color:#1a7a45; border:1px solid #b7e8cb; }
+.dmk .loi { background:#fdecee; color:#b3262c; border:1px solid #f5c2c6; }
+
+/* Ô nhập kiểu viên thuốc: icon khóa + ô nhập + nút con mắt */
+.dmk .dmk-an { position:absolute; width:1px; height:1px; margin:0; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+.dmk-o { display:flex; align-items:center; gap:12px; height:58px; padding:0 18px; margin-bottom:16px; background:#fff;
+  border:1px solid #cfd9f0; border-radius:999px; box-shadow:0 2px 8px rgba(30,60,140,.05); }
+.dmk-o:focus-within { border-color:var(--d-xanh); box-shadow:0 0 0 3px rgba(30,92,240,.15); }
+.dmk-khoa { flex:none; color:#5a6aa8; }
+.dmk .dmk-o input[type=password], .dmk .dmk-o input[type=text] {
+  flex:1; min-width:0; width:auto; height:100%; margin:0; padding:0 4px; border:0; border-radius:0;
+  background:transparent; color:var(--d-chu); box-shadow:none; font-size:16px; outline:none; }
+.dmk .dmk-o input:focus { border:0; box-shadow:none; }
+.dmk .dmk-o input::placeholder { color:#8a97b5; }
+.dmk-mat { flex:none; display:grid; place-items:center; width:36px; height:36px; padding:0; border:0; border-radius:50%; background:transparent; color:#5a6aa8; cursor:pointer; }
+.dmk-mat:hover { background:#eef2fb; color:var(--d-xanh); }
+.dmk-mat .gach { display:inline; }
+.dmk-mat[aria-pressed="true"] .gach { display:none; }
+
+/* Hộp gợi ý: tick xanh khi đạt */
+.dmk-goiy { list-style:none; margin:2px 0 18px; padding:14px 20px; background:#eaf0ff; border-radius:16px; }
+.dmk-goiy li { display:flex; align-items:center; gap:10px; margin:6px 0; font-size:14px; color:#4b5a86; }
+.dmk-goiy li::before { content:"✓"; flex:none; width:20px; height:20px; border-radius:50%; display:grid; place-items:center;
+  font-size:12px; font-weight:800; line-height:1; color:#fff; background:#b8c4e6; }
+.dmk-goiy li.dat { color:var(--d-chu); }
+.dmk-goiy li.dat::before { background:var(--d-xanh); }
+
+/* Nút gửi */
+.dmk .btn.dmk-nut { display:flex; align-items:center; justify-content:center; gap:10px; width:100%; height:58px; padding:0;
+  font-size:18px; font-weight:700; color:#fff; border:0; border-radius:999px; text-shadow:none;
+  background:linear-gradient(90deg,#2a62f0,#4a86ff); box-shadow:0 8px 20px rgba(30,92,240,.32); cursor:pointer; }
+.dmk .btn.dmk-nut:hover { background:linear-gradient(90deg,#2455d8,#3f7af0); box-shadow:0 10px 24px rgba(30,92,240,.4); transform:none; filter:none; }
+
+@media (max-width:900px) {
+  .card.dmk { grid-template-columns:1fr; }
+  .dmk-trai { padding:24px 20px 8px; }
+  .dmk-anh { max-width:220px; }
+  .dmk-phai { border-left:0; border-top:1px solid var(--d-vien); padding:24px 20px 28px; }
+  .dmk-icon { width:60px; height:60px; }
+  .dmk .dmk-dau h2 { font-size:24px; }
+}

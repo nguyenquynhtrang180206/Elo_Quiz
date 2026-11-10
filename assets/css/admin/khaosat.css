@@ -88,3 +88,27 @@
 .ks-chantrang .phantrang a:hover { border-color:var(--ks-chinh); color:var(--ks-chinh); box-shadow:none; }
 .ks-chantrang .phantrang strong { background:var(--ks-chinh); border-color:var(--ks-chinh); color:#fff; }
 .ks-chantrang .phantrang span { margin-left:auto; }
+
+/* Nút Xuất cạnh bộ lọc ngày + bảng trong phần xem trước của hộp thoại Xuất */
+.ks-loc-phai { display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+.ks-loc-phai .btn { white-space:nowrap; }
+.xuat-hop { width:min(1040px,100%); }
+@media (min-width:761px) { .xuat-luoi { grid-template-columns:300px minmax(0,1fr); } }   /* cột nội dung hẹp, cột xem trước rộng */
+.xuat-bang { overflow-x:auto; margin-top:6px; }
+.xuat-bang table { width:100%; border-collapse:collapse; font-size:12px; }
+.xuat-bang th { background:#f1f0fb; color:#1c1f3a; text-align:left; padding:5px 8px; white-space:nowrap; }
+.xuat-bang td { color:#24324f; padding:5px 8px; border-top:1px solid #eeecf8; vertical-align:top; }
+
+/* Cột xem trước cao bằng cột trái: khung cuộn phủ kín phần còn lại của cột (không tự kéo dài hộp thoại) */
+.xuat-luoi { align-items:stretch; }
+.xuat-xemCot { position:relative; min-height:320px; }
+.xuat-xemCot .xuat-xem { position:absolute; top:30px; left:0; right:0; bottom:0; max-height:none; overflow-y:auto; }
+@media (max-width:760px) {
+  .xuat-xemCot { min-height:0; }
+  .xuat-xemCot .xuat-xem { position:static; max-height:56vh; }
+}
+
+/* Các cột của danh sách sinh viên: lồng dưới ô "Danh sách từng sinh viên", xếp 2 cột cho gọn */
+.xuat-con { display:grid; grid-template-columns:1fr 1fr; gap:0 8px; margin:2px 0 4px 26px; }
+.xuat-con[hidden] { display:none; }
+.xuat-con .xuat-chon { margin-top:6px; font-size:13px; }

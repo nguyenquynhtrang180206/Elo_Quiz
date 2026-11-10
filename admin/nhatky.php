@@ -8,7 +8,6 @@ Auth::requireAdmin(BASE_URL . '/admin/login.php');   // A-04
 $pdo = Database::pdo();
 
 // ---- Dữ liệu cho bộ lọc ----
-$dsAdmin = $pdo->query('SELECT MaAdmin, HoTen, TenDangNhap FROM ADMIN ORDER BY HoTen')->fetchAll();
 $dsHanhDong = $pdo->query('SELECT DISTINCT HanhDong FROM NHATKYQUANTRI ORDER BY HanhDong')->fetchAll(PDO::FETCH_COLUMN);
 
 // ---- A-41: bộ lọc dựng ở NhatKy::dieuKien() (dùng chung với file xuất để hai nơi lọc giống hệt nhau) ----
@@ -18,7 +17,6 @@ $tham    = $kq['tham'];
 $thamLoc = $kq['loc'];   // bộ lọc đã kiểm tra: dùng dựng link phân trang, link xuất và điền lại form
 $loi     = $kq['loi'];
 $q   = (string) ($thamLoc['q']   ?? '');
-$ad  = (int)    ($thamLoc['ad']  ?? 0);
 $hd  = (string) ($thamLoc['hd']  ?? '');
 $tu  = (string) ($thamLoc['tu']  ?? '');
 $den = (string) ($thamLoc['den'] ?? '');
@@ -28,38 +26,7 @@ $tt  = (string) ($thamLoc['tt']  ?? '');   // trạng thái: Thành công | Th�
 $sx      = (($_GET['sx'] ?? '') === 'asc') ? 'asc' : 'desc';
 $thamLink = $thamLoc + ($sx === 'asc' ? ['sx' => 'asc'] : []);   // dùng dựng link phân trang (giữ cả bộ lọc và chiều sắp xếp)
 
-// ---- Xuất CSV: giữ nguyên bộ lọc đang chọn, chỉ đọc dữ liệu (không ghi gì vào nhật ký) ----
-if (($_GET['xuat'] ?? '') === 'csv') {
-    $st = $pdo->prepare(
-        "SELECT n.ThoiGian, a.HoTen, a.TenDangNhap, n.HanhDong, n.DoiTuong, n.MoTa
-         FROM NHATKYQUANTRI n
-         JOIN ADMIN a ON a.MaAdmin = n.MaAdmin
-         $where
-         ORDER BY n.ThoiGian DESC, n.MaNhatKy DESC
-         LIMIT 50000"
-    );
-    $st->execute($tham);
-
-    // Ô bắt đầu bằng = + - @ có thể bị Excel hiểu là công thức: thêm dấu ' phía trước
-    $an = static function (?string $s): string {
-        $s = (string) $s;
-        return ($s !== '' && strpbrk($s[0], "=+-@\t\r") !== false) ? "'" . $s : $s;
-    };
-
-    header('Content-Type: text/csv; charset=utf-8');
-    header('Content-Disposition: attachment; filename="nhatky_quantri_' . date('Ymd_His') . '.csv"');
-    $out = fopen('php://output', 'w');
-    fwrite($out, "\xEF\xBB\xBF");   // BOM để Excel đọc đúng tiếng Việt
-    fputcsv($out, ['Thời gian', 'Quản trị viên', 'Tên đăng nhập', 'Hành động', 'Đối tượng', 'Mô tả'], ',', '"', '\\');
-    foreach ($st as $r) {
-        fputcsv($out, [
-            date('d/m/Y H:i:s', strtotime($r['ThoiGian'])),
-            $an($r['HoTen']), $an($r['TenDangNhap']), $an($r['HanhDong']), $an($r['DoiTuong']), $an($r['MoTa']),
-        ], ',', '"', '\\');
-    }
-    fclose($out);
-    exit;
-}
+// Xuất Excel/PDF: hộp thoại ở cuối trang, xử lý ở admin/nhatky_xuat.php (nhận lại bộ lọc đang chọn bằng các ô ẩn)
 
 // ---- 4 thẻ số liệu (tính trên toàn bộ nhật ký, không phụ thuộc bộ lọc) ----
 $mocHomNay = date('Y-m-d') . ' 00:00:00';
@@ -69,13 +36,12 @@ $moc60     = date('Y-m-d', strtotime('-59 days')) . ' 00:00:00';
 $st = $pdo->prepare(
     "SELECT COUNT(*) AS tong,
             COALESCE(SUM(ThoiGian >= ?), 0) AS homnay,
-            COUNT(DISTINCT CASE WHEN ThoiGian >= ? THEN MaAdmin END) AS adminhd,
             COALESCE(SUM(ThoiGian >= ?), 0) AS nay30,
             COALESCE(SUM(ThoiGian >= ? AND ThoiGian < ?), 0) AS truoc30,
             COALESCE(SUM(TrangThai = 'Thất bại' AND ThoiGian >= ?), 0) AS thatbai
      FROM NHATKYQUANTRI"
 );
-$st->execute([$mocHomNay, $moc7, $moc30, $moc60, $moc30, $moc7]);
+$st->execute([$mocHomNay, $moc30, $moc60, $moc30, $moc7]);
 $tk = array_map('intval', $st->fetch());
 
 // Mức tăng/giảm: 30 ngày gần nhất so với 30 ngày liền trước đó (cùng cách tính với trang Tổng quan)
@@ -100,7 +66,7 @@ $st->execute($tham);
 $p = new Paginator((int) $st->fetchColumn(), 5);
 
 $st = $pdo->prepare(
-    "SELECT n.MaNhatKy, n.MaAdmin, n.HanhDong, n.DoiTuong, n.ThoiGian, n.MoTa, n.DiaChiIP, n.TrangThai, a.HoTen, a.TenDangNhap
+    "SELECT n.MaNhatKy, n.HanhDong, n.DoiTuong, n.ThoiGian, n.MoTa, n.TrangThai
      FROM NHATKYQUANTRI n
      JOIN ADMIN a ON a.MaAdmin = n.MaAdmin
      $where
@@ -178,14 +144,13 @@ $phanTrang = static function (Paginator $pg) use ($thamLink): string {
 };
 
 $coLoc   = $thamLoc !== [];
-$urlXuat = '?' . http_build_query($thamLoc + ['xuat' => 'csv']);
 $urlSx   = '?' . http_build_query($thamLoc + ($sx === 'asc' ? [] : ['sx' => 'asc']));   // bấm tiêu đề cột Thời gian để đảo chiều
 $tu1     = $ds ? $p->offset() + 1 : 0;
 $den1    = $ds ? $p->offset() + count($ds) : 0;
 
 $tieuDe  = 'Nhật ký quản trị';
 $mucChon = 'nhatky';
-$cssTrang = 'nhatky';
+$cssTrang = ['thongke_xuat', 'nhatky'];   // thongke_xuat: giao diện hộp thoại Xuất dùng chung với trang Tổng quan; nhatky nạp sau để ghi đè phần riêng
 $jsTrang  = 'nhatky';   // hộp xem chi tiết (nút …)
 require __DIR__ . '/layout/header.php';
 ?>
@@ -216,14 +181,6 @@ require __DIR__ . '/layout/header.php';
         <div class="nk-so-phu">Hoạt động ghi nhận</div>
       </div>
     </div>
-    <div class="nk-so nk-luc">
-      <span class="nk-so-icon"><?= $svg('nhom', 24) ?></span>
-      <div class="nk-so-nd">
-        <div class="nk-so-nhan">Quản trị viên</div>
-        <div class="nk-so-lon"><?= e($so($tk['adminhd'])) ?></div>
-        <div class="nk-so-phu">Có hoạt động 7 ngày qua (trên tổng <?= count($dsAdmin) ?>)</div>
-      </div>
-    </div>
     <div class="nk-so nk-do">
       <span class="nk-so-icon"><?= $svg('canhbao', 24) ?></span>
       <div class="nk-so-nd">
@@ -242,14 +199,14 @@ require __DIR__ . '/layout/header.php';
     <div class="nk-ds-dau">
       <span class="nk-ds-icon"><?= $svg('danhsach', 22) ?></span>
       <h3>Danh sách nhật ký</h3>
-      <a class="nk-nut nk-nut-phu nk-nut-xuat" href="<?= e($urlXuat) ?>" title="Tải CSV theo bộ lọc đang chọn"><?= $svg('tai', 18) ?>Xuất CSV</a>
+      <button type="button" class="nk-nut nk-nut-phu nk-nut-xuat" id="nkMoXuat" aria-haspopup="dialog" title="Xuất nhật ký ra Excel hoặc PDF"><?= $svg('tai', 18) ?>Xuất Excel / PDF</button>
     </div>
 
     <form method="get" action="" class="nk-loc">
       <?php if ($sx === 'asc'): ?><input type="hidden" name="sx" value="asc"><?php endif; ?>
       <label class="nk-tim-o">
         <?= $svg('tim', 18) ?>
-        <input type="search" name="q" value="<?= e($q) ?>" placeholder="Tìm theo quản trị viên, hành động, đối tượng, mô tả..." aria-label="Tìm kiếm" autocomplete="off">
+        <input type="search" name="q" value="<?= e($q) ?>" placeholder="Tìm theo hành động, đối tượng, mô tả..." aria-label="Tìm kiếm" autocomplete="off">
       </label>
       <select name="hd" aria-label="Hành động" onchange="this.form.submit()">
         <option value="">Tất cả hành động</option>
@@ -263,12 +220,6 @@ require __DIR__ . '/layout/header.php';
           <option value="<?= e($t) ?>"<?= $tt === $t ? ' selected' : '' ?>><?= e($t) ?></option>
         <?php endforeach; ?>
       </select>
-      <select name="ad" aria-label="Quản trị viên" onchange="this.form.submit()">
-        <option value="0">Tất cả quản trị viên</option>
-        <?php foreach ($dsAdmin as $a): ?>
-          <option value="<?= (int) $a['MaAdmin'] ?>"<?= $ad === (int) $a['MaAdmin'] ? ' selected' : '' ?>><?= e($a['HoTen'] . ' (' . $a['TenDangNhap'] . ')') ?></option>
-        <?php endforeach; ?>
-      </select>
       <label class="nk-ngay">Từ <input type="date" name="tu" value="<?= e($tu) ?>" onchange="this.form.submit()"></label>
       <label class="nk-ngay">đến <input type="date" name="den" value="<?= e($den) ?>" onchange="this.form.submit()"></label>
       <a class="nk-nut nk-nut-chinh" href="?"><?= $svg('datlai', 18) ?>Đặt lại</a>
@@ -279,45 +230,34 @@ require __DIR__ . '/layout/header.php';
         <thead>
           <tr>
             <th><a class="nk-sx" href="<?= e($urlSx) ?>" title="<?= $sx === 'asc' ? 'Đang xếp cũ nhất trước, bấm để xếp mới nhất trước' : 'Đang xếp mới nhất trước, bấm để xếp cũ nhất trước' ?>">Thời gian <?= $svg('sapxep', 14) ?></a></th>
-            <th>Quản trị viên</th><th>Hành động</th><th>Nội dung</th><th>Địa chỉ IP</th><th>Trạng thái</th><th class="nk-th-tt">Thao tác</th>
+            <th>Hành động</th><th>Nội dung</th><th>Trạng thái</th><th class="nk-th-tt">Thao tác</th>
           </tr>
         </thead>
         <tbody>
         <?php if (!$ds): ?>
-          <tr><td colspan="7" class="nk-trong"><?= $coLoc ? 'Không có bản ghi nhật ký nào khớp bộ lọc.' : 'Chưa có bản ghi nhật ký nào.' ?></td></tr>
+          <tr><td colspan="5" class="nk-trong"><?= $coLoc ? 'Không có bản ghi nhật ký nào khớp bộ lọc.' : 'Chưa có bản ghi nhật ký nào.' ?></td></tr>
         <?php else: foreach ($ds as $r):
             [$lopHd, $iconHd] = $kieuHanhDong((string) $r['HanhDong']);
-            $chuCai   = mb_strtoupper(mb_substr(trim((string) $r['HoTen']), 0, 1)) ?: 'A';
             $thatBai  = ($r['TrangThai'] ?? '') === 'Thất bại';
             $coDT     = $r['DoiTuong'] !== null && $r['DoiTuong'] !== '';
             $coMT     = $r['MoTa'] !== null && $r['MoTa'] !== '';
             // Dữ liệu cho hộp chi tiết (JS đọc bằng JSON.parse rồi gán bằng textContent nên không chèn HTML)
             $chiTiet  = json_encode([
                 'tg'   => date('d/m/Y H:i:s', strtotime($r['ThoiGian'])),
-                'ten'  => (string) $r['HoTen'],
-                'user' => (string) $r['TenDangNhap'],
                 'hd'   => (string) $r['HanhDong'],
                 'dt'   => (string) $r['DoiTuong'],
                 'mota' => (string) $r['MoTa'],
-                'ip'   => (string) $r['DiaChiIP'],
                 'tt'   => (string) $r['TrangThai'],
                 'ma'   => '#' . (int) $r['MaNhatKy'],
             ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>
           <tr>
             <td class="nk-tg"><?= e(date('d/m/Y H:i:s', strtotime($r['ThoiGian']))) ?></td>
-            <td>
-              <div class="nk-nguoi">
-                <span class="nk-ava nk-ava<?= (int) $r['MaAdmin'] % 5 ?>" aria-hidden="true"><?= e($chuCai) ?></span>
-                <span class="nk-nguoi-ten"><b><?= e($r['HoTen']) ?></b><small><?= e($r['TenDangNhap']) ?></small></span>
-              </div>
-            </td>
             <td><span class="nk-hd nk-hd-<?= $lopHd ?>"><?= $svg($iconHd, 14) ?><?= e($r['HanhDong']) ?></span></td>
             <td class="nk-nd">
               <?php if ($coDT): ?><span class="nk-dt"><?= e($r['DoiTuong']) ?></span><?php endif; ?>
               <?php if ($coMT): ?><span class="nk-mota" title="<?= e($r['MoTa']) ?>"><?= e(mb_strimwidth((string) $r['MoTa'], 0, 90, '…', 'UTF-8')) ?></span><?php endif; ?>
               <?php if (!$coDT && !$coMT): ?><span class="nk-rong">—</span><?php endif; ?>
             </td>
-            <td class="nk-ip"><?= $r['DiaChiIP'] !== null && $r['DiaChiIP'] !== '' ? e($r['DiaChiIP']) : '<span class="nk-rong">—</span>' ?></td>
             <td>
               <?php if ($thatBai): ?>
                 <span class="nk-tt nk-tt-loi"><?= $svg('canhbao', 14) ?>Thất bại</span>
@@ -342,11 +282,9 @@ require __DIR__ . '/layout/header.php';
         </div>
         <dl class="nk-hop-ds">
           <dt>Thời gian</dt><dd data-f="tg"></dd>
-          <dt>Quản trị viên</dt><dd><span data-f="ten"></span> (<span data-f="user"></span>)</dd>
           <dt>Hành động</dt><dd data-f="hd"></dd>
           <dt>Đối tượng</dt><dd data-f="dt"></dd>
           <dt>Mô tả</dt><dd class="nk-hop-mota" data-f="mota"></dd>
-          <dt>Địa chỉ IP</dt><dd data-f="ip"></dd>
           <dt>Trạng thái</dt><dd><span class="nk-tt" data-f="tt"></span></dd>
         </dl>
         <p class="nk-hop-chu">Nhật ký chỉ để xem, không thể sửa hoặc xóa.</p>
@@ -362,5 +300,54 @@ require __DIR__ . '/layout/header.php';
     </div>
   </section>
 
+</div>
+
+<!-- Hộp thoại Xuất nhật ký (Excel / PDF): cùng giao diện với hộp thoại Xuất của trang Tổng quan (modal-nen, modal xuat-hop);
+     cột trái chọn phạm vi, trường và định dạng, cột phải xem trước. Xử lý ở nhatky_xuat.php -->
+<div class="modal-nen" id="nkXuatHop" hidden>
+  <form class="modal xuat-hop nk-xuat-hop" id="nkXuatForm" method="post" action="<?= e(BASE_URL) ?>/admin/nhatky_xuat.php" role="dialog" aria-modal="true" aria-labelledby="nkXuatTieuDe">
+    <h3 id="nkXuatTieuDe">Xuất nhật ký quản trị</h3>
+    <?= csrf_field() ?>
+    <?php foreach ($thamLoc as $k => $v): ?>
+      <input type="hidden" name="<?= e((string) $k) ?>" value="<?= e((string) $v) ?>">
+    <?php endforeach; ?>
+    <?php if ($sx === 'asc'): ?><input type="hidden" name="sx" value="asc"><?php endif; ?>
+    <div class="xuat-luoi">
+      <div class="xuat-chonCot">
+        <fieldset>
+          <legend>Xuất phạm vi nào?</legend>
+          <label class="xuat-chon"><input type="radio" name="pham_vi" value="loc" checked> Đang lọc <span class="xuat-phu">(<?= $so($p->tong()) ?> bản ghi, mọi trang)</span></label>
+          <label class="xuat-chon"><input type="radio" name="pham_vi" value="tatca"> Toàn bộ nhật ký <span class="xuat-phu">(<?= $so($tk['tong']) ?> bản ghi)</span></label>
+        </fieldset>
+        <fieldset>
+          <legend>Chọn trường cần xuất</legend>
+          <?php foreach ([
+              'tg' => 'Thời gian', 'hd' => 'Hành động', 'dt' => 'Đối tượng', 'mota' => 'Mô tả', 'tt' => 'Trạng thái',
+          ] as $k => $ten): ?>
+            <label class="xuat-chon"><input type="checkbox" name="truong[]" value="<?= e($k) ?>" checked> <?= e($ten) ?></label>
+          <?php endforeach; ?>
+          <div class="nk-xuat-nut">
+            <button type="button" class="btn btn-phu xuat-tatca" id="nkChonHet">Chọn tất cả</button>
+            <button type="button" class="btn btn-phu xuat-tatca" id="nkBoChon">Bỏ chọn</button>
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend>Định dạng</legend>
+          <label class="xuat-chon"><input type="radio" name="dinhdang" value="excel" checked> Excel (.xlsx)</label>
+          <label class="xuat-chon"><input type="radio" name="dinhdang" value="pdf"> PDF</label>
+          <label class="xuat-chon"><input type="radio" name="dinhdang" value="ca"> Cả hai (tải liên tiếp 2 file)</label>
+        </fieldset>
+      </div>
+      <div class="xuat-xemCot">
+        <div class="xuat-xemDau">Xem trước <small id="nkXemGhiChu"></small></div>
+        <div class="xuat-xem" id="nkXem"><p class="xuat-ghichu">Đang tải...</p></div>
+      </div>
+    </div>
+    <p class="xuat-loi" id="nkXuatLoi" hidden></p>
+    <div class="hanh-dong">
+      <button type="button" class="btn btn-phu" id="nkXuatHuy">Hủy</button>
+      <button type="submit" class="btn" id="nkXuatOk">Xuất</button>
+    </div>
+  </form>
 </div>
 <?php require __DIR__ . '/layout/footer.php'; ?>

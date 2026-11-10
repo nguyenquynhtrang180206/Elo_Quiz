@@ -2,6 +2,7 @@
 // Thống kê khảo sát định hướng (UC10, luồng thay thế: A-35, A-36). Đặt tại: elo_quiz/admin/khaosat.php
 // Bước 3: truy vấn theo khoảng ngày. Bước 4-6: khung giao diện mới, 3 biểu đồ Chart.js, bảng chi tiết câu hỏi.
 require_once __DIR__ . '/../core/bootstrap.php';
+require_once __DIR__ . '/../core/KhaoSatThongKe.php';
 Auth::requireAdmin(BASE_URL . '/admin/login.php');   // A-04
 
 $pdo = Database::pdo();
@@ -190,8 +191,8 @@ function so_vn(int|float $v, int $le = 0): string
 $tieuDe  = 'Thống kê khảo sát';
 $mucChon = 'khaosat';
 // Không bật $giaoDienMoi: dùng cùng khung (nền tối + sidebar) với trang Tổng quan
-$cssTrang = 'khaosat';
-$jsTrang  = ['khaosat'];
+$cssTrang = ['thongke_xuat', 'khaosat'];   // khaosat sau để ghi đè kích thước hộp thoại
+$jsTrang  = ['khaosat', 'khaosat_xuat'];
 require __DIR__ . '/layout/header.php';
 
 $tuHienThi  = $tu->format('d/m/Y');
@@ -252,7 +253,10 @@ $denHienThi = $den->format('d/m/Y');
       <input type="date" name="den" value="<?= e($den->format('Y-m-d')) ?>" aria-label="Đến ngày">
       <button type="submit" class="btn">Áp dụng</button>
     </div>
-    <span class="nhan-phu">Đang xem: <?= e($tuHienThi) ?> – <?= e($denHienThi) ?> (<?= $soNgay ?> ngày)</span>
+    <div class="ks-loc-phai">
+      <span class="nhan-phu">Đang xem: <?= e($tuHienThi) ?> – <?= e($denHienThi) ?> (<?= $soNgay ?> ngày)</span>
+      <button type="button" class="btn" id="nutXuat" title="Xuất thống kê khảo sát (Excel/PDF)">⬇ Xuất</button>
+    </div>
   </form>
 
   <!-- 3 biểu đồ -->
@@ -318,6 +322,53 @@ $denHienThi = $den->format('d/m/Y');
     <div class="ks-chantrang"><?= preg_replace('/href="([^"]*)"/', 'href="$1#ks-sv"', $phanTrang->links()) ?></div>
     <p class="nhan-phu ks-chuthich-duoi">Mỗi trang 5 sinh viên, mới nhất trước. Sinh viên bỏ qua khảo sát không có câu trả lời.</p>
   </section>
+</div>
+
+<!-- Hộp thoại Xuất: cột trái chọn các trường cần xuất, cột phải xem trước toàn bộ -->
+<div class="modal-nen" id="hopXuat" hidden>
+  <form class="modal xuat-hop" id="formXuat" method="post" action="<?= e(BASE_URL) ?>/admin/khaosat_xuat.php" role="dialog" aria-modal="true" aria-labelledby="xuatTieuDe"
+        data-api="<?= e(BASE_URL) ?>/admin/khaosat_du_lieu.php">
+    <h3 id="xuatTieuDe">Xuất thống kê khảo sát</h3>
+    <?= csrf_field() ?>
+    <input type="hidden" name="tu" value="<?= e($tu->format('Y-m-d')) ?>">
+    <input type="hidden" name="den" value="<?= e($den->format('Y-m-d')) ?>">
+    <p class="xuat-ghichu">Khoảng ngày: <?= e($tuHienThi) ?> – <?= e($denHienThi) ?> (đổi ở bộ lọc ngày bên ngoài rồi mở lại hộp thoại này).</p>
+    <div class="xuat-luoi">
+      <div class="xuat-chonCot">
+        <fieldset>
+          <legend>Nội dung cần xuất</legend>
+          <?php foreach (KhaoSatThongKe::TRUONG as $ma => $nhan): ?>
+            <label class="xuat-chon"><input type="checkbox" name="truong[]" value="<?= e($ma) ?>" checked> <?= e($nhan) ?></label>
+            <?php if ($ma === 'sinhVien'): ?>
+              <!-- Các cột của danh sách sinh viên: hiện ngay dưới khi tick "Danh sách từng sinh viên", mặc định chọn hết -->
+              <div class="xuat-con" id="xuatCotSV">
+                <?php foreach (KhaoSatThongKe::COT_SV as $maCot => $ten): ?>
+                  <label class="xuat-chon"><input type="checkbox" name="cot[]" value="<?= e($maCot) ?>" data-ten="<?= e($ten) ?>" checked> <?= e($ten) ?></label>
+                <?php endforeach; ?>
+              </div>
+            <?php endif; ?>
+          <?php endforeach; ?>
+          <label class="xuat-chon"><input type="checkbox" name="kemBieuDo" value="1" checked> Kèm hình biểu đồ</label>
+          <button type="button" class="btn btn-phu xuat-tatca" id="xuatChonHet">Chọn / bỏ chọn tất cả</button>
+        </fieldset>
+        <fieldset>
+          <legend>Định dạng</legend>
+          <label class="xuat-chon"><input type="radio" name="dinhdang" value="excel" checked> Excel (.xlsx)</label>
+          <label class="xuat-chon"><input type="radio" name="dinhdang" value="pdf"> PDF</label>
+          <label class="xuat-chon"><input type="radio" name="dinhdang" value="ca"> Cả hai (tải liên tiếp 2 file)</label>
+        </fieldset>
+      </div>
+      <div class="xuat-xemCot">
+        <div class="xuat-xemDau">Xem trước</div>
+        <div class="xuat-xem" id="xuatXem"><p class="xuat-ghichu">Đang tải...</p></div>
+      </div>
+    </div>
+    <p class="xuat-loi" id="xuatLoi" hidden></p>
+    <div class="hanh-dong">
+      <button type="button" class="btn btn-phu" id="xuatHuy">Hủy</button>
+      <button type="submit" class="btn" id="xuatOk">Xuất</button>
+    </div>
+  </form>
 </div>
 
 <script src="<?= e(BASE_URL) ?>/assets/vendor/chart.umd.js"></script>

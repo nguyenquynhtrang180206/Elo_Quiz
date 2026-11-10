@@ -14,7 +14,7 @@
 .nk-hero p { margin:2px 0 0; color:#5b6b8c; font-size:14px; }
 
 /* ---- 4 thẻ số liệu ---- */
-.nk-the { display:grid; grid-template-columns:repeat(4, 1fr); gap:16px; margin-bottom:20px; }
+.nk-the { display:grid; grid-template-columns:repeat(3, 1fr); gap:16px; margin-bottom:20px; }
 .nk-so { position:relative; overflow:hidden; display:flex; gap:14px; align-items:flex-start; border-radius:16px; padding:18px 20px; border:1px solid transparent; }
 .nk-so-icon { flex:none; width:44px; height:44px; border-radius:12px; display:flex; align-items:center; justify-content:center; background:#fff; }
 .nk-so-nd { min-width:0; }
@@ -126,10 +126,41 @@
 .nk-hop-mota { white-space:pre-wrap; }
 .nk-hop-chu { margin:16px 0 0; font-size:12px; color:#8a96b3; }
 
-@media (max-width:1100px) { .nk-the { grid-template-columns:repeat(2, 1fr); } }
+@media (max-width:900px) { .nk-the { grid-template-columns:repeat(2, 1fr); } }
 @media (max-width:560px) {
   .nk-khung { padding:14px; }
   .nk-the { grid-template-columns:1fr; }
   .nk-hop-ds { grid-template-columns:1fr; gap:2px 0; }
   .nk-hop-ds dd { margin-bottom:8px; }
 }
+
+/* ---- Hộp thoại Xuất Excel / PDF ----
+   Dùng chung giao diện hộp thoại Xuất của trang Tổng quan (modal-nen, modal xuat-hop, xuat-* trong thongke_xuat.css);
+   ở đây chỉ bổ sung phần riêng của trang này: hộp rộng hơn, hai cột cao bằng nhau, bảng xem trước. */
+.xuat-hop.nk-xuat-hop { width:min(1040px, 100%); }
+.nk-xuat-hop .xuat-luoi { grid-template-columns:280px minmax(0, 1fr); align-items:stretch; }
+.nk-xuat-hop .xuat-phu { opacity:.65; font-size:13px; }
+.nk-xuat-hop .xuat-xemDau small { font-weight:400; font-size:13px; opacity:.75; margin-left:6px; }
+.nk-xuat-nut { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+.nk-xuat-nut .xuat-tatca { margin-top:0; }
+
+/* Hai cột cao bằng nhau: khung xem trước lấy chiều cao của cột lựa chọn bên trái và tự cuộn bên trong */
+.nk-xuat-hop .xuat-xemCot { position:relative; min-height:360px; }
+.nk-xuat-hop .xuat-xem { position:absolute; inset:30px 0 0 0; max-height:none; }
+@media (max-width:760px) {
+  .nk-xuat-hop .xuat-luoi { grid-template-columns:1fr; }
+  .nk-xuat-hop .xuat-xemCot { position:static; min-height:0; }
+  .nk-xuat-hop .xuat-xem { position:static; max-height:56vh; }
+}
+
+/* Bảng xem trước */
+.xuat-the .nk-xb-cuon { overflow-x:auto; border:1px solid #e2e7f6; border-radius:10px; }
+.xuat-the .nk-xb { display:table; width:100%; border-collapse:collapse; font-size:12.5px; color:#24324f; }
+.xuat-the .nk-xb th { padding:6px 9px; text-align:left; font-size:11.5px; font-weight:700; white-space:nowrap; background:#f3f6fd; color:#4a5679; border-bottom:1px solid #e2e7f6; letter-spacing:0; }
+.xuat-the .nk-xb td { padding:6px 9px; vertical-align:top; border-bottom:1px solid #eef1fa; background:transparent; color:#24324f; }
+.xuat-the .nk-xb tr:last-child td { border-bottom:0; }
+.xuat-the .nk-xb .nk-xb-nowrap { white-space:nowrap; }
+.xuat-the .nk-xb-tt { display:inline-block; padding:2px 9px; border-radius:999px; font-size:11.5px; font-weight:700; white-space:nowrap; }
+.xuat-the .nk-xb-ok  { background:#dcf5ea; color:#0b7f62; }
+.xuat-the .nk-xb-loi { background:#fde3e6; color:#c11f35; }
+.xuat-the .xuat-canhbao { margin:8px 0 0; padding:6px 10px; border-radius:8px; font-size:12.5px; background:#fff0d6; color:#a86400; }
