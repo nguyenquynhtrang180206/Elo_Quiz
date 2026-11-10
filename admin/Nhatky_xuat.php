@@ -7,7 +7,11 @@
 //   pham_vi : loc = đang lọc (q, ad, hd, tt, tu, den gửi kèm từ trang, dựng bằng NhatKy::dieuKien giống hệt trang danh sách),
 //             tatca = toàn bộ nhật ký (bỏ qua bộ lọc).
 //   truong[]: các trường (cột) cần xuất: tg, hd, dt, mota, tt (xem $COT). Thứ tự cột trong file luôn theo $COT.
+//             Bỏ trống hết mà có bieudo=1 thì file CHỈ có biểu đồ (không có bảng dữ liệu).
 //   dinhdang: excel | pdf.
+//   bd_ngay : khoảng ngày của biểu đồ: 7 | 30 (7/30 ngày gần nhất tính đến hôm nay, vẫn trong phạm vi đã lọc) | tatca (toàn bộ phạm vi).
+//   bieudo  : 1 = kèm biểu đồ (thao tác theo ngày, cơ cấu hành động). Ảnh JPEG do trình duyệt vẽ từ số liệu xem trước
+//             và gửi kèm ở anh_nhip, anh_cocau (cùng cách với admin/thongke_xuat.php).
 //   sx      : asc = cũ nhất trước; mặc định mới nhất trước (giống thứ tự đang xem trên trang).
 //   buoc=xemtruoc: không xuất file mà trả JSON để dựng khung "Xem trước" (tổng số, số thành công/thất bại, vài dòng đầu).
 require_once __DIR__ . '/../core/bootstrap.php';
@@ -20,6 +24,26 @@ function loi_xuat(string $thongBao, int $ma = 400): never
     http_response_code($ma);
     header('Content-Type: text/plain; charset=utf-8');
     exit($thongBao);
+}
+
+// Ảnh biểu đồ (data URL JPEG): chỉ nhận JPEG hợp lệ, tối đa 5 MB mỗi ảnh
+function anh_bieu_do(string $khoa): ?array
+{
+    $v   = (string) ($_POST[$khoa] ?? '');
+    $dau = 'data:image/jpeg;base64,';
+    if (strncmp($v, $dau, strlen($dau)) !== 0) { return null; }
+    $b = base64_decode(substr($v, strlen($dau)), true);
+    if ($b === false || strlen($b) > 5 * 1024 * 1024) { return null; }
+    $kt = @getimagesizefromstring($b);
+    if (!$kt || $kt[2] !== IMAGETYPE_JPEG || $kt[0] < 1 || $kt[1] < 1) { return null; }
+    return ['jpeg' => $b, 'rong' => $kt[0], 'cao' => $kt[1]];
+}
+
+// Ảnh dùng trong Excel, cao $cao pixel (giữ tỷ lệ); $x là vị trí pixel tính từ mép trái sheet
+function anh_theo_cao(?array $a, int $cao, int $x = 0): ?array
+{
+    if (!$a) { return null; }
+    return ['jpeg' => $a['jpeg'], 'rong' => (int) round($a['rong'] * $cao / $a['cao']), 'cao' => $cao, 'x' => $x];
 }
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -57,10 +81,13 @@ if (!in_array($dinhDang, ['excel', 'pdf'], true)) {
 // array_intersect giữ thứ tự của $COT nên thứ tự cột trong file luôn cố định, không phụ thuộc thứ tự gửi lên
 $truong = array_values(array_intersect(array_keys($COT),
     is_array($_POST['truong'] ?? null) ? array_map('strval', $_POST['truong']) : []));
-if (!$truong && $buoc !== 'xemtruoc') {
-    loi_xuat('Hãy chọn ít nhất một trường cần xuất.');
+$coBieuDo = (string) ($_POST['bieudo'] ?? '') === '1';
+if (!$truong && !$coBieuDo && $buoc !== 'xemtruoc') {
+    loi_xuat('Hãy chọn ít nhất một trường hoặc tích "Kèm biểu đồ".');
 }
 $sx = (($_POST['sx'] ?? '') === 'asc') ? 'ASC' : 'DESC';
+$bdNgay = (string) ($_POST['bd_ngay'] ?? '7');
+if (!in_array($bdNgay, ['7', '30', 'tatca'], true)) { $bdNgay = '7'; }
 
 // ---- Bộ lọc ----
 if ($phamVi === 'loc') {
@@ -87,6 +114,12 @@ if ($phamVi === 'tatca') {
 } else {
     $phan = [];
     if (isset($loc['q']))   { $phan[] = 'từ khóa "' . $loc['q'] . '"'; }
+    if (isset($loc['ad'])) {
+        $stAd = $pdo->prepare('SELECT HoTen FROM ADMIN WHERE MaAdmin = ?');
+        $stAd->execute([$loc['ad']]);
+        $phan[] = 'quản trị viên ' . ((string) ($stAd->fetchColumn() ?: ('#' . $loc['ad'])));
+    }
+    if (isset($loc['nhom'])) { $phan[] = 'nhóm "' . NhatKy::NHOM[$loc['nhom']][0] . '"'; }
     if (isset($loc['hd']))  { $phan[] = 'hành động "' . $loc['hd'] . '"'; }
     if (isset($loc['tt']))  { $phan[] = 'trạng thái ' . $loc['tt']; }
     if (isset($loc['tu']))  { $phan[] = 'từ ' . $ngayVN($loc['tu']); }
@@ -130,12 +163,71 @@ $layDong = static function (int $gioiHan) use ($pdo, $where, $tham, $sx): array 
     return $ra;
 };
 
+// Số liệu cho hai biểu đồ, tính trên ĐÚNG phạm vi đang xuất (cùng $where với bảng dữ liệu)
+$soLieuBieuDo = static function () use ($pdo, $where, $tham, $bdNgay): array {
+    // 7 / 30 ngày gần nhất: thêm điều kiện thời gian vào bộ lọc; tatca: giữ nguyên phạm vi
+    $w = $where; $th = $tham; $soNgay = 0; $tuNgay = '';
+    if ($bdNgay !== 'tatca') {
+        $soNgay = (int) $bdNgay;
+        $tuNgay = date('Y-m-d', strtotime('-' . ($soNgay - 1) . ' days'));
+        $w  = ($where === '' ? 'WHERE' : $where . ' AND') . ' n.ThoiGian >= ?';
+        $th[] = $tuNgay . ' 00:00:00';
+    }
+    // 1) Số thao tác theo từng ngày (ngày không có thao tác được điền 0 để các cột liền nhau)
+    $st = $pdo->prepare(
+        "SELECT DATE(n.ThoiGian) AS ngay, COUNT(*) AS tong,
+                COALESCE(SUM(n.TrangThai = 'Thất bại'), 0) AS loi
+         FROM NHATKYQUANTRI n
+         JOIN ADMIN a ON a.MaAdmin = n.MaAdmin
+         $w
+         GROUP BY DATE(n.ThoiGian)
+         ORDER BY ngay"
+    );
+    $st->execute($th);
+    $co = [];
+    foreach ($st->fetchAll() as $r) { $co[$r['ngay']] = ['tong' => (int) $r['tong'], 'loi' => (int) $r['loi']]; }
+    $theoNgay = [];
+    if ($soNgay > 0 || $co) {
+        $ngay = array_keys($co);
+        $d    = new DateTime($soNgay > 0 ? $tuNgay : reset($ngay));
+        $cuoi = new DateTime($soNgay > 0 ? date('Y-m-d') : end($ngay));
+        for ($i = 0; $i < 400 && $d <= $cuoi; $i++) {
+            $k = $d->format('Y-m-d');
+            $theoNgay[] = ['ngay' => $k, 'tong' => $co[$k]['tong'] ?? 0, 'loi' => $co[$k]['loi'] ?? 0];
+            $d->modify('+1 day');
+        }
+    }
+
+    // 2) Cơ cấu hành động theo nhóm (cùng cách chia nhóm như chip lọc ở trang nhật ký)
+    $st = $pdo->prepare(
+        "SELECT n.HanhDong, COUNT(*) AS so
+         FROM NHATKYQUANTRI n
+         JOIN ADMIN a ON a.MaAdmin = n.MaAdmin
+         $w
+         GROUP BY n.HanhDong"
+    );
+    $st->execute($th);
+    $dem = [];
+    foreach ($st->fetchAll() as $r) {
+        $khoa = NhatKy::nhomCuaHanhDong((string) $r['HanhDong']) ?? 'khac';
+        $dem[$khoa] = ($dem[$khoa] ?? 0) + (int) $r['so'];
+    }
+    $mau = ['xoa' => '#d6293e', 'mo' => '#22a06b', 'khoa' => '#e3a93b', 'sua' => '#2f6bff', 'xuat' => '#7c3aed', 'khac' => '#8b95b0'];
+    $coCau = [];
+    foreach ($dem as $khoa => $so) {
+        $coCau[] = ['nhan' => $khoa === 'khac' ? 'Khác' : NhatKy::NHOM[$khoa][0], 'so' => $so, 'mau' => $mau[$khoa]];
+    }
+    usort($coCau, static fn (array $a, array $b): int => $b['so'] <=> $a['so']);
+    return ['theoNgay' => $theoNgay, 'coCau' => $coCau];
+};
+
 // =====================================================================================================
 // XEM TRƯỚC (JSON)
 // =====================================================================================================
 if ($buoc === 'xemtruoc') {
     header('Content-Type: application/json; charset=utf-8');
     header('Cache-Control: no-store');
+    $bd = $tong > 0 ? $soLieuBieuDo() : ['theoNgay' => [], 'coCau' => []];
     exit(json_encode([
         'tong'      => $tong,
         'thanhCong' => $tong - $tk['thatbai'],
@@ -146,6 +238,8 @@ if ($buoc === 'xemtruoc') {
         'toiDaXlsx' => $TOI_DA_XLSX,
         'toiDaPdf'  => $TOI_DA_PDF,
         'dong'      => $tong > 0 ? $layDong($SO_DONG_XEM) : [],
+        'theoNgay'  => $bd['theoNgay'],
+        'coCau'     => $bd['coCau'],
     ], JSON_UNESCAPED_UNICODE));
 }
 
@@ -156,12 +250,12 @@ if ($tong === 0) {
     loi_xuat('Không có bản ghi nhật ký nào trong phạm vi đã chọn.');
 }
 $toiDa = $dinhDang === 'pdf' ? $TOI_DA_PDF : $TOI_DA_XLSX;
-if ($tong > $toiDa) {
+if ($truong && $tong > $toiDa) {   // giới hạn số dòng chỉ áp dụng khi có bảng dữ liệu
     loi_xuat('Phạm vi có ' . number_format($tong, 0, ',', '.') . ' bản ghi, vượt giới hạn ' . number_format($toiDa, 0, ',', '.')
         . ' bản ghi của file ' . ($dinhDang === 'pdf' ? 'PDF' : 'Excel') . '. Hãy lọc bớt (theo ngày, hành động...) rồi xuất lại.');
 }
 
-$dong     = $layDong($toiDa);
+$dong     = $truong ? $layDong($toiDa) : [];
 $tenFile  = 'nhatky_quantri_' . date('Ymd_His');
 $bayGio   = date('d/m/Y H:i');
 $tieuDeCot = array_map(static fn (string $k): string => $COT[$k][0], $truong);
@@ -171,15 +265,26 @@ $tomTat   = number_format($tong, 0, ',', '.') . ' bản ghi · thành công ' . 
 
 // Ghi vết việc xuất (chỉ đọc dữ liệu nên không ảnh hưởng nội dung file vừa lấy). Gọi trước khi gửi file vì tai() kết thúc chương trình.
 NhatKy::ghi('Xuất nhật ký quản trị', null,
-    ($dinhDang === 'pdf' ? 'PDF' : 'Excel') . ' · ' . $tong . ' bản ghi · Cột: ' . implode(', ', $tieuDeCot) . ' · ' . $moTaPhamVi . '.');
+    ($dinhDang === 'pdf' ? 'PDF' : 'Excel') . ' · ' . $tong . ' bản ghi · ' . ($truong ? 'Cột: ' . implode(', ', $tieuDeCot) : 'Chỉ biểu đồ') . ' · ' . $moTaPhamVi . '.');
+
+// Biểu đồ (chỉ khi người dùng tích "Kèm biểu đồ" và trình duyệt gửi ảnh lên)
+$anhNhip  = $coBieuDo ? anh_bieu_do('anh_nhip')  : null;
+$anhCoCau = $coBieuDo ? anh_bieu_do('anh_cocau') : null;
+
+if (!$truong && !$anhNhip && !$anhCoCau) {
+    loi_xuat('Không có biểu đồ nào để xuất (khoảng ngày đã chọn không có thao tác). Hãy chọn trường dữ liệu hoặc đổi khoảng ngày.');
+}
 
 if ($dinhDang === 'excel') {
+    $anhXlsx = array_values(array_filter([anh_theo_cao($anhNhip, 240), anh_theo_cao($anhCoCau, 240)]));
+    if (count($anhXlsx) === 2) { $anhXlsx[1]['x'] = $anhXlsx[0]['rong'] + 16; }
     $hang = [
         ['kieu' => 2,  'o' => ['Nhật ký quản trị']],
         ['kieu' => 16, 'o' => ['Xuất lúc ' . $bayGio . ' · ' . $tomTat]],
         ['kieu' => 16, 'o' => [$moTaPhamVi . ' · Xếp ' . ($sx === 'ASC' ? 'cũ nhất trước' : 'mới nhất trước')]],
-        ['kieu' => 6,  'o' => $tieuDeCot],
     ];
+    if ($anhXlsx) { $hang[] = ['anh' => $anhXlsx]; }   // hai biểu đồ cạnh nhau, nằm giữa phần tiêu đề và bảng dữ liệu
+    if ($truong) { $hang[] = ['kieu' => 6, 'o' => $tieuDeCot]; }
     foreach ($dong as $r) {
         $o = [];
         foreach ($truong as $k) {
@@ -198,6 +303,8 @@ $pdf->tieuDe('Nhật ký quản trị', 18);
 $pdf->doan('Xuất lúc ' . $bayGio . ' · ' . $tomTat, 9, false, '#5b6b8c');
 $pdf->doan($moTaPhamVi . ' · Xếp ' . ($sx === 'ASC' ? 'cũ nhất trước' : 'mới nhất trước'), 9, false, '#5b6b8c');
 $pdf->khoang(6);
+$anhPdf = array_values(array_filter([$anhNhip['jpeg'] ?? null, $anhCoCau['jpeg'] ?? null]));
+if ($anhPdf) { $pdf->anhHang($anhPdf, 190); }
 
 $viTriTT = array_search('tt', $truong, true);
 $dongPdf = [];
@@ -211,5 +318,5 @@ foreach ($dong as $i => $r) {
     }
 }
 $tyLe = array_map(static fn (string $k): float => $COT[$k][1], $truong);
-$pdf->bang($tieuDeCot, $dongPdf, $tyLe, [], $mauO, $viTriTT !== false ? [$viTriTT] : []);
+if ($truong) { $pdf->bang($tieuDeCot, $dongPdf, $tyLe, [], $mauO, $viTriTT !== false ? [$viTriTT] : []); }
 $pdf->tai($tenFile . '.pdf');

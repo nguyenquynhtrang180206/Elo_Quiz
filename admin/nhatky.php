@@ -411,6 +411,13 @@ require __DIR__ . '/layout/header.php';
           <label class="xuat-chon"><input type="radio" name="dinhdang" value="pdf"> PDF</label>
           <label class="xuat-chon"><input type="radio" name="dinhdang" value="ca"> Cả hai (tải liên tiếp 2 file)</label>
         </fieldset>
+        <fieldset>
+          <legend>Biểu đồ</legend>
+          <label class="xuat-chon"><input type="checkbox" name="bieudo" value="1" checked> Kèm biểu đồ <span class="xuat-phu">(thao tác theo ngày, cơ cấu hành động)</span></label>
+          <label class="xuat-chon"><input type="radio" name="bd_ngay" value="7" checked> 7 ngày gần nhất</label>
+          <label class="xuat-chon"><input type="radio" name="bd_ngay" value="30"> 30 ngày gần nhất</label>
+          <label class="xuat-chon"><input type="radio" name="bd_ngay" value="tatca"> Toàn bộ phạm vi đang xuất</label>
+        </fieldset>
       </div>
       <div class="xuat-xemCot">
         <div class="xuat-xemDau">Xem trước <small id="nkXemGhiChu"></small></div>

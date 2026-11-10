@@ -175,6 +175,8 @@
   var xemGhiChu = document.getElementById('nkXemGhiChu');
   var loi = document.getElementById('nkXuatLoi');
   var nutOk = document.getElementById('nkXuatOk');
+  var cbBieuDo = form.querySelector('input[name="bieudo"]');
+  var bieuDoXem = [];   // các biểu đồ đang vẽ trong khung xem trước (hủy trước khi vẽ lại để không rò bộ nhớ)
 
   // Khớp với $COT trong nhatky_xuat.php (khóa, tiêu đề cột)
   var COT = [
@@ -204,8 +206,9 @@
   // ---------- Gọi máy chủ ----------
   function goi(fd) { return fetch(form.action, { method: 'POST', body: fd, credentials: 'same-origin' }); }
   function docLoi(r) { return r.text().then(function (t) { throw new Error(t || 'Không xuất được file.'); }); }
+  function khoaCache() { return radio('pham_vi') + '|' + radio('bd_ngay'); }   // đổi phạm vi hoặc khoảng ngày biểu đồ thì phải lấy lại số liệu
   function layDuLieu() {
-    var khoa = radio('pham_vi');
+    var khoa = khoaCache();
     if (cache.du && cache.khoa === khoa) { return Promise.resolve(cache.du); }
     var fd = new FormData(form);
     fd.set('buoc', 'xemtruoc');
@@ -216,6 +219,79 @@
       cache = { khoa: khoa, du: d };
       return d;
     });
+  }
+
+  // ---------- Biểu đồ (dùng cho cả khung xem trước và ảnh chụp đưa vào file) ----------
+  function ddmm(iso) { var p = iso.split('-'); return p[2] + '/' + p[1]; }
+  // tinh = true: ảnh chụp (kích thước cố định, không hiệu ứng, nét gấp đôi); false: xem trước co giãn theo khung
+  function cauHinh(loai, d, tinh) {
+    var chung = tinh ? { responsive: false, animation: false, devicePixelRatio: 2 }
+                     : { responsive: true, maintainAspectRatio: false, animation: false };
+    if (loai === 'nhip') {
+      return {
+        type: 'bar',
+        data: {
+          labels: d.theoNgay.map(function (m) { return ddmm(m.ngay); }),
+          datasets: [
+            { label: 'Thành công', data: d.theoNgay.map(function (m) { return m.tong - m.loi; }), backgroundColor: '#4f46e5', maxBarThickness: 44, stack: 'nhip' },
+            { label: 'Thất bại', data: d.theoNgay.map(function (m) { return m.loi; }), backgroundColor: '#d6293e', maxBarThickness: 44, stack: 'nhip' }
+          ]
+        },
+        options: Object.assign({}, chung, {
+          plugins: { legend: { display: true, position: 'bottom' }, title: { display: true, text: 'Số thao tác theo ngày' } },
+          scales: {
+            x: { stacked: true, grid: { display: false }, ticks: { autoSkip: true, maxTicksLimit: 15, maxRotation: 0 } },
+            y: { stacked: true, beginAtZero: true, ticks: { precision: 0 } }
+          }
+        })
+      };
+    }
+    return {
+      type: 'doughnut',
+      data: {
+        labels: d.coCau.map(function (c) { return c.nhan + ' (' + so(c.so) + ')'; }),
+        datasets: [{ data: d.coCau.map(function (c) { return c.so; }), backgroundColor: d.coCau.map(function (c) { return c.mau; }), borderWidth: 1 }]
+      },
+      options: Object.assign({}, chung, {
+        plugins: { legend: { position: 'bottom' }, title: { display: true, text: 'Cơ cấu hành động' } }
+      })
+    };
+  }
+  function huyBieuDoXem() {
+    bieuDoXem.forEach(function (c) { c.destroy(); });
+    bieuDoXem = [];
+  }
+  // Canvas của Chart.js trong suốt nên chụp lên nền trắng (lưu thẳng sang JPEG sẽ bị nền đen)
+  function chup(c) {
+    var t = document.createElement('canvas');
+    t.width = c.width; t.height = c.height;
+    var g = t.getContext('2d');
+    g.fillStyle = '#ffffff';
+    g.fillRect(0, 0, t.width, t.height);
+    g.drawImage(c, 0, 0);
+    return t.toDataURL('image/jpeg', 0.92);
+  }
+  // Vẽ lại hai biểu đồ ở kích thước cố định ngoài màn hình rồi chụp thành JPEG gửi kèm lên máy chủ
+  function anhBieuDo(d) {
+    var kq = {};
+    if (!cbBieuDo || !cbBieuDo.checked || typeof Chart === 'undefined') { return kq; }
+    [['nhip', 900, 300, d.theoNgay, 'nhip'], ['cocau', 440, 300, d.coCau, 'cocau']].forEach(function (b) {
+      if (!b[3] || !b[3].length) { return; }
+      var khung = el('div');
+      khung.style.cssText = 'position:fixed;left:-10000px;top:0;pointer-events:none;';
+      var cv = document.createElement('canvas');
+      cv.width = b[1]; cv.height = b[2];
+      khung.appendChild(cv);
+      document.body.appendChild(khung);
+      var ch = null;
+      try {
+        ch = new Chart(cv, cauHinh(b[4], d, true));
+        kq[b[0]] = chup(cv);
+      } catch (e) { /* không chụp được thì file xuất không có biểu đồ này */ }
+      if (ch) { ch.destroy(); }
+      khung.remove();
+    });
+    return kq;
   }
 
   // ---------- Khung xem trước ----------
@@ -232,11 +308,13 @@
     return o;
   }
   function veXem(d) {
+    huyBieuDoXem();
     xem.textContent = '';
     xemGhiChu.textContent = '· ' + so(d.tong) + ' bản ghi trong phạm vi';
     var tr = truongChon();
     if (!d.tong) { xem.appendChild(el('p', 'xuat-ghichu', 'Không có bản ghi nhật ký nào trong phạm vi này.')); return; }
-    if (!tr.length) { xem.appendChild(el('p', 'xuat-ghichu', 'Hãy chọn ít nhất một trường để xem trước.')); return; }
+    var chiBieuDo = !tr.length && cbBieuDo && cbBieuDo.checked;   // bỏ hết trường nhưng vẫn kèm biểu đồ: file chỉ có biểu đồ
+    if (!tr.length && !chiBieuDo) { xem.appendChild(el('p', 'xuat-ghichu', 'Hãy chọn ít nhất một trường hoặc tích "Kèm biểu đồ".')); return; }
     if (radio('dinhdang') === 'ca') {
       xem.appendChild(el('p', 'xuat-ghichu', 'Định dạng "Cả hai": tải về hai file, Excel rồi PDF.'));
     }
@@ -256,51 +334,69 @@
     soLieu.appendChild(oSo('Thất bại', so(d.thatBai)));
     the.appendChild(soLieu);
 
-    var cuon = el('div', 'nk-xb-cuon');
-    var bang = el('table', 'nk-xb');
-    var tHead = el('thead'), hTr = el('tr');
-    var cotHien = COT.filter(function (c) { return tr.indexOf(c[0]) >= 0; });
-    cotHien.forEach(function (c) { hTr.appendChild(el('th', '', c[1])); });
-    tHead.appendChild(hTr); bang.appendChild(tHead);
-    var tBody = el('tbody');
-    d.dong.forEach(function (r) {
-      var row = el('tr');
-      cotHien.forEach(function (c) {
-        var td = el('td');
-        var v = r[c[0]];
-        if (c[0] === 'tt') {
-          td.appendChild(el('span', 'nk-xb-tt ' + (v === 'Thất bại' ? 'nk-xb-loi' : 'nk-xb-ok'), v));
-        } else {
-          td.textContent = v === '' ? '—' : v;
-          if (c[0] === 'tg') { td.className = 'nk-xb-nowrap'; }
-        }
-        row.appendChild(td);
+    var canvasCho = [];   // canvas biểu đồ chờ gắn vào trang rồi mới vẽ (Chart.js cần đo kích thước khung)
+    if (cbBieuDo && cbBieuDo.checked && typeof Chart !== 'undefined' && d.theoNgay && d.theoNgay.length) {
+      var luoi = el('div', 'nk-xb-bieudo');
+      ['nhip', 'cocau'].forEach(function (loai) {
+        var o = el('div', 'nk-xb-bd');
+        var cv = document.createElement('canvas');
+        o.appendChild(cv);
+        luoi.appendChild(o);
+        canvasCho.push([loai, cv]);
       });
-      tBody.appendChild(row);
-    });
-    bang.appendChild(tBody);
-    cuon.appendChild(bang);
-    the.appendChild(cuon);
+      the.appendChild(luoi);
+    }
 
-    var them = d.tong - d.dong.length;
-    the.appendChild(el('p', 'xuat-ghichu', (them > 0
-      ? 'Đang xem ' + so(d.dong.length) + ' bản ghi đầu tiên, còn ' + so(them) + ' bản ghi nữa trong file. '
-      : 'Hiển thị đủ ' + so(d.dong.length) + ' bản ghi. ')
-      + 'Thứ tự cột trong file giống bảng trên.'));
+    if (chiBieuDo) {
+      the.appendChild(el('p', 'xuat-ghichu', 'Chỉ xuất biểu đồ, file không có bảng dữ liệu.'));
+    } else {
+      var cuon = el('div', 'nk-xb-cuon');
+      var bang = el('table', 'nk-xb');
+      var tHead = el('thead'), hTr = el('tr');
+      var cotHien = COT.filter(function (c) { return tr.indexOf(c[0]) >= 0; });
+      cotHien.forEach(function (c) { hTr.appendChild(el('th', '', c[1])); });
+      tHead.appendChild(hTr); bang.appendChild(tHead);
+      var tBody = el('tbody');
+      d.dong.forEach(function (r) {
+        var row = el('tr');
+        cotHien.forEach(function (c) {
+          var td = el('td');
+          var v = r[c[0]];
+          if (c[0] === 'tt') {
+            td.appendChild(el('span', 'nk-xb-tt ' + (v === 'Thất bại' ? 'nk-xb-loi' : 'nk-xb-ok'), v));
+          } else {
+            td.textContent = v === '' ? '—' : v;
+            if (c[0] === 'tg') { td.className = 'nk-xb-nowrap'; }
+          }
+          row.appendChild(td);
+        });
+        tBody.appendChild(row);
+      });
+      bang.appendChild(tBody);
+      cuon.appendChild(bang);
+      the.appendChild(cuon);
 
-    var dd = radio('dinhdang');
-    if ((dd !== 'excel' && d.tong > d.toiDaPdf) || (dd !== 'pdf' && d.tong > d.toiDaXlsx)) {
-      var gh = dd !== 'excel' && d.tong > d.toiDaPdf ? d.toiDaPdf : d.toiDaXlsx;
-      the.appendChild(el('p', 'xuat-canhbao', 'Phạm vi này vượt giới hạn ' + so(gh) + ' bản ghi của file '
-        + (dd !== 'excel' && d.tong > d.toiDaPdf ? 'PDF' : 'Excel') + '. Hãy lọc bớt rồi xuất lại.'));
+      var them = d.tong - d.dong.length;
+      the.appendChild(el('p', 'xuat-ghichu', (them > 0
+        ? 'Đang xem ' + so(d.dong.length) + ' bản ghi đầu tiên, còn ' + so(them) + ' bản ghi nữa trong file. '
+        : 'Hiển thị đủ ' + so(d.dong.length) + ' bản ghi. ')
+        + 'Thứ tự cột trong file giống bảng trên.'));
+
+      var dd = radio('dinhdang');
+      if ((dd !== 'excel' && d.tong > d.toiDaPdf) || (dd !== 'pdf' && d.tong > d.toiDaXlsx)) {
+        var gh = dd !== 'excel' && d.tong > d.toiDaPdf ? d.toiDaPdf : d.toiDaXlsx;
+        the.appendChild(el('p', 'xuat-canhbao', 'Phạm vi này vượt giới hạn ' + so(gh) + ' bản ghi của file '
+          + (dd !== 'excel' && d.tong > d.toiDaPdf ? 'PDF' : 'Excel') + '. Hãy lọc bớt rồi xuất lại.'));
+      }
     }
     xem.appendChild(the);
+    canvasCho.forEach(function (b) { bieuDoXem.push(new Chart(b[1], cauHinh(b[0], d, false))); });
   }
 
   function capNhatXem() {
     var mine = ++luot;
     bao('');
-    if (!cache.du || cache.khoa !== radio('pham_vi')) {
+    if (!cache.du || cache.khoa !== khoaCache()) {
       xem.textContent = '';
       xem.appendChild(el('p', 'xuat-ghichu', 'Đang tải xem trước…'));
     }
@@ -325,16 +421,18 @@
     hop.hidden = false;
     capNhatXem();
   }
-  function dong() { hop.hidden = true; xem.textContent = ''; }
+  function dong() { hop.hidden = true; huyBieuDoXem(); xem.textContent = ''; }
   nutMo.addEventListener('click', mo);
   document.getElementById('nkXuatHuy').addEventListener('click', dong);
   hop.addEventListener('click', function (e) { if (e.target === hop) { dong(); } });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !hop.hidden) { dong(); } });
 
   // ---------- Xuất file ----------
-  function taoFile(dinhDang) {
+  function taoFile(dinhDang, anh) {
     var fd = new FormData(form);
     fd.set('dinhdang', dinhDang);
+    if (anh && anh.nhip) { fd.set('anh_nhip', anh.nhip); }
+    if (anh && anh.cocau) { fd.set('anh_cocau', anh.cocau); }
     return goi(fd).then(function (r) {
       if (!r.ok) { return docLoi(r); }
       var m = /filename="?([^";]+)"?/.exec(r.headers.get('Content-Disposition') || '');
@@ -352,18 +450,20 @@
   form.addEventListener('submit', function (e) {
     e.preventDefault();
     bao('');
-    if (!truongChon().length) { bao('Hãy chọn ít nhất một trường cần xuất.'); return; }
+    var chiBieuDo = !truongChon().length;
+    if (chiBieuDo && !(cbBieuDo && cbBieuDo.checked)) { bao('Hãy chọn ít nhất một trường hoặc tích "Kèm biểu đồ".'); return; }
     var dd = radio('dinhdang');
     var dds = dd === 'ca' ? ['excel', 'pdf'] : [dd];
     nutOk.disabled = true; nutOk.textContent = 'Đang xuất…';
     layDuLieu().then(function (d) {
       // Kiểm tra trước để không tải file Excel rồi mới báo lỗi PDF khi chọn "Cả hai"
       if (!d.tong) { throw new Error('Không có bản ghi nhật ký nào trong phạm vi đã chọn.'); }
-      if (dds.indexOf('pdf') >= 0 && d.tong > d.toiDaPdf) { throw new Error('Phạm vi có ' + so(d.tong) + ' bản ghi, vượt giới hạn ' + so(d.toiDaPdf) + ' của file PDF. Hãy lọc bớt rồi xuất lại.'); }
-      if (dds.indexOf('excel') >= 0 && d.tong > d.toiDaXlsx) { throw new Error('Phạm vi có ' + so(d.tong) + ' bản ghi, vượt giới hạn ' + so(d.toiDaXlsx) + ' của file Excel. Hãy lọc bớt rồi xuất lại.'); }
+      if (!chiBieuDo && dds.indexOf('pdf') >= 0 && d.tong > d.toiDaPdf) { throw new Error('Phạm vi có ' + so(d.tong) + ' bản ghi, vượt giới hạn ' + so(d.toiDaPdf) + ' của file PDF. Hãy lọc bớt rồi xuất lại.'); }
+      if (!chiBieuDo && dds.indexOf('excel') >= 0 && d.tong > d.toiDaXlsx) { throw new Error('Phạm vi có ' + so(d.tong) + ' bản ghi, vượt giới hạn ' + so(d.toiDaXlsx) + ' của file Excel. Hãy lọc bớt rồi xuất lại.'); }
       // "Cả hai" = tải liên tiếp hai file riêng (Excel rồi PDF), không nén zip
+      var anh = anhBieuDo(d);   // chụp một lần, dùng cho cả Excel và PDF
       return dds.reduce(function (truoc, f) {
-        return truoc.then(function () { return taoFile(f).then(luuFile); });
+        return truoc.then(function () { return taoFile(f, anh).then(luuFile); });
       }, Promise.resolve());
     }).then(function () {
       dong();
