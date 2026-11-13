@@ -3,7 +3,7 @@
 // Đặt tại: elo_quiz/client/lichsutran.php
 require_once __DIR__ . '/../core/bootstrap.php';
 
-$maND = Auth::requireClient(BASE_URL . '/client/login.php');
+$maND = Auth::requireClient(BASE_URL . '/client/dangnhap.php');
 $pdo  = Database::pdo();
 
 $st = $pdo->prepare('SELECT COUNT(*) FROM NGUOICHOITRANDAU WHERE MaND = ?');

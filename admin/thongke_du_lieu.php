@@ -3,7 +3,7 @@
 // Gọi: thongke_du_lieu.php?ngay[]=7&ngay[]=30  (mốc hợp lệ: 7, 30, 90, 365)
 require_once __DIR__ . '/../core/bootstrap.php';
 require_once __DIR__ . '/../core/ThongKe.php';
-Auth::requireAdmin(BASE_URL . '/admin/login.php');   // A-04
+Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');   // A-04
 
 $ds = ThongKe::locKhoang($_GET['ngay'] ?? []);
 header('Content-Type: application/json; charset=utf-8');

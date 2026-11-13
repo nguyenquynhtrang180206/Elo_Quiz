@@ -1,7 +1,7 @@
 <?php
 // Trang xem toàn bộ thông báo của admin (có phân trang, tab Tất cả / Chưa đọc). Đặt tại: admin/thongbao.php
 require_once __DIR__ . '/../core/bootstrap.php';
-$adminId = Auth::requireAdmin(BASE_URL . '/admin/login.php');   // A-04
+$adminId = Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');   // A-04
 
 $pdo = Database::pdo();
 ThongBaoAdmin::damBaoBang();

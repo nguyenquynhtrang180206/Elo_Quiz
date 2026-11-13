@@ -4,7 +4,7 @@ require_once __DIR__ . '/../core/bootstrap.php';
 
 $maND = Auth::clientId();
 if ($maND === null) {
-    redirect(BASE_URL . '/client/login.php');
+    redirect(BASE_URL . '/client/dangnhap.php');
 }
 
 $pdo = Database::pdo();

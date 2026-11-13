@@ -15,7 +15,7 @@ require_once __DIR__ . '/../core/bootstrap.php';
 require_once __DIR__ . '/../core/ThongKe.php';
 require_once __DIR__ . '/../core/XlsxWriter.php';
 require_once __DIR__ . '/../core/PdfWriter.php';
-Auth::requireAdmin(BASE_URL . '/admin/login.php');   // A-04
+Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');   // A-04
 
 function loi_xuat(string $thongBao, int $ma = 400): never
 {

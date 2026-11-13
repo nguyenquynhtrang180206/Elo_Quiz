@@ -5,7 +5,7 @@
 require_once __DIR__ . '/../core/bootstrap.php';
 require_once __DIR__ . '/../core/CongDongHelper.php';
 require_once __DIR__ . '/../core/ThongBaoHelper.php';
-Auth::requireAdmin(BASE_URL . '/admin/login.php');   // A-04
+Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');   // A-04
 
 $pdo  = Database::pdo();
 $loai = (string) ($_GET['loai'] ?? 'bai');

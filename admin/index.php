@@ -1,7 +1,7 @@
 <?php
 // Dashboard và thống kê (UC10: A-06 đến A-10). Đặt tại: elo_quiz/admin/index.php
 require_once __DIR__ . '/../core/bootstrap.php';
-$adminId = Auth::requireAdmin(BASE_URL . '/admin/login.php');   // A-04
+$adminId = Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');   // A-04
 
 $pdo = Database::pdo();
 
@@ -215,13 +215,21 @@ $st->execute([$mocTruoc, $moc]);
 $hoatDongTruoc     = (int) $st->fetchColumn();
 $tyLeHoatDongTruoc = (int) $tong['nguoidung'] > 0 ? round($hoatDongTruoc * 100 / (int) $tong['nguoidung'], 1) : 0;
 
-// Mỗi thẻ: [nhãn, số lớn, màu, biểu tượng, giá trị kỳ này, giá trị kỳ trước, kiểu thay đổi]
+// Biểu tượng SVG công nghệ cho 4 thẻ số liệu
+$svgTheSo = [
+    'nguoidung' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+    'trandau'   => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>',
+    'congdong'  => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><line x1="8" y1="10" x2="8.01" y2="10"/><line x1="12" y1="10" x2="12.01" y2="10"/><line x1="16" y1="10" x2="16.01" y2="10"/></svg>',
+    'hoatdong'  => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>',
+];
+
+// Mỗi thẻ: [nhãn, số lớn, màu, mã biểu tượng, giá trị kỳ này, giá trị kỳ trước, kiểu thay đổi]
 // 'phantram' = % thay đổi so với kỳ trước; 'diem' = chênh lệch điểm phần trăm (dùng cho tỷ lệ)
 $theSo = [
-    ['Tổng người dùng',    number_format((int) $tong['nguoidung'], 0, ',', '.'), 'xanh', '👥', $ndNay,        $ndTruoc,           'phantram'],
-    ['Tổng trận đấu',      number_format((int) $tong['trandau'], 0, ',', '.'),   'vang', '🏆', $trNay,        $trTruoc,           'phantram'],
-    ['Bài đăng cộng đồng', number_format($tongBai, 0, ',', '.'),                 'tim',  '💬', $baiNay,       $baiTruoc,          'phantram'],
-    ['Tỷ lệ hoạt động',    $tyLeHoatDong . '%',                                  'luc',  '📈', $tyLeHoatDong, $tyLeHoatDongTruoc, 'diem'],
+    ['Tổng người dùng',    number_format((int) $tong['nguoidung'], 0, ',', '.'), 'xanh', 'nguoidung', $ndNay,        $ndTruoc,           'phantram'],
+    ['Tổng trận đấu',      number_format((int) $tong['trandau'], 0, ',', '.'),   'vang', 'trandau',   $trNay,        $trTruoc,           'phantram'],
+    ['Bài đăng cộng đồng', number_format($tongBai, 0, ',', '.'),                 'tim',  'congdong',  $baiNay,       $baiTruoc,          'phantram'],
+    ['Tỷ lệ hoạt động',    $tyLeHoatDong . '%',                                  'luc',  'hoatdong',  $tyLeHoatDong, $tyLeHoatDongTruoc, 'diem'],
 ];
 
 // ---- Giao diện mới - Phần 3: hoạt động gần đây và top người chơi ----
@@ -247,7 +255,13 @@ $kq = $pdo->query(
      ORDER BY tg DESC LIMIT 5"
 );
 foreach ($kq as $r) {
-    $bieuTuong = ['dangky' => '👤', 'baidang' => '📝', 'tran' => '🏆', 'nhatky' => '🛠'][$r['loai']];
+    $bieuTuongHd = [
+        'dangky'  => '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>',
+        'baidang' => '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>',
+        'tran'    => '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>',
+        'nhatky'  => '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+    ];
+    $bieuTuong = $bieuTuongHd[$r['loai']] ?? '';
     $tieuDeMuc = e($r['ten']);
     if ($r['loai'] === 'dangky') {
         $noiDung = '<b>' . $tieuDeMuc . '</b> vừa đăng ký tài khoản';
@@ -307,33 +321,50 @@ $cssTrang = ['index', 'thongke_xuat'];
 require __DIR__ . '/layout/header.php';
 ?>
 <div class="dash">
-  <div class="dash-thanhtren">
-    <div class="adm-tb" id="admTb" data-api="<?= e(BASE_URL) ?>/admin/thongbao_api.php" data-csrf="<?= e(csrf_token()) ?>">
-      <button type="button" class="dash-chuong" id="admTbNut" aria-label="Thông báo" aria-expanded="false" title="Thông báo cộng đồng">
-        🔔<em id="admTbBadge"<?= $soChuaDocAdmin > 0 ? '' : ' hidden' ?>><?= $soChuaDocAdmin > 99 ? '99+' : $soChuaDocAdmin ?></em>
-      </button>
-      <div class="adm-tb-hop" id="admTbHop" hidden>
-        <div class="adm-tb-dau">
-          <span class="adm-tb-tieude">Thông báo <b id="admTbTag"><?= $soChuaDocAdmin ?> mới</b></span>
-          <button type="button" class="adm-tb-docHet" id="admTbDocHet">✓ Đã đọc hết</button>
+  <section class="dash-hero-card">
+    <div class="dash-thanhtren-pro">
+    <div class="dash-tieude-chinh">
+      <h2>Tổng quan hệ thống</h2>
+      <p>Chào mừng trở lại, <b><?= e($tenAdmin) ?></b> · Dữ liệu được đồng bộ theo thời gian thực</p>
+    </div>
+    <div class="dash-congcu-pro">
+      <div class="dash-ngay-chip" title="Thời gian hệ thống">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+        <span><?= e($ngayHienTai) ?></span>
+        <span class="meta-dot">•</span>
+        <span><?= e($gioHienTai) ?></span>
+      </div>
+
+      <div class="adm-tb" id="admTb" data-api="<?= e(BASE_URL) ?>/admin/thongbao_api.php" data-csrf="<?= e(csrf_token()) ?>">
+        <button type="button" class="dash-chuong" id="admTbNut" aria-label="Thông báo" aria-expanded="false" title="Thông báo hệ thống">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+          <em id="admTbBadge"<?= $soChuaDocAdmin > 0 ? '' : ' hidden' ?>><?= $soChuaDocAdmin > 99 ? '99+' : $soChuaDocAdmin ?></em>
+        </button>
+        <div class="adm-tb-hop" id="admTbHop" hidden>
+          <div class="adm-tb-dau">
+            <span class="adm-tb-tieude">Thông báo <b id="admTbTag"><?= $soChuaDocAdmin ?> mới</b></span>
+            <button type="button" class="adm-tb-docHet" id="admTbDocHet">✓ Đã đọc hết</button>
+          </div>
+          <div class="adm-tb-ds" id="admTbDs"><p class="adm-tb-trong">Đang tải...</p></div>
+          <div class="adm-tb-chan">
+            <a id="admTbTatCa" href="<?= e(BASE_URL) ?>/admin/thongbao.php">Tất cả thông báo</a>
+          </div>
         </div>
-        <div class="adm-tb-ds" id="admTbDs"><p class="adm-tb-trong">Đang tải...</p></div>
-        <div class="adm-tb-chan">
-          <a id="admTbTatCa" href="<?= e(BASE_URL) ?>/admin/thongbao.php">Tất cả thông báo</a>
+      </div>
+
+      <button type="button" class="btn-xuat-pro" id="nutXuat" title="Xuất báo cáo thống kê">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+        <span>Xuất báo cáo</span>
+      </button>
+
+      <div class="dash-admin-chip">
+        <span class="dash-admin-ava"><?= mb_strtoupper(mb_substr(trim($tenAdmin), 0, 1)) ?: 'A' ?></span>
+        <div class="dash-admin-info">
+          <b><?= e($tenAdmin) ?></b>
+          <span>Quản trị viên</span>
         </div>
       </div>
     </div>
-    <button type="button" class="btn" id="nutXuat" title="Xuất báo cáo thống kê (Excel/PDF)">⬇ Xuất</button>
-    <div class="dash-admin"><b><?= e($tenAdmin) ?></b><span>Quản trị viên</span></div>
-  </div>
-
-  <div class="dash-chao">
-    <span class="dash-vuong">👑</span>
-    <div class="dash-loichao">
-      <h2>Chào mừng trở lại, <?= e($tenAdmin) ?>!</h2>
-      <p>Cùng xây dựng một cộng đồng tri thức vững mạnh hơn nhé!</p>
-    </div>
-    <div class="dash-ngay"><span>📅 <?= e($ngayHienTai) ?></span><span>🕒 <?= e($gioHienTai) ?></span></div>
   </div>
 
   <div class="dash-the">
@@ -353,20 +384,45 @@ require __DIR__ . '/layout/header.php';
         }
         $mui = $chenh > 0 ? '↑' : ($chenh < 0 ? '↓' : '→');
         $lop = $chenh > 0 ? 'len' : ($chenh < 0 ? 'xuong' : 'ngang'); ?>
-      <div class="dash-so dash-<?= $mau ?>">
-        <span class="dash-icon"><?= $icon ?></span>
+      <div class="dash-so-pro card-<?= $mau ?>">
+        <div class="dash-so-dau">
+          <span class="dash-nhan"><?= e($nhan) ?></span>
+          <div class="dash-icon-badge"><?= $svgTheSo[$icon] ?? '' ?></div>
+        </div>
         <div class="dash-so-lon"><?= e($so) ?></div>
-        <div class="dash-nhan"><?= e($nhan) ?></div>
-        <div class="dash-tang <?= $lop ?>"><?= $mui ?> <?= e($chu) ?></div>
+        <div class="dash-so-chan">
+          <span class="dash-tang-badge <?= $lop ?>"><?= $mui ?> <?= e($chu) ?></span>
+          <span class="dash-so-ghi">so với kỳ trước</span>
+        </div>
       </div>
     <?php endforeach; ?>
   </div>
-  <p class="dash-phu">Mức tăng/giảm so với <?= $ngay ?> ngày trước đó. Tổng số môn học: <?= (int) $tong['monhoc'] ?> · Tổng số câu hỏi: <?= (int) $tong['cauhoi'] ?></p>
+
+  <div class="dash-meta-strip">
+    <div class="meta-item">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      <span>Chu kỳ phân tích: <b><?= $ngay ?></b> ngày gần nhất</span>
+    </div>
+    <span class="meta-dot">•</span>
+    <div class="meta-item">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></svg>
+      <span>Tổng số môn học: <b><?= (int) $tong['monhoc'] ?></b></span>
+    </div>
+    <span class="meta-dot">•</span>
+    <div class="meta-item">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5"/></svg>
+      <span>Tổng số câu hỏi: <b><?= (int) $tong['cauhoi'] ?></b></span>
+    </div>
+  </div>
+  </section>
 
   <div class="dash-luoi">
     <section class="dash-khung">
       <div class="dash-khung-dau">
-        <h3>📊 Thống kê tổng quan</h3>
+        <h3>
+          <svg class="tieude-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="12" x2="12" y1="20" y2="10"/><line x1="18" x2="18" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="16"/></svg>
+          Thống kê tổng quan
+        </h3>
         <div class="dash-loc">
           <?php foreach ([7 => '7 ngày', 30 => '30 ngày', 90 => '90 ngày', 365 => '1 năm'] as $n => $ten): ?>
             <a href="?ngay=<?= $n ?>"<?= $n === $ngay ? ' class="chon"' : '' ?>><?= e($ten) ?></a>
@@ -378,7 +434,12 @@ require __DIR__ . '/layout/header.php';
     </section>
 
     <section class="dash-khung">
-      <div class="dash-khung-dau"><h3>🥧 Thống kê theo môn học</h3></div>
+      <div class="dash-khung-dau">
+        <h3>
+          <svg class="tieude-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
+          Thống kê theo môn học
+        </h3>
+      </div>
       <?php if ($tongTranMon === 0): ?>
         <p class="dash-phu">Chưa có trận nào trong <?= $ngay ?> ngày gần nhất.</p>
       <?php else: ?>
@@ -400,7 +461,10 @@ require __DIR__ . '/layout/header.php';
   <div class="dash-luoi dash-hang3">
     <section class="dash-khung">
       <div class="dash-khung-dau">
-        <h3>⚡ Hoạt động gần đây</h3>
+        <h3>
+          <svg class="tieude-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          Hoạt động gần đây
+        </h3>
         <a class="dash-xemthem" href="<?= e(BASE_URL) ?>/admin/nhatky.php">Xem thêm →</a>
       </div>
       <?php if (!$dsHoatDong): ?>
@@ -416,7 +480,10 @@ require __DIR__ . '/layout/header.php';
 
     <section class="dash-khung">
       <div class="dash-khung-dau">
-        <h3>👑 Top người chơi</h3>
+        <h3>
+          <svg class="tieude-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg>
+          Top người chơi
+        </h3>
         <a class="dash-xemthem" href="<?= e(BASE_URL) ?>/admin/elo.php?v=bxh">Xem thêm →</a>
       </div>
       <?php if (!$topNguoi): ?>
@@ -449,17 +516,39 @@ require __DIR__ . '/layout/header.php';
     </section>
 
     <section class="dash-khung">
-      <div class="dash-khung-dau"><h3>🚀 Thao tác nhanh</h3></div>
+      <div class="dash-khung-dau">
+        <h3>
+          <svg class="tieude-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          Thao tác nhanh
+        </h3>
+      </div>
       <div class="dash-nhanh">
-        <a class="dash-nut nx" href="<?= e(BASE_URL) ?>/admin/cauhoi_form.php"><span>❓</span>Thêm câu hỏi</a>
-        <a class="dash-nut nv" href="<?= e(BASE_URL) ?>/admin/cauhoi_nhap.php"><span>📥</span>Nhập từ Word/Excel</a>
-        <a class="dash-nut nt" href="<?= e(BASE_URL) ?>/admin/congdong.php"><span>💬</span>Kiểm duyệt cộng đồng</a>
-        <a class="dash-nut nl" href="<?= e(BASE_URL) ?>/admin/nhatky.php"><span>📜</span>Nhật ký quản trị</a>
+        <a class="dash-nut nx" href="<?= e(BASE_URL) ?>/admin/cauhoi_form.php">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="16"/><line x1="8" x2="16" y1="12" y2="12"/></svg>
+          <span>Thêm câu hỏi</span>
+        </a>
+        <a class="dash-nut nv" href="<?= e(BASE_URL) ?>/admin/cauhoi_nhap.php">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+          <span>Nhập file</span>
+        </a>
+        <a class="dash-nut nt" href="<?= e(BASE_URL) ?>/admin/congdong.php">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>
+          <span>Duyệt bài</span>
+        </a>
+        <a class="dash-nut nl" href="<?= e(BASE_URL) ?>/admin/nhatky.php">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <span>Nhật ký</span>
+        </a>
       </div>
     </section>
   </div>
   <section class="dash-khung dash-day">
-    <div class="dash-khung-dau"><h3>🎯 Trận đấu theo trạng thái</h3></div>
+    <div class="dash-khung-dau">
+      <h3>
+        <svg class="tieude-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+        Trận đấu theo trạng thái
+      </h3>
+    </div>
     <div class="dash-trangthai">
       <?php foreach ($theoTrangThai as $ten => $so): ?>
         <div class="dash-tt"><span><?= e($ten) ?></span><b><?= $so ?></b></div>
@@ -468,7 +557,12 @@ require __DIR__ . '/layout/header.php';
   </section>
 
   <section class="dash-khung dash-day">
-    <div class="dash-khung-dau"><h3>❗ 10 câu hỏi bị trả lời sai nhiều nhất</h3></div>
+    <div class="dash-khung-dau">
+      <h3>
+        <svg class="tieude-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
+        10 câu hỏi bị trả lời sai nhiều nhất
+      </h3>
+    </div>
     <?php if (!$caiSai): ?>
       <p class="dash-phu">Chưa có dữ liệu.</p>
     <?php else: ?>

@@ -3,7 +3,7 @@
 // Đặt tại: elo_quiz/admin/trandau.php. Chi tiết và hủy trận: admin/trandau_chitiet.php
 require_once __DIR__ . '/../core/bootstrap.php';
 require_once __DIR__ . '/../core/DotBien.php';
-Auth::requireAdmin(BASE_URL . '/admin/login.php');   // A-04
+Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');   // A-04
 
 $pdo = Database::pdo();
 
@@ -105,7 +105,25 @@ $mucChon = 'trandau';
 $cssTrang = 'trandau';
 require __DIR__ . '/layout/header.php';
 ?>
-<h2>Trận đấu</h2>
+<div class="card adm-page-hero-card">
+  <div class="adm-header-eyebrow">
+    <span class="live-pulse"></span>
+    <span>LIVE MATCH MONITORING & AUDIT</span>
+  </div>
+  <div class="adm-header-main">
+    <h2 class="adm-title-pro">
+      <svg class="title-svg-icon" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+      <span>Danh sách trận đấu</span>
+    </h2>
+    <div class="adm-header-badge-count">
+      <span class="badge-num"><?= (int) $p->tong() ?></span>
+      <span class="badge-txt">trận đấu</span>
+    </div>
+  </div>
+  <p class="adm-subtitle-pro">
+    Giám sát diễn biến phòng thi đấu, theo dõi kết quả đối kháng và phát hiện các trận bất thường thời gian thực.
+  </p>
+</div>
 
 <form method="get" action="" class="card form-loc khung-tran">
   <input type="text" name="q" value="<?= e($q) ?>" placeholder="Mã trận, tên hoặc email người chơi" class="o-tim">

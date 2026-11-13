@@ -4,7 +4,7 @@
 // A-31: trang này chỉ xem; không có chức năng điều chỉnh Elo thủ công, Elo chỉ đổi do kết quả trận.
 require_once __DIR__ . '/../core/bootstrap.php';
 require_once __DIR__ . '/../core/XlsxWriter.php';
-Auth::requireAdmin(BASE_URL . '/admin/login.php');   // A-04
+Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');   // A-04
 
 $pdo = Database::pdo();
 $v   = (string) ($_GET['v'] ?? 'tra');
@@ -153,7 +153,21 @@ require __DIR__ . '/layout/header.php';
 
 $tabs = ['tra' => 'Tra cứu Elo', 'bxh' => 'Bảng xếp hạng', 'bd' => 'Biến động bất thường'];
 ?>
-<h2>Elo và xếp hạng</h2>
+<div class="adm-page-header">
+  <div class="adm-header-eyebrow">
+    <span class="live-pulse"></span>
+    <span>ELO RATING & LEADERBOARDS</span>
+  </div>
+  <div class="adm-header-main">
+    <h2 class="adm-title-pro">
+      <svg class="title-svg-icon" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="12" x2="12" y1="20" y2="10"/><line x1="18" x2="18" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="16"/></svg>
+      <span>Elo và xếp hạng</span>
+    </h2>
+  </div>
+  <p class="adm-subtitle-pro">
+    Hệ thống phân cấp kỹ năng theo chuẩn quốc tế. Theo dõi bảng xếp hạng sinh viên và phát hiện biến động bất thường.
+  </p>
+</div>
 <p class="elo-tabs">
   <?php foreach ($tabs as $k => $ten): ?>
     <a class="btn<?= $k === $v ? '' : ' btn-phu' ?>" href="?v=<?= e($k) ?>"><?= e($ten) ?></a>

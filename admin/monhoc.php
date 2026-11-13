@@ -4,7 +4,7 @@
 // A-15: không có nút xóa môn đã tồn tại; chỉ ẩn/hiện. Môn "Chờ duyệt" bị từ chối thì xóa (chưa ai tham chiếu).
 // Theo ghi chú trong core/NhatKy.php, thao tác môn học không nằm trong danh sách A-40 nên không ghi nhật ký.
 require_once __DIR__ . '/../core/bootstrap.php';
-Auth::requireAdmin(BASE_URL . '/admin/login.php');   // A-04
+Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');   // A-04
 
 $pdo   = Database::pdo();
 $sach  = BASE_URL . '/admin/monhoc.php';

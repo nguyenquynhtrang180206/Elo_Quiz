@@ -4,9 +4,9 @@ Thi đấu trắc nghiệm 1 vs 1, xếp hạng Elo theo môn. PHP 8.2 + MySQL (
 
 ## Cài đặt (XAMPP)
 1. Đặt thư mục dự án vào `htdocs/Elo_Quiz-main`, bật **Apache** và **MySQL**.
-2. Import `csdl_elo_quiz.sql` rồi `database.sql` (phpMyAdmin → Import).
-3. Sửa `config/config.php` cho khớp MySQL của bạn (host, user, **pass**, tên DB `elo_quiz`).
-4. Kiểm tra: `http://localhost/Elo_Quiz-main/ketnoi.php` (cần 18 bảng), rồi mở `http://localhost/Elo_Quiz-main/`.
+2. Import `csdl_elo_quiz.sql` (phpMyAdmin → Import). File này đã gói trọn 27 bảng, 3 môn học, tài khoản thử và 60 câu hỏi trắc nghiệm.
+3. Sửa `config/config.php` (hoặc tạo `config/config.local.php`) cho khớp MySQL của bạn (host, user, **pass**, tên DB `elo_quiz`).
+4. Kiểm tra: `http://localhost/Elo_Quiz-main/ketnoi.php` (cần 27 bảng), rồi mở `http://localhost/Elo_Quiz-main/`.
 
 Tài khoản thử: sinh viên `an@test.com` / `123456`; quản trị `admin` / `admin123`.
 

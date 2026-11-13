@@ -4,7 +4,7 @@
 // Không dùng client/baidang.php vì trang đó cần đăng nhập sinh viên và chỉ hiện bài "Hiển thị".
 // Việc ẩn/hiện được gửi sang congdong.php (cùng quy tắc: bắt buộc lý do, ghi nhật ký), rồi quay lại trang này.
 require_once __DIR__ . '/../core/bootstrap.php';
-Auth::requireAdmin(BASE_URL . '/admin/login.php');   // A-04
+Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');   // A-04
 
 $pdo = Database::pdo();
 $id  = (int) ($_GET['id'] ?? 0);

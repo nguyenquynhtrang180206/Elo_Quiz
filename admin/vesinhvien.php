@@ -1,7 +1,7 @@
 <?php
 // Admin về trang sinh viên: vào thẳng, không đăng nhập lại. Đặt tại: elo_quiz/admin/vesinhvien.php
 require_once __DIR__ . '/../core/bootstrap.php';
-$maAdmin = Auth::requireAdmin(BASE_URL . '/admin/login.php');   // A-04
+$maAdmin = Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');   // A-04
 
 try {
     Auth::vaoKhuSinhVien(Database::pdo(), $maAdmin);

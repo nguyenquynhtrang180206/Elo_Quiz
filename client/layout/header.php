@@ -28,6 +28,7 @@ $cur = fn(string $f): string => $f === $trangHienTai ? ' aria-current="page"' : 
   <?php foreach ($cssTrang as $f): ?>
   <link rel="stylesheet" href="<?= e(BASE_URL) ?>/assets/css/client/<?= e($f) ?>.css?v=<?= (int) @filemtime(__DIR__ . '/../../assets/css/client/' . $f . '.css') ?>">
   <?php endforeach; ?>
+  <link rel="stylesheet" href="<?= e(BASE_URL) ?>/assets/css/pw_security.css?v=<?= (int) @filemtime(__DIR__ . '/../../assets/css/pw_security.css') ?>">
   <link rel="stylesheet" href="<?= e(BASE_URL) ?>/assets/css/cosmic-fix.css?v=<?= (int) @filemtime(__DIR__ . '/../../assets/css/cosmic-fix.css') ?>">
   <script type="module" src="<?= e(BASE_URL) ?>/assets/js/effects/cosmic-bg.js"></script>
   <script>window.BASE_URL = "<?= e(BASE_URL) ?>";</script>
@@ -238,11 +239,8 @@ $cur = fn(string $f): string => $f === $trangHienTai ? ' aria-current="page"' : 
           Đăng xuất
         </a>
       <?php else: ?>
-        <a class="nav-nut-phu" href="<?= e(BASE_URL) ?>/client/login.php"<?= $cur('login.php') ?>>
-          <svg viewBox="0 0 20 20" width="14" height="14" aria-hidden="true"><circle cx="10" cy="6.5" r="3.3" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M4 16.5c1.2-3 3.4-4.3 6-4.3s4.8 1.3 6 4.3" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
-          Đăng nhập
-        </a>
-        <a class="nav-nut-chinh" href="<?= e(BASE_URL) ?>/client/register.php"<?= $cur('register.php') ?>>Đăng ký</a>
+        <a class="nav-nut-chinh" href="<?= e(BASE_URL) ?>/client/dangnhap.php"<?= $cur('dangnhap.php') ?>>Đăng nhập</a>
+        <a class="nav-nut-chinh" href="<?= e(BASE_URL) ?>/client/dangky.php"<?= $cur('dangky.php') ?>>Đăng ký</a>
       <?php endif; ?>
     </span>
   </div>

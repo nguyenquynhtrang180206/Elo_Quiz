@@ -69,7 +69,7 @@ if ($phamVi === 'loai') {
     // Theo loại kỳ thi: xếp theo tổng Elo đã thắng/thua được trong các trận đã kết thúc của loại kỳ thi này
     if (!$khongCoLoai) {
         $kieu = 'loai';
-        $core = "SELECT u.MaND, u.HoTen, u.AnhDaiDien, u.Khoa, SUM(n.EloSau - n.EloTruoc) AS Diem,
+        $core = "SELECT u.MaND, u.HoTen, u.AnhDaiDien, SUM(n.EloSau - n.EloTruoc) AS Diem,
                         COUNT(*) AS SoTran, SUM(n.KetQua = 'Thắng') AS SoThang
                    FROM NGUOICHOITRANDAU n
                    JOIN TRANDAU t ON t.MaTran = n.MaTran
@@ -84,26 +84,26 @@ if ($phamVi === 'loai') {
             $core .= ' AND t.ThoiGianKetThuc >= ?';
             $p[] = $tuNgay;
         }
-        $core .= ' GROUP BY u.MaND, u.HoTen, u.AnhDaiDien, u.Khoa';
+        $core .= ' GROUP BY u.MaND, u.HoTen, u.AnhDaiDien';
     }
 } elseif (!$canDangNhap && !$khongCoMon) {
     if ($ky === 'tong' && $phamVi === 'truong') {
         // C-37: Elo trung bình các môn đã đạt tối thiểu N trận; môn chưa đủ N không được tính
         $kieu = 'truong';
         // MonChinh: môn người này đấu nhiều trận nhất (trong các môn đã đủ N trận, môn đang mở)
-        $core = "SELECT u.MaND, u.HoTen, u.AnhDaiDien, u.Khoa, AVG(e.DiemElo) AS Diem, COUNT(*) AS SoMon,
+        $core = "SELECT u.MaND, u.HoTen, u.AnhDaiDien, AVG(e.DiemElo) AS Diem, COUNT(*) AS SoMon,
                         SUM(e.SoTran) AS SoTran, SUM(e.SoThang) AS SoThang,
                         (SELECT m.TenMon FROM ELOMONHOC x JOIN MONHOC m ON m.MaMon = x.MaMon
                           WHERE x.MaND = u.MaND AND x.SoTran >= ? AND m.TrangThai = 'Đang mở'
                           ORDER BY x.SoTran DESC, x.DiemElo DESC LIMIT 1) AS MonChinh
                    FROM ELOMONHOC e JOIN NGUOIDUNG u ON u.MaND = e.MaND
                   WHERE e.SoTran >= ? AND u.TrangThai = 'Hoạt động'
-                  GROUP BY u.MaND, u.HoTen, u.AnhDaiDien, u.Khoa";
+                  GROUP BY u.MaND, u.HoTen, u.AnhDaiDien";
         $p = [$nMin, $nMin];
     } elseif ($ky === 'tong') {
         // C-36, C-38: theo môn, có thể giới hạn trong nhóm bạn bè
         $kieu = 'mon';
-        $core = "SELECT u.MaND, u.HoTen, u.AnhDaiDien, u.Khoa, e.DiemElo AS Diem, e.SoTran, e.SoThang
+        $core = "SELECT u.MaND, u.HoTen, u.AnhDaiDien, e.DiemElo AS Diem, e.SoTran, e.SoThang
                    FROM ELOMONHOC e JOIN NGUOIDUNG u ON u.MaND = e.MaND
                   WHERE e.MaMon = ? AND e.SoTran > 0 AND u.TrangThai = 'Hoạt động'";
         $p = [$mon];
@@ -115,14 +115,14 @@ if ($phamVi === 'loai') {
         // C-39: tổng mức thay đổi Elo trong kỳ; người không có trận trong kỳ không xuất hiện
         $kieu = 'ky';
         if ($phamVi === 'truong') {
-            $core = "SELECT u.MaND, u.HoTen, u.AnhDaiDien, u.Khoa, SUM(l.ThayDoi) AS Diem, COUNT(*) AS SoTran,
+            $core = "SELECT u.MaND, u.HoTen, u.AnhDaiDien, SUM(l.ThayDoi) AS Diem, COUNT(*) AS SoTran,
                             (SELECT AVG(x.DiemElo) FROM ELOMONHOC x WHERE x.MaND = l.MaND AND x.SoTran >= ?) AS EloHienTai
                        FROM LICHSUELO l JOIN NGUOIDUNG u ON u.MaND = l.MaND
                       WHERE l.ThoiGian >= ? AND u.TrangThai = 'Hoạt động'
-                      GROUP BY u.MaND, u.HoTen, u.AnhDaiDien, u.Khoa";
+                      GROUP BY u.MaND, u.HoTen, u.AnhDaiDien";
             $p = [$nMin, $tuNgay];
         } else {
-            $core = "SELECT u.MaND, u.HoTen, u.AnhDaiDien, u.Khoa, SUM(l.ThayDoi) AS Diem, COUNT(*) AS SoTran, e.DiemElo AS EloHienTai
+            $core = "SELECT u.MaND, u.HoTen, u.AnhDaiDien, SUM(l.ThayDoi) AS Diem, COUNT(*) AS SoTran, e.DiemElo AS EloHienTai
                        FROM LICHSUELO l
                        JOIN NGUOIDUNG u ON u.MaND = l.MaND
                        JOIN ELOMONHOC e ON e.MaND = l.MaND AND e.MaMon = l.MaMon
@@ -132,7 +132,7 @@ if ($phamVi === 'loai') {
                 $core .= " AND l.MaND IN $taiBanBe";
                 array_push($p, $toi, $toi, $toi);
             }
-            $core .= ' GROUP BY u.MaND, u.HoTen, u.AnhDaiDien, u.Khoa, e.DiemElo';
+            $core .= ' GROUP BY u.MaND, u.HoTen, u.AnhDaiDien, e.DiemElo';
         }
     }
 }
@@ -311,7 +311,7 @@ require __DIR__ . '/layout/header.php';
       <?php if ($khongCoLoai): ?>
         <p class="bxh-rong">Chưa có loại kỳ thi nào.</p>
       <?php elseif ($canDangNhap): ?>
-        <p class="bxh-rong">Hãy <a href="<?= e(BASE_URL) ?>/client/login.php">đăng nhập</a> để xem bảng xếp hạng bạn bè.</p>
+        <p class="bxh-rong">Hãy <a href="<?= e(BASE_URL) ?>/client/dangnhap.php">đăng nhập</a> để xem bảng xếp hạng bạn bè.</p>
       <?php elseif ($khongCoMon): ?>
         <p class="bxh-rong">Chưa có môn học nào đang mở.</p>
       <?php elseif (!$ds): ?>
@@ -339,7 +339,6 @@ require __DIR__ . '/layout/header.php';
                   <?= bxhAvatar($r) ?>
                   <span class="o-ten-chu">
                     <b><?= e($r['HoTen']) ?><?= $laToi ? ' <em>(bạn)</em>' : '' ?></b>
-                    <?php if (!empty($r['Khoa'])): ?><small><?= e($r['Khoa']) ?></small><?php endif; ?>
                   </span>
                 </div></td>
                 <?php if ($kieu === 'truong'): ?>

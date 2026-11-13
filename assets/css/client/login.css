@@ -1,2 +1,2 @@
-/* Trang Đăng nhập (client/login.php) */
-.container.khung-login { max-width:440px; }
+/* Shim tương thích ngược */
+@import url("dangnhap.css");

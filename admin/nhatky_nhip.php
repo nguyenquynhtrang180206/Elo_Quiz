@@ -3,7 +3,7 @@
 // Gọi: nhatky_nhip.php?den=YYYY-MM-DD&so=7|30   (den bỏ trống hoặc sai thì lấy hôm nay; so khác 30 thì lấy 7)
 // Đặt tại: elo_quiz/admin/nhatky_nhip.php
 require_once __DIR__ . '/../core/bootstrap.php';
-Auth::requireAdmin(BASE_URL . '/admin/login.php');   // A-04
+Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');   // A-04
 
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');

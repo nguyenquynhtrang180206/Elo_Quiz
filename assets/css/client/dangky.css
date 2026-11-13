@@ -1,0 +1,4 @@
+@import url("../../pw_security.css");
+
+/* Trang Đăng ký (client/dangky.php) */
+.container.khung-register { max-width: 480px; }

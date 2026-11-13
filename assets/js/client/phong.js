@@ -72,6 +72,7 @@
   var oppCurrentMana = 0;
   var prevOppScore = 0;
   var killstreakCount = 0;
+  var botShieldUsed = false;
   var isBaronRound = false;
 
   var currentDotBien = {
@@ -403,6 +404,11 @@
         showAnnouncer('PENTAKILL / ACE', 'QUÉT SẠCH! HUYỀN THOẠI ĐẤU THẦN BẤT TỬ', playPentakillSound);
       }
     } else {
+      if (myChampBuff === 'bot_master' && !botShieldUsed && killstreakCount > 0) {
+        botShieldUsed = true;
+        showAnnouncer('VỎ XÔ CHỐNG CHOÁNG', 'BẢO TOÀN CHUỖI COMBO x' + killstreakCount + '!', playFirstBloodSound);
+        return;
+      }
       if (killstreakCount >= 2) {
         showAnnouncer('SHUT DOWN', 'CHẤM DỨT CHUỖI THẮNG! BÌNH TĨNH PHẢN CÔNG', playWrongSound);
       }
@@ -780,9 +786,13 @@
 
         // 2. Combat Resolution FX (Sát thương / Chiêu thức)
         if (r.dung) {
+          var conLaiSec = Math.max(0, (hanChot - Date.now()) / 1000);
+          var elapsedSec = (thoiGianQuyDinh || 15) - conLaiSec;
+          var isSpeedCrit = (myChampBuff === 'fast_queue' && elapsedSec <= 3);
           var dmg = (r.diem || 10) * 10;
           if (isBaronRound) dmg *= 2;
-          var isCrit = (killstreakCount >= 2 || isBaronRound);
+          if (isSpeedCrit) dmg = Math.round(dmg * 1.5);
+          var isCrit = (killstreakCount >= 2 || isBaronRound || isSpeedCrit);
 
           oppCurrentHp = Math.max(0, oppCurrentHp - dmg);
           myCurrentMana = Math.min(100, myCurrentMana + 25);
@@ -790,7 +800,6 @@
           updateManaDisplay();
 
           // Nạp năng lượng Nộ khi xuất chiêu đúng & phản xạ nhanh
-          var conLaiSec = Math.max(0, (hanChot - Date.now()) / 1000);
           var isFast = (conLaiSec / (thoiGianQuyDinh || 15)) >= 0.5;
           addRage(isFast ? 50 : 35);
 

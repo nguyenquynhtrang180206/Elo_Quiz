@@ -3,7 +3,7 @@
 // Gồm 3 câu hỏi: mục tiêu (nhiều lựa chọn), lĩnh vực yêu thích (nhiều lựa chọn), trình độ tự đánh giá (một lựa chọn).
 require_once __DIR__ . '/../core/bootstrap.php';
 
-$maND = Auth::requireClient(BASE_URL . '/client/login.php');
+$maND = Auth::requireClient(BASE_URL . '/client/dangnhap.php');
 $pdo  = Database::pdo();
 
 // Câu 1 (C-45): mã lưu vào CSDL => nhãn hiển thị
@@ -33,7 +33,7 @@ $trangThai = $st->fetchColumn();
 
 if ($trangThai === false) {            // tài khoản không còn tồn tại
     unset($_SESSION['nd_id']);
-    redirect(BASE_URL . '/client/login.php');
+    redirect(BASE_URL . '/client/dangnhap.php');
 }
 if ($trangThai !== 'Chưa làm') {
     redirect(BASE_URL . '/client/index.php');

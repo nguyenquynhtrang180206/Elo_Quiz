@@ -306,29 +306,302 @@
     });
   }
 
-  // --- Pre-Match Matchmaking Mode Options (Auto Bot vs PvP Only) ---
-  var optModeAutoBot = document.getElementById('optModeAutoBot');
-  var optModePvpOnly = document.getElementById('optModePvpOnly');
-  if (optModeAutoBot && optModePvpOnly) {
-    optModeAutoBot.addEventListener('click', function () {
-      optModeAutoBot.classList.add('active');
-      optModeAutoBot.classList.add('is-selected');
-      optModePvpOnly.classList.remove('active');
-      optModePvpOnly.classList.remove('is-selected');
-      var r = optModeAutoBot.querySelector('input[type="radio"]');
-      if (r) r.checked = true;
+  // --- Modern Game Mode Selection: Tách bạch Đấu Hạng PvP & Luyện Tập Solo AI ---
+  var modeCardPvp = document.getElementById('modeCardPvp');
+  var modeCardBot = document.getElementById('modeCardBot');
+  var modeCardPin = document.getElementById('modeCardPin');
+  var pinChallengePanel = document.getElementById('pinChallengePanel');
+  var inputCheDoGhep = document.getElementById('inputCheDoGhep');
+  var inputDauBot = document.getElementById('inputDauBot');
+  var modeSelectedStatusText = document.getElementById('modeSelectedStatusText');
+  var ctaBtnText = document.getElementById('ctaBtnText');
+  var ctaBtnIcon = document.getElementById('ctaBtnIcon');
+
+  function setLobbyMode(mode) {
+    if (mode === 'pin') {
+      if (modeCardPin) modeCardPin.classList.add('active');
+      if (modeCardPvp) modeCardPvp.classList.remove('active');
+      if (modeCardBot) modeCardBot.classList.remove('active');
+      if (pinChallengePanel) pinChallengePanel.style.display = 'block';
+      if (inputDauBot) inputDauBot.value = '';
+      if (modeSelectedStatusText) {
+        modeSelectedStatusText.textContent = '🔑 Thách Đấu PIN (Bạn Bè)';
+      }
+      if (btnSubmitQuickMatch) {
+        btnSubmitQuickMatch.style.display = 'none';
+      }
+    } else if (mode === 'bot') {
+      if (modeCardBot) modeCardBot.classList.add('active');
+      if (modeCardPvp) modeCardPvp.classList.remove('active');
+      if (modeCardPin) modeCardPin.classList.remove('active');
+      if (pinChallengePanel) pinChallengePanel.style.display = 'none';
+      if (inputDauBot) inputDauBot.value = '1';
+      if (modeSelectedStatusText) {
+        modeSelectedStatusText.textContent = '🤖 Đấu Với Máy';
+      }
+      if (btnSubmitQuickMatch) {
+        btnSubmitQuickMatch.style.display = '';
+        btnSubmitQuickMatch.classList.add('btn-mode-bot');
+        btnSubmitQuickMatch.setAttribute('title', 'Vào thi đấu ngay lập tức với Đấu Thần Máy');
+      }
+      if (ctaBtnText) {
+        ctaBtnText.textContent = 'VÀO ĐẤU VỚI MÁY NGAY →';
+      }
+      if (ctaBtnIcon) {
+        ctaBtnIcon.innerHTML = '<svg viewBox="0 0 24 24" width="24" height="24" fill="none"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+      }
+    } else {
+      if (modeCardPvp) modeCardPvp.classList.add('active');
+      if (modeCardBot) modeCardBot.classList.remove('active');
+      if (modeCardPin) modeCardPin.classList.remove('active');
+      if (pinChallengePanel) pinChallengePanel.style.display = 'none';
+      if (inputDauBot) inputDauBot.value = '';
+      if (modeSelectedStatusText) {
+        modeSelectedStatusText.textContent = '⚔️ Đấu Hạng PvP';
+      }
+      if (btnSubmitQuickMatch) {
+        btnSubmitQuickMatch.style.display = '';
+        btnSubmitQuickMatch.classList.remove('btn-mode-bot');
+        btnSubmitQuickMatch.setAttribute('title', 'Bắt đầu xếp hàng tìm kiếm đối thủ người thật');
+      }
+      if (ctaBtnText) {
+        ctaBtnText.textContent = 'BẮT ĐẦU TÌM ĐỐI THỦ (PVP) →';
+      }
+      if (ctaBtnIcon) {
+        ctaBtnIcon.innerHTML = '<svg viewBox="0 0 24 24" width="24" height="24" fill="none"><path d="M14.5 17.5L3 6V3h3l11.5 11.5M13 19l2 2 4-4-2-2" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M9.5 6.5L18 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M16 3h5v5l-4 4-5-5 4-4z" fill="currentColor"/></svg>';
+      }
+    }
+  }
+
+  if (modeCardPvp) {
+    modeCardPvp.addEventListener('click', function () {
+      setLobbyMode('pvp');
       playPickSound();
     });
-    optModePvpOnly.addEventListener('click', function () {
-      optModePvpOnly.classList.add('active');
-      optModePvpOnly.classList.add('is-selected');
-      optModeAutoBot.classList.remove('active');
-      optModeAutoBot.classList.remove('is-selected');
-      var r = optModePvpOnly.querySelector('input[type="radio"]');
-      if (r) r.checked = true;
-      playPickSound();
+    modeCardPvp.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        setLobbyMode('pvp');
+        playPickSound();
+      }
     });
   }
+
+  if (modeCardBot) {
+    modeCardBot.addEventListener('click', function () {
+      setLobbyMode('bot');
+      playPickSound();
+    });
+    modeCardBot.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        setLobbyMode('bot');
+        playPickSound();
+      }
+    });
+  }
+
+  if (modeCardPin) {
+    modeCardPin.addEventListener('click', function () {
+      setLobbyMode('pin');
+      playPickSound();
+    });
+    modeCardPin.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        setLobbyMode('pin');
+        playPickSound();
+      }
+    });
+  }
+
+  // --- Xử lý Logic Thách Đấu PIN 1v1 (Tạo phòng, nhập PIN, kiểm tra & hủy) ---
+  var currentRoomPin = null;
+  var pinPollInterval = null;
+  var btnPinTabCreate = document.getElementById('btnPinTabCreate');
+  var btnPinTabJoin = document.getElementById('btnPinTabJoin');
+  var pinTabPaneCreate = document.getElementById('pinTabPaneCreate');
+  var pinTabPaneJoin = document.getElementById('pinTabPaneJoin');
+  var btnActionCreateRoom = document.getElementById('btnActionCreateRoom');
+  var pinCreateInitial = document.getElementById('pinCreateInitial');
+  var pinCreateActive = document.getElementById('pinCreateActive');
+  var displayPinCode = document.getElementById('displayPinCode');
+  var btnCopyPinCode = document.getElementById('btnCopyPinCode');
+  var btnCopyPinLink = document.getElementById('btnCopyPinLink');
+  var btnCancelPinRoom = document.getElementById('btnCancelPinRoom');
+  var inputPinCode = document.getElementById('inputPinCode');
+  var btnActionJoinRoom = document.getElementById('btnActionJoinRoom');
+  var pinJoinErrorNotice = document.getElementById('pinJoinErrorNotice');
+
+  if (btnPinTabCreate && btnPinTabJoin) {
+    btnPinTabCreate.addEventListener('click', function () {
+      btnPinTabCreate.classList.add('active');
+      btnPinTabJoin.classList.remove('active');
+      if (pinTabPaneCreate) pinTabPaneCreate.style.display = 'block';
+      if (pinTabPaneJoin) pinTabPaneJoin.style.display = 'none';
+    });
+    btnPinTabJoin.addEventListener('click', function () {
+      btnPinTabJoin.classList.add('active');
+      btnPinTabCreate.classList.remove('active');
+      if (pinTabPaneJoin) pinTabPaneJoin.style.display = 'block';
+      if (pinTabPaneCreate) pinTabPaneCreate.style.display = 'none';
+      if (inputPinCode) inputPinCode.focus();
+    });
+  }
+
+  // Tạo phòng thách đấu
+  if (btnActionCreateRoom) {
+    btnActionCreateRoom.addEventListener('click', function () {
+      var selMon = document.getElementById('mon');
+      var maMon = selMon ? parseInt(selMon.value, 10) : 0;
+      var selKt = document.querySelector('input[name="loaikt"]:checked');
+      var maKt = selKt ? parseInt(selKt.value, 10) : 1;
+
+      if (!maMon) {
+        alert('Vui lòng chọn môn học thi đấu ở Bước 1 trước khi tạo phòng!');
+        if (selMon) selMon.focus();
+        return;
+      }
+
+      btnActionCreateRoom.disabled = true;
+      btnActionCreateRoom.textContent = 'Đang khởi tạo phòng...';
+
+      var fd = new FormData();
+      fd.append('mon', maMon);
+      fd.append('loaikt', maKt);
+
+      fetch('timtran.php?ajax_thachdau_tao=1', {
+        method: 'POST',
+        body: fd
+      })
+      .then(function (r) { return r.json(); })
+      .then(function (res) {
+        btnActionCreateRoom.disabled = false;
+        btnActionCreateRoom.textContent = '⚡ KHỞI TẠO PHÒNG NGAY';
+        if (res.ok && res.pin) {
+          currentRoomPin = res.pin;
+          if (pinCreateInitial) pinCreateInitial.style.display = 'none';
+          if (pinCreateActive) pinCreateActive.style.display = 'block';
+          if (displayPinCode) displayPinCode.textContent = res.pin;
+
+          // Bắt đầu quét định kỳ 1.5s xem có bạn bè vào phòng không
+          if (pinPollInterval) clearInterval(pinPollInterval);
+          pinPollInterval = setInterval(function () {
+            if (!currentRoomPin) return;
+            fetch('timtran.php?ajax_thachdau_kiemtra=1&phong=' + encodeURIComponent(currentRoomPin))
+              .then(function (r) { return r.json(); })
+              .then(function (kq) {
+                if (kq.coTran && kq.phongUrl) {
+                  clearInterval(pinPollInterval);
+                  window.location.href = kq.phongUrl;
+                }
+              })
+              .catch(function () {});
+          }, 1500);
+        } else {
+          alert(res.loi || 'Không thể tạo phòng thách đấu. Vui lòng thử lại!');
+        }
+      })
+      .catch(function () {
+        btnActionCreateRoom.disabled = false;
+        btnActionCreateRoom.textContent = '⚡ KHỞI TẠO PHÒNG NGAY';
+        alert('Lỗi kết nối khi tạo phòng.');
+      });
+    });
+  }
+
+  // Sao chép mã PIN
+  if (btnCopyPinCode) {
+    btnCopyPinCode.addEventListener('click', function () {
+      if (!currentRoomPin) return;
+      navigator.clipboard.writeText(currentRoomPin).then(function () {
+        btnCopyPinCode.textContent = '✓ Đã chép!';
+        setTimeout(function () { btnCopyPinCode.textContent = '📋 Sao chép PIN'; }, 2000);
+      });
+    });
+  }
+
+  // Sao chép Link mời trực tiếp
+  if (btnCopyPinLink) {
+    btnCopyPinLink.addEventListener('click', function () {
+      if (!currentRoomPin) return;
+      var link = window.location.origin + window.location.pathname + '?phong=' + encodeURIComponent(currentRoomPin);
+      navigator.clipboard.writeText(link).then(function () {
+        btnCopyPinLink.textContent = '✓ Đã chép Link!';
+        setTimeout(function () { btnCopyPinLink.textContent = '🔗 Sao chép Link'; }, 2000);
+      });
+    });
+  }
+
+  // Hủy phòng thách đấu
+  if (btnCancelPinRoom) {
+    btnCancelPinRoom.addEventListener('click', function () {
+      if (!currentRoomPin) return;
+      var fd = new FormData();
+      fd.append('phong', currentRoomPin);
+      fetch('timtran.php?ajax_thachdau_huy=1', { method: 'POST', body: fd }).catch(function () {});
+
+      if (pinPollInterval) clearInterval(pinPollInterval);
+      currentRoomPin = null;
+      if (pinCreateActive) pinCreateActive.style.display = 'none';
+      if (pinCreateInitial) pinCreateInitial.style.display = 'block';
+    });
+  }
+
+  // Vào phòng bằng mã PIN
+  if (btnActionJoinRoom && inputPinCode) {
+    btnActionJoinRoom.addEventListener('click', function () {
+      var pinVal = inputPinCode.value.trim();
+      if (!pinVal || pinVal.length < 4) {
+        if (pinJoinErrorNotice) {
+          pinJoinErrorNotice.textContent = 'Vui lòng nhập mã PIN hợp lệ (4-6 chữ số)!';
+          pinJoinErrorNotice.style.display = 'block';
+        }
+        return;
+      }
+
+      btnActionJoinRoom.disabled = true;
+      btnActionJoinRoom.textContent = 'Đang kết nối...';
+      if (pinJoinErrorNotice) pinJoinErrorNotice.style.display = 'none';
+
+      var fd = new FormData();
+      fd.append('pin', pinVal);
+
+      fetch('timtran.php?ajax_thachdau_vao=1', { method: 'POST', body: fd })
+        .then(function (r) { return r.json(); })
+        .then(function (res) {
+          btnActionJoinRoom.disabled = false;
+          btnActionJoinRoom.textContent = 'VÀO PHÒNG CHIẾN ⚔️';
+          if (res.ok && res.phongUrl) {
+            window.location.href = res.phongUrl;
+          } else {
+            if (pinJoinErrorNotice) {
+              pinJoinErrorNotice.textContent = res.loi || 'Mã PIN không đúng hoặc phòng đã bắt đầu!';
+              pinJoinErrorNotice.style.display = 'block';
+            }
+          }
+        })
+        .catch(function () {
+          btnActionJoinRoom.disabled = false;
+          btnActionJoinRoom.textContent = 'VÀO PHÒNG CHIẾN ⚔️';
+          if (pinJoinErrorNotice) {
+            pinJoinErrorNotice.textContent = 'Lỗi kết nối khi vào phòng.';
+            pinJoinErrorNotice.style.display = 'block';
+          }
+        });
+    });
+  }
+
+  // Tự động kích hoạt tab nhập PIN nếu URL có tham số ?phong=XXXXXX
+  (function () {
+    var urlParams = new URLSearchParams(window.location.search);
+    var pinParam = urlParams.get('phong');
+    if (pinParam && inputPinCode) {
+      setLobbyMode('pin');
+      if (btnPinTabJoin) btnPinTabJoin.click();
+      inputPinCode.value = pinParam;
+    }
+  })();
 
   // --- Modern LoL Esports Radar Poller & Smooth Digital Clock ---
   var radarCard = document.getElementById('radarCard');
@@ -771,23 +1044,10 @@
   }
 
   // ==========================================================================
-  // 1. INTERACTIVE CHAMPION & DYNAMIC TIP WARM-UP (KHOANG KHỞI ĐỘNG PHẢN XẠ)
+  // 1. DYNAMIC TIP ROTATOR (XOAY VÒNG MẸO THI ĐẤU TINH TẾ)
   // ==========================================================================
-  (function initWarmupInteractions() {
-    var champAvatar = document.getElementById('champAvatarGlow');
-    var speechBubble = document.getElementById('champSpeechBubble');
-    var speechText = document.getElementById('champSpeechText');
+  (function initTipsRotator() {
     var tipContent = document.getElementById('radarTipContent');
-
-    var cheerQuotes = [
-      "Khí thế dâng cao! Hãy giữ vững tâm lý trước mọi câu hỏi khó!",
-      "Trả lời nhanh trong 3s đầu sẽ giật trọn +10 điểm tốc độ!",
-      "Một cái đầu lạnh và đôi tay dứt khoát sẽ làm chủ đấu trường!",
-      "Đọc kỹ 4 phương án, né bẫy đề thi và giành chiến thắng!",
-      "Chuỗi thắng đang đợi bạn, tự tin bấm đáp án chính xác!",
-      "Tinh thần thép! Không để đối thủ dẫn trước dù chỉ 1 câu!"
-    ];
-
     var rankTips = [
       "⚡ Mẹo Tốc Độ: Trả lời đúng trong 3 giây đầu để giật trọn vẹn điểm thưởng tốc độ tối đa!",
       "🛡️ Luật Chống AFK: Sau khi vào phòng, bạn có thời gian đếm ngược để sẵn sàng bảo toàn Elo.",
@@ -797,49 +1057,6 @@
       "🧠 Đọc Kỹ Đề Bài: Trả lời sai bị 0 điểm, độ chính xác luôn là ưu tiên hàng đầu."
     ];
 
-    if (champAvatar) {
-      champAvatar.addEventListener('click', function (e) {
-        try { playPetClickSound(); } catch (err) {}
-
-        // Bounce click animation
-        champAvatar.classList.remove('bounce-click');
-        void champAvatar.offsetWidth;
-        champAvatar.classList.add('bounce-click');
-
-        // Dynamic cheerful speech
-        if (speechText) {
-          var q = cheerQuotes[Math.floor(Math.random() * cheerQuotes.length)];
-          speechText.textContent = q;
-        }
-        if (speechBubble) {
-          speechBubble.classList.remove('pop-active');
-          void speechBubble.offsetWidth;
-          speechBubble.classList.add('pop-active');
-        }
-
-        // Spawn spark particles around click
-        spawnSparks(e.clientX, e.clientY);
-      });
-    }
-
-    function spawnSparks(x, y) {
-      for (var i = 0; i < 6; i++) {
-        var p = document.createElement('div');
-        p.className = 'spark-particle';
-        var angle = (Math.PI * 2 / 6) * i + (Math.random() * 0.4);
-        var dist = 35 + Math.random() * 25;
-        p.style.setProperty('--dx', Math.cos(angle) * dist + 'px');
-        p.style.setProperty('--dy', Math.sin(angle) * dist + 'px');
-        p.style.left = (x || window.innerWidth / 2) + 'px';
-        p.style.top = (y || window.innerHeight / 2) + 'px';
-        document.body.appendChild(p);
-        setTimeout(function (elem) {
-          if (elem && elem.parentNode) elem.parentNode.removeChild(elem);
-        }, 700, p);
-      }
-    }
-
-    // Cyclic tip capsule
     if (tipContent) {
       var tipIndex = 0;
       setInterval(function () {
@@ -867,11 +1084,16 @@
       return;
     }
 
-    // 1. Play Fanfare Horn & Screen Shake
+    // 1. Play Fanfare Horn & Safe Screen Shake (Remove anim after finish so transform doesn't linger)
     try { playReadyCheckHorn(); } catch (err) {}
     var radarCard = document.getElementById('radarCard');
     if (radarCard) {
       radarCard.classList.add('screen-shake-anim');
+      setTimeout(function () {
+        radarCard.classList.remove('screen-shake-anim');
+      }, 700);
+      radarCard.style.opacity = '0.15';
+      radarCard.style.pointerEvents = 'none';
     }
 
     // 2. Populate Ready Check Data
@@ -921,29 +1143,26 @@
 
     // 10s Countdown Ring
     var remainSec = 10;
-    var userAccepted = false;
-    var oppAccepted = false;
+    var userAccepted = !!data.toiSanSang;
+    var oppAccepted = !!data.doiThuSanSang;
     var fullDash = 326.7; // 2 * PI * 52
     if (rcTimerBar) {
       rcTimerBar.style.strokeDasharray = fullDash;
       rcTimerBar.style.strokeDashoffset = '0';
     }
 
-    // Opponent accepts automatically after 1.2s - 2.0s
-    var oppAcceptTimer = setTimeout(function () {
-      oppAccepted = true;
+    if (oppAccepted) {
       if (rcStatusChipOpp) {
         rcStatusChipOpp.textContent = 'ĐÃ CHẤP NHẬN ✓';
         rcStatusChipOpp.classList.add('chip-ready');
       }
       if (rcCheckOpp) rcCheckOpp.classList.add('is-active');
-      try { playOpponentAcceptedSound(); } catch (err) {}
-      checkBothAccepted();
-    }, 1400);
+    }
 
     function checkBothAccepted() {
       if (userAccepted && oppAccepted) {
         clearInterval(rcInterval);
+        clearInterval(rcSyncPoller);
         setTimeout(function () {
           startVsShowdown(data);
         }, 500);
@@ -967,6 +1186,14 @@
       }
       if (rcCheckYou) rcCheckYou.classList.add('is-active');
 
+      // Gửi xác nhận sẵn sàng lên server
+      var fd = new FormData();
+      fd.append('tran', data.maTran || 0);
+      fetch('timtran.php?ajax_ready_accept=1', {
+        method: 'POST',
+        body: fd
+      }).catch(function () {});
+
       checkBothAccepted();
     }
 
@@ -976,6 +1203,52 @@
         doUserAccept();
       };
     }
+
+    // Polling đồng bộ trạng thái Ready Check thực tế thời gian thực (mỗi 1s)
+    var rcSyncPoller = setInterval(function () {
+      fetch('timtran.php?ajax_check=1')
+        .then(function (r) { return r.json(); })
+        .then(function (syncData) {
+          if (syncData.afkPhat) {
+            clearInterval(rcInterval);
+            clearInterval(rcSyncPoller);
+            alert(syncData.thongBao || 'Bạn bị phạt tạm cấm tìm trận do không bấm sẵn sàng (AFK)!');
+            window.location.href = 'timtran.php';
+            return;
+          }
+          if (syncData.doiThuAfk) {
+            clearInterval(rcInterval);
+            clearInterval(rcSyncPoller);
+            rcModal.style.display = 'none';
+            document.body.classList.remove('modal-open');
+            var radarCard = document.getElementById('radarCard');
+            if (radarCard) {
+              radarCard.style.opacity = '1';
+              radarCard.style.pointerEvents = 'auto';
+            }
+            if (logLine2) {
+              logLine2.innerHTML = '<span class="log-bullet" style="background:#F59E0B;"></span> <strong>Đối thủ bỏ lỡ Ready Check! Đang ưu tiên tìm đối thủ mới...</strong>';
+            }
+            return;
+          }
+          if (syncData.doiThuSanSang && !oppAccepted) {
+            oppAccepted = true;
+            if (rcStatusChipOpp) {
+              rcStatusChipOpp.textContent = 'ĐÃ CHẤP NHẬN ✓';
+              rcStatusChipOpp.classList.add('chip-ready');
+            }
+            if (rcCheckOpp) rcCheckOpp.classList.add('is-active');
+            try { playOpponentAcceptedSound(); } catch (err) {}
+            checkBothAccepted();
+          }
+          if (syncData.caHaiSanSang) {
+            clearInterval(rcInterval);
+            clearInterval(rcSyncPoller);
+            startVsShowdown(data);
+          }
+        })
+        .catch(function () {});
+    }, 1000);
 
     var rcInterval = setInterval(function () {
       remainSec--;
@@ -988,21 +1261,39 @@
         btnRcText.textContent = 'CHẤP NHẬN TRANH HÙNG (' + remainSec + 's)';
       }
 
-      // Auto accept fallback at 1s if user didn't click
-      if (remainSec === 1 && !userAccepted) {
-        doUserAccept();
-      }
-
       if (remainSec <= 0) {
         clearInterval(rcInterval);
-        clearTimeout(oppAcceptTimer);
-        startVsShowdown(data);
+        clearInterval(rcSyncPoller);
+        // Hết 10s: nếu người dùng chưa bấm sẵn sàng, gọi ajax_check để server kích hoạt án phạt AFK
+        if (!userAccepted) {
+          fetch('timtran.php?ajax_check=1')
+            .then(function (r) { return r.json(); })
+            .then(function (res) {
+              if (res.afkPhat) {
+                alert(res.thongBao || 'Bạn bị phạt tạm cấm tìm trận do không bấm sẵn sàng (AFK)!');
+                window.location.href = 'timtran.php';
+              } else {
+                startVsShowdown(data);
+              }
+            })
+            .catch(function () {
+              window.location.href = 'timtran.php';
+            });
+        } else {
+          startVsShowdown(data);
+        }
       }
     }, 1000);
   };
 
   function startVsShowdown(data) {
     if (rcModal) rcModal.style.display = 'none';
+
+    // Ẩn hoàn toàn radarCard để màn hình VS Showdown hiển thị độc lập, không bị đè chữ
+    var radarCard = document.getElementById('radarCard');
+    if (radarCard) {
+      radarCard.style.display = 'none';
+    }
 
     if (!vsModal) {
       window.location.href = data.phongUrl || (phongUrl + data.maTran);
@@ -1054,21 +1345,6 @@
         vsMasteryOpp.className = 'fighter-mastery-tag ' + (data.doiThu.cssClass || 'mastery-cap-1');
         vsMasteryOpp.innerHTML = (data.doiThu.iconCap || '⚔️') + ' Cấp ' + data.doiThu.capDo + ' · ' + (data.doiThu.danhHieuCap || '');
       }
-    }
-
-    // Hiển thị Đột Biến Không Gian nếu trận đấu có luật đột biến
-    var vsMutatorRuleCapsule = document.getElementById('vsMutatorRuleCapsule');
-    var vsMutatorIcon = document.getElementById('vsMutatorIcon');
-    var vsMutatorTitle = document.getElementById('vsMutatorTitle');
-    var vsMutatorDesc = document.getElementById('vsMutatorDesc');
-
-    if (data.dotBien && data.dotBien.id !== 'chuan') {
-      if (vsMutatorRuleCapsule) vsMutatorRuleCapsule.style.display = 'inline-flex';
-      if (vsMutatorIcon) vsMutatorIcon.textContent = data.dotBien.icon || '🎰';
-      if (vsMutatorTitle) vsMutatorTitle.textContent = 'ĐỘT BIẾN LUẬT: ' + (data.dotBien.ten || '');
-      if (vsMutatorDesc) vsMutatorDesc.textContent = data.dotBien.moTa || '';
-    } else if (vsMutatorRuleCapsule) {
-      vsMutatorRuleCapsule.style.display = 'none';
     }
 
     // Show VS Showdown Screen

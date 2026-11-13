@@ -3,7 +3,7 @@
 // Bước 3: truy vấn theo khoảng ngày. Bước 4-6: khung giao diện mới, 3 biểu đồ Chart.js, bảng chi tiết câu hỏi.
 require_once __DIR__ . '/../core/bootstrap.php';
 require_once __DIR__ . '/../core/KhaoSatThongKe.php';
-Auth::requireAdmin(BASE_URL . '/admin/login.php');   // A-04
+Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');   // A-04
 
 $pdo = Database::pdo();
 
@@ -162,7 +162,7 @@ $st = $pdo->prepare("SELECT COUNT(*) FROM NGUOIDUNG WHERE $dieuKienSV");
 $st->execute($thamSoSV);
 $phanTrang = new Paginator((int) $st->fetchColumn(), 5);   // 5 sinh viên mỗi trang; ?page=N, giữ nguyên tu/den
 $st = $pdo->prepare(
-    "SELECT MaND, HoTen, Lop, TrangThaiKhaoSat, NgayKhaoSat, MucTieuKhaoSat, LinhVucYeuThich, TrinhDoTuDanhGia
+    "SELECT MaND, HoTen, TrangThaiKhaoSat, NgayKhaoSat, MucTieuKhaoSat, LinhVucYeuThich, TrinhDoTuDanhGia
      FROM NGUOIDUNG WHERE $dieuKienSV
      ORDER BY NgayKhaoSat DESC, MaND DESC
      LIMIT " . $phanTrang->limit() . ' OFFSET ' . $phanTrang->offset()
@@ -303,11 +303,10 @@ $denHienThi = $den->format('d/m/Y');
   <section class="ks-khung ks-bang ks-sv" id="ks-sv">
     <h3>Chi tiết từng sinh viên trả lời</h3>
     <table>
-      <tr><th>Sinh viên</th><th>Lớp</th><th>Trạng thái</th><th>Thời gian</th><th>Mục tiêu tham gia</th><th>Lĩnh vực yêu thích</th><th>Trình độ</th></tr>
+      <tr><th>Sinh viên</th><th>Trạng thái</th><th>Thời gian</th><th>Mục tiêu tham gia</th><th>Lĩnh vực yêu thích</th><th>Trình độ</th></tr>
       <?php foreach ($dsSinhVien as $r): $xong = $r['TrangThaiKhaoSat'] === 'Hoàn tất'; ?>
         <tr>
           <td><a href="<?= e(BASE_URL) ?>/admin/nguoidung_chitiet.php?id=<?= (int) $r['MaND'] ?>"><?= e($r['HoTen']) ?></a></td>
-          <td><?= e($r['Lop'] ?: '—') ?></td>
           <td><span class="ks-tt <?= $xong ? 'xong' : 'bo' ?>"><?= $xong ? 'Hoàn tất' : 'Chưa hoàn thành' ?></span></td>
           <td class="khong-ngat"><?= e(date('d/m/Y H:i', strtotime($r['NgayKhaoSat']))) ?></td>
           <td><?= $xong ? e(ma_ra_nhan($r['MucTieuKhaoSat'], $mucTieu)) : '—' ?></td>
@@ -316,7 +315,7 @@ $denHienThi = $den->format('d/m/Y');
         </tr>
       <?php endforeach; ?>
       <?php if (!$dsSinhVien): ?>
-        <tr><td colspan="7" class="nhan-phu">Chưa có sinh viên nào làm khảo sát trong khoảng ngày này.</td></tr>
+        <tr><td colspan="6" class="nhan-phu">Chưa có sinh viên nào làm khảo sát trong khoảng ngày này.</td></tr>
       <?php endif; ?>
     </table>
     <div class="ks-chantrang"><?= preg_replace('/href="([^"]*)"/', 'href="$1#ks-sv"', $phanTrang->links()) ?></div>
