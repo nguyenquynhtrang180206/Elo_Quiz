@@ -1,0 +1,13 @@
+# Cấu hình bảo mật cục bộ (chứa mật khẩu thật của máy chủ database)
+config/config.local.php
+
+# File dữ liệu tạm & log
+storage/
+*.log
+
+# Cấu hình IDE / Môi trường cá nhân
+.vscode/
+.idea/
+.gemini/
+*.tmp
+

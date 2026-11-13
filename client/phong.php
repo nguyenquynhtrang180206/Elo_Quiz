@@ -11,7 +11,7 @@ require_once __DIR__ . '/../core/ThiDau.php';
 
 require_once __DIR__ . '/../core/DotBien.php';
 
-$maND   = Auth::requireClient(BASE_URL . '/client/login.php');
+$maND   = Auth::requireClient(BASE_URL . '/client/dangnhap.php');
 $pdo    = Database::pdo();
 $maTran = (int) ($_GET['tran'] ?? 0);
 
@@ -98,13 +98,6 @@ require __DIR__ . '/layout/header.php';
         <p class="vs-sub">
           <?= ($doiThu['TrangThaiThamGia'] ?? '') === 'Chưa vào' ? 'Đang đợi đối thủ xác nhận bước vào đấu trường...' : 'Cả hai đấu thủ đã có mặt! Chuẩn bị giao tranh...' ?>
         </p>
-        <?php if ($dotBienHienTai['id'] !== 'chuan'): ?>
-          <div class="lobby-mutator-badge">
-            <span class="lmb-icon"><?= $dotBienHienTai['icon'] ?></span>
-            <span class="lmb-tag">ĐỘT BIẾN LUẬT: <?= e($dotBienHienTai['ten']) ?></span>
-            <span class="lmb-desc">&middot; <?= e($dotBienHienTai['moTa']) ?></span>
-          </div>
-        <?php endif; ?>
       </div>
 
       <div class="vs-faceoff-stage">
@@ -201,21 +194,6 @@ require __DIR__ . '/layout/header.php';
           </div>
         </div>
       </div>
-
-      <!-- MUTATOR ANOMALY BANNER -->
-      <?php if ($dotBienHienTai['id'] !== 'chuan'): ?>
-        <div class="mutator-match-banner <?= e($dotBienHienTai['id']) ?>" id="mutatorMatchBanner">
-          <div class="mmb-icon"><?= $dotBienHienTai['icon'] ?></div>
-          <div class="mmb-content">
-            <div class="mmb-title-row">
-              <span class="mmb-tag">ĐỘT BIẾN LUẬT: <?= e($dotBienHienTai['tag']) ?></span>
-              <strong class="mmb-name"><?= e($dotBienHienTai['ten']) ?></strong>
-            </div>
-            <div class="mmb-desc"><?= e($dotBienHienTai['moTa']) ?></div>
-          </div>
-          <div class="mmb-pulse-light"></div>
-        </div>
-      <?php endif; ?>
 
       <!-- COMBAT STAGE (TOP 1V1 BATTLE VIEW) -->
       <div class="arena-combat-stage" id="arenaCombatStage">

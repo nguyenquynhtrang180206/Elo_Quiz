@@ -39,11 +39,12 @@ body.admin-moi {
 }
 .admin-moi .sidebar::-webkit-scrollbar { display:none; }
 .admin-moi .sidebar .logo {
-  display:flex; flex-direction:column; align-items:center; padding:0 0 12px; margin:0 0 6px; border:0; text-align:center; text-decoration:none;
+  display:flex; flex-direction:row; align-items:center; justify-content:center; gap:8px; padding:0 0 12px; margin:0 0 6px; border:0; text-align:left; text-decoration:none;
 }
-.admin-moi .sidebar .logo img { width:64px; height:64px; margin-bottom:2px; filter:drop-shadow(0 4px 10px rgba(245,184,46,.45)); }
-.admin-moi .sidebar .logo b { color:var(--kh-vang); font-size:22px; font-weight:800; line-height:1.15; letter-spacing:.01em; }
-.admin-moi .sidebar .logo small { color:#cfe0ff; font-size:10px; font-weight:500; letter-spacing:.02em; }
+.admin-moi .sidebar .quizup-logo-emblem { width:44px; height:44px; filter:drop-shadow(0 4px 10px rgba(245,184,46,.45)); }
+.admin-moi .sidebar .quizup-wordmark strong { color:#fff; font-size:17px; }
+.admin-moi .sidebar .quizup-wordmark small { color:#ffe27a; font-size:8px; }
+.admin-moi .sidebar .logo-tag { margin-left:0; color:#fff !important; background:rgba(255,255,255,.14) !important; border-color:rgba(255,255,255,.28) !important; }
 .admin-moi .sidebar a { text-shadow:none; }
 .admin-moi .menu-chinh a, .admin-moi .menu-phu a {
   display:flex; align-items:center; gap:10px; margin:0 0 2px; padding:0 10px; height:40px; border-radius:12px;
@@ -170,7 +171,7 @@ body.admin-moi {
   .admin-moi .admin-khung { grid-template-columns:1fr; }
   .admin-moi .sidebar { position:static; height:auto; flex-direction:row; flex-wrap:wrap; align-items:center; gap:4px; padding:10px; overflow:visible; }
   .admin-moi .sidebar .logo { flex-direction:row; gap:8px; width:100%; padding:0 6px 6px; }
-  .admin-moi .sidebar .logo img { width:36px; height:36px; }
+  .admin-moi .sidebar .quizup-logo-emblem { width:36px; height:36px; }
   .admin-moi .menu-chinh, .admin-moi .menu-phu { display:flex; flex-wrap:wrap; gap:4px; margin:0; padding:0; border:0; }
   .admin-moi .menu-chinh a, .admin-moi .menu-phu a { height:36px; }
   .admin-moi .sidebar-cup { display:none; }

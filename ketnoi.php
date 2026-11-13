@@ -9,7 +9,7 @@ try {
         'SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE()'
     )->fetchColumn();
     echo '<p>Kết nối thành công. Database: <b>' . e((string) $pdo->query('SELECT DATABASE()')->fetchColumn()) . '</b></p>';
-    echo '<p>Số bảng: <b>' . $soBang . '</b> (cần 18)</p>';
+    echo '<p>Số bảng: <b>' . $soBang . '</b> (cần 27)</p>';
     echo '<p>SO_CAU = <b>' . Config::int('SO_CAU') . '</b> (cần 10), THOI_GIAN_MOI_CAU = <b>'
         . Config::int('THOI_GIAN_MOI_CAU') . '</b> (cần 15)</p>';
 } catch (Throwable $ex) {

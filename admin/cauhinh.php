@@ -5,7 +5,7 @@
 // Thẻ theo nhóm, menu nhóm bên trái, đánh dấu thay đổi và kiểm tra ngay khi gõ (assets/js/admin/cauhinh.js).
 // Phần xử lý lưu (kiểm tra hợp lệ, transaction, nhật ký, xóa cache) giữ nguyên logic cũ.
 require_once __DIR__ . '/../core/bootstrap.php';
-Auth::requireAdmin(BASE_URL . '/admin/login.php');   // A-04
+Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');   // A-04
 
 $pdo = Database::pdo();
 

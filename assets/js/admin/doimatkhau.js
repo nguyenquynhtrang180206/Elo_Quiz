@@ -30,7 +30,9 @@
   }
   function kiemTra() {
     var m = moi.value;
-    dat('dai', m.length >= 6 && m.length <= 72);
+    dat('dai', m.length >= 8 && m.length <= 72);
+    dat('hoa_thuong', /[a-z]/.test(m) && /[A-Z]/.test(m));
+    dat('so_ky_tu', /[0-9]/.test(m) && /[!@#$%^&*()_\-+=\[\]{};:,.<>?/~`|\\]/.test(m));
     dat('khac', m !== '' && m !== cu.value);
     dat('khop', m !== '' && m === xn.value);
   }

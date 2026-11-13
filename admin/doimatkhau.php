@@ -1,7 +1,7 @@
 <?php
 // Đổi mật khẩu quản trị khi đã đăng nhập (A-03; mật khẩu lưu dạng băm A-02). Đặt tại: elo_quiz/admin/doimatkhau.php
 require_once __DIR__ . '/../core/bootstrap.php';
-$maAdmin = Auth::requireAdmin(BASE_URL . '/admin/login.php');   // A-04
+$maAdmin = Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');   // A-04
 
 $pdo       = Database::pdo();
 $loi       = [];
@@ -14,40 +14,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $moi     = (string) ($_POST['mat_khau_moi'] ?? '');
     $xacNhan = (string) ($_POST['xac_nhan'] ?? '');
 
-    $st = $pdo->prepare('SELECT MatKhau FROM ADMIN WHERE MaAdmin = ?');
+    $st = $pdo->prepare('SELECT MatKhau, TenDangNhap FROM ADMIN WHERE MaAdmin = ?');
     $st->execute([$maAdmin]);
-    $bam = $st->fetchColumn();
+    $ad = $st->fetch();
 
-    if ($bam === false) {
+    if (!$ad) {
         // Tài khoản không còn tồn tại: kết thúc phiên
         unset($_SESSION['admin_id']);
-        redirect(BASE_URL . '/admin/login.php');
+        redirect(BASE_URL . '/admin/dangnhap.php');
     }
+    $bam = $ad['MatKhau'];
 
     if ($hienTai === '' || $moi === '' || $xacNhan === '') {
         $loi[] = 'Vui lòng nhập đủ mật khẩu hiện tại, mật khẩu mới và xác nhận.';
     } else {
-        if (!password_verify($hienTai, $bam)) {
+        if (!PasswordSecurity::verify($hienTai, $bam)) {
             $loi[] = 'Mật khẩu hiện tại không đúng.';
         }
-        if (strlen($moi) < 6) {
-            $loi[] = 'Mật khẩu mới phải có ít nhất 6 ký tự.';
-        } elseif (strlen($moi) > 72) {
-            // bcrypt (PASSWORD_DEFAULT) chỉ dùng 72 byte đầu, nên chặn để mật khẩu nhập vào đúng bằng mật khẩu được băm
-            $loi[] = 'Mật khẩu mới tối đa 72 ký tự.';
+        if ($moi === $hienTai) {
+            $loi[] = 'Mật khẩu mới phải khác mật khẩu hiện tại.';
         } elseif ($moi !== $xacNhan) {
             $loi[] = 'Mật khẩu xác nhận không khớp.';
-        } elseif ($moi === $hienTai) {
-            $loi[] = 'Mật khẩu mới phải khác mật khẩu hiện tại.';
+        } else {
+            $loiManh = PasswordSecurity::kiemTraDoManh($moi, ['tenDangNhap' => $ad['TenDangNhap']]);
+            if ($loiManh) {
+                $loi = array_merge($loi, $loiManh);
+            }
         }
     }
 
     if (!$loi) {
-        // Băm mật khẩu mới rồi ghi đè lên mật khẩu cũ của chính tài khoản này.
+        // Băm mật khẩu mới bằng chuẩn siêu bảo mật (Argon2id hoặc Bcrypt cost 12).
         // Điều kiện MatKhau = giá trị vừa kiểm tra: nếu phiên khác vừa đổi mật khẩu thì không ghi đè nhầm.
         $st = $pdo->prepare('UPDATE ADMIN SET MatKhau = ? WHERE MaAdmin = ? AND MatKhau = ?');
-        $st->execute([password_hash($moi, PASSWORD_DEFAULT), $maAdmin, $bam]);
+        $st->execute([PasswordSecurity::hash($moi), $maAdmin, $bam]);
         if ($st->rowCount() === 1) {
+            NhatKy::ghi('Đổi mật khẩu', 'ADMIN #' . $maAdmin);
             Auth::regenerate();
             $thanhCong = true;
         } else {
@@ -63,6 +65,7 @@ $cssTrang    = 'doimatkhau';
 $jsTrang     = ['doimatkhau'];       // nút hiện/ẩn mật khẩu + tick gợi ý theo thời gian thực (chỉ là giao diện, máy chủ vẫn kiểm tra lại)
 require __DIR__ . '/layout/header.php';
 ?>
+<link rel="stylesheet" href="<?= e(BASE_URL) ?>/assets/css/pw_security.css">
 <div class="card dmk">
   <!-- Cột trái: ảnh ổ khóa + khẩu hiệu -->
   <aside class="dmk-trai">
@@ -99,15 +102,22 @@ require __DIR__ . '/layout/header.php';
       <?php
       // Ba ô nhập (name/id giữ nguyên như code gốc): [id, nhãn, gợi ý trong ô]
       $oNhap = [
-          ['mat_khau_cu',   'Mật khẩu hiện tại',            'Mật khẩu hiện tại'],
-          ['mat_khau_moi',  'Mật khẩu mới (từ 6 đến 72 ký tự)', 'Mật khẩu mới'],
-          ['xac_nhan',      'Nhập lại mật khẩu mới',        'Xác nhận mật khẩu mới'],
+          ['mat_khau_cu',   'Mật khẩu hiện tại',                'Mật khẩu hiện tại'],
+          ['mat_khau_moi',  'Mật khẩu mới (tối thiểu 8 ký tự)', 'Mật khẩu mới'],
+          ['xac_nhan',      'Nhập lại mật khẩu mới',            'Xác nhận mật khẩu mới'],
       ];
-      foreach ($oNhap as [$id, $nhan, $goiY]): ?>
+      foreach ($oNhap as [$id, $nhan, $goiY]): 
+        $extraAttr = '';
+        if ($id === 'xac_nhan') {
+            $extraAttr = 'class="input-no-paste" onpaste="return false;" oncopy="return false;" oncut="return false;" ondrop="return false;" autocomplete="new-password"';
+        } elseif ($id === 'mat_khau_moi') {
+            $extraAttr = 'oncopy="return false;" oncut="return false;"';
+        }
+      ?>
         <label class="dmk-an" for="<?= e($id) ?>"><?= e($nhan) ?></label>
         <div class="dmk-o">
           <svg class="dmk-khoa" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2.5" fill="currentColor"/><path d="M8 10V7.5a4 4 0 0 1 8 0V10" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
-          <input type="password" id="<?= e($id) ?>" name="<?= e($id) ?>" placeholder="<?= e($goiY) ?>" required>
+          <input type="password" id="<?= e($id) ?>" name="<?= e($id) ?>" placeholder="<?= e($goiY) ?>" required <?= $extraAttr ?>>
           <button type="button" class="dmk-mat" aria-label="Hiện mật khẩu" aria-pressed="false">
             <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/><line class="gach" x1="4" y1="4" x2="20" y2="20"/></svg>
           </button>
@@ -115,7 +125,9 @@ require __DIR__ . '/layout/header.php';
       <?php endforeach; ?>
 
       <ul class="dmk-goiy" id="dmkGoiY">
-        <li data-quy="dai">Mật khẩu mới có từ 6 đến 72 ký tự</li>
+        <li data-quy="dai">Mật khẩu mới có từ 8 đến 72 ký tự</li>
+        <li data-quy="hoa_thuong">Chứa cả chữ in hoa (A-Z) và chữ thường (a-z)</li>
+        <li data-quy="so_ky_tu">Chứa chữ số (0-9) và ký tự đặc biệt (!@#$...)</li>
         <li data-quy="khac">Mật khẩu mới khác mật khẩu hiện tại</li>
         <li data-quy="khop">Mật khẩu xác nhận trùng với mật khẩu mới</li>
       </ul>
@@ -125,6 +137,7 @@ require __DIR__ . '/layout/header.php';
         Đổi mật khẩu
       </button>
     </form>
+    <script src="<?= e(BASE_URL) ?>/assets/js/pw_helper.js"></script>
   </div>
 </div>
 <?php require __DIR__ . '/layout/footer.php'; ?>

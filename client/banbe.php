@@ -3,7 +3,7 @@
 require_once __DIR__ . '/../core/bootstrap.php';
 require_once __DIR__ . '/../core/BanBeHelper.php';
 
-$maND = Auth::requireClient(BASE_URL . '/client/login.php');
+$maND = Auth::requireClient(BASE_URL . '/client/dangnhap.php');
 $pdo  = Database::pdo();
 
 $q    = mb_substr(trim((string) ($_GET['q'] ?? '')), 0, 100);
@@ -69,7 +69,7 @@ if ($q !== '') {
 
     // Quan hệ giữa mình và từng người tìm được: một dòng BANBE duy nhất cho mỗi cặp
     $st = $pdo->prepare(
-        "SELECT u.MaND, u.HoTen, u.Lop, u.Khoa, u.AnhDaiDien, b.MaNguoiGui, b.TrangThai AS TrangThaiBan
+        "SELECT u.MaND, u.HoTen, u.AnhDaiDien, b.MaNguoiGui, b.TrangThai AS TrangThaiBan
            FROM NGUOIDUNG u
            LEFT JOIN BANBE b ON b.CapNho = LEAST(?, u.MaND) AND b.CapLon = GREATEST(?, u.MaND)
           WHERE u.MaND <> ? AND u.TrangThai = 'Hoạt động' AND u.HoTen LIKE ?
@@ -84,7 +84,7 @@ $trangDangXem = $p ? $p->trang() : 1;
 
 // ---- Lời mời đã nhận, đã gửi, danh sách bạn bè (chỉ hiện tài khoản còn hoạt động) ----
 $st = $pdo->prepare(
-    "SELECT u.MaND, u.HoTen, u.Lop, u.Khoa, u.AnhDaiDien, b.NgayGui
+    "SELECT u.MaND, u.HoTen, u.AnhDaiDien, b.NgayGui
        FROM BANBE b JOIN NGUOIDUNG u ON u.MaND = b.MaNguoiGui
       WHERE b.MaNguoiNhan = ? AND b.TrangThai = 'Chờ' AND u.TrangThai = 'Hoạt động'
       ORDER BY b.NgayGui DESC"
@@ -93,7 +93,7 @@ $st->execute([$maND]);
 $daNhan = $st->fetchAll();
 
 $st = $pdo->prepare(
-    "SELECT u.MaND, u.HoTen, u.Lop, u.Khoa, u.AnhDaiDien, b.NgayGui
+    "SELECT u.MaND, u.HoTen, u.AnhDaiDien, b.NgayGui
        FROM BANBE b JOIN NGUOIDUNG u ON u.MaND = b.MaNguoiNhan
       WHERE b.MaNguoiGui = ? AND b.TrangThai = 'Chờ' AND u.TrangThai = 'Hoạt động'
       ORDER BY b.NgayGui DESC"
@@ -102,7 +102,7 @@ $st->execute([$maND]);
 $daGui = $st->fetchAll();
 
 $st = $pdo->prepare(
-    "SELECT u.MaND, u.HoTen, u.Lop, u.Khoa, u.AnhDaiDien,
+    "SELECT u.MaND, u.HoTen, u.AnhDaiDien,
             (SELECT MAX(e.DiemElo) FROM ELOMONHOC e WHERE e.MaND = u.MaND) AS EloCao
        FROM BANBE b JOIN NGUOIDUNG u ON u.MaND = IF(b.MaNguoiGui = ?, b.MaNguoiNhan, b.MaNguoiGui)
       WHERE (b.MaNguoiGui = ? OR b.MaNguoiNhan = ?) AND b.TrangThai = 'Đã chấp nhận' AND u.TrangThai = 'Hoạt động'
@@ -122,9 +122,8 @@ function anhNguoi(array $r): string
 
 function thongTinNguoi(array $r): string
 {
-    $phu = array_filter([$r['Lop'] ?? '', $r['Khoa'] ?? '']);
     return '<div class="nguoi">' . anhNguoi($r) . '<div>'
-        . '<b>' . e($r['HoTen']) . '</b>' . ($phu ? ' <span class="ghichu">(' . e(implode(' · ', $phu)) . ')</span>' : '')
+        . '<b>' . e($r['HoTen']) . '</b>'
         . (isset($r['EloCao']) ? '<div class="ghichu">Elo cao nhất: <b>' . (int) $r['EloCao'] . '</b></div>' : '')
         . '</div></div>';
 }
@@ -218,7 +217,8 @@ require __DIR__ . '/layout/header.php';
     <?php foreach ($banBe as $r): ?>
       <div class="dong">
         <div><?= thongTinNguoi($r) ?></div>
-        <div>
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <a href="<?= e(BASE_URL) ?>/client/timtran.php" class="btn btn-sm" style="background: linear-gradient(135deg, #10B981 0%, #059669 100%); color: #fff; font-weight: 700; text-decoration: none; padding: 5px 12px; border-radius: 6px; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);">⚔️ Thách đấu</a>
           <?= nutBanBe('huyketban', (int) $r['MaND'], 'Hủy kết bạn', $q, $trangDangXem, 'btn btn-phu',
                        'Hủy kết bạn với ' . $r['HoTen'] . '? Hai bạn sẽ không còn thấy nhau trong bảng xếp hạng bạn bè.') ?>
         </div>

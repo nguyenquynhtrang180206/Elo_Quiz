@@ -1,0 +1,186 @@
+/* Trang Đăng nhập quản trị (admin/login.php) - Clean Enterprise SaaS */
+body {
+  font-family: 'Be Vietnam Pro', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  -webkit-font-smoothing: antialiased !important;
+  -moz-osx-font-smoothing: grayscale !important;
+  text-rendering: optimizeLegibility !important;
+}
+
+.container.khung-login {
+  max-width: 440px;
+  margin: 80px auto 40px;
+  padding: 0 16px;
+}
+
+.khung-login .card {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border-radius: 20px !important;
+  padding: 36px 32px !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05) !important;
+}
+
+.admin-login-brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: fit-content;
+  margin: 0 auto 20px;
+  color: #0f172a !important;
+  text-decoration: none !important;
+}
+
+.admin-login-brand img {
+  display: block;
+  width: 52px;
+  height: 52px;
+  filter: drop-shadow(0 2px 6px rgba(15, 23, 42, 0.25));
+}
+
+.admin-login-wordmark {
+  display: flex;
+  flex-direction: column;
+  line-height: 1;
+}
+
+.admin-login-wordmark strong {
+  color: #0f172a;
+  font-family: 'Rajdhani', 'Be Vietnam Pro', sans-serif;
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.admin-login-wordmark small {
+  margin-top: 4px;
+  color: #a77a10;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.42em;
+}
+
+.khung-login .card h2 {
+  color: #0f172a !important;
+  text-shadow: none !important;
+  font-size: 22px !important;
+  font-weight: 800 !important;
+  margin: 0 0 24px 0 !important;
+  text-align: center !important;
+  letter-spacing: -0.02em !important;
+}
+
+.khung-login label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+  margin-bottom: 6px;
+  text-shadow: none !important;
+}
+
+.khung-login input[type=text],
+.khung-login input[type=password] {
+  width: 100% !important;
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 10px !important;
+  padding: 11px 14px !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04) !important;
+  transition: all 0.15s ease !important;
+  margin-bottom: 16px;
+}
+
+.khung-login input::placeholder {
+  color: #94a3b8 !important;
+  font-weight: 400 !important;
+}
+
+.khung-login input:focus {
+  border-color: #2563eb !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15) !important;
+  outline: none !important;
+}
+
+.khung-login .pw-field-wrap {
+  position: relative;
+  margin-bottom: 16px;
+}
+
+.khung-login .pw-field-wrap input {
+  margin-bottom: 0 !important;
+  padding-right: 44px !important;
+}
+
+.khung-login .btn-toggle-pw {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: color 0.15s ease;
+}
+
+.khung-login .btn-toggle-pw:hover {
+  color: #2563eb;
+}
+
+.khung-login .btn {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: #2563eb !important;
+  color: #ffffff !important;
+  border: none !important;
+  border-radius: 10px !important;
+  padding: 12px !important;
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  width: 100% !important;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25) !important;
+  text-shadow: none !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+  margin-top: 8px;
+}
+
+.khung-login .btn:hover {
+  background: #1d4ed8 !important;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35) !important;
+  transform: translateY(-1px) !important;
+}
+
+.khung-login .loi {
+  background: #fef2f2 !important;
+  color: #991b1b !important;
+  border: 1px solid #fecaca !important;
+  border-radius: 10px !important;
+  padding: 12px 16px !important;
+  font-size: 13.5px !important;
+  margin-bottom: 18px !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+.khung-login a {
+  color: #2563eb !important;
+  font-weight: 600 !important;
+  text-shadow: none !important;
+}
+
+.khung-login a:hover {
+  color: #1d4ed8 !important;
+  text-decoration: underline !important;
+}

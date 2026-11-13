@@ -1,0 +1,190 @@
+/* ==========================================================================
+   QUIZUP ARENA - Password Security & Strength UI Components
+   ========================================================================== */
+
+.pw-field-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.pw-field-wrap input {
+  width: 100%;
+  padding-right: 44px !important;
+}
+
+.btn-toggle-pw {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  z-index: 3;
+}
+
+.btn-toggle-pw:hover {
+  color: #f1f5f9;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.btn-toggle-pw .eye-slash {
+  display: block;
+  transition: opacity 0.2s ease;
+}
+
+.btn-toggle-pw.active {
+  color: #38bdf8;
+}
+
+.btn-toggle-pw.active .eye-slash {
+  display: none;
+}
+
+/* Password Strength Meter */
+.pw-strength-container {
+  margin: 10px 0 14px 0;
+}
+
+.pw-strength-bar {
+  height: 6px;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.pw-strength-fill {
+  height: 100%;
+  width: 0%;
+  border-radius: 4px;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.3s ease;
+}
+
+.pw-strength-fill.weak {
+  background: #ef4444;
+}
+
+.pw-strength-fill.medium {
+  background: #f59e0b;
+}
+
+.pw-strength-fill.strong {
+  background: #10b981;
+}
+
+.pw-strength-fill.secure {
+  background: linear-gradient(90deg, #10b981, #06b6d4);
+  box-shadow: 0 0 10px rgba(6, 182, 212, 0.5);
+}
+
+.pw-strength-label {
+  font-size: 12px;
+  color: #94a3b8;
+  margin-top: 5px;
+}
+
+/* Requirements Checklist */
+.pw-requirements-list {
+  list-style: none;
+  padding: 12px 14px;
+  margin: 12px 0 16px 0;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+.pw-requirements-list li {
+  position: relative;
+  padding-left: 24px;
+  margin-bottom: 6px;
+  line-height: 1.4;
+  transition: color 0.2s ease;
+}
+
+.pw-requirements-list li:last-child {
+  margin-bottom: 0;
+}
+
+.pw-requirements-list li::before {
+  content: "✕";
+  position: absolute;
+  left: 2px;
+  top: 0;
+  color: #ef4444;
+  font-weight: 700;
+  transition: all 0.2s ease;
+}
+
+.pw-requirements-list li.valid {
+  color: #cbd5e1;
+}
+
+.pw-requirements-list li.valid::before {
+  content: "✓";
+  color: #10b981;
+}
+
+/* Rate Limit Alert Box */
+.rate-limit-warning {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #fca5a5;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 13.5px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* No-Paste Toast & Warning */
+.no-paste-toast {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.96) 0%, rgba(185, 28, 28, 0.98) 100%);
+  color: #FFFFFF;
+  font-size: 0.74rem;
+  font-weight: 700;
+  padding: 5px 12px;
+  border-radius: 6px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 99;
+  animation: toastFadeInOut 2.5s ease-in-out forwards;
+}
+
+@keyframes toastFadeInOut {
+  0% { opacity: 0; transform: translateY(4px); }
+  15% { opacity: 1; transform: translateY(0); }
+  80% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-4px); }
+}
+
+.shake-warning {
+  animation: fieldShake 0.4s ease-in-out;
+  border-color: #EF4444 !important;
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.4) !important;
+}
+
+@keyframes fieldShake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-5px); }
+  40%, 80% { transform: translateX(5px); }
+}
+
+

@@ -3,7 +3,7 @@
 // C-15 (biểu đồ biến động Elo) làm sau, xem chỗ TODO ở cuối trang.
 require_once __DIR__ . '/../core/bootstrap.php';
 
-$maND = Auth::requireClient(BASE_URL . '/client/login.php');
+$maND = Auth::requireClient(BASE_URL . '/client/dangnhap.php');
 $pdo  = Database::pdo();
 
 const AVATAR_TOI_DA = 2 * 1024 * 1024;       // 2 MB (mục 3.9)
@@ -11,7 +11,7 @@ const AVATAR_THU_MUC = 'uploads/avatars';    // đường dẫn lưu trong cột
 
 function layNguoiDung(PDO $pdo, int $maND)
 {
-    $st = $pdo->prepare('SELECT MaND, HoTen, Email, AnhDaiDien, Lop, Khoa FROM NGUOIDUNG WHERE MaND = ?');
+    $st = $pdo->prepare('SELECT MaND, HoTen, Email, AnhDaiDien FROM NGUOIDUNG WHERE MaND = ?');
     $st->execute([$maND]);
     return $st->fetch();
 }
@@ -19,28 +19,22 @@ function layNguoiDung(PDO $pdo, int $maND)
 $nd = layNguoiDung($pdo, $maND);
 if (!$nd) {                                   // tài khoản không còn tồn tại
     unset($_SESSION['nd_id']);
-    redirect(BASE_URL . '/client/login.php');
+    redirect(BASE_URL . '/client/dangnhap.php');
 }
 
 $loi = [];
 $hoTen = $nd['HoTen'];
-$lop   = (string) $nd['Lop'];
-$khoa  = (string) $nd['Khoa'];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_check();
 
     $hoTen = trim((string) ($_POST['ho_ten'] ?? ''));
-    $lop   = trim((string) ($_POST['lop'] ?? ''));
-    $khoa  = trim((string) ($_POST['khoa'] ?? ''));
 
     if ($hoTen === '') {
         $loi[] = 'Họ tên không được để trống.';
     } elseif (mb_strlen($hoTen) > 100) {
         $loi[] = 'Họ tên tối đa 100 ký tự.';
     }
-    if (mb_strlen($lop) > 50)   { $loi[] = 'Lớp tối đa 50 ký tự.'; }
-    if (mb_strlen($khoa) > 100) { $loi[] = 'Khoa tối đa 100 ký tự.'; }
 
     // ---- Ảnh đại diện (3.9): chỉ JPG/PNG, tối đa 2 MB, kiểm tra loại file thật ----
     $duongDanMoi = null;
@@ -83,11 +77,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (!$loi) {
         $anhLuu = $duongDanMoi ?? $nd['AnhDaiDien'];
-        $st = $pdo->prepare('UPDATE NGUOIDUNG SET HoTen = ?, Lop = ?, Khoa = ?, AnhDaiDien = ? WHERE MaND = ?');
+        $st = $pdo->prepare('UPDATE NGUOIDUNG SET HoTen = ?, AnhDaiDien = ? WHERE MaND = ?');
         $st->execute([
             $hoTen,
-            $lop === '' ? null : $lop,
-            $khoa === '' ? null : $khoa,
             $anhLuu,
             $maND,
         ]);
@@ -203,12 +195,6 @@ require __DIR__ . '/layout/header.php';
 
         <label for="email">Email</label>
         <input type="email" id="email" value="<?= e($emailHienThi) ?>" readonly>
-
-        <label for="lop">Lớp</label>
-        <input type="text" id="lop" name="lop" maxlength="50" value="<?= e($lop) ?>">
-
-        <label for="khoa">Khoa</label>
-        <input type="text" id="khoa" name="khoa" maxlength="100" value="<?= e($khoa) ?>">
 
         <p><button type="submit" class="btn">Lưu thay đổi</button>
            <a class="btn btn-phu" href="<?= e(BASE_URL) ?>/client/doimatkhau.php">Đổi mật khẩu</a></p>

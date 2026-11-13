@@ -3,7 +3,7 @@
 // Chỉ xem: trang này không có thao tác sửa hoặc xóa nào và không nhận POST (A-42).
 // Giao diện: dùng cùng khung (nền + sidebar) với trang Tổng quan, nên KHÔNG bật $giaoDienMoi.
 require_once __DIR__ . '/../core/bootstrap.php';
-Auth::requireAdmin(BASE_URL . '/admin/login.php');   // A-04
+Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');   // A-04
 
 $pdo = Database::pdo();
 NhatKy::damBaoCot($pdo);

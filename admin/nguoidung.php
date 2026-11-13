@@ -2,7 +2,7 @@
 // Danh sách người dùng (UC11: A-11, A-45). Đặt tại: elo_quiz/admin/nguoidung.php
 require_once __DIR__ . '/../core/bootstrap.php';
 require_once __DIR__ . '/../core/XlsxWriter.php';
-Auth::requireAdmin(BASE_URL . '/admin/login.php');   // A-04
+Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');   // A-04
 
 $pdo = Database::pdo();
 
@@ -18,8 +18,8 @@ $tham     = [];
 $dieuKien[] = 'n.MaND NOT IN (SELECT MaND FROM ADMIN WHERE MaND IS NOT NULL)';   // không liệt kê tài khoản sinh viên liên kết của admin
 if ($q !== '') {
     $like       = '%' . addcslashes($q, '\\%_') . '%';   // thoát % và _ để tìm đúng chữ người dùng gõ
-    $dieuKien[] = '(n.HoTen LIKE ? OR n.Email LIKE ? OR n.Lop LIKE ? OR n.Khoa LIKE ?)';
-    array_push($tham, $like, $like, $like, $like);
+    $dieuKien[] = '(n.HoTen LIKE ? OR n.Email LIKE ?)';
+    array_push($tham, $like, $like);
 }
 if ($tt !== '') {
     $dieuKien[] = 'n.TrangThai = ?';
@@ -27,7 +27,7 @@ if ($tt !== '') {
 }
 $where = $dieuKien ? 'WHERE ' . implode(' AND ', $dieuKien) : '';
 
-$cotChon = "n.MaND, n.HoTen, n.Email, n.Lop, n.Khoa, n.TrangThai, n.NgayTao,
+$cotChon = "n.MaND, n.HoTen, n.Email, n.TrangThai, n.NgayTao,
             (SELECT COALESCE(SUM(e.SoTran), 0) FROM ELOMONHOC e WHERE e.MaND = n.MaND) AS so_tran";
 
 // ---- A-45: xuất Excel theo đúng bộ lọc đang xem ----
@@ -45,7 +45,7 @@ if (isset($_GET['xuat'])) {
         $elo[(int) $r['MaND']][(int) $r['MaMon']] = (int) $r['DiemElo'];
     }
 
-    $tieuDe = ['Họ tên', 'Email', 'Lớp', 'Khoa', 'Trạng thái'];
+    $tieuDe = ['Họ tên', 'Email', 'Trạng thái'];
     foreach ($monHoc as $m) {
         $tieuDe[] = 'Elo - ' . $m['TenMon'];
     }
@@ -53,7 +53,7 @@ if (isset($_GET['xuat'])) {
 
     $dong = [];
     foreach ($nguoi as $r) {
-        $d = [$r['HoTen'], $r['Email'], $r['Lop'], $r['Khoa'], $r['TrangThai']];
+        $d = [$r['HoTen'], $r['Email'], $r['TrangThai']];
         foreach ($monHoc as $m) {
             $d[] = $elo[(int) $r['MaND']][(int) $m['MaMon']] ?? null;   // chưa chơi môn nào thì để trống
         }
@@ -83,10 +83,28 @@ $mucChon = 'nguoidung';
 $cssTrang = 'nguoidung';
 require __DIR__ . '/layout/header.php';
 ?>
-<h2>Người dùng</h2>
+<div class="card adm-page-hero-card">
+  <div class="adm-header-eyebrow">
+    <span class="live-pulse"></span>
+    <span>HỆ THỐNG QUẢN TRỊ NGƯỜI DÙNG</span>
+  </div>
+  <div class="adm-header-main">
+    <h2 class="adm-title-pro">
+      <svg class="title-svg-icon" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      <span>Danh sách người dùng</span>
+    </h2>
+    <div class="adm-header-badge-count">
+      <span class="badge-num"><?= (int) $p->tong() ?></span>
+      <span class="badge-txt">tài khoản</span>
+    </div>
+  </div>
+  <p class="adm-subtitle-pro">
+    Quản lý định danh người chơi, theo dõi trạng thái hoạt động và tra cứu điểm số Elo thời gian thực.
+  </p>
+</div>
 
 <form method="get" action="" class="card form-loc">
-  <input type="text" name="q" value="<?= e($q) ?>" placeholder="Tìm theo họ tên, email, lớp, khoa" class="o-tim">
+  <input type="text" name="q" value="<?= e($q) ?>" placeholder="Tìm theo họ tên, email" class="o-tim">
   <select name="tt">
     <option value="">Mọi trạng thái</option>
     <option value="Hoạt động"<?= $tt === 'Hoạt động' ? ' selected' : '' ?>>Hoạt động</option>
@@ -102,16 +120,14 @@ require __DIR__ . '/layout/header.php';
     <p class="nhan-phu">Không có người dùng nào khớp.</p>
   <?php else: ?>
     <table>
-      <tr><th>Mã</th><th>Họ tên</th><th>Email</th><th>Lớp</th><th>Khoa</th><th>Số trận</th><th>Trạng thái</th><th>Ngày tạo</th></tr>
+      <tr><th>Mã</th><th>Họ tên</th><th>Email</th><th>Số trận</th><th>Trạng thái</th><th>Ngày tạo</th></tr>
       <?php foreach ($ds as $r): ?>
         <tr>
           <td><?= (int) $r['MaND'] ?></td>
           <td><a href="<?= e(BASE_URL) ?>/admin/nguoidung_chitiet.php?id=<?= (int) $r['MaND'] ?>"><?= e($r['HoTen']) ?></a></td>
           <td><?= e($r['Email']) ?></td>
-          <td><?= e($r['Lop']) ?></td>
-          <td><?= e($r['Khoa']) ?></td>
           <td><?= (int) $r['so_tran'] ?></td>
-          <td><?= $r['TrangThai'] === 'Bị khóa' ? '<span class="mau-do dam">Bị khóa</span>' : 'Hoạt động' ?></td>
+          <td><?= $r['TrangThai'] === 'Bị khóa' ? '<span class="tt-badge tt-khoa"><span class="badge-dot"></span> Bị khóa</span>' : '<span class="tt-badge tt-hoatdong"><span class="badge-dot"></span> Hoạt động</span>' ?></td>
           <td><?= e(date('d/m/Y H:i', strtotime($r['NgayTao']))) ?></td>
         </tr>
       <?php endforeach; ?>

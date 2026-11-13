@@ -9,7 +9,7 @@ require_once __DIR__ . '/../core/DocxReader.php';
 require_once __DIR__ . '/../core/XlsxReader.php';
 require_once __DIR__ . '/../core/XlsxWriter.php';
 require_once __DIR__ . '/../core/NhapCauHoi.php';
-Auth::requireAdmin(BASE_URL . '/admin/login.php');   // A-04
+Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');   // A-04
 
 $pdo = Database::pdo();
 

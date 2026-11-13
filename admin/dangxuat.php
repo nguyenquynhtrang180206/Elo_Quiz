@@ -10,4 +10,4 @@ if (isset($_SESSION['nd_la_admin'])) {
 }
 session_regenerate_id(true);
 
-redirect(BASE_URL . '/admin/login.php');
+redirect(BASE_URL . '/admin/dangnhap.php');

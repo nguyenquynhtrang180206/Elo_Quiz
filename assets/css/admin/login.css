@@ -1,2 +1,3 @@
-/* Trang Đăng nhập quản trị (admin/login.php) */
-.container.khung-login { max-width:420px; margin-top:60px; }
+@charset "UTF-8";
+/* Backward compatibility shim */
+@import url("dangnhap.css");

@@ -57,11 +57,11 @@ if ($bai && $_SERVER['REQUEST_METHOD'] === 'POST') {
             echo json_encode([
                 'ok' => false,
                 'yeuCauLogin' => true,
-                'redirect' => BASE_URL . '/client/login.php'
+                'redirect' => BASE_URL . '/client/dangnhap.php'
             ]);
             exit;
         }
-        redirect(BASE_URL . '/client/login.php');
+        redirect(BASE_URL . '/client/dangnhap.php');
     }
     csrf_check();
     $hanhDong = (string) ($_POST['hanh_dong'] ?? '');
@@ -600,7 +600,7 @@ require __DIR__ . '/layout/header.php';
         <?php if ($baiAn): ?>
           <p class="meta">Bài đang bị ẩn nên chưa thể bình luận.</p>
         <?php elseif ($maND === null): ?>
-          <p class="meta"><a href="<?= e(BASE_URL) ?>/client/login.php">Đăng nhập</a> để viết bình luận.</p>
+          <p class="meta"><a href="<?= e(BASE_URL) ?>/client/dangnhap.php">Đăng nhập</a> để viết bình luận.</p>
         <?php else: ?>
         <form method="post" action="?id=<?= (int) $id ?>" novalidate id="formDangBL">
           <?= csrf_field() ?>

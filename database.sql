@@ -1,16 +1,18 @@
 -- =====================================================================
--- DỮ LIỆU MẪU để thử hệ thống (chạy SAU file csdl_elo_quiz.sql)
--- Chạy MỘT LẦN trên database mới. Muốn chạy lại thì import lại file cấu trúc trước.
---
--- Tài khoản thử:
---   Sinh viên: an@test.com, binh@test.com, cuong@test.com, dung@test.com,
---              huy@test.com, linh@test.com      Mật khẩu: 123456
---   Quản trị : tên đăng nhập admin             Mật khẩu: admin123
---
--- Câu hỏi: 3 môn x 20 câu. Mỗi môn có 8 câu dùng cho cả hai loại kỳ thi
--- (MaLoaiKT rỗng), 6 câu giữa kỳ, 6 câu cuối kỳ => mỗi loại kỳ thi có 14 câu (>= 10).
+-- DỮ LIỆU MẪU ĐỂ THỬ HỆ THỐNG
+-- Tự động kích hoạt elo_quiz và tắt kiểm tra khóa ngoại để không bị lỗi #1452
 -- =====================================================================
+CREATE DATABASE IF NOT EXISTS elo_quiz CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE elo_quiz;
+SET FOREIGN_KEY_CHECKS = 0;
+
+-- Đảm bảo loại kỳ thi luôn có trước khi chèn câu hỏi
+INSERT INTO LOAIKYTHI (MaLoaiKT, TenLoaiKT, MoTa) VALUES
+  (1, 'Giữa kỳ',  'Câu hỏi ôn thi giữa kỳ'),
+  (2, 'Cuối kỳ',  'Câu hỏi ôn thi cuối kỳ'),
+  (3, 'Cả 2',     'Câu hỏi ôn thi cả giữa kỳ và cuối kỳ')
+ON DUPLICATE KEY UPDATE TenLoaiKT = VALUES(TenLoaiKT);
+
 
 INSERT INTO MONHOC (MaMon, TenMon, MoTa, TrangThai) VALUES
   (1, 'Quản trị cơ sở dữ liệu', 'Môn CIT2521: SQL, giao dịch, chỉ mục, chuẩn hóa', 'Đang mở'),
@@ -434,8 +436,4 @@ INSERT INTO DAPAN (MaCauHoi, NoiDungDapAn, LaDapAnDung) VALUES (@c, '6', 0),(@c,
 -- DELETE c FROM CAUHOI c JOIN MONHOC m ON m.MaMon = c.MaMon WHERE m.TenMon LIKE '%(thử nghiệm)';
 -- DELETE FROM MONHOC WHERE TenMon LIKE '%(thử nghiệm)';
 
-
--- Chạy MỘT LẦN trên CSDL đã có sẵn (nếu bạn không import lại file csdl_elo_quiz.sql mới).
-ALTER TABLE TRANDAU
-  MODIFY LyDoKetThuc ENUM('Hoàn thành','Đối thủ bỏ trận (xử thua)','Hủy do lỗi hệ thống',
-                          'Hủy do không vào phòng','Quản trị viên hủy','Chịu thua') NULL;
+SET FOREIGN_KEY_CHECKS = 1;

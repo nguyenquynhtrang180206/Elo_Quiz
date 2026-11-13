@@ -50,10 +50,10 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     if ($maND === null) {
         if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
             header('Content-Type: application/json; charset=utf-8');
-            echo json_encode(['ok' => false, 'yeuCauLogin' => true, 'redirect' => BASE_URL . '/client/login.php']);
+            echo json_encode(['ok' => false, 'yeuCauLogin' => true, 'redirect' => BASE_URL . '/client/dangnhap.php']);
             exit;
         }
-        redirect(BASE_URL . '/client/login.php');
+        redirect(BASE_URL . '/client/dangnhap.php');
     }
     csrf_check();
 
@@ -813,7 +813,7 @@ require __DIR__ . '/layout/header.php';
         <?php else: ?>
           <div class="cd-guest-box">
             <p class="cd-guest-msg">Đăng nhập tài khoản để viết bài thảo luận, chia sẻ bí kíp và thả lửa bài viết cùng cộng đồng!</p>
-            <a href="<?= e(BASE_URL) ?>/client/login.php" class="btn-dang-bai-gradient">Đăng nhập để viết bài &rarr;</a>
+            <a href="<?= e(BASE_URL) ?>/client/dangnhap.php" class="btn-dang-bai-gradient">Đăng nhập để viết bài &rarr;</a>
           </div>
         <?php endif; ?>
       </div>
@@ -920,7 +920,7 @@ require __DIR__ . '/layout/header.php';
             <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="#FDE047" stroke-width="1.8" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2" stroke="#FDE047"/><path d="M8 10V7a4 4 0 118 0v3" stroke="#38BDF8"/><circle cx="12" cy="15" r="1.5" fill="#FDE047"/></svg>
           </div>
           <p>Bạn cần đăng nhập tài khoản để quản lý bài viết của mình.</p>
-          <a class="btn btn-dang-bai-gradient" href="<?= e(BASE_URL) ?>/client/login.php?back=<?= urlencode(BASE_URL . '/client/congdong.php?tab=cuatoi') ?>" style="margin-top: 10px;">Đăng nhập ngay →</a>
+          <a class="btn btn-dang-bai-gradient" href="<?= e(BASE_URL) ?>/client/dangnhap.php?back=<?= urlencode(BASE_URL . '/client/congdong.php?tab=cuatoi') ?>" style="margin-top: 10px;">Đăng nhập ngay →</a>
         </div>
       <?php elseif (!$baiDang): ?>
         <div class="cd-rong">

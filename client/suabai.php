@@ -3,7 +3,7 @@
 require_once __DIR__ . '/../core/bootstrap.php';
 require_once __DIR__ . '/../core/CongDongHelper.php';
 
-$maND = Auth::requireClient(BASE_URL . '/client/login.php');
+$maND = Auth::requireClient(BASE_URL . '/client/dangnhap.php');
 $pdo  = Database::pdo();
 $id   = (int) ($_GET['id'] ?? 0);
 $coLoai = CongDongHelper::coCotLoaiBai();
