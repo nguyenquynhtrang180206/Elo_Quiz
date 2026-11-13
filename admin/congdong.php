@@ -84,82 +84,104 @@ $mucChon = 'congdong';
 $cssTrang = 'congdong';
 require __DIR__ . '/layout/header.php';
 ?>
-<h2>Kiểm duyệt cộng đồng</h2>
-<p>
-  <a class="btn<?= $loai === 'bai' ? '' : ' btn-phu' ?>" href="?loai=bai">Bài đăng</a>
-  <a class="btn<?= $loai === 'bl' ? '' : ' btn-phu' ?>" href="?loai=bl">Bình luận</a>
-</p>
+<div class="congdong-page">
+  <div class="congdong-main">
+    <header class="congdong-header">
+      <div class="congdong-icon" aria-hidden="true">✓</div>
+      <div class="congdong-headline">
+        <h2>Kiểm duyệt cộng đồng</h2>
+        <p>Quản lý bài đăng và bình luận của cộng đồng sinh viên</p>
+      </div>
+    </header>
 
-<?php if ($thongBao !== ''): ?><div class="thanhcong"><?= e($thongBao) ?></div><?php endif; ?>
-<?php if ($loiBao !== ''): ?><div class="loi"><?= e($loiBao) ?></div><?php endif; ?>
+    <div class="congdong-tabs">
+      <a class="btn<?= $loai === 'bai' ? '' : ' btn-phu' ?>" href="?loai=bai">Bài đăng</a>
+      <a class="btn<?= $loai === 'bl' ? '' : ' btn-phu' ?>" href="?loai=bl">Bình luận</a>
+    </div>
 
-<form method="get" action="" class="card form-loc">
-  <input type="hidden" name="loai" value="<?= e($loai) ?>">
-  <input type="text" name="q" value="<?= e($q) ?>" placeholder="<?= $loai === 'bai' ? 'Tìm theo tiêu đề, nội dung, người đăng' : 'Tìm theo nội dung, người bình luận, tiêu đề bài' ?>" class="o-tim">
-  <select name="tt">
-    <option value="">Mọi trạng thái</option>
-    <?php foreach ($dsTT as $v): ?>
-      <option value="<?= e($v) ?>"<?= $tt === $v ? ' selected' : '' ?>><?= e($v) ?></option>
-    <?php endforeach; ?>
-  </select>
-  <button type="submit" class="btn">Lọc</button>
-  <a class="btn btn-phu" href="?loai=<?= e($loai) ?>">Xóa lọc</a>
-</form>
+    <?php if ($thongBao !== ''): ?><div class="thanhcong"><?= e($thongBao) ?></div><?php endif; ?>
+    <?php if ($loiBao !== ''): ?><div class="loi"><?= e($loiBao) ?></div><?php endif; ?>
 
-<p class="nhan-phu">Chỉ ẩn/hiện lại, không xóa cứng. Bắt buộc nhập lý do, lý do được ghi vào nhật ký quản trị.<?= $loai === 'bai' ? ' Bài' : ' Bình luận' ?> sinh viên đã tự xóa không hiện lại được.</p>
+    <form method="get" action="" class="form-loc congdong-form-loc">
+      <input type="hidden" name="loai" value="<?= e($loai) ?>">
+      <input type="text" name="q" value="<?= e($q) ?>" placeholder="<?= $loai === 'bai' ? 'Tìm kiếm theo tiêu đề, nội dung, người đăng...' : 'Tìm kiếm theo nội dung, người bình luận, tiêu đề bài...' ?>" class="o-tim">
+      <select name="tt">
+        <option value="">Tất cả trạng thái</option>
+        <?php foreach ($dsTT as $v): ?>
+          <option value="<?= e($v) ?>"<?= $tt === $v ? ' selected' : '' ?>><?= e($v) ?></option>
+        <?php endforeach; ?>
+      </select>
+      <button type="submit" class="btn">Tìm kiếm</button>
+      <a class="btn btn-phu" href="?loai=<?= e($loai) ?>">Xóa lọc</a>
+    </form>
 
-<div class="card">
-  <?php if (!$ds): ?>
-    <p class="nhan-phu">Không có mục nào khớp.</p>
-  <?php else: ?>
-    <table>
-      <tr>
-        <th>Mã</th>
-        <th><?= $loai === 'bai' ? 'Bài đăng' : 'Bình luận' ?></th>
-        <th>Người đăng</th><th>Ngày</th><th>Trạng thái</th><th>Xử lý</th>
-      </tr>
-      <?php foreach ($ds as $r):
-          $hienNut = $r['TrangThai'] === 'Hiển thị' || $r['TrangThai'] === 'Bị ẩn';   // "Đã xóa" không có nút (A-33)
-          $anBai   = $r['TrangThai'] === 'Hiển thị'; ?>
-        <tr>
-          <td><?= (int) $r['ma'] ?></td>
-          <td class="cot-noidung">
-            <?php if ($loai === 'bai'): ?>
-              <strong><a href="<?= e(BASE_URL) ?>/client/baidang.php?id=<?= (int) $r['ma'] ?>&amp;xemthu=1" target="_blank" rel="noopener"><?= e($r['TieuDe']) ?></a></strong>
-              <?php if ($r['TenMon']): ?><span class="nhan-phu"> · <?= e($r['TenMon']) ?></span><?php endif; ?>
-              <details><summary class="nhan-phu"><?= e($cat($r['NoiDung'])) ?> (<?= (int) $r['so_bl'] ?> bình luận)</summary>
-                <div class="xuong-dong"><?= e($r['NoiDung']) ?></div>
-              </details>
-            <?php else: ?>
-              <details><summary><?= e($cat($r['NoiDung'])) ?></summary>
-                <div class="xuong-dong"><?= e($r['NoiDung']) ?></div>
-              </details>
-              <span class="nhan-phu">Dưới bài <a href="<?= e(BASE_URL) ?>/admin/congdong_baidang.php?id=<?= (int) $r['MaBaiDang'] ?>">#<?= (int) $r['MaBaiDang'] ?>: <?= e($cat($r['tieu_de_bai'], 60)) ?></a> (<?= e($r['tt_bai']) ?>)</span>
-            <?php endif; ?>
-          </td>
-          <td><a href="<?= e(BASE_URL) ?>/admin/nguoidung_chitiet.php?id=<?= (int) $r['MaND'] ?>"><?= e($r['HoTen']) ?></a></td>
-          <td><?= e(date('d/m/Y H:i', strtotime($r['ngay']))) ?></td>
-          <td><span class="dam <?= e($lopTT[$r['TrangThai']] ?? '') ?>"><?= e($r['TrangThai']) ?></span></td>
-          <td class="cot-thaotac">
-            <?php if ($hienNut): ?>
-              <form method="post" action="" class="form-kiemduyet">
-                <?= csrf_field() ?>
-                <input type="hidden" name="hanh_dong" value="<?= ($anBai ? 'an_' : 'hien_') . $loai ?>">
-                <input type="hidden" name="ma" value="<?= (int) $r['ma'] ?>">
-                <input type="text" name="ly_do" maxlength="300" required placeholder="Lý do (bắt buộc)" class="o-lydo">
-                <button type="submit" class="btn<?= $anBai ? ' btn-do' : '' ?>"><?= $anBai ? 'Ẩn' : 'Hiện lại' ?></button>
-              </form>
-            <?php else: ?>
-              <span class="nhan-phu">Sinh viên đã xóa</span>
-            <?php endif; ?>
-            <?php if ($loai === 'bai'): ?>
-              <div class="lien-ket-duyet"><a href="<?= e(BASE_URL) ?>/admin/congdong_baidang.php?id=<?= (int) $r['ma'] ?>">Kiểm duyệt bài và bình luận</a></div>
-            <?php endif; ?>
-          </td>
-        </tr>
-      <?php endforeach; ?>
-    </table>
-  <?php endif; ?>
-  <?= $p->links() ?>
+    <div class="congdong-card card">
+      <?php if (!$ds): ?>
+        <p class="nhan-phu">Không có mục nào khớp.</p>
+      <?php else: ?>
+        <table class="congdong-table">
+          <thead>
+            <tr>
+              <th class="stt-col">#</th>
+              <th><?= $loai === 'bai' ? 'Tiêu đề bài đăng' : 'Nội dung bình luận' ?></th>
+              <th>Người đăng</th>
+              <th>Danh mục</th>
+              <th>Thời gian</th>
+              <th>Trạng thái</th>
+              <th>Thao tác</th>
+            </tr>
+          </thead>
+          <tbody>
+            <?php foreach ($ds as $idx => $r):
+                $hienNut = $r['TrangThai'] === 'Hiển thị' || $r['TrangThai'] === 'Bị ẩn';
+                $anBai   = $r['TrangThai'] === 'Hiển thị';
+                $danhMuc = $loai === 'bai' ? ($r['TenMon'] ?: 'Chưa phân loại') : 'Chia sẻ';
+                $ngay = date('d/m/Y', strtotime($r['ngay'])) . '<br>' . date('H:i', strtotime($r['ngay']));
+                ?>
+              <tr>
+                <td class="stt-col"><?= (int) ($idx + 1) ?></td>
+                <td class="cot-noidung">
+                  <?php if ($loai === 'bai'): ?>
+                    <strong><a href="<?= e(BASE_URL) ?>/client/baidang.php?id=<?= (int) $r['ma'] ?>&amp;xemthu=1" target="_blank" rel="noopener"><?= e($r['TieuDe']) ?></a></strong>
+                    <div class="desc"><?= e($cat($r['NoiDung'])) ?></div>
+                  <?php else: ?>
+                    <strong><a href="<?= e(BASE_URL) ?>/admin/congdong_baidang.php?id=<?= (int) $r['MaBaiDang'] ?>"><?= e($cat($r['NoiDung'])) ?></a></strong>
+                    <div class="desc">Dưới bài <span>#<?= (int) $r['MaBaiDang'] ?></span></div>
+                  <?php endif; ?>
+                </td>
+                <td class="nguoi-dang">
+                  <span class="avatar-dot"><?= e(mb_substr(trim((string) $r['HoTen']), 0, 1) ?: 'A') ?></span>
+                  <div>
+                    <strong><?= e($r['HoTen']) ?></strong>
+                    <small>K<?= (int) $r['MaND'] ?></small>
+                  </div>
+                </td>
+                <td><span class="tag tag-<?= strtolower(str_replace(' ', '-', $danhMuc)) ?>"><?= e($danhMuc) ?></span></td>
+                <td class="ngay-col"><?= $ngay ?></td>
+                <td><span class="status <?= e($lopTT[$r['TrangThai']] ?? '') ?>"><?= e($r['TrangThai']) ?></span></td>
+                <td class="cot-thaotac">
+                  <?php if ($hienNut): ?>
+                    <form method="post" action="" class="form-kiemduyet">
+                      <?= csrf_field() ?>
+                      <input type="hidden" name="hanh_dong" value="<?= ($anBai ? 'an_' : 'hien_') . $loai ?>">
+                      <input type="hidden" name="ma" value="<?= (int) $r['ma'] ?>">
+                      <input type="text" name="ly_do" maxlength="300" required placeholder="Lý do" class="o-lydo">
+                      <button type="submit" class="btn<?= $anBai ? ' btn-do' : '' ?>"><?= $anBai ? 'Ẩn' : 'Hiện lại' ?></button>
+                    </form>
+                  <?php else: ?>
+                    <span class="nhan-phu">Đã xóa</span>
+                  <?php endif; ?>
+                  <?php if ($loai === 'bai'): ?>
+                    <div class="lien-ket-duyet"><a href="<?= e(BASE_URL) ?>/admin/congdong_baidang.php?id=<?= (int) $r['ma'] ?>">Chi tiết</a></div>
+                  <?php endif; ?>
+                </td>
+              </tr>
+            <?php endforeach; ?>
+          </tbody>
+        </table>
+      <?php endif; ?>
+      <div class="congdong-pager"><?= $p->links() ?></div>
+    </div>
+  </div>
 </div>
 <?php require __DIR__ . '/layout/footer.php'; ?>

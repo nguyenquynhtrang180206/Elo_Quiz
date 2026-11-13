@@ -5,6 +5,8 @@
 // Tìm đối thủ trước, rồi khóa dòng chờ của cả hai theo thứ tự mã tăng dần và kiểm tra lại cả hai còn đó.
 // Hai người gọi cùng lúc thì chỉ một bên tạo được trận, bên kia thấy dòng đã bị xóa và bỏ qua,
 // nên một người không thể vào hai trận. Không cần SKIP LOCKED, chạy được trên MariaDB.
+require_once __DIR__ . '/DotBien.php';
+
 class GhepDoi
 {
     // Cứ chờ thêm bấy nhiêu giây thì ngưỡng Elo được nới thêm một lần bằng NGUONG_ELO_GHEP_DOI.
@@ -148,7 +150,10 @@ class GhepDoi
             }
 
             // 5. Tạo trận, hai người chơi, bộ câu hỏi (chụp luật chơi vào từng câu, C-28), rồi rút cả hai khỏi hàng đợi
-            $pdo->prepare('INSERT INTO TRANDAU (MaMon, MaLoaiKT) VALUES (?, ?)')->execute([$maMon, $maKT]);
+            $dotBienKey  = DotBien::ngauNhien();
+            $dotBienInfo = DotBien::layDotBien($dotBienKey);
+            $pdo->prepare('INSERT INTO TRANDAU (MaMon, MaLoaiKT, DotBien) VALUES (?, ?, ?)')
+                ->execute([$maMon, $maKT, $dotBienKey]);
             $maTran = (int) $pdo->lastInsertId();
 
             // LanHoatDongCuoi lúc tạo = mốc tạo trận; dùng để tính hạn vào phòng của người chưa vào (C-30)
@@ -158,7 +163,7 @@ class GhepDoi
 
             $diem = Config::int('DIEM_CO_BAN', 100);
             $heSo = Config::int('HE_SO_THUONG', 50);
-            $tg   = max(1, Config::int('THOI_GIAN_MOI_CAU', 15));
+            $tg   = $dotBienInfo['thoiGian'];
             $ins = $pdo->prepare(
                 'INSERT INTO CAUHOITRANDAU (MaTran, MaCauHoi, ThuTu, DiemCoBan, HeSoThuong, ThoiGianQuyDinh) VALUES (?, ?, ?, ?, ?, ?)'
             );
@@ -323,13 +328,15 @@ class GhepDoi
             }
 
             // Tạo trận
-            $pdo->prepare('INSERT INTO TRANDAU (MaMon, MaLoaiKT, TrangThai, ThoiGianBatDau) VALUES (?, ?, "Đang diễn ra", NOW(3))')
-                ->execute([$maMon, $maKT]);
+            $dotBienKey  = DotBien::ngauNhien();
+            $dotBienInfo = DotBien::layDotBien($dotBienKey);
+            $pdo->prepare('INSERT INTO TRANDAU (MaMon, MaLoaiKT, TrangThai, ThoiGianBatDau, DotBien) VALUES (?, ?, "Đang diễn ra", NOW(3), ?)')
+                ->execute([$maMon, $maKT, $dotBienKey]);
             $maTran = (int) $pdo->lastInsertId();
 
             $diem = Config::int('DIEM_CO_BAN', 100);
             $heSo = Config::int('HE_SO_THUONG', 50);
-            $tg   = max(1, Config::int('THOI_GIAN_MOI_CAU', 15));
+            $tg   = $dotBienInfo['thoiGian'];
 
             // Người chơi: trạng thái đang chơi
             $ins = $pdo->prepare('INSERT INTO NGUOICHOITRANDAU (MaTran, MaND, EloTruoc, LanHoatDongCuoi, TrangThaiThamGia) VALUES (?, ?, ?, NOW(3), "Đang chơi")');

@@ -156,4 +156,87 @@ class LoLChampions
         $k = $keys[array_rand($keys)];
         return self::DANH_SACH[$k];
     }
+
+    // =========================================================================
+    // HỆ THỐNG THÔNG THẠO & TIẾN HÓA ĐẤU THẦN (CHAMPION MASTERY & EVOLUTION)
+    // =========================================================================
+    public const MOC_EXP = [
+        1 => 0,
+        2 => 200,
+        3 => 600,
+        4 => 1400,
+        5 => 3000
+    ];
+
+    public const CAP_DO_INFO = [
+        1 => ['ten' => 'Tập Sự', 'icon' => '🌱', 'css' => 'mastery-cap-1', 'khung' => 'frame-bronze'],
+        2 => ['ten' => 'Đấu Sĩ', 'icon' => '⚔️', 'css' => 'mastery-cap-2', 'khung' => 'frame-silver'],
+        3 => ['ten' => 'Tinh Anh', 'icon' => '👑', 'css' => 'mastery-cap-3', 'khung' => 'frame-gold'],
+        4 => ['ten' => 'Huyền Thoại', 'icon' => '💎', 'css' => 'mastery-cap-4', 'khung' => 'frame-diamond'],
+        5 => ['ten' => 'Vũ Trụ Tối Thượng', 'icon' => '🌌', 'css' => 'mastery-cap-5', 'khung' => 'frame-cosmic']
+    ];
+
+    public static function layThongThao(PDO $pdo, int $maND, string $tuongId): array
+    {
+        $tuongId = self::ALIASES[$tuongId] ?? $tuongId;
+        $st = $pdo->prepare('SELECT CapDo, DiemEXP, SoTranThang, SoTranDau FROM THONGTHAOTUONG WHERE MaND = ? AND TuongId = ?');
+        $st->execute([$maND, $tuongId]);
+        $r = $st->fetch();
+        $cap = $r ? (int) $r['CapDo'] : 1;
+        $exp = $r ? (int) $r['DiemEXP'] : 0;
+        $thang = $r ? (int) $r['SoTranThang'] : 0;
+        $tong = $r ? (int) $r['SoTranDau'] : 0;
+
+        $expHienTaiMoc = self::MOC_EXP[$cap] ?? 0;
+        $expKeMoc = self::MOC_EXP[min(5, $cap + 1)] ?? 3000;
+        $phanTram = $cap >= 5 ? 100 : min(100, max(0, round((($exp - $expHienTaiMoc) / max(1, $expKeMoc - $expHienTaiMoc)) * 100)));
+
+        $info = self::CAP_DO_INFO[$cap] ?? self::CAP_DO_INFO[1];
+
+        return [
+            'capDo'        => $cap,
+            'diemEXP'      => $exp,
+            'expKeMoc'     => $expKeMoc,
+            'phanTram'     => $phanTram,
+            'danhHieuCap'  => $info['ten'],
+            'iconCap'      => $info['icon'],
+            'cssClass'     => $info['css'],
+            'khungCss'     => $info['khung'],
+            'soTranThang'  => $thang,
+            'soTranDau'    => $tong
+        ];
+    }
+
+    public static function congEXP(PDO $pdo, int $maND, string $tuongId, int $expThem, bool $laThang = false): array
+    {
+        $tuongId = self::ALIASES[$tuongId] ?? $tuongId;
+        $curr = self::layThongThao($pdo, $maND, $tuongId);
+        $newExp = $curr['diemEXP'] + $expThem;
+        $newThang = $curr['soTranThang'] + ($laThang ? 1 : 0);
+        $newTong = $curr['soTranDau'] + 1;
+
+        $newCap = 1;
+        foreach (self::MOC_EXP as $lv => $moc) {
+            if ($newExp >= $moc) {
+                $newCap = $lv;
+            }
+        }
+
+        $ins = $pdo->prepare(
+            'INSERT INTO THONGTHAOTUONG (MaND, TuongId, CapDo, DiemEXP, SoTranThang, SoTranDau)
+             VALUES (?, ?, ?, ?, ?, ?)
+             ON DUPLICATE KEY UPDATE CapDo = VALUES(CapDo), DiemEXP = VALUES(DiemEXP),
+                                     SoTranThang = VALUES(SoTranThang), SoTranDau = VALUES(SoTranDau)'
+        );
+        $ins->execute([$maND, $tuongId, $newCap, $newExp, $newThang, $newTong]);
+
+        $lenCap = $newCap > $curr['capDo'];
+        return [
+            'capCu'    => $curr['capDo'],
+            'capMoi'   => $newCap,
+            'lenCap'   => $lenCap,
+            'expCong'  => $expThem,
+            'tongExp'  => $newExp
+        ];
+    }
 }

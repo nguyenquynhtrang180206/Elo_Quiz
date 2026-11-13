@@ -4,6 +4,7 @@
 // A-27: không có chức năng sửa kết quả hoặc điểm; trận đã kết thúc hoặc đã hủy thì chỉ xem.
 require_once __DIR__ . '/../core/bootstrap.php';
 require_once __DIR__ . '/../core/ThiDau.php';
+require_once __DIR__ . '/../core/DotBien.php';
 Auth::requireAdmin(BASE_URL . '/admin/login.php');   // A-04
 
 $pdo = Database::pdo();
@@ -13,7 +14,7 @@ $tieuDe  = 'Chi tiết trận đấu';
 $mucChon = 'trandau';
 
 $laySt = $pdo->prepare(
-    'SELECT t.MaTran, t.MaMon, m.TenMon, k.TenLoaiKT, t.TrangThai, t.LyDoKetThuc, t.ThoiGianBatDau, t.ThoiGianKetThuc
+    'SELECT t.MaTran, t.MaMon, m.TenMon, k.TenLoaiKT, t.TrangThai, t.LyDoKetThuc, t.ThoiGianBatDau, t.ThoiGianKetThuc, t.DotBien
        FROM TRANDAU t
        JOIN MONHOC m ON m.MaMon = t.MaMon
        JOIN LOAIKYTHI k ON k.MaLoaiKT = t.MaLoaiKT
@@ -122,6 +123,22 @@ require __DIR__ . '/layout/header.php';
 <div class="card">
   <table>
     <tr><th class="cot-nhan">Môn / loại kỳ thi</th><td><?= e($tran['TenMon']) ?> / <?= e($tran['TenLoaiKT']) ?></td></tr>
+    <?php
+      $dbInfo = DotBien::layDotBien($tran['DotBien'] ?? 'chuan');
+      $laChuan = ($dbInfo['id'] ?? 'chuan') === 'chuan';
+    ?>
+    <tr><th>Chế độ thi đấu</th>
+      <td>
+        <?php if ($laChuan): ?>
+          <span><?= e($dbInfo['icon']) ?> <?= e($dbInfo['ten']) ?></span>
+        <?php else: ?>
+          <span style="display:inline-flex;align-items:center;gap:6px;background:<?= e($dbInfo['mau']) ?>22;color:<?= e($dbInfo['mau']) ?>;border:1px solid <?= e($dbInfo['mau']) ?>66;padding:3px 10px;border-radius:20px;font-weight:700;font-size:13px;">
+            <?= e($dbInfo['icon']) ?> <?= e($dbInfo['ten']) ?> (<?= e($dbInfo['tag']) ?>)
+          </span>
+          <div class="nhan-phu" style="margin-top:4px;"><?= e($dbInfo['moTa']) ?></div>
+        <?php endif; ?>
+      </td>
+    </tr>
     <tr><th>Trạng thái</th><td><?= e($tran['TrangThai']) ?></td></tr>
     <tr><th>Lý do kết thúc</th><td><?= e($tran['LyDoKetThuc'] ?? '—') ?></td></tr>
     <?php if ($nhatKyHuy): ?>

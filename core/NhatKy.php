@@ -56,6 +56,42 @@ class NhatKy
         }
         return ['(' . $sql . ')', $tham];
     }
+
+    public static function damBaoCot(?PDO $pdo = null): bool
+    {
+        static $coCot = null;
+        if ($coCot !== null) {
+            return $coCot;
+        }
+        $pdo = $pdo ?? Database::pdo();
+        try {
+            $co = $pdo->query("SHOW COLUMNS FROM NHATKYQUANTRI LIKE 'TrangThai'")->fetch();
+            if (!$co) {
+                $pdo->exec("
+                    ALTER TABLE NHATKYQUANTRI
+                      ADD COLUMN DiaChiIP  VARCHAR(45) NULL AFTER MoTa,
+                      ADD COLUMN TrangThai ENUM('Thành công','Thất bại') NOT NULL DEFAULT 'Thành công' AFTER DiaChiIP,
+                      ADD KEY idx_nhatky_tt (TrangThai, ThoiGian)
+                ");
+                $coCot = true;
+            } else {
+                $coCot = true;
+            }
+        } catch (Throwable $e) {
+            try {
+                $coCot = (bool) $pdo->query("SHOW COLUMNS FROM NHATKYQUANTRI LIKE 'TrangThai'")->fetch();
+            } catch (Throwable $ex) {
+                $coCot = false;
+            }
+        }
+        return $coCot;
+    }
+
+    public static function coCotTrangThai(?PDO $pdo = null): bool
+    {
+        return self::damBaoCot($pdo);
+    }
+
     public static function ghi(string $hanhDong, ?string $doiTuong = null, ?string $moTa = null,
                                string $trangThai = 'Thành công'): void
     {
@@ -70,10 +106,20 @@ class NhatKy
         $hanhDong = mb_substr($hanhDong, 0, 100);
         $doiTuong = $doiTuong !== null ? mb_substr($doiTuong, 0, 100) : null;
         $ip       = isset($_SERVER['REMOTE_ADDR']) ? mb_substr((string) $_SERVER['REMOTE_ADDR'], 0, 45) : null;
-        $st = Database::pdo()->prepare(
-            'INSERT INTO NHATKYQUANTRI (MaAdmin, HanhDong, DoiTuong, MoTa, DiaChiIP, TrangThai) VALUES (?, ?, ?, ?, ?, ?)'
-        );
-        $st->execute([$maAdmin, $hanhDong, $doiTuong, $moTa, $ip, $trangThai]);
+
+        $pdo = Database::pdo();
+        self::damBaoCot($pdo);
+        if (self::coCotTrangThai($pdo)) {
+            $st = $pdo->prepare(
+                'INSERT INTO NHATKYQUANTRI (MaAdmin, HanhDong, DoiTuong, MoTa, DiaChiIP, TrangThai) VALUES (?, ?, ?, ?, ?, ?)'
+            );
+            $st->execute([$maAdmin, $hanhDong, $doiTuong, $moTa, $ip, $trangThai]);
+        } else {
+            $st = $pdo->prepare(
+                'INSERT INTO NHATKYQUANTRI (MaAdmin, HanhDong, DoiTuong, MoTa) VALUES (?, ?, ?, ?)'
+            );
+            $st->execute([$maAdmin, $hanhDong, $doiTuong, $moTa]);
+        }
         self::donCu();
     }
 
@@ -149,7 +195,7 @@ class NhatKy
         }
         if ($ad > 0)    { $dk[] = 'n.MaAdmin = ?';   $th[] = $ad;  $loc['ad'] = $ad; }
         if ($hd !== '') { $dk[] = 'n.HanhDong = ?';  $th[] = $hd;  $loc['hd'] = $hd; }
-        if ($tt !== '') { $dk[] = 'n.TrangThai = ?'; $th[] = $tt;  $loc['tt'] = $tt; }
+        if ($tt !== '' && self::coCotTrangThai()) { $dk[] = 'n.TrangThai = ?'; $th[] = $tt;  $loc['tt'] = $tt; }
         if ($nhom !== '') {
             [$sqlNhom, $thNhom] = self::dieuKienNhom($nhom);
             $dk[] = $sqlNhom;
@@ -198,10 +244,12 @@ class NhatKy
         $den    = self::chuanHoaNgay($denNgay);
         $tu     = (new DateTime($den))->modify('-' . ($soNgay - 1) . ' days')->format('Y-m-d');
         $sau    = (new DateTime($den))->modify('+1 day')->format('Y-m-d');
+        self::damBaoCot($pdo);
+        $thatBaiSql = self::coCotTrangThai($pdo) ? "COALESCE(SUM(TrangThai = 'Thất bại'), 0) AS loi" : "0 AS loi";
         $st = $pdo->prepare(
             "SELECT DATE(ThoiGian) AS ngay,
                     COUNT(*) AS tong,
-                    COALESCE(SUM(TrangThai = 'Thất bại'), 0) AS loi
+                    $thatBaiSql
              FROM NHATKYQUANTRI
              WHERE ThoiGian >= ? AND ThoiGian < ?
              GROUP BY DATE(ThoiGian)"

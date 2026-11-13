@@ -264,6 +264,23 @@
     thucHienThaLuaCD(form);
   });
 
+  document.addEventListener('selectstart', function (e) {
+    if (e.target.closest && e.target.closest('.cd-tha-lua, .cd-chi-so')) {
+      e.preventDefault();
+    }
+  });
+
+  document.addEventListener('mousedown', function (e) {
+    if (e.target.closest && e.target.closest('.cd-tha-lua, .cd-chi-so')) {
+      if (e.detail > 1) {
+        e.preventDefault();
+      }
+      if (window.getSelection) {
+        try { window.getSelection().removeAllRanges(); } catch (err) {}
+      }
+    }
+  });
+
   document.addEventListener('click', function (e) {
     var btn = e.target.closest ? e.target.closest('.cd-tha-lua') : null;
     if (!btn) return;
@@ -271,6 +288,9 @@
     if (!form) return;
     e.preventDefault();
     e.stopPropagation();
+    if (window.getSelection) {
+      try { window.getSelection().removeAllRanges(); } catch (err) {}
+    }
     thucHienThaLuaCD(form, btn);
   });
 

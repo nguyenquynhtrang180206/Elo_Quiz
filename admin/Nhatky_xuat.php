@@ -86,6 +86,8 @@ $MOC = [
 $NOI_DUNG = ['ds' => 'Danh sách', 'nhip' => 'Biểu đồ theo ngày', 'cocau' => 'Cơ cấu hành động'];
 
 $pdo = Database::pdo();
+NhatKy::damBaoCot($pdo);
+$coTT = NhatKy::coCotTrangThai($pdo);
 
 // Lấy các giá trị hợp lệ của một tham số dạng mảng (giữ thứ tự của danh sách $hopLe)
 $chon = static fn (string $khoa, array $hopLe): array => array_values(array_intersect(
@@ -176,10 +178,11 @@ $khoangChu = static fn (array $g): string => $g['tu'] !== ''
     : 'Toàn bộ thời gian trong phạm vi';
 
 // Số liệu tổng quan của một mốc
-$thongKeMoc = static function (array $g) use ($pdo): array {
+$thongKeMoc = static function (array $g) use ($pdo, $coTT): array {
+    $thatBaiSql = $coTT ? "COALESCE(SUM(n.TrangThai = 'Thất bại'), 0) AS thatbai" : "0 AS thatbai";
     $st = $pdo->prepare(
         "SELECT COUNT(*) AS tong,
-                COALESCE(SUM(n.TrangThai = 'Thất bại'), 0) AS thatbai
+                $thatBaiSql
          FROM NHATKYQUANTRI n
          JOIN ADMIN a ON a.MaAdmin = n.MaAdmin
          {$g['w']}"
@@ -189,9 +192,10 @@ $thongKeMoc = static function (array $g) use ($pdo): array {
 };
 
 // Lấy các dòng của một mốc (đã định dạng sẵn để dùng chung cho xem trước, Excel và PDF)
-$layDong = static function (array $g, int $gioiHan) use ($pdo, $sx): array {
+$layDong = static function (array $g, int $gioiHan) use ($pdo, $sx, $coTT): array {
+    $cotTT = $coTT ? "n.TrangThai" : "'Thành công' AS TrangThai";
     $st = $pdo->prepare(
-        "SELECT n.ThoiGian, n.HanhDong, n.DoiTuong, n.MoTa, n.TrangThai
+        "SELECT n.ThoiGian, n.HanhDong, n.DoiTuong, n.MoTa, $cotTT
          FROM NHATKYQUANTRI n
          JOIN ADMIN a ON a.MaAdmin = n.MaAdmin
          {$g['w']}
@@ -213,11 +217,12 @@ $layDong = static function (array $g, int $gioiHan) use ($pdo, $sx): array {
 };
 
 // Số liệu hai biểu đồ của một mốc: [theoNgay => [ngay, tong, loi]..., coCau => [nhan, so, mau]...]
-$soLieuBieuDo = static function (array $g) use ($pdo): array {
+$soLieuBieuDo = static function (array $g) use ($pdo, $coTT): array {
     // 1) Số thao tác theo từng ngày (ngày không có thao tác được điền 0 để các cột liền nhau)
+    $loiSql = $coTT ? "COALESCE(SUM(n.TrangThai = 'Thất bại'), 0) AS loi" : "0 AS loi";
     $st = $pdo->prepare(
         "SELECT DATE(n.ThoiGian) AS ngay, COUNT(*) AS tong,
-                COALESCE(SUM(n.TrangThai = 'Thất bại'), 0) AS loi
+                $loiSql
          FROM NHATKYQUANTRI n
          JOIN ADMIN a ON a.MaAdmin = n.MaAdmin
          {$g['w']}

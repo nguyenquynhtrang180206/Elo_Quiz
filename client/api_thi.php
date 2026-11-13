@@ -37,8 +37,13 @@ if (!$st->fetchColumn()) {
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_check();
-    if (($_POST['hanhdong'] ?? '') === 'chiuthua') {
+    $hanhDong = $_POST['hanhdong'] ?? '';
+    if ($hanhDong === 'chiuthua') {
         traJson(ThiDau::chiuThua($pdo, $maTran, $maND));
+    }
+    if ($hanhDong === 'pharoi') {
+        $loai = (string) ($_POST['loai'] ?? '');
+        traJson(ThiDau::phongChieuPhaRoi($pdo, $maTran, $maND, $loai));
     }
     traJson(ThiDau::traLoi($pdo, $maTran, $maND, (int) ($_POST['macau'] ?? 0), (int) ($_POST['dapan'] ?? 0)));
 }

@@ -21,12 +21,12 @@ $coLoai = CongDongHelper::coCotLoaiBai();
 
 // ---- Bộ lọc: 6 chuyên mục dọc chuẩn giao diện Cyber Esports ----
 $cacTab = [
-    'moi'       => ['<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 2.5l2.5 2.5-8 8H3v-2.5l8-8z"/><path d="M9.5 4l2.5 2.5"/></svg>', 'Bài đăng mới',      'Bài đăng mới nhất'],
-    'noibat'    => [CongDongHelper::iconLua(19), 'Bài viết nổi bật',  'Bài viết nổi bật (Nhiều lượt thả lửa)'],
-    'hot'       => ['<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 7.5c0 3-2.5 5.5-5.5 5.5-1 0-2-.3-2.8-.7L2 13.5l1.2-3.1C2.5 9.6 2 8.6 2 7.5 2 4.5 4.5 2 7.5 2S14 4.5 14 7.5z"/><circle cx="5.5" cy="7.5" r="1" fill="currentColor"/><circle cx="8" cy="7.5" r="1" fill="currentColor"/><circle cx="10.5" cy="7.5" r="1" fill="currentColor"/></svg>', 'Thảo luận hot',     'Thảo luận hot trong 7 ngày'],
-    'thanhvien' => ['<svg viewBox="0 0 16 16" width="16" height="16" fill="none" aria-hidden="true"><defs><linearGradient id="tabCrownGold" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#FFFFFF"/><stop offset="30%" stop-color="#FFF0A3"/><stop offset="70%" stop-color="#F59E0B"/><stop offset="100%" stop-color="#9A5B02"/></linearGradient></defs><path d="M2 13l-1-7 4 3.5L8 3l3 6.5 4-3.5-1 7H2z" fill="url(#tabCrownGold)"/><path d="M2 14.5h12v1.2H2z" fill="url(#tabCrownGold)"/><circle cx="8" cy="8.5" r="1.2" fill="#EF4444"/><circle cx="4.5" cy="10" r="1" fill="#38BDF8"/><circle cx="11.5" cy="10" r="1" fill="#38BDF8"/></svg>', 'Thành viên nổi bật', 'Bảng xếp hạng thành viên nổi bật'],
-    'cuatoi'    => ['<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2.5a3.5 3.5 0 100 7 3.5 3.5 0 000-7z"/><path d="M2.5 14.5a5.5 5.5 0 0111 0"/></svg>', 'Bài của tôi',       'Bài viết của tôi'],
-    'huyhieu'   => ['<svg viewBox="0 0 16 16" width="16" height="16" fill="none" aria-hidden="true"><defs><linearGradient id="tabShieldGold" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#FFFFFF"/><stop offset="30%" stop-color="#FFF0A3"/><stop offset="70%" stop-color="#F59E0B"/><stop offset="100%" stop-color="#9A5B02"/></linearGradient></defs><polygon points="8,1.5 14,4.5 14,9 8,14.5 2,9 2,4.5" stroke="#FDE047" stroke-width="1.5" stroke-linejoin="round"/><polygon points="8,4 11.5,8 8,12 4.5,8" fill="url(#tabShieldGold)"/><circle cx="8" cy="8" r="1.5" fill="#FFF"/></svg>', 'Huy hiệu là gì?',   'Hệ thống phân hạng huy hiệu Elo'],
+    'moi'       => ['<svg viewBox="0 0 20 20" width="20" height="20" fill="none" aria-hidden="true"><path d="M14.5 2.5l3 3-10 10H4.5v-3l10-10z" fill="rgba(0, 217, 255, 0.15)" stroke="#00D9FF" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M12.5 4.5l3 3" stroke="#FDE047" stroke-width="1.7" stroke-linecap="round"/><circle cx="5.2" cy="14.8" r="1.3" fill="#00D9FF"/></svg>', 'Bài đăng mới',      'Bài đăng mới nhất'],
+    'noibat'    => [CongDongHelper::iconLua(20), 'Bài viết nổi bật',  'Bài viết nổi bật (Nhiều lượt thả lửa)'],
+    'hot'       => ['<svg viewBox="0 0 20 20" width="20" height="20" fill="none" aria-hidden="true"><path d="M17 9.5c0 3.8-3.3 6.8-7.5 6.8-1.2 0-2.3-.3-3.3-.8L2.5 17l1.3-3.5C2.8 12.3 2 11 2 9.5 2 5.7 5.3 2.7 9.5 2.7S17 5.7 17 9.5z" fill="rgba(0, 217, 255, 0.12)" stroke="#00D9FF" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6.5" cy="9.5" r="1.2" fill="#FDE047"/><circle cx="9.8" cy="9.5" r="1.2" fill="#FDE047"/><circle cx="13" cy="9.5" r="1.2" fill="#FDE047"/><polygon points="15.5,1.5 17.5,4 15,4.5 17,7.5 13,4.5 15,3.8" fill="#FF9100"/></svg>', 'Thảo luận hot',     'Thảo luận hot trong 7 ngày'],
+    'thanhvien' => ['<svg viewBox="0 0 20 20" width="20" height="20" fill="none" aria-hidden="true"><defs><linearGradient id="sbCrownGold" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#FFFFFF"/><stop offset="30%" stop-color="#FFF0A3"/><stop offset="70%" stop-color="#F59E0B"/><stop offset="100%" stop-color="#9A5B02"/></linearGradient></defs><path d="M2.5 15.5l-1.2-8.5 5 4.2L10 3.5l3.7 7.7 5-4.2-1.2 8.5H2.5z" fill="url(#sbCrownGold)" stroke="#FDE047" stroke-width="1.2" stroke-linejoin="round"/><path d="M2.5 17h15v1.5h-15z" fill="#F59E0B" stroke="#D97706" stroke-width="0.8"/><circle cx="10" cy="9.5" r="1.6" fill="#EF4444" stroke="#FFE4E6" stroke-width="0.6"/><circle cx="5.5" cy="11.5" r="1.3" fill="#00D9FF" stroke="#E0F2FE" stroke-width="0.5"/><circle cx="14.5" cy="11.5" r="1.3" fill="#00D9FF" stroke="#E0F2FE" stroke-width="0.5"/></svg>', 'Thành viên nổi bật', 'Bảng xếp hạng thành viên nổi bật'],
+    'cuatoi'    => ['<svg viewBox="0 0 20 20" width="20" height="20" fill="none" aria-hidden="true"><circle cx="10" cy="6.5" r="3.8" fill="rgba(0, 217, 255, 0.15)" stroke="#00D9FF" stroke-width="1.7"/><path d="M3.5 17.5c0-3.5 3-6 6.5-6s6.5 2.5 6.5 6" stroke="#00D9FF" stroke-width="1.7" stroke-linecap="round"/><circle cx="10" cy="6.5" r="1.5" fill="#FDE047"/><path d="M16 4l1.5 1.5-1.5 1.5" stroke="#FDE047" stroke-width="1.2" stroke-linecap="round"/></svg>', 'Bài của tôi',       'Bài viết của tôi'],
+    'huyhieu'   => ['<svg viewBox="0 0 20 20" width="20" height="20" fill="none" aria-hidden="true"><defs><linearGradient id="sbShieldGold" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#FFFFFF"/><stop offset="30%" stop-color="#FFF0A3"/><stop offset="70%" stop-color="#F59E0B"/><stop offset="100%" stop-color="#9A5B02"/></linearGradient></defs><polygon points="10,2 17.5,5.5 17.5,11 10,18 2.5,11 2.5,5.5" fill="rgba(245, 158, 11, 0.18)" stroke="#FDE047" stroke-width="1.6" stroke-linejoin="round"/><polygon points="10,5 14.5,10 10,15 5.5,10" fill="url(#sbShieldGold)" stroke="#D97706" stroke-width="0.8"/><circle cx="10" cy="10" r="1.8" fill="#00D9FF" stroke="#FFF" stroke-width="0.8"/></svg>', 'Huy hiệu là gì?',   'Hệ thống phân hạng huy hiệu Elo'],
 ];
 $tab = (string) ($_GET['tab'] ?? 'moi');
 if (!isset($cacTab[$tab])) {
@@ -400,7 +400,7 @@ require __DIR__ . '/layout/header.php';
         </div>
         <div class="cd-hchip chip-fire" title="Tổng lượt thả lửa bài viết">
           <span class="hchip-icon" aria-hidden="true">
-            <?= CongDongHelper::iconLua(16) ?>
+            <?= CongDongHelper::iconLua(18) ?>
           </span>
           <strong><?= number_format($tongThichCD) ?></strong>
           <span>LƯỢT THẢ LỬA</span>
@@ -424,7 +424,7 @@ require __DIR__ . '/layout/header.php';
         </button>
         <a href="<?= e($thamTab('noibat')) ?>" class="btn-hero-highlight">
           <span class="icon-fire" aria-hidden="true">
-            <?= CongDongHelper::iconLua(17) ?>
+            <?= CongDongHelper::iconLua(19) ?>
           </span>
           <span>Bài viết nổi bật</span>
         </a>
@@ -964,7 +964,7 @@ require __DIR__ . '/layout/header.php';
             <div class="cd-so-lieu">
               <?php if ($dangAn): ?>
                 <span class="cd-chi-so cd-tha-lua-static" title="Lượt thả lửa">
-                  <?= CongDongHelper::iconLua(18) ?>
+                  <?= CongDongHelper::iconLua(19) ?>
                   <span class="flame-count"><?= (int) $b['SoThich'] ?></span>
                 </span>
               <?php elseif ($coLike): ?>
@@ -980,7 +980,7 @@ require __DIR__ . '/layout/header.php';
                   <button type="submit" class="cd-chi-so cd-tha-lua<?= (int) $b['DaThich'] > 0 ? ' da-tha-lua' : '' ?>"
                           title="<?= (int) $b['DaThich'] > 0 ? 'Dập lửa (Bỏ thả lửa)' : 'Thả lửa bài viết này' ?>">
                     <span class="flame-icon">
-                      <?= CongDongHelper::iconLua(18) ?>
+                      <?= CongDongHelper::iconLua(19) ?>
                     </span>
                     <span class="flame-count"><?= (int) $b['SoThich'] ?></span>
                   </button>

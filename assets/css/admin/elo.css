@@ -1,2 +1,60 @@
 /* Trang Elo và xếp hạng (admin/elo.php) */
 .admin-noidung .form-loc input.o-tim { flex:1; min-width:220px; width:auto; }
+.admin-noidung .elo-tabs { display:flex; flex-wrap:wrap; gap:8px; margin:0 0 12px; }
+.admin-noidung .elo-tabs .btn { text-shadow:none; }
+.admin-noidung .elo-note {
+  margin:0 0 16px;
+  padding:12px 16px;
+  border:1px solid #dce7fa;
+  border-radius:12px;
+  background:#f3f7ff;
+  color:#52617d;
+}
+.admin-noidung .elo-filter,
+.admin-noidung .elo-results {
+  background:#fff;
+  color:#26334d;
+  border-color:#e6ecf8;
+  box-shadow:0 4px 16px rgba(31,53,92,.08);
+}
+.admin-noidung .elo-filter { padding:14px 18px; }
+.admin-noidung .elo-filter input[type=text],
+.admin-noidung .elo-filter select {
+  background:#fff;
+  color:#26334d;
+  border-color:#cfd9f0;
+}
+.admin-noidung .elo-filter input::placeholder { color:#8a97b5; }
+.admin-noidung .elo-filter input:focus,
+.admin-noidung .elo-filter select:focus {
+  border-color:#245edb;
+  box-shadow:0 0 0 3px rgba(36,94,219,.15);
+}
+.admin-noidung .elo-filter select option { background:#fff; color:#26334d; }
+.admin-noidung .elo-results { overflow-x:auto; }
+.admin-noidung .elo-results table { min-width:760px; }
+.admin-noidung .elo-results th {
+  background:#f3f6fd;
+  color:#26334d;
+  border-bottom-color:#e6ecf8;
+}
+.admin-noidung .elo-results td { border-bottom-color:#eef2fb; }
+.admin-noidung .elo-results .nhan-phu,
+.admin-noidung .elo-results .phantrang { color:#68758e; }
+.admin-noidung .elo-results td a { color:#245edb; }
+.admin-noidung .elo-results td a:hover { color:#1746ad; text-shadow:none; }
+.admin-noidung .elo-results .mau-do { color:#c62852; }
+.admin-noidung .elo-results .mau-xanh { color:#087a61; }
+.admin-noidung .elo-results .phantrang a {
+  color:#245edb;
+  background:#f3f6fd;
+  border-color:#e6ecf8;
+}
+.admin-noidung .elo-results .phantrang a:hover { border-color:#245edb; box-shadow:none; }
+
+@media (max-width:720px) {
+  .admin-noidung .elo-filter { align-items:stretch; }
+  .admin-noidung .elo-filter select,
+  .admin-noidung .elo-filter .btn,
+  .admin-noidung .elo-filter .btn-phu { width:100%; text-align:center; }
+}

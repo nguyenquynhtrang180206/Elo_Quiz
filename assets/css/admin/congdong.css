@@ -1,4 +1,354 @@
 /* Trang Kiểm duyệt cộng đồng (admin/congdong.php) */
+.congdong-page,
+.congdong-main,
+.congdong-rail,
+.rail-box,
+.admin-noidung {
+  position: static !important;
+  top: auto !important;
+  bottom: auto !important;
+  overflow: visible !important;
+  height: auto !important;
+}
+
+.congdong-page {
+  display:block;
+  min-width: 0;
+}
+
+.congdong-main {
+  min-width: 0;
+  position: static;
+  align-self: start;
+  width: 100%;
+}
+
+.congdong-main > * {
+  max-width: 100%;
+}
+
+.congdong-header {
+  display:flex;
+  align-items:center;
+  gap: 16px;
+  margin: 0 0 18px;
+}
+
+.congdong-icon {
+  width: 52px;
+  height: 52px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius: 14px;
+  color: #fff;
+  background: linear-gradient(135deg, #3f7bf5, #6e5bf2);
+  box-shadow: 0 10px 22px rgba(59, 110, 255, 0.25);
+  font-size: 26px;
+  font-weight: 800;
+}
+
+.congdong-headline h2 {
+  margin: 0;
+  color: #f8fbff;
+  font-size: clamp(2rem, 2vw, 2.7rem);
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  text-shadow: 0 2px 16px rgba(54, 82, 201, 0.45);
+}
+
+.congdong-headline p {
+  margin: 6px 0 0;
+  color: #e6edff;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.congdong-tabs {
+  display:flex;
+  gap: 12px;
+  margin: 8px 0 18px;
+}
+
+.congdong-tabs .btn {
+  min-width: 120px;
+}
+
+.congdong-form-loc {
+  display:grid;
+  grid-template-columns: minmax(0, 2.2fr) 170px 120px 110px;
+  gap: 12px;
+  padding: 14px 16px;
+  margin: 0 0 18px;
+  border: 1px solid var(--kh-vien, #dfe6f6);
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 6px 16px rgba(30, 60, 140, 0.06);
+}
+
+.congdong-form-loc input.o-tim,
+.congdong-form-loc select {
+  width: 100%;
+  min-width: 0;
+  height: 42px;
+  color: #1f2937;
+  border-radius: 12px;
+  border: 1px solid var(--kh-vien, #dfe6f6);
+  background: #fff;
+}
+
+.congdong-form-loc .btn,
+.congdong-form-loc .btn-phu {
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.congdong-form-loc .btn-phu {
+  color: #1e2a4d;
+}
+
+.congdong-card {
+  border: 1px solid var(--kh-vien, #dfe6f6);
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 6px 18px rgba(30, 60, 140, 0.06);
+  overflow: visible;
+}
+
+.congdong-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: auto;
+  min-width: 0;
+}
+
+.congdong-table thead th {
+  background: #f5f8ff;
+  color: #0f172a;
+  font-size: 14px;
+  font-weight: 800;
+  padding: 15px 12px;
+  border-bottom: 1px solid var(--kh-vien, #dfe6f6);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.congdong-card .nhan-phu,
+.congdong-main .thanhcong,
+.congdong-main .loi,
+.congdong-page .nhan-phu {
+  color: #1e293b;
+}
+
+.congdong-table tbody td {
+  padding: 16px 12px;
+  vertical-align: middle;
+  border-bottom: 1px solid #edf2fb;
+  color: #1f2937;
+}
+
+.congdong-table tbody tr:hover td {
+  background: #f8faff;
+}
+
+.stt-col {
+  width: 52px;
+  text-align: center;
+  color: #4b5563;
+  font-weight: 700;
+}
+
+.cot-noidung {
+  min-width: 0;
+  width: 30%;
+}
+
+.cot-noidung strong {
+  display:block;
+  margin-bottom: 6px;
+  font-size: 14px;
+  color: #0f172a;
+  font-weight: 800;
+}
+
+.cot-noidung a {
+  color: #1d4ed8;
+  font-weight: 700;
+}
+
+.congdong-table .status,
+.congdong-table .tag,
+.congdong-table .btn,
+.congdong-table .btn-do,
+.congdong-table .btn-phu {
+  color: #ffffff;
+}
+
+.cot-noidung .desc {
+  color: #4b5563;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.nguoi-dang {
+  display:flex;
+  align-items:center;
+  gap: 10px;
+  min-width: 165px;
+}
+
+.avatar-dot {
+  width: 38px;
+  height: 38px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #7cc6ff, #6b5ce7);
+  color: #fff;
+  font-weight: 700;
+}
+
+.nguoi-dang div {
+  display:flex;
+  flex-direction:column;
+}
+
+.nguoi-dang strong {
+  font-size: 13px;
+  color: #111827;
+  font-weight: 800;
+}
+
+.nguoi-dang small {
+  color: #4b5563;
+}
+
+.tag {
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding: 6px 12px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg, #6d87ff, #9c5ef5);
+}
+
+.tag-hoa-tap,
+.tag-ho-tap {
+  background: linear-gradient(135deg, #60b5ff, #2c7bf2);
+}
+
+.tag-chia-se,
+.tag-chia-sẻ {
+  background: linear-gradient(135deg, #9b6dff, #c34dcb);
+}
+
+.tag-su-kien,
+.tag-sự-kiện {
+  background: linear-gradient(135deg, #38b9a6, #12a29b);
+}
+
+.ngay-col {
+  color: var(--kh-chu, #12235e);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.status {
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding: 6px 14px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  border: 1px solid transparent;
+}
+
+.status.tt-hien {
+  color: #1b5e3a;
+  background: #eafaf1;
+  border-color: #cfead7;
+}
+
+.status.tt-an {
+  color: #8a5b00;
+  background: #fff5dc;
+  border-color: #f1d98a;
+}
+
+.status.tt-xoa {
+  color: #475569;
+  background: #f1f5f9;
+  border-color: #dfe7f0;
+}
+
+.cot-thaotac {
+  min-width: 240px;
+}
+
+.form-kiemduyet {
+  display:flex;
+  align-items:center;
+  gap: 8px;
+}
+
+.form-kiemduyet .o-lydo {
+  flex:1;
+  min-width: 0;
+  height: 34px;
+  font-size: 13px;
+  color: var(--kh-chu, #12235e);
+  background: #fff;
+  border: 1px solid var(--kh-vien, #dfe6f6);
+}
+
+.form-kiemduyet .btn {
+  min-width: 90px;
+  height: 34px;
+  padding: 0 14px;
+  font-size: 12px;
+}
+
+.form-kiemduyet .btn-do {
+  background: #fde8e8;
+  color: #c23535;
+  border: 1px solid #f8c7c7;
+}
+
+.lien-ket-duyet {
+  margin-top: 8px;
+  font-size: 12px;
+}
+
+.congdong-pager {
+  padding: 12px 18px 18px;
+}
+
+.congdong-rail {
+  display:none;
+}
+
+@media (max-width: 1200px) {
+  .congdong-page { grid-template-columns: 1fr; }
+  .congdong-rail { order: 2; }
+}
+
+@media (max-width: 900px) {
+  .congdong-form-loc {
+    grid-template-columns: 1fr;
+  }
+  .congdong-header {
+    align-items:flex-start;
+  }
+  .congdong-headline p {
+    font-size: 14px;
+  }
+}
+
 .admin-noidung .form-loc input.o-tim { flex:1; min-width:220px; width:auto; }
 .cot-noidung { min-width:260px; }
 .cot-thaotac { min-width:230px; }

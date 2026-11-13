@@ -2,6 +2,7 @@
 // Danh sách và tra cứu trận đấu, danh sách trận bất thường (UC14: A-23, A-25).
 // Đặt tại: elo_quiz/admin/trandau.php. Chi tiết và hủy trận: admin/trandau_chitiet.php
 require_once __DIR__ . '/../core/bootstrap.php';
+require_once __DIR__ . '/../core/DotBien.php';
 Auth::requireAdmin(BASE_URL . '/admin/login.php');   // A-04
 
 $pdo = Database::pdo();
@@ -61,7 +62,7 @@ $st->execute($tham);
 $p = new Paginator((int) $st->fetchColumn(), 20);
 
 $st = $pdo->prepare(
-    "SELECT t.MaTran, m.TenMon, k.TenLoaiKT, t.TrangThai, t.LyDoKetThuc, t.ThoiGianBatDau, t.ThoiGianKetThuc,
+    "SELECT t.MaTran, m.TenMon, k.TenLoaiKT, t.TrangThai, t.LyDoKetThuc, t.ThoiGianBatDau, t.ThoiGianKetThuc, t.DotBien,
             TIMESTAMPDIFF(SECOND, t.ThoiGianBatDau, NOW(3)) AS giay_dien_ra $cotTao,
             (SELECT GROUP_CONCAT(CONCAT(n.HoTen, ' (', p.DiemSo, IF(p.KetQua IS NULL, '', CONCAT(', ', p.KetQua)), ')')
                                  ORDER BY p.MaND SEPARATOR ' vs ')
@@ -106,7 +107,7 @@ require __DIR__ . '/layout/header.php';
 ?>
 <h2>Trận đấu</h2>
 
-<form method="get" action="" class="card form-loc">
+<form method="get" action="" class="card form-loc khung-tran">
   <input type="text" name="q" value="<?= e($q) ?>" placeholder="Mã trận, tên hoặc email người chơi" class="o-tim">
   <select name="mon">
     <option value="0">Mọi môn</option>
@@ -127,7 +128,7 @@ require __DIR__ . '/layout/header.php';
   <a class="btn btn-phu" href="?">Xóa lọc</a>
 </form>
 
-<p class="nhan-phu">
+<p class="nhan-phu ghi-chu-bat-thuong">
   Trận bất thường: hủy do lỗi hệ thống, có người bị xử thua, hoặc ở trạng thái chưa kết thúc quá <?= $nguongPhut ?> phút
   (ngưỡng NGUONG_TRAN_KEO_DAI trong Cấu hình hệ thống).
   <?php if (!$coCotTao): ?>
@@ -135,7 +136,7 @@ require __DIR__ . '/layout/header.php';
   <?php endif; ?>
 </p>
 
-<div class="card">
+<div class="card khung-tran">
   <?php if (!$ds): ?>
     <p class="nhan-phu">Không có trận nào khớp.</p>
   <?php else: ?>
@@ -144,10 +145,19 @@ require __DIR__ . '/layout/header.php';
       <?php foreach ($ds as $r): $nhan = nhan_bat_thuong($r, $nguongGiay); ?>
         <tr>
           <td><?= (int) $r['MaTran'] ?></td>
-          <td><?= e($r['TenMon']) ?><br><span class="nhan-phu"><?= e($r['TenLoaiKT']) ?></span></td>
+          <td>
+            <?= e($r['TenMon']) ?><br><span class="nhan-phu"><?= e($r['TenLoaiKT']) ?></span>
+            <?php
+              $dbK = DotBien::layDotBien($r['DotBien'] ?? 'chuan');
+              if (($dbK['id'] ?? 'chuan') !== 'chuan'): ?>
+                <br><span style="display:inline-block;margin-top:3px;font-size:11px;font-weight:700;color:<?= e($dbK['mau']) ?>;background:<?= e($dbK['mau']) ?>1a;border:1px solid <?= e($dbK['mau']) ?>44;padding:1px 6px;border-radius:10px;">
+                  <?= e($dbK['icon']) ?> <?= e($dbK['ten']) ?>
+                </span>
+            <?php endif; ?>
+          </td>
           <td><?= e($r['nguoi']) ?></td>
           <td>
-            <span class="dam <?= e($lopTT[$r['TrangThai']] ?? '') ?>"><?= e($r['TrangThai']) ?></span>
+            <span class="dam nhan-trang-thai <?= e($lopTT[$r['TrangThai']] ?? '') ?>"><?= e($r['TrangThai']) ?></span>
             <?php if ($nhan !== null): ?><br><span class="mau-do canh-bao-nho">&#9888; <?= e($nhan) ?></span><?php endif; ?>
           </td>
           <td><?= e($r['LyDoKetThuc']) ?></td>

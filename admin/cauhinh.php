@@ -183,7 +183,7 @@ $jsTrang  = 'cauhinh';
 require __DIR__ . '/layout/header.php';
 ?>
 <div class="ch">
-  <div class="ch-dau">
+  <div class="ch-dau ch-dau-ngoai">
     <div>
       <h2>Cấu hình hệ thống</h2>
       <p class="nhan-phu">Tham số luật chơi áp dụng cho toàn bộ hệ thống.</p>
@@ -204,13 +204,7 @@ require __DIR__ . '/layout/header.php';
   <form method="post" action="" id="chForm" novalidate>
     <?= csrf_field() ?>
     <div class="ch-than">
-      <nav class="ch-menu" aria-label="Các nhóm tham số">
-        <?php foreach ($nhomHienThi as $ma => $g): ?>
-          <a href="#nhom-<?= e($ma) ?>" class="ch-menu-muc" data-nhom="<?= e($ma) ?>"><span><?= e($g['menu']) ?></span><i class="ch-cham" aria-hidden="true"></i></a>
-        <?php endforeach; ?>
-      </nav>
-
-      <div class="ch-ds">
+      <div class="ch-grid">
         <?php foreach ($nhomHienThi as $ma => $g): ?>
           <section class="ch-the" id="nhom-<?= e($ma) ?>" data-nhom="<?= e($ma) ?>">
             <header class="ch-the-dau">

@@ -9,15 +9,29 @@ if (Auth::laAdminSinhVien()) {   // admin không tìm trận và không đấu t
 }
 require_once __DIR__ . '/../core/GhepDoi.php';
 require_once __DIR__ . '/../core/LoLChampions.php';
+require_once __DIR__ . '/../core/DotBien.php';
+require_once __DIR__ . '/../core/CongDongHelper.php';
 
 $maND = Auth::clientId();   // khách chưa đăng nhập vẫn xem được môn/kỳ thi; vào hàng đợi và đề xuất môn cần đăng nhập
 $pdo  = Database::pdo();
 
-$soCau          = max(1, Config::int('SO_CAU', 10));
-$choToiDa       = max(1, Config::int('THOI_GIAN_CHO_GHEP_TOI_DA', 60));
-$nguongElo      = max(1, Config::int('NGUONG_ELO_GHEP_DOI', 100));
-$thoiGianMoiCau = max(1, Config::int('THOI_GIAN_MOI_CAU', 15));
-$eloKhoiTao     = Config::int('ELO_KHOI_TAO', 1000);
+// ---- Cấu hình luật chơi & tính điểm (Lấy đồng bộ từ CSDL CAUHINH do Admin quản lý) ----
+$soCau              = max(1, Config::int('SO_CAU', 10));
+$thoiGianMoiCau     = max(1, Config::int('THOI_GIAN_MOI_CAU', 15));
+$diemCoBan          = Config::int('DIEM_CO_BAN', 10);
+$heSoThuong         = Config::int('HE_SO_THUONG', 10);
+$choToiDa           = max(1, Config::int('THOI_GIAN_CHO_GHEP_TOI_DA', 60));
+$nguongElo          = max(1, Config::int('NGUONG_ELO_GHEP_DOI', 100));
+$thoiGianVaoPhong   = max(1, Config::int('THOI_GIAN_CHO_VAO_PHONG', 15));
+$thoiGianMatKetNoi  = max(1, Config::int('THOI_GIAN_CHO_PHEP_MAT_KET_NOI', 30));
+$dungSaiDoTre       = Config::int('DUNG_SAI_DO_TRE', 3);
+$eloKhoiTao         = Config::int('ELO_KHOI_TAO', 1000);
+$kMoi               = Config::int('K_NGUOI_MOI', 32);
+$kCu                = Config::int('K_NGUOI_CU', 24);
+$nguongSoTranDoiK   = Config::int('NGUONG_SO_TRAN_DOI_K', 30);
+$bangHangElo        = CongDongHelper::bangHangElo();
+$toiThieuTranHH     = CongDongHelper::HUY_HIEU_TOI_THIEU_TRAN;
+
 $choPhepBot     = isset($_SESSION['cho_phep_bot']) ? (bool) $_SESSION['cho_phep_bot'] : true;
 const TOI_DA_DE_XUAT_CHO = 3;   // mỗi người tối đa 3 đề xuất đang chờ duyệt, tránh gửi tràn
 
@@ -79,6 +93,103 @@ if (isset($_GET['ajax_reset_timer']) || isset($_POST['ajax_reset_timer'])) {
     exit;
 }
 
+// ---- Dữ liệu chi tiết cho màn hình Chấp nhận trận & VS Showdown Esports ----
+function layDuLieuShowdown(PDO $pdo, int $maTran, int $maND): array
+{
+    $stOpp = $pdo->prepare(
+        "SELECT n.MaND, n.EloTruoc, u.HoTen, u.AnhDaiDien,
+                (SELECT e.DiemElo FROM ELOMONHOC e WHERE e.MaND = n.MaND AND e.MaMon = t.MaMon LIMIT 1) AS EloMon,
+                t.MaMon, t.DotBien, m.TenMon, l.TenLoaiKT
+           FROM NGUOICHOITRANDAU n
+           JOIN TRANDAU t ON t.MaTran = n.MaTran
+           JOIN NGUOIDUNG u ON u.MaND = n.MaND
+           JOIN MONHOC m ON m.MaMon = t.MaMon
+           JOIN LOAIKYTHI l ON l.MaLoaiKT = t.MaLoaiKT
+          WHERE n.MaTran = ?"
+    );
+    $stOpp->execute([$maTran]);
+    $players = $stOpp->fetchAll();
+
+    $toiPlayer = null;
+    $doiThuPlayer = null;
+    foreach ($players as $pRow) {
+        if ((int) $pRow['MaND'] === $maND) {
+            $toiPlayer = $pRow;
+        } else {
+            $doiThuPlayer = $pRow;
+        }
+    }
+
+    $dotBienKey = $players[0]['DotBien'] ?? 'chuan';
+    $dotBienInfo = DotBien::layDotBien($dotBienKey);
+
+    $tuongChonId = $_SESSION['tuong_chon'] ?? 'sunflower';
+    $tuongToi = LoLChampions::layTuong($tuongChonId);
+    $thongThaoToi = LoLChampions::layThongThao($pdo, $maND, $tuongChonId);
+
+    $tuongKeys = array_keys(LoLChampions::DANH_SACH);
+    $doiThuTuongId = 'buckethead';
+    if ($doiThuPlayer) {
+        $laBot = GhepDoi::laBot($pdo, (int) $doiThuPlayer['MaND']);
+        if ($laBot) {
+            if (mb_stripos($doiThuPlayer['HoTen'], 'Zomboss') !== false) {
+                $doiThuTuongId = 'drzomboss';
+            } elseif (mb_stripos($doiThuPlayer['HoTen'], 'Flag') !== false) {
+                $doiThuTuongId = 'flagzombie';
+            } elseif (mb_stripos($doiThuPlayer['HoTen'], 'Băng') !== false) {
+                $doiThuTuongId = 'snowpea';
+            } elseif (mb_stripos($doiThuPlayer['HoTen'], 'Hướng Dương') !== false) {
+                $doiThuTuongId = 'sunflower';
+            } elseif (mb_stripos($doiThuPlayer['HoTen'], 'Óc Chó') !== false) {
+                $doiThuTuongId = 'wallnut';
+            } else {
+                $doiThuTuongId = 'buckethead';
+            }
+        } else {
+            $otherKeys = array_values(array_filter($tuongKeys, fn($k) => $k !== $tuongChonId));
+            $doiThuTuongId = !empty($otherKeys) ? $otherKeys[array_rand($otherKeys)] : 'buckethead';
+        }
+    }
+    $tuongDoiThu = LoLChampions::layTuong($doiThuTuongId);
+    $doiThuND = $doiThuPlayer ? (int) $doiThuPlayer['MaND'] : 0;
+    $thongThaoDoiThu = LoLChampions::layThongThao($pdo, $doiThuND, $doiThuTuongId);
+
+    return [
+        'coTran' => true,
+        'maTran' => $maTran,
+        'phongUrl' => BASE_URL . '/client/phong.php?tran=' . $maTran,
+        'dotBien' => $dotBienInfo,
+        'toi' => [
+            'ten' => $toiPlayer ? $toiPlayer['HoTen'] : 'Bạn',
+            'elo' => (int) ($toiPlayer['EloMon'] ?? $toiPlayer['EloTruoc'] ?? 1000),
+            'tuongId' => $tuongToi['id'],
+            'tuongTen' => $tuongToi['ten'],
+            'tuongAvatar' => BASE_URL . $tuongToi['avatar'],
+            'mau' => $tuongToi['mauSac'],
+            'cauNoi' => $tuongToi['cauNoi'],
+            'capDo' => $thongThaoToi['capDo'],
+            'danhHieuCap' => $thongThaoToi['danhHieuCap'],
+            'iconCap' => $thongThaoToi['iconCap'],
+            'cssClass' => $thongThaoToi['cssClass'],
+        ],
+        'doiThu' => [
+            'ten' => $doiThuPlayer ? $doiThuPlayer['HoTen'] : 'Đối thủ bí ẩn',
+            'elo' => (int) ($doiThuPlayer['EloMon'] ?? $doiThuPlayer['EloTruoc'] ?? 1000),
+            'tuongId' => $tuongDoiThu['id'],
+            'tuongTen' => $tuongDoiThu['ten'],
+            'tuongAvatar' => BASE_URL . $tuongDoiThu['avatar'],
+            'mau' => $tuongDoiThu['mauSac'],
+            'cauNoi' => $tuongDoiThu['cauNoi'],
+            'capDo' => $thongThaoDoiThu['capDo'],
+            'danhHieuCap' => $thongThaoDoiThu['danhHieuCap'],
+            'iconCap' => $thongThaoDoiThu['iconCap'],
+            'cssClass' => $thongThaoDoiThu['cssClass'],
+        ],
+        'tenMon' => $toiPlayer ? $toiPlayer['TenMon'] : '',
+        'tenLoaiKT' => $toiPlayer ? $toiPlayer['TenLoaiKT'] : '',
+    ];
+}
+
 // ---- AJAX Polling kiểm tra tìm trận mượt mà không load lại trang ----
 if (isset($_GET['ajax_check'])) {
     header('Content-Type: application/json; charset=utf-8');
@@ -90,7 +201,7 @@ if (isset($_GET['ajax_check'])) {
     // 1. Kiểm tra đã có trận đang diễn ra chưa
     $maTran = GhepDoi::tranDangCo($pdo, $maND);
     if ($maTran !== null) {
-        echo json_encode(['coTran' => true, 'maTran' => $maTran]);
+        echo json_encode(layDuLieuShowdown($pdo, $maTran, $maND));
         exit;
     }
     // 2. Kiểm tra còn trong hàng đợi không
@@ -121,7 +232,7 @@ if (isset($_GET['ajax_check'])) {
     // 4. Thử ghép đôi (quét người thật, nếu choPhepBot=true và đủ thời gian chờ thì tự ghép Đấu Thần Máy)
     $maTranMoi = GhepDoi::thuGhep($pdo, $maND, $choPhepBot);
     if ($maTranMoi !== null) {
-        echo json_encode(['coTran' => true, 'maTran' => $maTranMoi]);
+        echo json_encode(layDuLieuShowdown($pdo, $maTranMoi, $maND));
         exit;
     }
     echo json_encode([
@@ -438,6 +549,7 @@ require __DIR__ . '/layout/header.php';
 
 $tuongChonId = $_SESSION['tuong_chon'] ?? 'sunflower';
 $tuongHienTai = LoLChampions::layTuong($tuongChonId);
+$thongThaoHienTai = LoLChampions::layThongThao($pdo, (int) $maND, $tuongChonId);
 $tatCaTuong = LoLChampions::DANH_SACH;
 ?>
 
@@ -464,12 +576,158 @@ $tatCaTuong = LoLChampions::DANH_SACH;
       <div class="deck-top-glow-line"></div>
       <?= renderPvzTopBattle() ?>
 
-      <!-- Match Found Flash Overlay -->
-      <div class="match-found-overlay" id="matchFoundOverlay" style="display: none;">
-        <div class="match-found-modal">
-          <div class="match-found-crest">⚔️</div>
-          <h3 class="match-found-title">ĐÃ TÌM THẤY ĐỐI THỦ!</h3>
-          <p class="match-found-sub">Đấu trường sẵn sàng &middot; Đang tiến vào phòng thi...</p>
+      <!-- =====================================================================
+           1. ESPORTS READY CHECK MODAL (10s COUNTDOWN & CONFIRMATION DIALOG)
+           ===================================================================== -->
+      <div class="ready-check-overlay" id="esportsReadyCheckModal" style="display: none;" aria-hidden="true">
+        <div class="ready-check-backdrop"></div>
+        <div class="ready-check-dialog">
+          <div class="rc-scanner-beam"></div>
+          
+          <div class="rc-top-tag">
+            <span class="live-dot pulse-red"></span>
+            <span>MATCH READY &middot; ĐÃ TÌM THẤY ĐỐI THỦ XỨNG TẦM</span>
+          </div>
+
+          <h2 class="rc-title">CHẤP NHẬN TRANH HÙNG</h2>
+          <p class="rc-sub" id="rcSubInfo">Môn: <strong class="text-cyan" id="rcSubjectName"><?= e($dangCho['TenMon'] ?? 'Đang tải...') ?></strong> &middot; Hạng mục: <strong class="text-gold" id="rcExamName"><?= e($dangCho['TenLoaiKT'] ?? 'Chính thức') ?></strong></p>
+
+          <!-- SVG Countdown Ring -->
+          <div class="rc-timer-box">
+            <svg class="rc-timer-svg" viewBox="0 0 120 120">
+              <circle class="rc-timer-track" cx="60" cy="60" r="52"></circle>
+              <circle class="rc-timer-bar" id="rcTimerBar" cx="60" cy="60" r="52"></circle>
+            </svg>
+            <div class="rc-timer-center">
+              <span class="rc-timer-digits" id="rcTimerDigits">10</span>
+              <span class="rc-timer-lbl">GIÂY</span>
+            </div>
+          </div>
+
+          <!-- 2 Players Ready Badges -->
+          <div class="rc-players-status">
+            <!-- You -->
+            <div class="rc-player-item is-you" id="rcPlayerYou">
+              <div class="rc-avatar-wrap">
+                <img src="<?= e(BASE_URL . $tuongHienTai['avatar']) ?>" alt="Bạn" id="rcAvatarYou" class="rc-avatar-img">
+                <div class="rc-confirmed-check" id="rcCheckYou">✓</div>
+              </div>
+              <div class="rc-player-desc">
+                <strong class="rc-player-name" id="rcNameYou">Bạn</strong>
+                <span class="rc-status-chip" id="rcStatusChipYou">Chờ bạn xác nhận...</span>
+              </div>
+            </div>
+
+            <div class="rc-vs-badge">VS</div>
+
+            <!-- Opponent -->
+            <div class="rc-player-item is-opp" id="rcPlayerOpp">
+              <div class="rc-avatar-wrap">
+                <img src="<?= e(BASE_URL . '/assets/images/champions/buckethead.png') ?>" alt="Đối thủ" id="rcAvatarOpp" class="rc-avatar-img">
+                <div class="rc-confirmed-check" id="rcCheckOpp">✓</div>
+              </div>
+              <div class="rc-player-desc">
+                <strong class="rc-player-name" id="rcNameOpp">Đối thủ</strong>
+                <span class="rc-status-chip" id="rcStatusChipOpp">Đang kết nối...</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Huge Accept Button -->
+          <div class="rc-btn-container">
+            <button type="button" class="btn-rc-accept pulse-anim" id="btnRcAccept">
+              <span class="btn-rc-glare"></span>
+              <span class="btn-rc-icon">⚔️</span>
+              <span class="btn-rc-text" id="btnRcText">CHẤP NHẬN TRANH HÙNG (10s)</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- =====================================================================
+           2. CINEMATIC VS SHOWDOWN MODAL (MÀN HÌNH ĐỐI ĐẦU ĐIỆN ẢNH 2.5s)
+           ===================================================================== -->
+      <div class="vs-showdown-overlay" id="esportsVsShowdownModal" style="display: none;" aria-hidden="true">
+        <div class="vs-showdown-bg-effects">
+          <div class="vs-laser-grid"></div>
+          <div class="vs-energy-burst"></div>
+        </div>
+
+        <div class="vs-showdown-card">
+          <!-- Top Header Strip -->
+          <div class="vs-header-banner">
+            <span class="vs-mode-pill">⚡ ĐỐI KHÁNG TRANH HÙNG 1 VS 1</span>
+            <h3 class="vs-subject-title" id="vsSubjectTitle"><?= e($dangCho['TenMon'] ?? 'ĐẤU TRƯỜNG TRANH TÀI') ?></h3>
+          </div>
+
+          <!-- Mutator Rule Capsule (Nếu có Đột biến luật) -->
+          <div class="vs-mutator-rule-capsule" id="vsMutatorRuleCapsule" style="display: none;">
+            <span class="vsm-icon" id="vsMutatorIcon">🎰</span>
+            <div class="vsm-info">
+              <strong id="vsMutatorTitle">ĐỘT BIẾN LUẬT: NGÀY ĐẢO NGƯỢC</strong>
+              <span id="vsMutatorDesc">Bạn phải chọn câu sai mới được nhận điểm!</span>
+            </div>
+          </div>
+
+          <!-- Showdown Stage: Blue (Left) vs Red (Right) -->
+          <div class="vs-stage-container">
+            <!-- Left Side: YOU (Blue) -->
+            <div class="vs-fighter vs-side-blue" id="vsFighterYou">
+              <div class="fighter-glow-ring ring-blue"></div>
+              <div class="fighter-avatar-box">
+                <img src="<?= e(BASE_URL . $tuongHienTai['avatar']) ?>" alt="Bạn" id="vsAvatarYou" class="fighter-avatar-img">
+              </div>
+              <div class="fighter-info-panel">
+                <div class="fighter-faction-badge faction-blue">🛡️ BẠN &middot; CHIẾN TUYẾN XANH</div>
+                <h2 class="fighter-name" id="vsNameYou">Bạn</h2>
+                <div class="fighter-champ-badge" id="vsChampYou"><?= e($tuongHienTai['ten']) ?></div>
+                <div class="fighter-mastery-tag <?= e($thongThaoHienTai['cssClass']) ?>" id="vsMasteryYou">
+                  <?= $thongThaoHienTai['iconCap'] ?> Cấp <?= $thongThaoHienTai['capDo'] ?> &middot; <?= e($thongThaoHienTai['danhHieuCap']) ?>
+                </div>
+                <div class="fighter-elo-tag" id="vsEloYou"><?= (int) ($dangCho['EloTaiThoiDiemCho'] ?? 1000) ?> ELO</div>
+                <p class="fighter-quote-box" id="vsQuoteYou">“<?= e($tuongHienTai['cauNoi']) ?>”</p>
+              </div>
+            </div>
+
+            <!-- Center Emblem: VS Sét Đánh Điện Tử -->
+            <div class="vs-center-burst" id="vsCenterBurst">
+              <div class="vs-electric-circle"></div>
+              <div class="vs-letters-wrap">
+                <span class="vs-letter-v">V</span>
+                <span class="vs-letter-s">S</span>
+              </div>
+              <div class="vs-match-tag">CHIẾN ĐẤU!</div>
+            </div>
+
+            <!-- Right Side: OPPONENT (Red) -->
+            <div class="vs-fighter vs-side-red" id="vsFighterOpp">
+              <div class="fighter-glow-ring ring-red"></div>
+              <div class="fighter-avatar-box">
+                <img src="<?= e(BASE_URL . '/assets/images/champions/buckethead.png') ?>" alt="Đối thủ" id="vsAvatarOpp" class="fighter-avatar-img">
+              </div>
+              <div class="fighter-info-panel">
+                <div class="fighter-faction-badge faction-red">⚔️ ĐỐI THỦ &middot; CHIẾN TUYẾN ĐỎ</div>
+                <h2 class="fighter-name" id="vsNameOpp">Đối thủ bí ẩn</h2>
+                <div class="fighter-champ-badge" id="vsChampOpp">Zombie Thùng Sắt</div>
+                <div class="fighter-mastery-tag mastery-cap-1" id="vsMasteryOpp">
+                  ⚔️ Cấp 1 &middot; Tập Sự
+                </div>
+                <div class="fighter-elo-tag" id="vsEloOpp">1,000 ELO</div>
+                <p class="fighter-quote-box" id="vsQuoteOpp">“Nãooo... hãy chuẩn bị tinh thần bại trận!”</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bottom Loading Status Bar -->
+          <div class="vs-loading-status-bar">
+            <div class="vs-loading-track">
+              <div class="vs-loading-progress" id="vsLoadingProgress"></div>
+            </div>
+            <div class="vs-loading-caption">
+              <span class="vs-caption-pulse"></span>
+              <span>ĐANG KHOÁ ĐẤU TRƯỜNG & VÀO PHÒNG THI...</span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -538,13 +796,23 @@ $tatCaTuong = LoLChampions::DANH_SACH;
           <div class="radar-crosshair-v"></div>
           <div class="radar-sweep-beam"></div>
           
-          <!-- Selected Champion Pedestal at Center -->
-          <div class="radar-champ-center">
-            <div class="champ-avatar-glow" style="border-color: <?= e($tuongHienTai['mauSac']) ?>; box-shadow: 0 0 25px <?= e($tuongHienTai['mauSac']) ?>88;">
-              <img src="<?= e(BASE_URL . $tuongHienTai['avatar'] . '?v=' . (file_exists(__DIR__ . '/..' . $tuongHienTai['avatar']) ? filemtime(__DIR__ . '/..' . $tuongHienTai['avatar']) : '2')) ?>" alt="<?= e($tuongHienTai['ten']) ?>" class="champ-radar-img">
+          <!-- Selected Champion Pedestal at Center (Interactive Warm-up) -->
+          <div class="radar-champ-center" id="radarChampCenter" title="Click vào Tướng để thử phản xạ & nghe khẩu hiệu!">
+            <div class="champ-speech-bubble" id="champSpeechBubble">
+              <span class="speech-quote-icon">“</span>
+              <span class="speech-text" id="champSpeechText"><?= e($tuongHienTai['cauNoi']) ?></span>
+              <span class="speech-quote-icon">”</span>
+            </div>
+            <div class="champ-avatar-glow" id="champAvatarGlow" style="border-color: <?= e($tuongHienTai['mauSac']) ?>; box-shadow: 0 0 25px <?= e($tuongHienTai['mauSac']) ?>88;">
+              <img src="<?= e(BASE_URL . $tuongHienTai['avatar'] . '?v=' . (file_exists(__DIR__ . '/..' . $tuongHienTai['avatar']) ? filemtime(__DIR__ . '/..' . $tuongHienTai['avatar']) : '2')) ?>" alt="<?= e($tuongHienTai['ten']) ?>" class="champ-radar-img" id="champRadarImg">
+              <div class="champ-sparkle-layer" id="sparkleLayer"></div>
             </div>
             <div class="champ-radar-name" style="color: <?= e($tuongHienTai['mauSac']) ?>;"><?= e($tuongHienTai['ten']) ?></div>
+            <div class="champ-mastery-pedestal-pill <?= e($thongThaoHienTai['cssClass']) ?>">
+              <?= $thongThaoHienTai['iconCap'] ?> Cấp <?= $thongThaoHienTai['capDo'] ?> &middot; <?= e($thongThaoHienTai['danhHieuCap']) ?>
+            </div>
             <div class="champ-radar-badge"><?= e($tuongHienTai['vaiTro']) ?></div>
+            <div class="champ-click-tag"><span class="click-pulse-dot"></span> Bấm vào tướng thử phản xạ</div>
           </div>
         </div>
 
@@ -610,6 +878,17 @@ $tatCaTuong = LoLChampions::DANH_SACH;
             </div>
             <div class="log-line quote" id="logLineQuote" style="display:none;"><span class="quote-icon">“</span><?= e($tuongHienTai['cauNoi']) ?><span class="quote-icon">”</span></div>
             <div class="log-line" id="logLine1" style="display:none;"><span class="log-bullet"></span> SẴN SÀNG</div>
+          </div>
+
+          <!-- Interactive Cyber Tip Capsule (Mẹo chiến thuật & Bí kíp leo rank) -->
+          <div class="radar-tip-capsule" id="radarTipCapsule" title="Bí kíp leo rank từ Đấu Trường">
+            <div class="tip-capsule-badge">
+              <span class="tip-badge-icon">💡</span>
+              <span class="tip-badge-title">MẸO LEO RANK</span>
+            </div>
+            <div class="tip-capsule-body">
+              <span class="tip-capsule-text" id="radarTipContent">Trả lời đúng trong 3 giây đầu để giật trọn vẹn điểm thưởng tốc độ tối đa!</span>
+            </div>
           </div>
 
           <!-- Hàng 4: 2 Nút bấm hành động (Ngang hàng nhau, to rõ, cực đẹp) -->
@@ -730,6 +1009,43 @@ $tatCaTuong = LoLChampions::DANH_SACH;
                 <h2 class="arena-deck-title">VŨ ĐÀI GHÉP ĐÔI TRANH HÙNG</h2>
                 <p class="arena-deck-sub">Hệ thống ghép cặp 1 vs 1 công bằng theo điểm Elo &middot; <?= (int) $soCau ?> câu hỏi kịch tính (<?= (int) $thoiGianMoiCau ?>s/câu)</p>
               </div>
+
+              <!-- Nút mở Cẩm nang Luật đấu & Cách tính điểm Cyber Esports -->
+              <div class="deck-header-action">
+                <button type="button" class="btn-cyber-rulebook" id="btnOpenRulebook" title="Xem Cẩm nang Luật đấu & Cách tính điểm">
+                  <span class="rulebook-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
+                      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" stroke="#FDE047" stroke-width="2" stroke-linecap="round"/>
+                      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" fill="rgba(245, 158, 11, 0.2)" stroke="#FDE047" stroke-width="2"/>
+                      <path d="M9 7h7M9 11h5" stroke="#38BDF8" stroke-width="1.8" stroke-linecap="round"/>
+                    </svg>
+                  </span>
+                  <span>CẨM NANG LUẬT ĐẤU</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Thanh Thông Số Nhanh Luật Đấu & Điểm Thưởng (Siêu Bắt Mắt, Dễ Nhìn, Nhấp Mở Cẩm Nang Ngay) -->
+            <div class="deck-quick-rules-ribbon" id="deckQuickRulesRibbon">
+              <div class="quick-rule-pill" title="Mỗi trận gồm <?= (int) $soCau ?> câu hỏi trắc nghiệm">
+                <span class="pill-icon">🎯</span>
+                <span class="pill-text"><strong><?= (int) $soCau ?></strong> Câu hỏi</span>
+              </div>
+              <div class="quick-rule-pill" title="Thời gian đếm ngược <?= (int) $thoiGianMoiCau ?>s mỗi câu">
+                <span class="pill-icon">⏱️</span>
+                <span class="pill-text"><strong><?= (int) $thoiGianMoiCau ?>s</strong> / câu</span>
+              </div>
+              <div class="quick-rule-pill highlight-gold" title="Thưởng tốc độ tối đa +<?= (int) $heSoThuong ?> điểm mỗi câu">
+                <span class="pill-icon">⚡</span>
+                <span class="pill-text">Thưởng tốc độ: <strong>+<?= (int) $heSoThuong ?>đ</strong></span>
+              </div>
+              <div class="quick-rule-pill highlight-cyan" title="Hệ thống ghép đôi cân bằng trong ngưỡng chênh lệch &plusmn;<?= (int) $nguongElo ?> Elo">
+                <span class="pill-icon">⚖️</span>
+                <span class="pill-text">Ghép cân: <strong>&plusmn;<?= (int) $nguongElo ?> Elo</strong></span>
+              </div>
+              <button type="button" class="btn-ribbon-rulebook" id="btnRibbonRulebook" title="Bấm để xem chi tiết Cẩm nang Luật đấu & Cách tính điểm">
+                <span>Chi tiết luật &rarr;</span>
+              </button>
             </div>
 
             <!-- Form Chọn Môn & Hạng Mục Kỳ Thi (Bố Cục Rộng Rãi, Chữ To Rõ Ràng, Không Rối Mắt) -->
@@ -910,6 +1226,13 @@ $tatCaTuong = LoLChampions::DANH_SACH;
                   <span>HÃY CHỌN MÔN ĐỂ TÌM TRẬN</span>
                 </button>
               <?php endif; ?>
+
+              <!-- Dòng gợi ý xem Cẩm nang Luật chơi & Cách tính điểm -->
+              <div class="deck-rule-sublink-bar">
+                <span class="rule-hint-icon">📖</span>
+                <span>Chưa rõ quy chế tính điểm &amp; Elo?</span>
+                <button type="button" class="btn-link-rulebook" id="btnOpenRulebookSub">Xem Cẩm nang Luật đấu &rarr;</button>
+              </div>
             </div>
           </div>
 
@@ -940,6 +1263,19 @@ $tatCaTuong = LoLChampions::DANH_SACH;
                   <strong><?= e($tuongHienTai['tacDungMatch']) ?></strong>
                 </div>
                 <div class="stage-champ-role"><?= e($tuongHienTai['vaiTro']) ?> &middot; <?= e($tuongHienTai['monHoc']) ?></div>
+
+                <!-- Cây Thông Thạo & EXP Tiến Hóa -->
+                <div class="stage-champ-mastery-box">
+                  <div class="sc-mastery-top">
+                    <span class="sc-mastery-pill <?= e($thongThaoHienTai['cssClass']) ?>">
+                      <?= $thongThaoHienTai['iconCap'] ?> Cấp <?= $thongThaoHienTai['capDo'] ?> &middot; <?= e($thongThaoHienTai['danhHieuCap']) ?>
+                    </span>
+                    <span class="sc-exp-val"><?= (int) $thongThaoHienTai['diemEXP'] ?> / <?= (int) $thongThaoHienTai['expKeMoc'] ?> EXP</span>
+                  </div>
+                  <div class="sc-exp-track">
+                    <div class="sc-exp-fill <?= e($thongThaoHienTai['cssClass']) ?>" style="width: <?= (int) $thongThaoHienTai['phanTram'] ?>%;"></div>
+                  </div>
+                </div>
               </div>
 
               <!-- Nút đổi Tướng -->
@@ -1040,6 +1376,371 @@ $tatCaTuong = LoLChampions::DANH_SACH;
 </div>
 
 <!-- =========================================================================
+     CYBER RULEBOOK MODAL (CẨM NANG LUẬT ĐẤU & CÁCH TÍNH ĐIỂM CHUẨN ADMIN)
+     Thiết kế Ultra-Sleek No-Scroll: Header ngang gọn gàng, bố cục 2 cột, vừa vặn 1 màn hình
+     ========================================================================= -->
+<div id="cyberRulebookModal" class="cyber-rulebook-modal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="rulebookModalTitle">
+  <div class="cyber-modal-backdrop" id="rulebookModalBackdrop"></div>
+  <div class="cyber-modal-dialog rulebook-dialog">
+    <!-- 4 Gilded Gaming Brackets (Góc Dát Vàng Đẳng Cấp) -->
+    <div class="pet-corner tl"></div>
+    <div class="pet-corner tr"></div>
+    <div class="pet-corner bl"></div>
+    <div class="pet-corner br"></div>
+
+    <!-- 1. Sleek Compact Header Bar (Ngang hàng, không chiếm chiều dọc) -->
+    <div class="rulebook-compact-header">
+      <div class="rb-header-left">
+        <span class="rb-header-icon" aria-hidden="true">📖</span>
+        <div class="rb-header-titles">
+          <div class="rb-header-sub">QUIZUP ARENA &bull; BỘ QUY CHẾ ĐẤU TRƯỜNG CHÍNH THỨC</div>
+          <h3 class="rb-header-main" id="rulebookModalTitle">CẨM NANG LUẬT ĐẤU &amp; CÁCH TÍNH ĐIỂM</h3>
+        </div>
+      </div>
+      <div class="rb-header-chips">
+        <span class="h-chip"><i class="chip-dot dot-cyan"></i> Live Admin</span>
+        <span class="h-chip"><i class="chip-dot dot-gold"></i> Thưởng tốc độ +<?= (int) $heSoThuong ?>đ</span>
+        <span class="h-chip"><i class="chip-dot dot-red"></i> Chống AFK</span>
+      </div>
+      <button type="button" class="btn-close-cyber-modal rb-header-close" id="btnCloseRulebookModal" aria-label="Đóng Cẩm nang">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+    </div>
+
+    <!-- 2. Compact 3-Tab Bar -->
+    <div class="rulebook-tabs-nav" role="tablist">
+      <button type="button" class="rulebook-tab-btn active" data-tab="tab-the-thuc" role="tab" aria-selected="true">
+        <span class="tab-btn-icon">⚔️</span>
+        <span class="tab-btn-title">1. THỂ THỨC 1 VS 1 &bull; 4 BƯỚC TRANH HÙNG</span>
+      </button>
+      <button type="button" class="rulebook-tab-btn" data-tab="tab-tinh-diem" role="tab" aria-selected="false">
+        <span class="tab-btn-icon">⚡</span>
+        <span class="tab-btn-title">2. CÔNG THỨC &bull; MÔ PHỎNG ĐIỂM TỐC ĐỘ</span>
+      </button>
+      <button type="button" class="rulebook-tab-btn" data-tab="tab-elo-rank" role="tab" aria-selected="false">
+        <span class="tab-btn-icon">🏆</span>
+        <span class="tab-btn-title">3. BẬC HUY HIỆU ELO &bull; BÙA LỢI PvZ</span>
+      </button>
+    </div>
+
+    <!-- 3. Tab Contents Body (Được tối ưu Side-by-Side 2 cột để không cần cuộn) -->
+    <div class="rulebook-tabs-body">
+      <!-- TAB 1: THỂ THỨC 1 VS 1 (3 TRỤ CỘT RÕ RÀNG, DỄ NHÌN, KHÔNG RỐI MẮT) -->
+      <div class="rulebook-tab-pane active" id="tab-the-thuc" role="tabpanel">
+        <div class="rule-pillars-3">
+          <!-- Trụ 1: Quy mô & Thời gian -->
+          <div class="rule-pillar-card">
+            <div class="pillar-header">
+              <span class="pillar-icon">🎯</span>
+              <div>
+                <h4 class="pillar-title">QUY MÔ &amp; THỜI GIAN</h4>
+                <span class="pillar-sub">Quy chuẩn 1 trận tranh tài</span>
+              </div>
+            </div>
+            <div class="pillar-metrics">
+              <div class="metric-pill">
+                <span class="m-val text-cyan"><?= (int) $soCau ?></span>
+                <span class="m-lbl">Câu hỏi trắc nghiệm</span>
+              </div>
+              <div class="metric-pill">
+                <span class="m-val text-gold"><?= (int) $thoiGianMoiCau ?>s</span>
+                <span class="m-lbl">Thời gian mỗi câu</span>
+              </div>
+            </div>
+            <ul class="pillar-bullets">
+              <li>Câu hỏi bốc ngẫu nhiên từ ngân hàng đã duyệt, không trùng lặp.</li>
+              <li>Đồng hồ đếm ngược độc lập từng câu, hết <?= (int) $thoiGianMoiCau ?>s tự động chốt đáp án.</li>
+              <li>Trả lời đúng càng nhanh thưởng càng nhiều điểm bứt phá.</li>
+            </ul>
+          </div>
+
+          <!-- Trụ 2: Ghép cặp Elo -->
+          <div class="rule-pillar-card">
+            <div class="pillar-header">
+              <span class="pillar-icon">⚖️</span>
+              <div>
+                <h4 class="pillar-title">GHÉP CẶP CÂN TRÌNH</h4>
+                <span class="pillar-sub">Thuật toán xếp cặp công bằng</span>
+              </div>
+            </div>
+            <div class="pillar-metrics">
+              <div class="metric-pill">
+                <span class="m-val text-cyan">&plusmn;<?= (int) $nguongElo ?></span>
+                <span class="m-lbl">Chênh lệch Elo tối đa</span>
+              </div>
+              <div class="metric-pill">
+                <span class="m-val text-gold"><?= (int) $choToiDa ?>s</span>
+                <span class="m-lbl">Hạn mức chờ ghép</span>
+              </div>
+            </div>
+            <ul class="pillar-bullets">
+              <li>Hệ thống ưu tiên tìm người chơi có điểm Elo tương đương.</li>
+              <li>Nếu quá <?= (int) $choToiDa ?>s chưa có đối thủ, tự động đề xuất <strong>Đấu Thần Máy (Bot AI)</strong>.</li>
+              <li>Bạn có thể chọn chỉ đấu người thật hoặc cho phép tự ghép máy.</li>
+            </ul>
+          </div>
+
+          <!-- Trụ 3: Bảo vệ phòng & Chống AFK -->
+          <div class="rule-pillar-card">
+            <div class="pillar-header">
+              <span class="pillar-icon">🛡️</span>
+              <div>
+                <h4 class="pillar-title">CHỐNG AFK &amp; BỎ CUỘC</h4>
+                <span class="pillar-sub">Bảo vệ an toàn điểm số</span>
+              </div>
+            </div>
+            <div class="pillar-metrics">
+              <div class="metric-pill">
+                <span class="m-val text-cyan"><?= (int) $thoiGianVaoPhong ?>s</span>
+                <span class="m-lbl">Giới hạn vào phòng</span>
+              </div>
+              <div class="metric-pill">
+                <span class="m-val text-gold"><?= (int) $thoiGianMatKetNoi ?>s</span>
+                <span class="m-lbl">Chờ kết nối lại</span>
+              </div>
+            </div>
+            <ul class="pillar-bullets">
+              <li>Đối thủ không vào phòng trong <?= (int) $thoiGianVaoPhong ?>s ➔ Hủy phòng, <strong>bảo toàn 100% Elo</strong>.</li>
+              <li>Thoát trình duyệt hoặc mất kết nối quá <?= (int) $thoiGianMatKetNoi ?>s ➔ <strong>Tự động xử thua</strong>.</li>
+              <li>Chống hack, gian lận qua hệ thống xác thực trực tiếp trên server.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 2: CÁCH TÍNH ĐIỂM TỐC ĐỘ (2 CỘT SONG SONG: TRÁI CÔNG THỨC + SLIDER, PHẢI BẢNG ĐIỂM) -->
+      <div class="rulebook-tab-pane" id="tab-tinh-diem" role="tabpanel">
+        <div class="rule-tab2-grid">
+          <!-- Cột Trái: 3 Khối Công thức Mini + Live Simulator Kéo Thả -->
+          <div class="tab2-left-col">
+            <!-- 3 Khối Công Thức Tinh Gọn -->
+            <div class="formula-cards-row-compact">
+              <div class="eq-card-mini card-base">
+                <span class="eq-tag-mini">ĐIỂM CƠ BẢN</span>
+                <div class="eq-val-mini">+<?= (int) $diemCoBan ?> đ</div>
+                <div class="eq-sub-mini">Chắc chắn nhận khi trả lời đúng</div>
+              </div>
+              <div class="eq-op-mini">+</div>
+              <div class="eq-card-mini card-bonus">
+                <span class="eq-tag-mini tag-gold">THƯỞNG TỐC ĐỘ</span>
+                <div class="eq-val-mini">0 ~ +<?= (int) $heSoThuong ?> đ</div>
+                <div class="eq-sub-mini">⌊ <?= (int) $heSoThuong ?> &times; (Còn lại / <?= (int) $thoiGianMoiCau ?>s) ⌋</div>
+              </div>
+              <div class="eq-op-mini">=</div>
+              <div class="eq-card-mini card-total">
+                <span class="eq-tag-mini tag-cyan">TỔNG NHẬN / CÂU</span>
+                <div class="eq-val-mini text-cyan"><?= (int) ($diemCoBan + $heSoThuong) ?> đ <small>max</small></div>
+                <div class="eq-sub-mini">Tối đa <strong><?= (int) ($soCau * ($diemCoBan + $heSoThuong)) ?>đ</strong> / <?= (int) $soCau ?> câu</div>
+              </div>
+            </div>
+
+            <!-- Live Simulator Kéo Thả Trực Tiếp -->
+            <div class="speed-calc-box-compact">
+              <div class="calc-top-row">
+                <div class="calc-top-title">
+                  <span class="calc-ico">⚡</span>
+                  <strong>MÔ PHỎNG ĐIỂM THƯỞNG LIVE:</strong>
+                </div>
+                <span class="calc-rate-badge badge-godlike" id="calcSpeedRating">⚡ 1.0s: THẦN TỐC (MAX ĐIỂM)</span>
+              </div>
+
+              <div class="calc-slider-compact">
+                <div class="slider-row-compact">
+                  <span>Kéo thử thời gian bấm đúng:</span>
+                  <strong id="sliderSecDisplay" class="text-gold">1.0 giây</strong>
+                </div>
+                <input type="range" id="rulebookSpeedSlider" min="0" max="<?= (int) $thoiGianMoiCau ?>" step="0.5" value="1" class="cyber-range-slider"
+                       data-base="<?= (int) $diemCoBan ?>" data-bonus="<?= (int) $heSoThuong ?>" data-maxsec="<?= (int) $thoiGianMoiCau ?>">
+                <div class="slider-ticks-compact">
+                  <span>0s (Vừa hiện)</span>
+                  <span><?= round($thoiGianMoiCau / 2, 1) ?>s</span>
+                  <span><?= (int) $thoiGianMoiCau ?>s (Hết giờ)</span>
+                </div>
+              </div>
+
+              <!-- Công Thức Nhảy Số Trực Tiếp -->
+              <div class="calc-dyn-compact">
+                <span class="dyn-tag">Công thức:</span>
+                <code id="calcLiveEquation"><?= (int) $diemCoBan ?> + ⌊ <?= (int) $heSoThuong ?> &times; (<?= (int) $thoiGianMoiCau ?> - 1.0) / <?= (int) $thoiGianMoiCau ?> ⌋ = <?= (int) $diemCoBan + (int) floor($heSoThuong * ($thoiGianMoiCau - 1) / $thoiGianMoiCau) ?> điểm</code>
+              </div>
+
+              <!-- Kết Quả 3 Hộp Nằm Ngang -->
+              <div class="calc-res-strip">
+                <div class="res-box">
+                  <span class="res-lbl">Còn lại:</span>
+                  <strong class="res-val" id="calcRemainSec"><?= (int) $thoiGianMoiCau - 1 ?>s</strong>
+                </div>
+                <div class="res-box">
+                  <span class="res-lbl">Thưởng:</span>
+                  <strong class="res-val text-gold" id="calcBonusPts">+<?= (int) floor($heSoThuong * ($thoiGianMoiCau - 1) / $thoiGianMoiCau) ?> đ</strong>
+                </div>
+                <div class="res-box total-box">
+                  <span class="res-lbl">TỔNG ĐIỂM:</span>
+                  <strong class="res-val text-cyan" id="calcTotalPts"><?= (int) $diemCoBan + (int) floor($heSoThuong * ($thoiGianMoiCau - 1) / $thoiGianMoiCau) ?> ĐIỂM</strong>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Cột Phải: Bảng Điểm Tham Khảo & Mẹo Leo Rank -->
+          <div class="tab2-right-col">
+            <div class="sample-table-card">
+              <div class="table-caption-mini">BẢNG VÍ DỤ TÍNH ĐIỂM MỖI CÂU THAM KHẢO</div>
+              <table class="rulebook-table-compact">
+                <thead>
+                  <tr>
+                    <th>Tốc độ</th>
+                    <th>Thời gian</th>
+                    <th>Cơ bản</th>
+                    <th>Thưởng</th>
+                    <th>Tổng nhận</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><span class="speed-pill speed-god">⚡ SIÊU TỐC</span></td>
+                    <td>1.0s</td>
+                    <td>+<?= (int) $diemCoBan ?></td>
+                    <td>+<?= (int) floor($heSoThuong * ($thoiGianMoiCau - 1) / $thoiGianMoiCau) ?></td>
+                    <td><strong class="pts-glow-gold"><?= (int) $diemCoBan + (int) floor($heSoThuong * ($thoiGianMoiCau - 1) / $thoiGianMoiCau) ?> đ</strong></td>
+                  </tr>
+                  <tr>
+                    <td><span class="speed-pill speed-fast">🏃 NHANH</span></td>
+                    <td>5.0s</td>
+                    <td>+<?= (int) $diemCoBan ?></td>
+                    <td>+<?= (int) floor($heSoThuong * max(0, $thoiGianMoiCau - 5) / $thoiGianMoiCau) ?></td>
+                    <td><strong class="pts-glow-cyan"><?= (int) $diemCoBan + (int) floor($heSoThuong * max(0, $thoiGianMoiCau - 5) / $thoiGianMoiCau) ?> đ</strong></td>
+                  </tr>
+                  <tr>
+                    <td><span class="speed-pill speed-mid">⏱️ VỪA</span></td>
+                    <td>10.0s</td>
+                    <td>+<?= (int) $diemCoBan ?></td>
+                    <td>+<?= (int) floor($heSoThuong * max(0, $thoiGianMoiCau - 10) / $thoiGianMoiCau) ?></td>
+                    <td><strong><?= (int) $diemCoBan + (int) floor($heSoThuong * max(0, $thoiGianMoiCau - 10) / $thoiGianMoiCau) ?> đ</strong></td>
+                  </tr>
+                  <tr>
+                    <td><span class="speed-pill speed-slow">🐢 SÁT NÚT</span></td>
+                    <td><?= (int) $thoiGianMoiCau ?>s</td>
+                    <td>+<?= (int) $diemCoBan ?></td>
+                    <td>+0</td>
+                    <td><strong><?= (int) $diemCoBan ?> đ</strong></td>
+                  </tr>
+                  <tr>
+                    <td><span class="speed-pill speed-fail">❌ SAI</span></td>
+                    <td>Bất kỳ</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td><strong class="text-red">0 đ</strong></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Pro-Tip Card -->
+            <div class="pro-tip-box">
+              <span class="pro-tip-ico">💡</span>
+              <div class="pro-tip-content">
+                <strong>CHIẾN THUẬT VÀNG LEO RANK:</strong>
+                <p>Bấm chọn đáp án đúng trong <strong>2 giây đầu</strong> để giữ điểm thưởng từ <strong>+9đ ~ +10đ</strong> trọn vẹn mỗi câu. 10 câu có thể giành tối đa <strong><?= (int) ($soCau * ($diemCoBan + $heSoThuong)) ?> điểm</strong> bỏ xa đối thủ!</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 3: BẬC ELO & BÙA LỢI ĐẤU THẦN PvZ (2 CỘT SONG SONG: TRÁI ELO + 4 HẠNG, PHẢI 6 TƯỚNG PvZ) -->
+      <div class="rulebook-tab-pane" id="tab-elo-rank" role="tabpanel">
+        <div class="rule-tab3-grid">
+          <!-- Cột Trái: Bậc Elo & 4 Phân Hạng Huy Hiệu -->
+          <div class="tab3-left-col">
+            <!-- Elo Info Strip -->
+            <div class="elo-kpi-compact">
+              <div class="kpi-item">
+                <span class="kpi-lbl">ELO KHỞI TẠO</span>
+                <strong class="kpi-val text-gold"><?= number_format($eloKhoiTao) ?> ELO</strong>
+              </div>
+              <div class="kpi-divider"></div>
+              <div class="kpi-item">
+                <span class="kpi-lbl">K TÂN THỦ (&lt; <?= (int) $nguongSoTranDoiK ?> TRẬN)</span>
+                <strong class="kpi-val text-cyan">K = <?= (int) $kMoi ?></strong>
+              </div>
+              <div class="kpi-divider"></div>
+              <div class="kpi-item">
+                <span class="kpi-lbl">K KỲ CỰU (&ge; <?= (int) $nguongSoTranDoiK ?> TRẬN)</span>
+                <strong class="kpi-val text-cyan">K = <?= (int) $kCu ?></strong>
+              </div>
+            </div>
+
+            <!-- 4 Thẻ Hạng Elo Dạng List Dọc Gọn Gàng -->
+            <div class="rank-list-compact">
+              <div class="rank-list-header">4 PHÂN HẠNG HUY HIỆU ELO (TỐI THIỂU <?= (int) $toiThieuTranHH ?> TRẬN HIỂN THỊ)</div>
+              <?php foreach ($bangHangElo as $h): ?>
+                <div class="rank-item-compact <?= e($h['css']) ?>">
+                  <div class="rank-ico"><?= $h['icon'] ?></div>
+                  <div class="rank-info">
+                    <strong class="rank-title"><?= e($h['ten']) ?></strong>
+                    <span class="rank-range">Elo <?= e($h['khoang']) ?></span>
+                  </div>
+                </div>
+              <?php endforeach; ?>
+            </div>
+          </div>
+
+          <!-- Cột Phải: Bùa Lợi Đấu Thần PvZ Có Bộ Lọc -->
+          <div class="tab3-right-col">
+            <!-- Bộ Lọc Phe Phái -->
+            <div class="pvz-filter-bar-compact">
+              <span class="pvz-bar-lbl">BÙA LỢI ĐẤU THẦN PvZ:</span>
+              <div class="pvz-btns-group">
+                <button type="button" class="pvz-modal-filter-btn active" data-faction="all">TẤT CẢ (6)</button>
+                <button type="button" class="pvz-modal-filter-btn" data-faction="plant">🌱 CÂY (3)</button>
+                <button type="button" class="pvz-modal-filter-btn" data-faction="zombie">🧟 ZOMBIE (3)</button>
+              </div>
+            </div>
+
+            <!-- Lưới 6 Thẻ Đấu Thần 2 Cột x 3 Hàng Tinh Gọn -->
+            <div class="pvz-cards-grid-compact">
+              <?php foreach (LoLChampions::DANH_SACH as $c): ?>
+                <div class="pvz-card-compact pvz-buff-card" data-champ-faction="<?= e($c['phe']) ?>" style="--c-rgb: <?= e($c['mauRgb'] ?? '251, 191, 36') ?>; --c-hex: <?= e($c['mauSac']) ?>;">
+                  <div class="pvz-card-avatar-wrap">
+                    <img src="<?= e(BASE_URL . $c['avatar']) ?>" alt="<?= e($c['ten']) ?>" class="pvz-card-avatar">
+                  </div>
+                  <div class="pvz-card-body">
+                    <div class="pvz-card-headline">
+                      <strong class="pvz-card-name" style="color: <?= e($c['mauSac']) ?>;"><?= e($c['ten']) ?></strong>
+                      <span class="pvz-faction-badge <?= $c['phe'] === 'plant' ? 'is-plant' : 'is-zombie' ?>"><?= $c['pheIcon'] ?> <?= e($c['pheTen']) ?></span>
+                    </div>
+                    <div class="pvz-card-effect" title="<?= e($c['tacDungMatch']) ?>">
+                      <span class="ef-tag tag-match">⚡ Tìm trận:</span>
+                      <span class="ef-desc"><?= e($c['tacDungMatch']) ?></span>
+                    </div>
+                    <div class="pvz-card-effect" title="<?= e($c['tacDungArena']) ?>">
+                      <span class="ef-tag tag-arena">⚔️ Đấu trường:</span>
+                      <span class="ef-desc"><?= e($c['tacDungArena']) ?></span>
+                    </div>
+                  </div>
+                </div>
+              <?php endforeach; ?>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. Ultra-Sleek Bottom Action Bar (Cực Gọn, Không Chiếm Chỗ) -->
+    <div class="rulebook-compact-footer">
+      <div class="rb-footer-hint">
+        <span>💡 Bấm <strong>ESC</strong> hoặc nhấp ngoài để đóng &bull; Thông số đồng bộ Live thời gian thực</span>
+      </div>
+      <button type="button" class="btn-rulebook-close-primary-compact" id="btnRulebookUnderstood">
+        <span>ĐÃ HIỂU LUẬT &bull; CHIẾN NGAY &rarr;</span>
+      </button>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- =========================================================================
      CYBER PROPOSE SUBJECT MODAL (HỘP THOẠI NỔI GAMING ĐỀ XUẤT MÔN)
      ========================================================================= -->
 <div id="cyberProposeModal" class="cyber-propose-modal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="proposeModalTitle">
@@ -1130,32 +1831,5 @@ $tatCaTuong = LoLChampions::DANH_SACH;
   </div>
 </div>
 
-<!-- MATCH FOUND MODAL (LOL STYLE) -->
-<div id="matchFoundModal" class="match-found-modal" style="display: none;">
-  <div class="match-found-backdrop"></div>
-  <div class="match-found-dialog">
-    <div class="pet-corner tl"></div><div class="pet-corner tr"></div>
-    <div class="pet-corner bl"></div><div class="pet-corner br"></div>
 
-    <div class="modal-gold-crest">⚔️</div>
-    <div class="modal-sub-tag">ESPORTS ARENA &middot; ĐÃ TÌM THẤY ĐỐI THỦ</div>
-    <h2 class="modal-main-title">TRẬN ĐẤU SẴN SÀNG!</h2>
-    <p class="modal-desc">Đấu Thần đối phương đã tiến vào sàn đấu. Bấm chấp thuận để bắt đầu cuộc chiến!</p>
-
-    <!-- Ring Countdown Timer -->
-    <div class="accept-countdown-box">
-      <svg class="countdown-svg" viewBox="0 0 100 100">
-        <circle class="countdown-bg-circle" cx="50" cy="50" r="42"></circle>
-        <circle class="countdown-bar-circle" cx="50" cy="50" r="42" id="countdownCircle"></circle>
-      </svg>
-      <div class="countdown-num" id="countdownSec">10</div>
-    </div>
-
-    <!-- Match Accept Button -->
-    <button type="button" class="btn-accept-match" id="btnAcceptMatch">
-      <span class="accept-btn-glow"></span>
-      <span class="accept-btn-text">CHẤP THUẬN (ACCEPT)</span>
-    </button>
-  </div>
-</div>
 <?php require __DIR__ . '/layout/footer.php'; ?>

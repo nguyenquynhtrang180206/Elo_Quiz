@@ -1,2 +1,25 @@
 /* Trang Người dùng (admin/nguoidung.php) */
 .admin-noidung .form-loc input.o-tim { flex:1; min-width:220px; width:auto; }
+.admin-noidung .khung-danh-sach {
+  background:#fff;
+  color:#26334d;
+  border-color:#e6ecf8;
+  box-shadow:0 4px 16px rgba(31,53,92,.08);
+}
+.admin-noidung .khung-danh-sach .nhan-phu { color:#68758e; }
+.admin-noidung .khung-danh-sach th {
+  background:#f3f6fd;
+  color:#26334d;
+  border-bottom-color:#e6ecf8;
+}
+.admin-noidung .khung-danh-sach td { border-bottom-color:#eef2fb; }
+.admin-noidung .khung-danh-sach td a { color:#245edb; }
+.admin-noidung .khung-danh-sach td a:hover { color:#1746ad; text-shadow:none; }
+.admin-noidung .khung-danh-sach .mau-do { color:#c62852; }
+.admin-noidung .khung-danh-sach .phantrang { color:#68758e; }
+.admin-noidung .khung-danh-sach .phantrang a {
+  color:#245edb;
+  background:#f3f6fd;
+  border-color:#e6ecf8;
+}
+.admin-noidung .khung-danh-sach .phantrang a:hover { border-color:#245edb; box-shadow:none; }

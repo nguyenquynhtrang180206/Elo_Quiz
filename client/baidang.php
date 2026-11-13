@@ -332,7 +332,7 @@ function renderBinhLuan($c, $level, $maND, $coAnBL, $coLikeBL, $bai, $eloMap, $c
         <div class="thao-tac-bl">
             <?php if ($dangAn): ?>
                 <span class="cd-chi-so cd-tha-lua-static" title="Lượt thả lửa">
-                    <?= CongDongHelper::iconLua(16) ?>
+                    <?= CongDongHelper::iconLua(18) ?>
                     <span class="flame-count"><?= (int) $c['SoThich'] ?></span>
                 </span>
             <?php elseif ($coLikeBL): ?>
@@ -344,7 +344,7 @@ function renderBinhLuan($c, $level, $maND, $coAnBL, $coLikeBL, $bai, $eloMap, $c
                     <button type="submit" class="cd-chi-so cd-tha-lua<?= (int) $c['DaThich'] > 0 ? ' da-tha-lua' : '' ?>"
                             title="<?= (int) $c['DaThich'] > 0 ? 'Dập lửa (Bỏ thả lửa)' : 'Thả lửa bình luận này' ?>">
                         <span class="flame-icon">
-                            <?= CongDongHelper::iconLua(16) ?>
+                            <?= CongDongHelper::iconLua(18) ?>
                         </span>
                         <span class="flame-count"><?= (int) $c['SoThich'] ?></span>
                     </button>
