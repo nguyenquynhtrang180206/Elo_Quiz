@@ -1,8 +1,70 @@
 /* Trang Trận đấu (admin/trandau.php) */
 .admin-noidung .form-loc input.o-tim { flex:1; min-width:220px; width:auto; }
 .form-loc label.nhan-checkbox { display:inline-flex; align-items:center; gap:4px; margin:0; font-weight:400; }
+.form-loc .nhan-checkbox input { width:auto; margin:0; }
 .canh-bao-nho { font-size:13px; }
-.tt-daghep { color:#92400e; }
-.tt-dangdau { color:#1d4ed8; }
-.tt-ketthuc { color:#166534; }
-.tt-huy { color:#991b1b; }
+.admin-noidung .khung-tran {
+  background:#fff;
+  color:#26334d;
+  border-color:#e6ecf8;
+  box-shadow:0 4px 16px rgba(31,53,92,.08);
+}
+.admin-noidung .form-loc.khung-tran { padding:14px 18px; }
+.admin-noidung .khung-tran .nhan-phu { color:#68758e; }
+.admin-noidung .khung-tran table { min-width:1050px; }
+.admin-noidung .khung-tran th {
+  background:#f3f6fd;
+  color:#26334d;
+  border-bottom-color:#e6ecf8;
+}
+.admin-noidung .khung-tran td { border-bottom-color:#eef2fb; }
+.admin-noidung .khung-tran td a { color:#245edb; }
+.admin-noidung .khung-tran td a:hover { color:#1746ad; text-shadow:none; }
+.admin-noidung .khung-tran input[type=text],
+.admin-noidung .khung-tran select {
+  background:#fff;
+  color:#26334d;
+  border-color:#cfd9f0;
+}
+.admin-noidung .khung-tran input::placeholder { color:#8a97b5; }
+.admin-noidung .khung-tran input:focus,
+.admin-noidung .khung-tran select:focus {
+  border-color:#245edb;
+  box-shadow:0 0 0 3px rgba(36,94,219,.15);
+}
+.admin-noidung .khung-tran select option { background:#fff; color:#26334d; }
+.admin-noidung .khung-tran .phantrang { color:#68758e; }
+.admin-noidung .khung-tran .phantrang a {
+  color:#245edb;
+  background:#f3f6fd;
+  border-color:#e6ecf8;
+}
+.admin-noidung .khung-tran .phantrang a:hover { border-color:#245edb; box-shadow:none; }
+.ghi-chu-bat-thuong {
+  padding:12px 16px;
+  border:1px solid #dce7fa;
+  border-radius:12px;
+  background:#f3f7ff;
+  color:#52617d;
+}
+.nhan-trang-thai {
+  display:inline-flex;
+  align-items:center;
+  padding:3px 9px;
+  border-radius:999px;
+  font-size:12px;
+  line-height:1.5;
+  white-space:nowrap;
+}
+.tt-daghep { color:#92400e; background:#fff4d6; }
+.tt-dangdau { color:#1d4ed8; background:#e8f0ff; }
+.tt-ketthuc { color:#166534; background:#e6f7ec; }
+.tt-huy { color:#991b1b; background:#fde8ea; }
+
+@media (max-width:720px) {
+  .admin-noidung .form-loc.khung-tran { align-items:stretch; }
+  .admin-noidung .form-loc.khung-tran select,
+  .admin-noidung .form-loc.khung-tran .btn,
+  .admin-noidung .form-loc.khung-tran .btn-phu { width:100%; text-align:center; }
+  .admin-noidung .form-loc.khung-tran .nhan-checkbox { align-self:flex-start; }
+}

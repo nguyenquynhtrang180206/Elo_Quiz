@@ -56,6 +56,14 @@
   var killstreakText = document.getElementById('killstreakText');
   var nutChiuThua = document.getElementById('nutChiuThua');
 
+  // Mutator & Sabotage Mind Games Elements
+  var mutatorMatchBanner = document.getElementById('mutatorMatchBanner');
+  var rageBarInner = document.getElementById('rageBarInner');
+  var rageValNum = document.getElementById('rageValNum');
+  var btnDebuffLocXoay = document.getElementById('btnDebuffLocXoay');
+  var btnDebuffSuongMu = document.getElementById('btnDebuffSuongMu');
+  var btnDebuffDongBang = document.getElementById('btnDebuffDongBang');
+
   // Combat State
   var MAX_HP = 1000;
   var myCurrentHp = 1000;
@@ -65,6 +73,15 @@
   var prevOppScore = 0;
   var killstreakCount = 0;
   var isBaronRound = false;
+
+  var currentDotBien = {
+    id: thi.dataset.dotbienId || 'chuan',
+    ten: thi.dataset.dotbienTen || 'Đấu Trường Chuẩn',
+    moTa: thi.dataset.dotbienMota || '',
+    icon: thi.dataset.dotbienIcon || '⚔️'
+  };
+  var currentRage = 0;
+  var lastDebuffTriggered = 0;
 
   var cauHienTai = null;
   var hanChot = 0;
@@ -198,6 +215,75 @@
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
     osc.connect(gain); gain.connect(ctx.destination);
     osc.start(now); osc.stop(now + 0.8);
+  }
+
+  function playIceFreezeSound() {
+    var ctx = getAudioCtx(); if (!ctx) return;
+    var now = ctx.currentTime;
+    [1200, 1500, 1800, 2400].forEach(function (f, i) {
+      var osc = ctx.createOscillator();
+      var gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(f, now + i * 0.04);
+      gain.gain.setValueAtTime(0.18, now + i * 0.04);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.start(now + i * 0.04); osc.stop(now + 0.45);
+    });
+  }
+
+  function playTornadoWindSound() {
+    var ctx = getAudioCtx(); if (!ctx) return;
+    var now = ctx.currentTime;
+    var bufferSize = ctx.sampleRate * 0.4;
+    var buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    var data = buffer.getChannelData(0);
+    for (var i = 0; i < bufferSize; i++) { data[i] = Math.random() * 2 - 1; }
+    var noise = ctx.createBufferSource();
+    noise.buffer = buffer;
+    var filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(300, now);
+    filter.frequency.linearRampToValueAtTime(1300, now + 0.2);
+    filter.frequency.linearRampToValueAtTime(220, now + 0.4);
+    var gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.3, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+    noise.connect(filter); filter.connect(gain); gain.connect(ctx.destination);
+    noise.start(now);
+  }
+
+  function playFogHissSound() {
+    var ctx = getAudioCtx(); if (!ctx) return;
+    var now = ctx.currentTime;
+    var bufferSize = ctx.sampleRate * 0.5;
+    var buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    var data = buffer.getChannelData(0);
+    for (var i = 0; i < bufferSize; i++) { data[i] = Math.random() * 2 - 1; }
+    var noise = ctx.createBufferSource();
+    noise.buffer = buffer;
+    var filter = ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(1600, now);
+    var gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.2, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+    noise.connect(filter); filter.connect(gain); gain.connect(ctx.destination);
+    noise.start(now);
+  }
+
+  function playSabotageCastSound() {
+    var ctx = getAudioCtx(); if (!ctx) return;
+    var now = ctx.currentTime;
+    var osc = ctx.createOscillator();
+    var gain = ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(320, now);
+    osc.frequency.exponentialRampToValueAtTime(950, now + 0.22);
+    gain.gain.setValueAtTime(0.3, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.26);
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.start(now); osc.stop(now + 0.26);
   }
 
   // ==========================================================================
@@ -346,6 +432,168 @@
   }
 
   // ==========================================================================
+  // CHIÊU TRÒ PHÁ RỐI & HỆ THỐNG TÍCH NỘ (SABOTAGE SYSTEM)
+  // ==========================================================================
+  function addRage(amt) {
+    currentRage = Math.min(100, Math.max(0, currentRage + amt));
+    if (rageBarInner) rageBarInner.style.width = currentRage + '%';
+    if (rageValNum) rageValNum.textContent = currentRage + '%';
+
+    var isReady = (currentRage >= 100);
+    [btnDebuffLocXoay, btnDebuffSuongMu, btnDebuffDongBang].forEach(function (btn) {
+      if (btn) {
+        btn.disabled = !isReady;
+        if (isReady) {
+          btn.classList.add('ready-to-fire');
+        } else {
+          btn.classList.remove('ready-to-fire');
+        }
+      }
+    });
+  }
+
+  function banPhaRoi(loai) {
+    if (currentRage < 100) return;
+    playSabotageCastSound();
+
+    launchProjectile(true, function () {
+      spawnDamagePopup(true, '💥 ĐÃ PHÁ RỐI ĐỐI THỦ!', true);
+    });
+
+    addRage(-100);
+
+    var fd = new FormData();
+    fd.append('csrf', CSRF);
+    fd.append('hanhdong', 'pharoi');
+    fd.append('loai', loai);
+
+    fetch(API, { method: 'POST', body: fd, credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (res) {
+        if (res.loi) console.warn('Lỗi phá rối:', res.loi);
+      })
+      .catch(function (e) { console.warn('Lỗi gửi phá rối:', e); });
+  }
+
+  if (btnDebuffLocXoay) {
+    btnDebuffLocXoay.onclick = function () { banPhaRoi('loc_xoay'); };
+  }
+  if (btnDebuffSuongMu) {
+    btnDebuffSuongMu.onclick = function () { banPhaRoi('suong_mu'); };
+  }
+  if (btnDebuffDongBang) {
+    btnDebuffDongBang.onclick = function () { banPhaRoi('dong_bang'); };
+  }
+
+  // ==========================================================================
+  // XỬ LÝ TRỰC QUAN KHI BỊ ĐỐI THỦ TẤN CÔNG BẰNG CHIÊU TRÒ (DEBUFF FX)
+  // ==========================================================================
+  function triggerDebuffDongBang() {
+    playIceFreezeSound();
+    var freezeOverlay = document.getElementById('debuffFreezeOverlay');
+    if (freezeOverlay) {
+      freezeOverlay.style.display = 'block';
+      freezeOverlay.classList.remove('fade-out');
+    }
+
+    nutDapAn.forEach(function (btn) {
+      btn.classList.add('ice-frozen');
+      btn.dataset.wasDisabled = btn.disabled ? '1' : '0';
+      btn.disabled = true;
+    });
+
+    setTimeout(function () {
+      if (freezeOverlay) {
+        freezeOverlay.classList.add('fade-out');
+        setTimeout(function () { freezeOverlay.style.display = 'none'; }, 400);
+      }
+      nutDapAn.forEach(function (btn) {
+        btn.classList.remove('ice-frozen');
+        if (btn.dataset.wasDisabled !== '1' && !daGui) {
+          btn.disabled = false;
+        }
+      });
+    }, 1500);
+  }
+
+  function triggerDebuffLocXoay() {
+    playTornadoWindSound();
+    var tornadoAlert = document.getElementById('debuffTornadoAlert');
+    if (tornadoAlert) {
+      tornadoAlert.style.display = 'flex';
+      tornadoAlert.classList.remove('fade-out');
+      setTimeout(function () {
+        tornadoAlert.classList.add('fade-out');
+        setTimeout(function () { tornadoAlert.style.display = 'none'; }, 400);
+      }, 2500);
+    }
+
+    var grid = khung ? khung.querySelector('.quiz-answers-grid') : null;
+    if (grid && grid.children.length > 1) {
+      grid.classList.add('tornado-shuffle-spin');
+      var btns = Array.prototype.slice.call(grid.children);
+      btns.sort(function () { return Math.random() - 0.5; });
+      btns.forEach(function (b) { grid.appendChild(b); });
+      setTimeout(function () {
+        grid.classList.remove('tornado-shuffle-spin');
+      }, 700);
+    }
+  }
+
+  function triggerDebuffSuongMu() {
+    playFogHissSound();
+    var fogOverlay = document.getElementById('debuffFogOverlay');
+    var canvas = document.getElementById('fogCanvas');
+    if (!fogOverlay || !canvas) return;
+
+    fogOverlay.style.display = 'block';
+    fogOverlay.classList.remove('fade-out');
+
+    var consoleCard = document.getElementById('consoleCard');
+    var rect = consoleCard ? consoleCard.getBoundingClientRect() : { width: 640, height: 380 };
+    canvas.width = rect.width || 640;
+    canvas.height = rect.height || 380;
+
+    var ctx = canvas.getContext('2d');
+    if (ctx) {
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.95)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.fillStyle = 'rgba(30, 41, 59, 0.8)';
+      for (var i = 0; i < 20; i++) {
+        ctx.beginPath();
+        ctx.arc(Math.random() * canvas.width, Math.random() * canvas.height, 40 + Math.random() * 60, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    function scrub(e) {
+      if (!ctx) return;
+      var cRect = canvas.getBoundingClientRect();
+      var cx = (e.clientX !== undefined) ? e.clientX : (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
+      var cy = (e.clientY !== undefined) ? e.clientY : (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
+      var x = cx - cRect.left;
+      var y = cy - cRect.top;
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.beginPath();
+      ctx.arc(x, y, 48, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    canvas.onmousemove = scrub;
+    canvas.ontouchmove = scrub;
+
+    setTimeout(function () {
+      fogOverlay.classList.add('fade-out');
+      setTimeout(function () {
+        fogOverlay.style.display = 'none';
+        canvas.onmousemove = null;
+        canvas.ontouchmove = null;
+      }, 500);
+    }, 3500);
+  }
+
+  // ==========================================================================
   // RENDERING QUESTION & SKILLS (Q - W - E - R)
   // ==========================================================================
   var SKILL_KEYS = ['Q', 'W', 'E', 'R'];
@@ -388,6 +636,14 @@
     qText.className = 'quiz-question-text';
     qText.textContent = c.noiDung;
     qBox.appendChild(qText);
+
+    // Cảnh báo Đột biến Ngày Đảo Ngược
+    if (currentDotBien && currentDotBien.id === 'dao_nguoc') {
+      var revBadge = document.createElement('div');
+      revBadge.className = 'reverse-day-warning-badge';
+      revBadge.innerHTML = '<span class="rev-icon">🔄</span> <strong>LUẬT ĐẢO NGƯỢC:</strong> Bạn phải CHỌN ĐÁP ÁN SAI mới được tính là ĐÚNG!';
+      qBox.appendChild(revBadge);
+    }
 
     khung.appendChild(qBox);
 
@@ -533,6 +789,11 @@
           updateHpDisplay();
           updateManaDisplay();
 
+          // Nạp năng lượng Nộ khi xuất chiêu đúng & phản xạ nhanh
+          var conLaiSec = Math.max(0, (hanChot - Date.now()) / 1000);
+          var isFast = (conLaiSec / (thoiGianQuyDinh || 15)) >= 0.5;
+          addRage(isFast ? 50 : 35);
+
           launchProjectile(true, function () {
             playHitSound();
             triggerHitShake(true);
@@ -565,18 +826,29 @@
         banner.className = 'answer-reveal-banner ' + (r.dung ? 'banner-correct' : (r.hetGio ? 'banner-timeout' : 'banner-wrong'));
 
         if (r.dung) {
+          var successTitle = (currentDotBien && currentDotBien.id === 'dao_nguoc')
+            ? 'BẪY THÀNH CÔNG (NGÀY ĐẢO NGƯỢC)!'
+            : 'XUẤT CHIÊU CHÍNH XÁC!';
+          var successDesc = (currentDotBien && currentDotBien.id === 'dao_nguoc')
+            ? 'Đã chọn đáp án SAI chuẩn xác! Đối thủ chịu <strong>-' + ((r.diem || 10) * 10 * (isBaronRound ? 2 : 1)) + ' HP</strong> sát thương!'
+            : 'Đòn tấn công chuẩn xác! Đối thủ chịu <strong>-' + ((r.diem || 10) * 10 * (isBaronRound ? 2 : 1)) + ' HP</strong> sát thương!';
+
           banner.innerHTML =
             '<div class="reveal-header">' +
               '<span class="reveal-icon">⚡</span>' +
-              '<span class="reveal-title">XUẤT CHIÊU CHÍNH XÁC!</span>' +
+              '<span class="reveal-title">' + successTitle + '</span>' +
               '<span class="reveal-score">+' + r.diem + ' ĐIỂM</span>' +
             '</div>' +
-            '<div class="reveal-body">Đòn tấn công chuẩn xác! Đối thủ chịu <strong>-' + ((r.diem || 10) * 10 * (isBaronRound ? 2 : 1)) + ' HP</strong> sát thương!</div>';
+            '<div class="reveal-body">' + successDesc + '</div>';
         } else {
-          var headerTitle = r.hetGio ? '⏰ HẾT GIỜ THI ĐẤU! (0 ĐIỂM)' : '❌ ĐÁP ÁN CHƯA ĐÚNG! (0 ĐIỂM)';
+          var headerTitle = r.hetGio
+            ? '⏰ HẾT GIỜ THI ĐẤU! (0 ĐIỂM)'
+            : ((currentDotBien && currentDotBien.id === 'dao_nguoc') ? '❌ BẠN ĐÃ CHỌN NHẦM ĐÁP ÁN ĐÚNG!' : '❌ ĐÁP ÁN CHƯA ĐÚNG! (0 ĐIỂM)');
           var descText = r.hetGio
             ? 'Bạn không kịp xuất chiêu! Hãy thao tác nhanh hơn ở lượt tiếp theo.'
-            : 'Lựa chọn chưa chính xác! Hãy tập trung thi đấu để lật ngược tình thế.';
+            : ((currentDotBien && currentDotBien.id === 'dao_nguoc')
+                ? 'Trong Ngày Đảo Ngược, bạn PHẢI chọn câu SAI mới được nhận điểm!'
+                : 'Lựa chọn chưa chính xác! Hãy tập trung thi đấu để lật ngược tình thế.');
           banner.innerHTML =
             '<div class="reveal-header">' +
               '<span class="reveal-icon">' + (r.hetGio ? '⏰' : '❌') + '</span>' +
@@ -614,6 +886,34 @@
     if (!d.tran || d.tran.trangThai !== 'Đang diễn ra') {
       location.reload();
       return;
+    }
+
+    // Đồng bộ Đột Biến Không Gian
+    if (d.dotBien) {
+      currentDotBien = d.dotBien;
+      if (mutatorMatchBanner && d.dotBien.id !== 'chuan') {
+        mutatorMatchBanner.style.display = 'flex';
+        var nameEl = mutatorMatchBanner.querySelector('.mmb-name');
+        var descEl = mutatorMatchBanner.querySelector('.mmb-desc');
+        if (nameEl) nameEl.textContent = d.dotBien.ten;
+        if (descEl) descEl.textContent = d.dotBien.moTa;
+      }
+    }
+
+    // Kiểm tra và thực thi Chiêu Phá Rối từ đối thủ
+    if (d.phaRoiBiDinh && d.phaRoiBiDinh.loai) {
+      var nowTime = Date.now();
+      if (nowTime - lastDebuffTriggered > 4500) {
+        lastDebuffTriggered = nowTime;
+        var debuffType = d.phaRoiBiDinh.loai;
+        if (debuffType === 'loc_xoay') {
+          triggerDebuffLocXoay();
+        } else if (debuffType === 'suong_mu') {
+          triggerDebuffSuongMu();
+        } else if (debuffType === 'dong_bang') {
+          triggerDebuffDongBang();
+        }
+      }
     }
 
     // Check if Opponent scored since last poll!

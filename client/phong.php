@@ -9,6 +9,8 @@ require_once __DIR__ . '/../core/GhepDoi.php';
 require_once __DIR__ . '/../core/LoLChampions.php';
 require_once __DIR__ . '/../core/ThiDau.php';
 
+require_once __DIR__ . '/../core/DotBien.php';
+
 $maND   = Auth::requireClient(BASE_URL . '/client/login.php');
 $pdo    = Database::pdo();
 $maTran = (int) ($_GET['tran'] ?? 0);
@@ -23,12 +25,13 @@ if (!$st->fetchColumn()) {
 GhepDoi::vaoPhong($pdo, $maTran, $maND);
 
 $st = $pdo->prepare(
-    'SELECT t.TrangThai, t.LyDoKetThuc, m.TenMon, k.TenLoaiKT
+    'SELECT t.TrangThai, t.LyDoKetThuc, t.DotBien, m.TenMon, k.TenLoaiKT
        FROM TRANDAU t JOIN MONHOC m ON m.MaMon = t.MaMon JOIN LOAIKYTHI k ON k.MaLoaiKT = t.MaLoaiKT
       WHERE t.MaTran = ?'
 );
 $st->execute([$maTran]);
 $tran = $st->fetch();
+$dotBienHienTai = DotBien::layDotBien($tran['DotBien'] ?? 'chuan');
 
 $st = $pdo->prepare(
     'SELECT n.MaND, u.HoTen, n.EloTruoc, n.EloSau, n.TrangThaiThamGia, n.DiemSo, n.KetQua
@@ -48,6 +51,7 @@ foreach ($st->fetchAll() as $r) {
 // Xác định Đấu Thần Plants vs Zombies của Người chơi và Đối thủ
 $tuongChonId = $_SESSION['tuong_chon'] ?? 'sunflower';
 $tuongToi = LoLChampions::layTuong($tuongChonId);
+$thongThaoToi = LoLChampions::layThongThao($pdo, $maND, $tuongChonId);
 
 // Gán tướng cho đối thủ dựa trên ID và mã trận
 $dsTuongKeys = array_keys(LoLChampions::DANH_SACH);
@@ -58,6 +62,7 @@ if (empty($availableKeys)) {
 $doiThuIndex = abs((int) crc32((string) ($doiThu['MaND'] ?? 1) . '_' . $maTran)) % count($availableKeys);
 $tuongDoiThuId = $availableKeys[$doiThuIndex];
 $tuongDoiThu = LoLChampions::layTuong($tuongDoiThuId);
+$thongThaoDoiThu = LoLChampions::layThongThao($pdo, (int) ($doiThu['MaND'] ?? 0), $tuongDoiThuId);
 
 $tieuDe = 'Vũ Đài Đấu Thần 1v1';
 $cssTrang = 'phong';
@@ -93,6 +98,13 @@ require __DIR__ . '/layout/header.php';
         <p class="vs-sub">
           <?= ($doiThu['TrangThaiThamGia'] ?? '') === 'Chưa vào' ? 'Đang đợi đối thủ xác nhận bước vào đấu trường...' : 'Cả hai đấu thủ đã có mặt! Chuẩn bị giao tranh...' ?>
         </p>
+        <?php if ($dotBienHienTai['id'] !== 'chuan'): ?>
+          <div class="lobby-mutator-badge">
+            <span class="lmb-icon"><?= $dotBienHienTai['icon'] ?></span>
+            <span class="lmb-tag">ĐỘT BIẾN LUẬT: <?= e($dotBienHienTai['ten']) ?></span>
+            <span class="lmb-desc">&middot; <?= e($dotBienHienTai['moTa']) ?></span>
+          </div>
+        <?php endif; ?>
       </div>
 
       <div class="vs-faceoff-stage">
@@ -105,6 +117,9 @@ require __DIR__ . '/layout/header.php';
             <span class="fighter-side-tag blue">ĐỘI XANH (BẠN)</span>
             <h4 class="fighter-player-name"><?= e($toi['HoTen']) ?></h4>
             <div class="fighter-champ-title" style="color: <?= e($tuongToi['mauSac']) ?>;"><?= e($tuongToi['ten']) ?> &middot; <?= e($tuongToi['danhHieu']) ?></div>
+            <div class="fighter-mastery-tag <?= e($thongThaoToi['cssClass']) ?>">
+              <span class="fmt-icon"><?= $thongThaoToi['iconCap'] ?></span> Cấp <?= $thongThaoToi['capDo'] ?> &middot; <?= e($thongThaoToi['danhHieuCap']) ?>
+            </div>
             <div class="fighter-elo-badge">ELO <?= (int) $toi['EloTruoc'] ?></div>
           </div>
         </div>
@@ -127,6 +142,9 @@ require __DIR__ . '/layout/header.php';
             <span class="fighter-side-tag red">ĐỘI ĐỎ (ĐỐI THỦ)</span>
             <h4 class="fighter-player-name"><?= e($doiThu['HoTen']) ?></h4>
             <div class="fighter-champ-title" style="color: <?= e($tuongDoiThu['mauSac']) ?>;"><?= e($tuongDoiThu['ten']) ?> &middot; <?= e($tuongDoiThu['danhHieu']) ?></div>
+            <div class="fighter-mastery-tag <?= e($thongThaoDoiThu['cssClass']) ?>">
+              <span class="fmt-icon"><?= $thongThaoDoiThu['iconCap'] ?></span> Cấp <?= $thongThaoDoiThu['capDo'] ?> &middot; <?= e($thongThaoDoiThu['danhHieuCap']) ?>
+            </div>
             <div class="fighter-elo-badge">ELO <?= (int) $doiThu['EloTruoc'] ?></div>
           </div>
         </div>
@@ -138,6 +156,10 @@ require __DIR__ . '/layout/header.php';
     <div id="thi"
          data-api="<?= e(BASE_URL . '/client/api_thi.php?tran=' . $maTran) ?>"
          data-csrf="<?= e(csrf_token()) ?>"
+         data-dotbien-id="<?= e($dotBienHienTai['id']) ?>"
+         data-dotbien-ten="<?= e($dotBienHienTai['ten']) ?>"
+         data-dotbien-mota="<?= e($dotBienHienTai['moTa']) ?>"
+         data-dotbien-icon="<?= e($dotBienHienTai['icon']) ?>"
          data-my-champ="<?= e($tuongToi['id']) ?>"
          data-my-champ-name="<?= e($tuongToi['ten']) ?>"
          data-my-champ-q="<?= e($tuongToi['chieuQ']) ?>"
@@ -146,6 +168,54 @@ require __DIR__ . '/layout/header.php';
          data-opp-champ="<?= e($tuongDoiThu['id']) ?>"
          data-opp-champ-name="<?= e($tuongDoiThu['ten']) ?>"
          data-opp-champ-buff="<?= e($tuongDoiThu['buffLoai'] ?? '') ?>">
+
+      <!-- DEBUFF LAYERS (KHI BỊ ĐỐI THỦ PHÁ RỐI) -->
+      <div id="debuffFogOverlay" class="debuff-overlay-layer fog-overlay" style="display: none;">
+        <canvas id="fogCanvas"></canvas>
+        <div class="fog-hud-alert">
+          <span class="fog-alert-icon">🌫️</span>
+          <div class="fog-alert-text">
+            <strong>BỊ DÍNH MÀN SƯƠNG MÙ!</strong>
+            <span>Hãy di chuột hoặc vuốt để lau sạch màn hình!</span>
+          </div>
+        </div>
+      </div>
+
+      <div id="debuffFreezeOverlay" class="debuff-overlay-layer freeze-overlay" style="display: none;">
+        <div class="ice-border-vignette"></div>
+        <div class="freeze-hud-alert">
+          <span class="freeze-alert-icon">🧊</span>
+          <div class="freeze-alert-text">
+            <strong>BỊ ĐÓNG BĂNG BĂNG HÀN!</strong>
+            <span>Các chiêu thức bị tê liệt trong 1.5 giây...</span>
+          </div>
+        </div>
+      </div>
+
+      <div id="debuffTornadoAlert" class="debuff-overlay-layer tornado-overlay" style="display: none;">
+        <div class="tornado-hud-alert">
+          <span class="tornado-icon-spin">🌪️</span>
+          <div class="tornado-text">
+            <strong>LỐC XOÁY ĐẢO PHÍM!</strong>
+            <span>Vị trí các nút đáp án vừa bị đối thủ hoán đổi!</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- MUTATOR ANOMALY BANNER -->
+      <?php if ($dotBienHienTai['id'] !== 'chuan'): ?>
+        <div class="mutator-match-banner <?= e($dotBienHienTai['id']) ?>" id="mutatorMatchBanner">
+          <div class="mmb-icon"><?= $dotBienHienTai['icon'] ?></div>
+          <div class="mmb-content">
+            <div class="mmb-title-row">
+              <span class="mmb-tag">ĐỘT BIẾN LUẬT: <?= e($dotBienHienTai['tag']) ?></span>
+              <strong class="mmb-name"><?= e($dotBienHienTai['ten']) ?></strong>
+            </div>
+            <div class="mmb-desc"><?= e($dotBienHienTai['moTa']) ?></div>
+          </div>
+          <div class="mmb-pulse-light"></div>
+        </div>
+      <?php endif; ?>
 
       <!-- COMBAT STAGE (TOP 1V1 BATTLE VIEW) -->
       <div class="arena-combat-stage" id="arenaCombatStage">
@@ -298,6 +368,50 @@ require __DIR__ . '/layout/header.php';
       <div class="hotkey-hint-bar">
         <span>⌨️ <strong>MẸO CHIẾN ĐẤU:</strong> Bấm phím <strong>[Q]</strong>, <strong>[W]</strong>, <strong>[E]</strong>, <strong>[R]</strong> trên bàn phím để tung chiêu nhanh như chớp!</span>
       </div>
+
+      <!-- BỘ CHIÊU TRÒ PHÁ RỐI TÂM LÝ (SABOTAGE CONTROLS) -->
+      <div class="sabotage-deck-container" id="sabotageDeck">
+        <div class="sabotage-deck-header">
+          <div class="deck-title">
+            <span class="deck-icon">⚡</span> CHIÊU TRÒ PHÁ RỐI ĐỐI THỦ
+          </div>
+          <div class="rage-meter-box">
+            <span class="rage-title">NĂNG LƯỢNG NỘ:</span>
+            <div class="rage-bar-outer">
+              <div class="rage-bar-inner" id="rageBarInner" style="width: 0%;"></div>
+            </div>
+            <span class="rage-val-num" id="rageValNum">0%</span>
+          </div>
+        </div>
+        <div class="sabotage-cards-row">
+          <button type="button" class="sabotage-action-btn" id="btnDebuffLocXoay" data-type="loc_xoay" disabled title="Tích đủ 100% Nộ để dùng: Đảo lộn vị trí các phím bấm của đối thủ trong 4 giây!">
+            <span class="btn-sb-icon">🌪️</span>
+            <div class="btn-sb-info">
+              <span class="btn-sb-name">Lốc Xoáy</span>
+              <span class="btn-sb-tip">Đảo phím đối thủ 4s</span>
+            </div>
+            <span class="btn-sb-cost">100% NỘ</span>
+          </button>
+
+          <button type="button" class="sabotage-action-btn" id="btnDebuffSuongMu" data-type="suong_mu" disabled title="Tích đủ 100% Nộ để dùng: Phun khói mù che kín câu hỏi của đối thủ trong 3.5 giây!">
+            <span class="btn-sb-icon">🌫️</span>
+            <div class="btn-sb-info">
+              <span class="btn-sb-name">Màn Sương Mù</span>
+              <span class="btn-sb-tip">Che mờ câu hỏi 3.5s</span>
+            </div>
+            <span class="btn-sb-cost">100% NỘ</span>
+          </button>
+
+          <button type="button" class="sabotage-action-btn" id="btnDebuffDongBang" data-type="dong_bang" disabled title="Tích đủ 100% Nộ để dùng: Đóng băng nút bấm khiến đối thủ tê liệt trong 1.5 giây!">
+            <span class="btn-sb-icon">🧊</span>
+            <div class="btn-sb-info">
+              <span class="btn-sb-name">Băng Hàn</span>
+              <span class="btn-sb-tip">Tê liệt nút bấm 1.5s</span>
+            </div>
+            <span class="btn-sb-cost">100% NỘ</span>
+          </button>
+        </div>
+      </div>
     </div>
 
   <?php elseif ($tran['TrangThai'] === 'Hủy'): ?>
@@ -380,6 +494,38 @@ require __DIR__ . '/layout/header.php';
               <span class="elo-pill"><?= $dEloDoiThu >= 0 ? '+' : '' ?><?= $dEloDoiThu ?></span>
             </div>
           <?php endif; ?>
+        </div>
+      </div>
+
+      <!-- CHAMPION MASTERY EXP & EVOLUTION CARD -->
+      <div class="post-match-mastery-card">
+        <div class="mastery-card-header">
+          <div class="mastery-crest-icon"><?= $thongThaoToi['iconCap'] ?></div>
+          <div class="mastery-titles">
+            <span class="mastery-subtitle">TIẾN HÓA & THÔNG THẠO ĐẤU THẦN</span>
+            <h3 class="mastery-champ-name"><?= e($tuongToi['ten']) ?> &middot; <?= e($thongThaoToi['danhHieuCap']) ?></h3>
+          </div>
+          <div class="mastery-exp-badge">
+            +<?= $isWin ? 160 : ($toi['KetQua'] === 'Hòa' ? 100 : 60) ?> EXP
+          </div>
+        </div>
+
+        <div class="mastery-progress-body">
+          <div class="mastery-stats-row">
+            <span>Cấp độ: <strong>Cấp <?= $thongThaoToi['capDo'] ?> / 5</strong></span>
+            <span>EXP: <strong><?= (int) $thongThaoToi['diemEXP'] ?> / <?= (int) $thongThaoToi['expKeMoc'] ?></strong> (<?= (int) $thongThaoToi['phanTram'] ?>%)</span>
+          </div>
+          <div class="mastery-track">
+            <div class="mastery-fill <?= e($thongThaoToi['cssClass']) ?>" style="width: <?= (int) $thongThaoToi['phanTram'] ?>%;"></div>
+          </div>
+          <div class="mastery-tiers-row">
+            <?php foreach (LoLChampions::CAP_DO_INFO as $lv => $info): ?>
+              <div class="tier-node <?= $lv <= $thongThaoToi['capDo'] ? 'unlocked' : 'locked' ?> <?= $lv === $thongThaoToi['capDo'] ? 'active' : '' ?>">
+                <span class="tn-icon"><?= $info['icon'] ?></span>
+                <span class="tn-title">Lv.<?= $lv ?> <?= e($info['ten']) ?></span>
+              </div>
+            <?php endforeach; ?>
+          </div>
         </div>
       </div>
 

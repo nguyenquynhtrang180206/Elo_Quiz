@@ -5,6 +5,8 @@
 // Elo sau trận: xem core/Elo.php (C-32, C-33). Chưa làm: màn xem lại (C-34).
 require_once __DIR__ . '/Elo.php';
 require_once __DIR__ . '/GhepDoi.php';
+require_once __DIR__ . '/DotBien.php';
+require_once __DIR__ . '/LoLChampions.php';
 class ThiDau
 {
     public const DEM_NGUOC_GIAY = 3;   // đếm ngược trước khi câu 1 hiện, để hai người bắt đầu gần như cùng lúc
@@ -109,6 +111,7 @@ class ThiDau
         $pdo->prepare("UPDATE TRANDAU SET TrangThai = 'Kết thúc', LyDoKetThuc = 'Đối thủ bỏ trận (xử thua)', ThoiGianKetThuc = NOW(3) WHERE MaTran = ?")
             ->execute([$maTran]);
         Elo::capNhatSauTran($pdo, $maTran);
+        self::congExpSauTran($pdo, $maTran);
     }
 
     // C-31: cả hai đã xong mọi câu thì kết thúc; điểm cao hơn thắng, bằng điểm thì hòa
@@ -134,6 +137,32 @@ class ThiDau
         $pdo->prepare("UPDATE TRANDAU SET TrangThai = 'Kết thúc', LyDoKetThuc = 'Hoàn thành', ThoiGianKetThuc = NOW(3) WHERE MaTran = ?")
             ->execute([$maTran]);
         Elo::capNhatSauTran($pdo, $maTran);
+        self::congExpSauTran($pdo, $maTran);
+    }
+
+    // Cộng điểm thông thạo & EXP tiến hóa cho người chơi sau trận
+    private static function congExpSauTran(PDO $pdo, int $maTran): void
+    {
+        try {
+            $st = $pdo->prepare('SELECT MaND, KetQua FROM NGUOICHOITRANDAU WHERE MaTran = ?');
+            $st->execute([$maTran]);
+            $ds = $st->fetchAll();
+            foreach ($ds as $r) {
+                $nd = (int) $r['MaND'];
+                if (GhepDoi::laBot($pdo, $nd)) {
+                    continue;
+                }
+                $laThang = ($r['KetQua'] === 'Thắng');
+                $exp = $laThang ? 160 : ($r['KetQua'] === 'Hòa' ? 100 : 60);
+                $tuongId = 'sunflower';
+                if (isset($_SESSION['tuong_chon']) && $nd === (int) ($_SESSION['user']['MaND'] ?? 0)) {
+                    $tuongId = (string) $_SESSION['tuong_chon'];
+                }
+                LoLChampions::congEXP($pdo, $nd, $tuongId, $exp, $laThang);
+            }
+        } catch (Throwable $e) {
+            error_log('Lỗi cộng EXP thông thạo: ' . $e->getMessage());
+        }
     }
 
     // Đẩy tiến trình của một người: chốt câu quá hạn, gửi câu kế tiếp, đánh dấu xong khi hết câu (C-24, C-25)
@@ -276,13 +305,76 @@ class ThiDau
                 ];
             }
         }
+
+        // Lấy thông tin Vòng Quay Đột Biến & Trạng thái Phá Rối đang hiệu lực
+        $stTran = $pdo->prepare('SELECT DotBien, PhaRoi FROM TRANDAU WHERE MaTran = ?');
+        $stTran->execute([$maTran]);
+        $tranRow = $stTran->fetch() ?: [];
+        $dotBienKey = (string) ($tranRow['DotBien'] ?? 'chuan');
+        $dotBienInfo = DotBien::layDotBien($dotBienKey);
+
+        $phaRoiBiDinh = null;
+        if (!empty($tranRow['PhaRoi'])) {
+            $pr = json_decode($tranRow['PhaRoi'], true);
+            if (is_array($pr) && (int) ($pr['mucTieu'] ?? 0) === $maND) {
+                $tgTroi = microtime(true) - (float) ($pr['thoiGian'] ?? 0);
+                if ($tgTroi >= 0 && $tgTroi <= 4.0) {
+                    $phaRoiBiDinh = [
+                        'loai'     => $pr['loai'],
+                        'conLai'   => max(0.1, round(4.0 - $tgTroi, 1)),
+                        'nguoiBan' => (int) $pr['nguoiBan'],
+                    ];
+                }
+            }
+        }
+
         return [
-            'tran'     => ['trangThai' => $tt, 'tongCau' => $tong],
-            'toi'      => $toi,
-            'doiThu'   => $kia,
-            'demNguoc' => $demNguoc,
-            'cau'      => $cau,
+            'tran'         => ['trangThai' => $tt, 'tongCau' => $tong],
+            'toi'          => $toi,
+            'doiThu'       => $kia,
+            'demNguoc'     => $demNguoc,
+            'cau'          => $cau,
+            'dotBien'      => $dotBienInfo,
+            'phaRoiBiDinh' => $phaRoiBiDinh,
         ];
+    }
+
+    // Tung chiêu Phá Rối / Sabotage nhắm vào đối thủ
+    public static function phongChieuPhaRoi(PDO $pdo, int $maTran, int $maND, string $loai): array
+    {
+        $hopLe = ['loc_xoay', 'suong_mu', 'dong_bang'];
+        if (!in_array($loai, $hopLe, true)) {
+            return ['loi' => 'Chiêu phá rối không hợp lệ.'];
+        }
+        $pdo->beginTransaction();
+        try {
+            $tt = self::khoaTran($pdo, $maTran);
+            if ($tt !== 'Đang diễn ra') {
+                $pdo->commit();
+                return ['loi' => 'Trận không còn diễn ra.'];
+            }
+            $st = $pdo->prepare('SELECT MaND FROM NGUOICHOITRANDAU WHERE MaTran = ? AND MaND <> ?');
+            $st->execute([$maTran, $maND]);
+            $mucTieu = (int) $st->fetchColumn();
+            if (!$mucTieu) {
+                $pdo->commit();
+                return ['loi' => 'Không tìm thấy đối thủ.'];
+            }
+            $payload = json_encode([
+                'nguoiBan' => $maND,
+                'mucTieu'  => $mucTieu,
+                'loai'     => $loai,
+                'thoiGian' => microtime(true),
+            ], JSON_UNESCAPED_UNICODE);
+            $pdo->prepare('UPDATE TRANDAU SET PhaRoi = ? WHERE MaTran = ?')->execute([$payload, $maTran]);
+            $pdo->commit();
+            return ['thanhCong' => true, 'loai' => $loai];
+        } catch (Throwable $ex) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            throw $ex;
+        }
     }
 
     // Người chơi gửi đáp án (C-24, C-25, C-27, C-28). Trả về chỉ đúng/sai và điểm của câu vừa chốt.
@@ -328,10 +420,30 @@ class ThiDau
                 return ['loi' => 'Đáp án không hợp lệ.'];
             }
 
+            // Kiểm tra Đột Biến hiện tại của trận đấu
+            $stDB = $pdo->prepare('SELECT DotBien FROM TRANDAU WHERE MaTran = ?');
+            $stDB->execute([$maTran]);
+            $dotBienKey = (string) ($stDB->fetchColumn() ?: 'chuan');
+
             $conLai = max(0.0, $gioiHan - $daDung);
-            $dung   = (int) $la === 1;
+            $dung   = ((int) $la === 1);
+
+            // Đột biến Ngày Đảo Ngược: Phải chọn câu SAI mới được tính là ĐÚNG!
+            if ($dotBienKey === 'dao_nguoc') {
+                $dung = ((int) $la === 0);
+            }
+
             // C-28: đúng được điểm cơ bản + hệ số thưởng x (thời gian còn lại / thời gian câu), làm tròn xuống
             $diem = $dung ? (int) floor((int) $dong['DiemCoBan'] + (int) $dong['HeSoThuong'] * $conLai / $gioiHan) : 0;
+
+            // Xử lý hệ số và cơ chế đột biến
+            if ($dung && $dotBienKey === 'sieu_toc') {
+                $diem = (int) round($diem * 2.0); // Siêu Tốc Bàn Thờ x200%
+            } elseif ($dung && $dotBienKey === 'jackpot' && (int) $dong['ThuTu'] === 10) {
+                $diem = (int) round($diem * 3.0); // Vòng 10 Jackpot x300%
+            } elseif (!$dung && $dotBienKey === 'dot_tu') {
+                $diem = -25; // Tử thần phạt nặng khi sai
+            }
 
             $pdo->prepare(
                 "UPDATE CHITIETTRALOI
@@ -384,6 +496,7 @@ class ThiDau
             $pdo->prepare("UPDATE TRANDAU SET TrangThai = 'Kết thúc', LyDoKetThuc = 'Chịu thua', ThoiGianKetThuc = NOW(3) WHERE MaTran = ?")
                 ->execute([$maTran]);
             Elo::capNhatSauTran($pdo, $maTran);
+            self::congExpSauTran($pdo, $maTran);
             $pdo->commit();
             return ['ketThuc' => true];
         } catch (Throwable $ex) {
@@ -431,9 +544,22 @@ class ThiDau
             return;
         }
 
-        // Thời gian suy nghĩ của Bot: 3.2s đến 5.8s
+        // Thời gian suy nghĩ của Bot: 3.2s đến 5.8s. Nếu bị Phá Rối (đóng băng/mù), Bot bị trễ thêm 2.5s
         $daDung = (float) $dong['DaDung'];
-        $tgNghi = 3.2 + ((((int) $dong['MaCauHoi'] * 7 + $maTran * 3) % 25) / 10.0);
+        $stPR = $pdo->prepare('SELECT PhaRoi, DotBien FROM TRANDAU WHERE MaTran = ?');
+        $stPR->execute([$maTran]);
+        $rowTran = $stPR->fetch() ?: [];
+        $dotBienKey = (string) ($rowTran['DotBien'] ?? 'chuan');
+        $pr = !empty($rowTran['PhaRoi']) ? json_decode($rowTran['PhaRoi'], true) : null;
+        $botBiPhaRoi = false;
+        if (is_array($pr) && (int) ($pr['mucTieu'] ?? 0) === $botId) {
+            $tgTroi = microtime(true) - (float) ($pr['thoiGian'] ?? 0);
+            if ($tgTroi >= 0 && $tgTroi <= 4.0) {
+                $botBiPhaRoi = true;
+            }
+        }
+
+        $tgNghi = 3.2 + ((((int) $dong['MaCauHoi'] * 7 + $maTran * 3) % 25) / 10.0) + ($botBiPhaRoi ? 2.5 : 0.0);
 
         if ($daDung >= $tgNghi) {
             $maCau = (int) $dong['MaCauHoi'];
@@ -442,15 +568,26 @@ class ThiDau
             $stD->execute([$maCau]);
             $dapAnDung = (int) $stD->fetchColumn();
 
-            // Tỉ lệ trả lời đúng của Bot khoảng 75%
+            // Tỉ lệ phản ứng thông minh của Bot khoảng 75%
             $seed = ((int) $dong['MaCauHoi'] * 13 + $maTran * 17) % 100;
-            if ($seed < 75 && $dapAnDung > 0) {
-                $dapAnChon = $dapAnDung;
+            if ($dotBienKey === 'dao_nguoc') {
+                // Với Ngày Đảo Ngược, Bot thông minh sẽ chọn ĐÁP ÁN SAI để nhận điểm
+                if ($seed < 75) {
+                    $stS = $pdo->prepare('SELECT MaDapAn FROM DAPAN WHERE MaCauHoi = ? AND LaDapAnDung = 0 ORDER BY RAND() LIMIT 1');
+                    $stS->execute([$maCau]);
+                    $dapAnChon = (int) $stS->fetchColumn() ?: $dapAnDung;
+                } else {
+                    $dapAnChon = $dapAnDung;
+                }
             } else {
-                // Chọn một đáp án sai ngẫu nhiên
-                $stS = $pdo->prepare('SELECT MaDapAn FROM DAPAN WHERE MaCauHoi = ? AND LaDapAnDung = 0 ORDER BY RAND() LIMIT 1');
-                $stS->execute([$maCau]);
-                $dapAnChon = (int) $stS->fetchColumn() ?: $dapAnDung;
+                if ($seed < 75 && $dapAnDung > 0) {
+                    $dapAnChon = $dapAnDung;
+                } else {
+                    // Chọn một đáp án sai ngẫu nhiên
+                    $stS = $pdo->prepare('SELECT MaDapAn FROM DAPAN WHERE MaCauHoi = ? AND LaDapAnDung = 0 ORDER BY RAND() LIMIT 1');
+                    $stS->execute([$maCau]);
+                    $dapAnChon = (int) $stS->fetchColumn() ?: $dapAnDung;
+                }
             }
 
             self::traLoi($pdo, $maTran, $botId, $maCau, $dapAnChon);

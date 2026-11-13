@@ -6,6 +6,8 @@ require_once __DIR__ . '/../core/bootstrap.php';
 Auth::requireAdmin(BASE_URL . '/admin/login.php');   // A-04
 
 $pdo = Database::pdo();
+NhatKy::damBaoCot($pdo);
+$coTT = NhatKy::coCotTrangThai($pdo);
 
 // ---- Dữ liệu cho bộ lọc ----
 $dsHanhDong = $pdo->query('SELECT DISTINCT HanhDong FROM NHATKYQUANTRI ORDER BY HanhDong')->fetchAll(PDO::FETCH_COLUMN);
@@ -34,15 +36,19 @@ $mocHomNay = date('Y-m-d') . ' 00:00:00';
 $moc7      = date('Y-m-d', strtotime('-6 days')) . ' 00:00:00';
 $moc30     = date('Y-m-d', strtotime('-29 days')) . ' 00:00:00';
 $moc60     = date('Y-m-d', strtotime('-59 days')) . ' 00:00:00';
+
+$thatBaiSql = $coTT ? "COALESCE(SUM(TrangThai = 'Thất bại' AND ThoiGian >= ?), 0) AS thatbai" : "0 AS thatbai";
+$thamTk = $coTT ? [$mocHomNay, $moc30, $moc60, $moc30, $moc7] : [$mocHomNay, $moc30, $moc60, $moc30];
+
 $st = $pdo->prepare(
     "SELECT COUNT(*) AS tong,
             COALESCE(SUM(ThoiGian >= ?), 0) AS homnay,
             COALESCE(SUM(ThoiGian >= ?), 0) AS nay30,
             COALESCE(SUM(ThoiGian >= ? AND ThoiGian < ?), 0) AS truoc30,
-            COALESCE(SUM(TrangThai = 'Thất bại' AND ThoiGian >= ?), 0) AS thatbai
+            $thatBaiSql
      FROM NHATKYQUANTRI"
 );
-$st->execute([$mocHomNay, $moc30, $moc60, $moc30, $moc7]);
+$st->execute($thamTk);
 $tk = array_map('intval', $st->fetch());
 
 // Mức tăng/giảm: 30 ngày gần nhất so với 30 ngày liền trước đó (cùng cách tính với trang Tổng quan)
@@ -73,8 +79,9 @@ $st = $pdo->prepare("SELECT COUNT(*) FROM NHATKYQUANTRI n JOIN ADMIN a ON a.MaAd
 $st->execute($tham);
 $p = new Paginator((int) $st->fetchColumn(), 10);
 
+$cotTT = $coTT ? "CAST(n.TrangThai AS CHAR) AS TrangThai, n.DiaChiIP" : "'Thành công' AS TrangThai, NULL AS DiaChiIP";
 $st = $pdo->prepare(
-    "SELECT n.MaNhatKy, n.HanhDong, n.DoiTuong, n.ThoiGian, n.MoTa, CAST(n.TrangThai AS CHAR) AS TrangThai, n.DiaChiIP, a.HoTen, a.TenDangNhap
+    "SELECT n.MaNhatKy, n.HanhDong, n.DoiTuong, n.ThoiGian, n.MoTa, $cotTT, a.HoTen, a.TenDangNhap
      FROM NHATKYQUANTRI n
      JOIN ADMIN a ON a.MaAdmin = n.MaAdmin
      $where
@@ -99,8 +106,9 @@ foreach ($ds as $r) {
 if ($nhomNgay) {
     $cacNgay  = array_keys($nhomNgay);
     $whereNgay = ($where === '' ? 'WHERE' : $where . ' AND') . ' DATE(n.ThoiGian) IN (' . implode(',', array_fill(0, count($cacNgay), '?')) . ')';
+    $loiNgaySql = $coTT ? "COALESCE(SUM(n.TrangThai = 'Thất bại'), 0) AS loi" : "0 AS loi";
     $st = $pdo->prepare(
-        "SELECT DATE(n.ThoiGian) AS ngay, COUNT(*) AS tong, COALESCE(SUM(n.TrangThai = 'Thất bại'), 0) AS loi
+        "SELECT DATE(n.ThoiGian) AS ngay, COUNT(*) AS tong, $loiNgaySql
          FROM NHATKYQUANTRI n
          JOIN ADMIN a ON a.MaAdmin = n.MaAdmin
          $whereNgay

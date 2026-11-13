@@ -321,24 +321,26 @@ class CongDongHelper
         [0,    'Đồng',      'cd-elo-dong'],
     ];
 
-    public static function iconLua(int $size = 18): string
+    public static function iconLua(int $size = 19): string
     {
-        return '<svg class="svg-flame" viewBox="0 0 32 32" width="' . $size . '" height="' . $size . '" fill="none" style="vertical-align:-2px;margin-right:3px;display:inline-block;" aria-hidden="true">'
+        return '<svg class="svg-flame" viewBox="0 0 24 24" width="' . $size . '" height="' . $size . '" fill="none" style="vertical-align:-2px;margin-right:4px;display:inline-block;filter:drop-shadow(0 0 5px rgba(255,109,0,0.6));" aria-hidden="true">'
              . '<defs>'
-             . '<linearGradient id="phxFlameOuter" x1="0" y1="0" x2="0" y2="1">'
-             . '<stop offset="0%" stop-color="#FFF0A3"/><stop offset="20%" stop-color="#FF9500"/><stop offset="60%" stop-color="#FF2D55"/><stop offset="100%" stop-color="#8E0A29"/>'
+             . '<linearGradient id="phxFlameOut" x1="0" y1="0" x2="0" y2="1">'
+             . '<stop offset="0%" stop-color="#FFF0A3"/><stop offset="25%" stop-color="#FF9100"/><stop offset="70%" stop-color="#FF3D00"/><stop offset="100%" stop-color="#C62828"/>'
              . '</linearGradient>'
              . '<linearGradient id="phxFlameMid" x1="0" y1="0" x2="0" y2="1">'
-             . '<stop offset="0%" stop-color="#FFFFFF"/><stop offset="30%" stop-color="#FFF59D"/><stop offset="70%" stop-color="#FFB300"/><stop offset="100%" stop-color="#FF5722"/>'
+             . '<stop offset="0%" stop-color="#FFFFFF"/><stop offset="35%" stop-color="#FFF59D"/><stop offset="75%" stop-color="#FFB300"/><stop offset="100%" stop-color="#FF5722"/>'
              . '</linearGradient>'
-             . '<linearGradient id="phxFlameCore" x1="0" y1="0" x2="0" y2="1">'
+             . '<linearGradient id="phxFlameIn" x1="0" y1="0" x2="0" y2="1">'
              . '<stop offset="0%" stop-color="#FFFFFF"/><stop offset="100%" stop-color="#FFE082"/>'
              . '</linearGradient>'
              . '</defs>'
-             . '<path d="M16 2c1 2.8 3.2 5.8 2.2 9.2-.5 1.8-1.8 3.4-2.6 4.8 3.8-.7 7.5 1.3 8.4 5.2 1.1 4.3-1.1 8.8-4.8 10.6 1.5-1.5 2.2-3.4 1.8-5.4-.4-2.4-2.3-4.3-4.8-4.7.7 2.8-.3 5.7-2.3 7.6-2.3 2.2-2.4 5.2-.8 7.6-4.7-.9-8.4-4.2-9.5-8.9-1.4-5.6 1-11.1 5.3-14-.4 2 .4 4.2 1.9 5.6-.1-2.8 1-5.7 3.1-7.7 1.4-1.4 2.5-3.3 2.3-5.3-.4-1.6-.7-3.5-1.1-4.6z" fill="url(#phxFlameOuter)"/>'
-             . '<path d="M16.3 9.5c.6 1.8 1.8 3.8 1.4 5.7-.4 1.1-1.1 2-1.6 2.9 2.4-.4 4.8 1 5.4 3.3.7 2.7-.7 5.6-3 6.7.9-1 1.4-2.2 1.1-3.4-.3-1.5-1.5-2.7-3-3 .4 1.8-.2 3.6-1.5 4.8-1.5 1.4-1.5 3.3-.5 4.8-3-.6-5.3-2.7-6-5.7-.9-3.6.6-7.1 3.4-8.9-.3 1.4.3 2.7 1.2 3.6-.1-1.8.6-3.6 2-4.9.9-.9 1.5-2.1 1.5-3.4-.3-1-.5-2.2-.9-2.9z" fill="url(#phxFlameMid)"/>'
-             . '<path d="M16.4 18c.3 1.1 1 2.3.8 3.4-.2.7-.7 1.2-1 1.7 1.4-.2 2.7.5 3.1 2 .4 1.6-.4 3.2-1.7 3.9.5-.6.8-1.3.7-2-.2-.9-.9-1.6-1.8-1.8.2 1-.1 2-.9 2.8-.9.8-.9 1.9-.3 2.8-1.7-.4-3-1.6-3.5-3.3-.5-2.1.4-4.2 2-5.2-.2.8.2 1.6.7 2.1 0-1.1.4-2.2 1.2-3 .5-.5.9-1.2.9-2-.2-.5-.4-1.2-.5-1.7z" fill="url(#phxFlameCore)"/>'
-             . '<polygon points="16.5,0 17.5,1.8 19.3,2.8 17.5,3.8 16.5,5.6 15.5,3.8 13.7,2.8 15.5,1.8" fill="#FFF"/>'
+             . '<path d="M12 1.5C12 1.5 13.8 5.2 13.8 7.5C13.8 8.8 13.2 9.9 12.5 10.8C15 10.3 17.5 12 18.2 14.5C19 17.2 17.5 20.3 14.8 21.6C16 20.5 16.5 19.1 16.2 17.7C15.8 16 14.4 14.8 12.8 14.5C13.3 16.5 12.6 18.5 11.2 19.8C9.5 21.4 7 21.6 5.2 20.2C3.2 18.6 2.5 15.8 3.5 13.4C4.3 11.5 6.2 10.2 8.2 10C7.8 11.2 8.2 12.5 9.2 13.2C9.5 10.8 10.8 8.6 12 6.5C12.8 5.1 12.8 3.2 12 1.5Z" fill="url(#phxFlameOut)"/>'
+             . '<path d="M12 7.5C12.8 9.2 14.2 10.6 14.6 12.5C15 14.4 14.1 16.4 12.5 17.5C13.2 16.6 13.4 16.6 13 15.7C12.5 14.5 11.5 13.8 10.5 13.8C10.8 14.2 10.4 15.5 9.5 16.4C8.4 17.5 6.8 17.5 5.7 16.5C4.8 15.6 4.6 14.2 5.2 13.1C6 11.8 7.4 11 8.8 11C9.6 11 10.3 11.3 10.8 11.8C10.8 10.2 11.4 8.8 12 7.5Z" fill="url(#phxFlameMid)"/>'
+             . '<path d="M12 12.5C12.5 13.5 13 14.3 12.8 15.3C12.6 16.1 12 16.8 11.2 17.2C11.5 16.6 11.5 16.1 11.2 15.6C10.8 15 10.2 14.7 9.6 14.8C9.8 15.5 9.6 16.1 9.2 16.5C8.6 17.1 7.8 17 7.3 16.5C7 16.2 7 15.6 7.3 15.1C7.8 14.3 8.7 13.8 9.6 13.8C10.4 13.8 11.2 13.2 12 12.5Z" fill="url(#phxFlameIn)"/>'
+             . '<circle cx="12" cy="1.6" r="0.9" fill="#FFF"/>'
+             . '<circle cx="17.2" cy="11.5" r="0.6" fill="#FFE082" opacity="0.85"/>'
+             . '<circle cx="4.8" cy="9.8" r="0.5" fill="#FFB300" opacity="0.75"/>'
              . '</svg>';
     }
 

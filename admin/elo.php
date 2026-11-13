@@ -154,14 +154,14 @@ require __DIR__ . '/layout/header.php';
 $tabs = ['tra' => 'Tra cứu Elo', 'bxh' => 'Bảng xếp hạng', 'bd' => 'Biến động bất thường'];
 ?>
 <h2>Elo và xếp hạng</h2>
-<p>
+<p class="elo-tabs">
   <?php foreach ($tabs as $k => $ten): ?>
     <a class="btn<?= $k === $v ? '' : ' btn-phu' ?>" href="?v=<?= e($k) ?>"><?= e($ten) ?></a>
   <?php endforeach; ?>
 </p>
-<p class="nhan-phu">Elo chỉ thay đổi do kết quả trận đấu; quản trị viên không điều chỉnh thủ công. Nghi ngờ gian lận thì khóa tài khoản ở mục Người dùng.</p>
+<p class="nhan-phu elo-note">Elo chỉ thay đổi do kết quả trận đấu; quản trị viên không điều chỉnh thủ công. Nghi ngờ gian lận thì khóa tài khoản ở mục Người dùng.</p>
 
-<form method="get" action="" class="card form-loc">
+<form method="get" action="" class="card form-loc elo-filter">
   <input type="hidden" name="v" value="<?= e($v) ?>">
   <?php if ($v === 'tra'): ?>
     <input type="text" name="q" value="<?= e($q) ?>" placeholder="Tìm theo họ tên hoặc email" class="o-tim">
@@ -189,7 +189,7 @@ $tabs = ['tra' => 'Tra cứu Elo', 'bxh' => 'Bảng xếp hạng', 'bd' => 'Bi�
   </p>
 <?php endif; ?>
 
-<div class="card">
+<div class="card elo-results">
   <?php if (!$ds): ?>
     <p class="nhan-phu">Không có dữ liệu khớp.</p>
   <?php elseif ($v === 'tra'): ?>

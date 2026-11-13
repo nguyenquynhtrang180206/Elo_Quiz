@@ -1416,3 +1416,680 @@
   border-radius: 9999px;
   margin-left: 6px;
 }
+
+/* ==========================================================================
+   VÒNG QUAY ĐỘT BIẾN LUẬT CHƠI (MUTATOR MATCH BANNER & LOBBY CUES)
+   ========================================================================== */
+.lobby-mutator-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 6px 16px;
+  background: linear-gradient(135deg, rgba(244, 63, 94, 0.18) 0%, rgba(168, 85, 247, 0.18) 100%);
+  border: 1px solid rgba(244, 63, 94, 0.5);
+  border-radius: 9999px;
+  box-shadow: 0 0 20px rgba(244, 63, 94, 0.25);
+  animation: mutatorPulseGlow 2.5s infinite alternate;
+}
+
+.lobby-mutator-badge .lmb-icon {
+  font-size: 1.15rem;
+}
+
+.lobby-mutator-badge .lmb-tag {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #FDA4AF;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.lobby-mutator-badge .lmb-desc {
+  font-size: 0.8rem;
+  color: #E2E8F0;
+}
+
+.mutator-match-banner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 20px;
+  border-radius: 14px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(10px);
+  margin-bottom: 8px;
+  animation: bannerSlideIn 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.mutator-match-banner.dao_nguoc {
+  background: linear-gradient(135deg, rgba(225, 29, 72, 0.22) 0%, rgba(136, 19, 55, 0.35) 100%);
+  border: 1px solid #F43F5E;
+  box-shadow: 0 0 25px rgba(244, 63, 94, 0.3);
+}
+
+.mutator-match-banner.sieu_toc {
+  background: linear-gradient(135deg, rgba(217, 119, 6, 0.22) 0%, rgba(120, 53, 15, 0.35) 100%);
+  border: 1px solid #F59E0B;
+  box-shadow: 0 0 25px rgba(245, 158, 11, 0.3);
+}
+
+.mutator-match-banner.dot_tu {
+  background: linear-gradient(135deg, rgba(147, 51, 234, 0.22) 0%, rgba(88, 28, 135, 0.35) 100%);
+  border: 1px solid #A855F7;
+  box-shadow: 0 0 25px rgba(168, 85, 247, 0.3);
+}
+
+.mutator-match-banner.jackpot {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.22) 0%, rgba(6, 95, 70, 0.35) 100%);
+  border: 1px solid #10B981;
+  box-shadow: 0 0 25px rgba(16, 185, 129, 0.3);
+}
+
+.mmb-icon {
+  font-size: 2rem;
+  line-height: 1;
+  filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.5));
+}
+
+.mmb-content {
+  flex: 1;
+}
+
+.mmb-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.mmb-tag {
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.15);
+  color: #FFFFFF;
+}
+
+.mmb-name {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #FFFFFF;
+  letter-spacing: 0.02em;
+}
+
+.mmb-desc {
+  font-size: 0.85rem;
+  color: #E2E8F0;
+  margin-top: 4px;
+  line-height: 1.4;
+}
+
+.mmb-pulse-light {
+  position: absolute;
+  top: 0;
+  right: -50px;
+  width: 150px;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
+  transform: skewX(-25deg);
+  animation: lightSweep 4s infinite;
+}
+
+@keyframes lightSweep {
+  0% { transform: translateX(-300px) skewX(-25deg); }
+  50%, 100% { transform: translateX(600px) skewX(-25deg); }
+}
+
+@keyframes mutatorPulseGlow {
+  0% { box-shadow: 0 0 15px rgba(244, 63, 94, 0.2); }
+  100% { box-shadow: 0 0 30px rgba(244, 63, 94, 0.5); }
+}
+
+.reverse-day-warning-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(244, 63, 94, 0.15);
+  border: 1px solid #F43F5E;
+  color: #FECDD3;
+  font-size: 0.88rem;
+  padding: 8px 16px;
+  border-radius: 10px;
+  margin: 10px 0 14px 0;
+  box-shadow: 0 0 15px rgba(244, 63, 94, 0.25);
+  animation: shakeWarning 3s infinite;
+}
+
+@keyframes shakeWarning {
+  0%, 90%, 100% { transform: translateX(0); }
+  92%, 96% { transform: translateX(-3px); }
+  94%, 98% { transform: translateX(3px); }
+}
+
+/* ==========================================================================
+   CHIÊU TRÒ PHÁ RỐI & TÍCH NỘ HUD (SABOTAGE CONTROLS)
+   ========================================================================== */
+.sabotage-deck-container {
+  background: linear-gradient(135deg, rgba(8, 20, 54, 0.9) 0%, rgba(4, 10, 28, 0.96) 100%);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  border-radius: 16px;
+  padding: 16px 20px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+  margin-top: 14px;
+}
+
+.sabotage-deck-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.deck-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: #F3DE8A;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.rage-meter-box {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.rage-title {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: #FB923C;
+  letter-spacing: 0.06em;
+}
+
+.rage-bar-outer {
+  width: 140px;
+  height: 12px;
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid rgba(251, 146, 60, 0.4);
+  border-radius: 9999px;
+  overflow: hidden;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.6);
+}
+
+.rage-bar-inner {
+  height: 100%;
+  background: linear-gradient(90deg, #EA580C 0%, #F97316 50%, #FDE047 100%);
+  border-radius: 9999px;
+  box-shadow: 0 0 12px #F97316;
+  transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.rage-val-num {
+  font-size: 0.8rem;
+  font-weight: 900;
+  color: #FDBA74;
+  min-width: 38px;
+}
+
+.sabotage-cards-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+@media (max-width: 768px) {
+  .sabotage-cards-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.sabotage-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 12px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.sabotage-action-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  filter: grayscale(0.6);
+}
+
+.sabotage-action-btn.ready-to-fire {
+  opacity: 1 !important;
+  cursor: pointer !important;
+  filter: none !important;
+  background: linear-gradient(135deg, rgba(234, 88, 12, 0.18) 0%, rgba(217, 119, 6, 0.15) 100%);
+  border-color: #F97316;
+  box-shadow: 0 0 20px rgba(249, 115, 22, 0.35);
+  animation: fireRagePulse 1.8s infinite;
+}
+
+@keyframes fireRagePulse {
+  0% { box-shadow: 0 0 10px rgba(249, 115, 22, 0.25); transform: translateY(0); }
+  50% { box-shadow: 0 0 25px rgba(249, 115, 22, 0.6); transform: translateY(-2px); }
+  100% { box-shadow: 0 0 10px rgba(249, 115, 22, 0.25); transform: translateY(0); }
+}
+
+.sabotage-action-btn.ready-to-fire:hover {
+  transform: translateY(-3px) scale(1.02);
+  border-color: #FDE047;
+  box-shadow: 0 0 30px rgba(253, 224, 71, 0.6);
+}
+
+.btn-sb-icon {
+  font-size: 1.6rem;
+  line-height: 1;
+}
+
+.btn-sb-info {
+  flex: 1;
+}
+
+.btn-sb-name {
+  display: block;
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: #FFFFFF;
+}
+
+.btn-sb-tip {
+  display: block;
+  font-size: 0.72rem;
+  color: #94A3B8;
+  margin-top: 2px;
+}
+
+.btn-sb-cost {
+  font-size: 0.68rem;
+  font-weight: 900;
+  color: #FB923C;
+  background: rgba(251, 146, 60, 0.15);
+  border: 1px solid rgba(251, 146, 60, 0.3);
+  padding: 3px 8px;
+  border-radius: 9999px;
+  white-space: nowrap;
+}
+
+/* ==========================================================================
+   DEBUFF SCREEN OVERLAYS (KHI BỊ ĐỐI THỦ PHÁ RỐI)
+   ========================================================================== */
+.debuff-overlay-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 80;
+  pointer-events: none;
+  border-radius: 20px;
+}
+
+/* Sương Mù (Fog of War) */
+.fog-overlay {
+  pointer-events: auto !important;
+  cursor: grab;
+  overflow: hidden;
+  border-radius: 20px;
+}
+
+.fog-overlay canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  border-radius: 20px;
+  filter: blur(1.5px);
+}
+
+.fog-hud-alert {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid #94A3B8;
+  padding: 10px 20px;
+  border-radius: 9999px;
+  box-shadow: 0 0 25px rgba(0, 0, 0, 0.8);
+  color: #FFFFFF;
+  z-index: 85;
+  pointer-events: none;
+  animation: bounceAlert 1s infinite alternate;
+}
+
+.fog-alert-icon {
+  font-size: 1.5rem;
+}
+
+.fog-alert-text strong {
+  display: block;
+  font-size: 0.88rem;
+  color: #CBD5E1;
+}
+
+.fog-alert-text span {
+  font-size: 0.75rem;
+  color: #94A3B8;
+}
+
+/* Đóng Băng (Ice Freeze) */
+.freeze-overlay {
+  box-shadow: inset 0 0 80px rgba(56, 189, 248, 0.8), inset 0 0 160px rgba(14, 165, 233, 0.5);
+  border: 3px solid #38BDF8;
+  border-radius: 20px;
+  animation: iceFrostVignette 0.8s ease-out;
+}
+
+@keyframes iceFrostVignette {
+  0% { opacity: 0; transform: scale(1.05); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+.freeze-hud-alert {
+  position: absolute;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(8, 20, 54, 0.95);
+  border: 1px solid #38BDF8;
+  padding: 10px 22px;
+  border-radius: 9999px;
+  box-shadow: 0 0 30px rgba(56, 189, 248, 0.5);
+  color: #FFFFFF;
+  z-index: 85;
+}
+
+.freeze-alert-icon {
+  font-size: 1.5rem;
+}
+
+.freeze-alert-text strong {
+  display: block;
+  font-size: 0.88rem;
+  color: #BAE6FD;
+}
+
+.freeze-alert-text span {
+  font-size: 0.74rem;
+  color: #7DD3FC;
+}
+
+.quiz-skill-btn.ice-frozen {
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.25) 0%, rgba(14, 165, 233, 0.35) 100%) !important;
+  border-color: #38BDF8 !important;
+  box-shadow: 0 0 20px rgba(56, 189, 248, 0.5) !important;
+  cursor: not-allowed !important;
+  transform: scale(0.98);
+}
+
+/* Lốc Xoáy (Tornado Key Inversion) */
+.tornado-overlay {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(2px);
+  border-radius: 20px;
+}
+
+.tornado-hud-alert {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  background: rgba(8, 20, 54, 0.95);
+  border: 1px solid #F59E0B;
+  padding: 18px 28px;
+  border-radius: 18px;
+  box-shadow: 0 0 35px rgba(245, 158, 11, 0.5);
+  text-align: center;
+}
+
+.tornado-icon-spin {
+  font-size: 2.8rem;
+  animation: tornadoSpin 0.6s linear infinite;
+}
+
+@keyframes tornadoSpin {
+  0% { transform: rotate(0deg) scale(0.9); }
+  50% { transform: rotate(180deg) scale(1.1); }
+  100% { transform: rotate(360deg) scale(0.9); }
+}
+
+.tornado-text strong {
+  display: block;
+  font-size: 1.05rem;
+  color: #FDE68A;
+}
+
+.tornado-text span {
+  font-size: 0.82rem;
+  color: #CBD5E1;
+}
+
+.quiz-answers-grid.tornado-shuffle-spin {
+  animation: gridTornadoSwap 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes gridTornadoSwap {
+  0% { transform: rotate(0deg) scale(1); filter: blur(0); }
+  50% { transform: rotate(4deg) scale(0.95); filter: blur(3px); }
+  100% { transform: rotate(0deg) scale(1); filter: blur(0); }
+}
+
+/* ==========================================================================
+   HỆ THỐNG THÔNG THẠO & TIẾN HÓA ĐẤU THẦN (CHAMPION MASTERY & EVOLUTION)
+   ========================================================================== */
+.fighter-mastery-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.74rem;
+  font-weight: 800;
+  padding: 2px 10px;
+  border-radius: 9999px;
+  margin-top: 4px;
+}
+
+.mastery-cap-1 {
+  background: rgba(180, 83, 9, 0.15);
+  border: 1px solid #B45309;
+  color: #FCD34D;
+}
+
+.mastery-cap-2 {
+  background: rgba(148, 163, 184, 0.15);
+  border: 1px solid #94A3B8;
+  color: #E2E8F0;
+}
+
+.mastery-cap-3 {
+  background: rgba(217, 119, 6, 0.2);
+  border: 1px solid #F59E0B;
+  color: #FDE047;
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.3);
+}
+
+.mastery-cap-4 {
+  background: rgba(56, 189, 248, 0.2);
+  border: 1px solid #38BDF8;
+  color: #BAE6FD;
+  box-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
+}
+
+.mastery-cap-5 {
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.25) 0%, rgba(236, 72, 153, 0.25) 100%);
+  border: 1px solid #C084FC;
+  color: #F5D0FE;
+  box-shadow: 0 0 25px rgba(192, 132, 252, 0.6);
+  animation: cosmicAuraPulse 2s infinite alternate;
+}
+
+@keyframes cosmicAuraPulse {
+  0% { box-shadow: 0 0 15px rgba(192, 132, 252, 0.4); }
+  100% { box-shadow: 0 0 30px rgba(236, 72, 153, 0.7); }
+}
+
+/* Post-Match Champion Mastery & Evolution Card */
+.post-match-mastery-card {
+  background: linear-gradient(135deg, rgba(8, 20, 54, 0.85) 0%, rgba(4, 10, 28, 0.95) 100%);
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  border-radius: 18px;
+  padding: 22px 28px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+  margin-top: 24px;
+}
+
+.mastery-card-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+  padding-bottom: 14px;
+  margin-bottom: 16px;
+}
+
+.mastery-crest-icon {
+  font-size: 2.2rem;
+  line-height: 1;
+}
+
+.mastery-titles {
+  flex: 1;
+}
+
+.mastery-subtitle {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: #00D9FF;
+  text-transform: uppercase;
+}
+
+.mastery-champ-name {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #FFFFFF;
+  margin: 2px 0 0 0;
+}
+
+.mastery-exp-badge {
+  font-size: 0.9rem;
+  font-weight: 900;
+  color: #FDE047;
+  background: rgba(234, 179, 8, 0.18);
+  border: 1px solid #EAB308;
+  padding: 6px 16px;
+  border-radius: 9999px;
+  box-shadow: 0 0 15px rgba(234, 179, 8, 0.35);
+  animation: expPulseGlow 1.8s infinite alternate;
+}
+
+@keyframes expPulseGlow {
+  0% { transform: scale(1); box-shadow: 0 0 10px rgba(234, 179, 8, 0.2); }
+  100% { transform: scale(1.05); box-shadow: 0 0 25px rgba(234, 179, 8, 0.6); }
+}
+
+.mastery-stats-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  color: #CBD5E1;
+  margin-bottom: 8px;
+}
+
+.mastery-stats-row strong {
+  color: #FFFFFF;
+}
+
+.mastery-track {
+  width: 100%;
+  height: 14px;
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  border-radius: 9999px;
+  overflow: hidden;
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.7);
+  margin-bottom: 18px;
+}
+
+.mastery-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #00D9FF 0%, #38BDF8 50%, #A855F7 100%);
+  border-radius: 9999px;
+  box-shadow: 0 0 15px rgba(0, 217, 255, 0.6);
+  transition: width 1s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.mastery-tiers-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.tier-node {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 6px;
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid rgba(148, 163, 184, 0.15);
+  border-radius: 10px;
+  text-align: center;
+  transition: all 0.2s;
+}
+
+.tier-node.locked {
+  opacity: 0.4;
+  filter: grayscale(0.8);
+}
+
+.tier-node.unlocked {
+  border-color: rgba(0, 217, 255, 0.35);
+  background: rgba(0, 217, 255, 0.06);
+}
+
+.tier-node.active {
+  border-color: #F59E0B;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(217, 119, 6, 0.1) 100%);
+  box-shadow: 0 0 15px rgba(245, 158, 11, 0.3);
+}
+
+.tn-icon {
+  font-size: 1.25rem;
+}
+
+.tn-title {
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #E2E8F0;
+}

@@ -3,3 +3,40 @@
 .form-khoa { margin-top:12px; }
 .form-lichsu { display:flex; gap:8px; align-items:center; }
 .form-lichsu select { width:auto; }
+.admin-noidung .card {
+  background:#fff;
+  color:#26334d;
+  border-color:#e6ecf8;
+  box-shadow:0 4px 16px rgba(31,53,92,.08);
+}
+.admin-noidung .card .nhan-phu { color:#68758e; }
+.admin-noidung .card th {
+  background:#f3f6fd;
+  color:#26334d;
+  border-bottom-color:#e6ecf8;
+}
+.admin-noidung .card td { border-bottom-color:#eef2fb; }
+.admin-noidung .card .mau-do { color:#c62852; }
+.admin-noidung .card .mau-xanh { color:#087a61; }
+.admin-noidung .card label { color:#26334d; }
+.admin-noidung .card input[type=text],
+.admin-noidung .card select {
+  background:#fff;
+  color:#26334d;
+  border-color:#cfd9f0;
+}
+.admin-noidung .card input::placeholder { color:#8a97b5; }
+.admin-noidung .card input:focus,
+.admin-noidung .card select:focus {
+  border-color:#245edb;
+  box-shadow:0 0 0 3px rgba(36,94,219,.15);
+}
+.admin-noidung > p > a { color:#245edb; }
+.admin-noidung > p > a:hover { color:#1746ad; text-shadow:none; }
+.admin-noidung .phantrang { color:#68758e; }
+.admin-noidung .phantrang a {
+  color:#245edb;
+  background:#f3f6fd;
+  border-color:#e6ecf8;
+}
+.admin-noidung .phantrang a:hover { border-color:#245edb; box-shadow:none; }

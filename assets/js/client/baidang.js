@@ -21,7 +21,24 @@
   });
 
   // 2. Bắt trực tiếp sự kiện CLICK trên nút Thả Lửa 🔥
-  // Đảm bảo dù người dùng bấm vào icon ngọn lửa, số đếm hay padding viền nút đều phản hồi lập tức
+  // Đảm bảo dù người dùng bấm vào icon ngọn lửa, số đếm hay padding viền nút đều phản hồi lập tức, không bị bôi đen
+  document.addEventListener('selectstart', function (e) {
+    if (e.target.closest && e.target.closest('.cd-tha-lua, .cd-chi-so')) {
+      e.preventDefault();
+    }
+  });
+
+  document.addEventListener('mousedown', function (e) {
+    if (e.target.closest && e.target.closest('.cd-tha-lua, .cd-chi-so')) {
+      if (e.detail > 1) {
+        e.preventDefault();
+      }
+      if (window.getSelection) {
+        try { window.getSelection().removeAllRanges(); } catch (err) {}
+      }
+    }
+  });
+
   document.addEventListener('click', function (e) {
     var btn = e.target.closest ? e.target.closest('.cd-tha-lua') : null;
     if (!btn) return;
@@ -31,6 +48,9 @@
 
     e.preventDefault();
     e.stopPropagation();
+    if (window.getSelection) {
+      try { window.getSelection().removeAllRanges(); } catch (err) {}
+    }
     thucHienThaLua(form, btn);
   });
 

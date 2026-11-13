@@ -97,7 +97,7 @@ require __DIR__ . '/layout/header.php';
   <a class="btn btn-phu" href="<?= e($linkXuat) ?>">Xuất Excel</a>
 </form>
 
-<div class="card">
+<div class="card khung-danh-sach">
   <?php if (!$ds): ?>
     <p class="nhan-phu">Không có người dùng nào khớp.</p>
   <?php else: ?>
