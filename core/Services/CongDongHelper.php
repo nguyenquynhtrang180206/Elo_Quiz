@@ -451,7 +451,9 @@ class CongDongHelper
 
     public static function kiemDuyet(PDO $pdo, string $hanhDong, int $ma, string $lyDo): string
     {
-        require_once __DIR__ . '/ThongBaoHelper.php';
+        // Nạp ThongBaoHelper qua autoloader (bootstrap.php). Không dùng require_once đường dẫn tay: trên Windows, nếu trang đã nạp
+        // lớp này bằng chuỗi đường dẫn khác (vd. qua core/ThongBaoHelper.php) thì sẽ lỗi "Cannot declare class ThongBaoHelper".
+        class_exists('ThongBaoHelper');
         if (!isset(self::KIEM_DUYET[$hanhDong]) || $ma <= 0) {
             return 'sai';
         }
@@ -495,27 +497,33 @@ class CongDongHelper
                 $st = $pdo->prepare('SELECT MaND, TieuDe FROM BAIDANG WHERE MaBaiDang = ?');
                 $st->execute([$ma]);
                 if ($r = $st->fetch()) {
-                    ThongBaoHelper::taoThongBaoQuanTri(
+                    $guiDuoc = ThongBaoHelper::taoThongBaoQuanTri(
                         $pdo, (int) $r['MaND'], $ma, null, $an ? 'an_bai' : 'hien_bai',
                         ($an ? 'đã ẩn bài đăng "' : 'đã hiển thị lại bài đăng "') . mb_substr((string) $r['TieuDe'], 0, 60) . '" của bạn.',
                         'Lý do: ' . $ly,
                         BASE_URL . '/client/baidang.php?id=' . $ma   // chủ bài vẫn mở được bài của mình khi bị ẩn (chỉ đọc)
                     );
+                    if (!$guiDuoc) {
+                        error_log('Không tạo được thông báo kiểm duyệt cho ' . $bang . ' #' . $ma);
+                    }
                 }
             } else {
                 $st = $pdo->prepare('SELECT c.MaND, c.MaBaiDang, b.TieuDe FROM BINHLUAN c JOIN BAIDANG b ON b.MaBaiDang = c.MaBaiDang WHERE c.MaBinhLuan = ?');
                 $st->execute([$ma]);
                 if ($r = $st->fetch()) {
-                    ThongBaoHelper::taoThongBaoQuanTri(
+                    $guiDuoc = ThongBaoHelper::taoThongBaoQuanTri(
                         $pdo, (int) $r['MaND'], (int) $r['MaBaiDang'], $ma, $an ? 'an_bl' : 'hien_bl',
                         ($an ? 'đã ẩn bình luận của bạn trong bài "' : 'đã hiển thị lại bình luận của bạn trong bài "') . mb_substr((string) $r['TieuDe'], 0, 60) . '".',
                         'Lý do: ' . $ly,
                         BASE_URL . '/client/baidang.php?id=' . (int) $r['MaBaiDang'] . '#bl-' . $ma
                     );
+                    if (!$guiDuoc) {
+                        error_log('Không tạo được thông báo kiểm duyệt cho ' . $bang . ' #' . $ma);
+                    }
                 }
             }
         } catch (Throwable $ex) {
-            // bỏ qua
+            error_log('Lỗi gửi thông báo kiểm duyệt: ' . $ex->getMessage());   // không làm hỏng việc ẩn/hiện
         }
         return 'ok';
     }

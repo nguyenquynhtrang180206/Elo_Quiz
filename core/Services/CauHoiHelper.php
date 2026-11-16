@@ -31,8 +31,10 @@ class CauHoiHelper
     // $in: mon, loai ('' hoặc 0 = dùng cho cả hai kỳ), dokho, noidung, giaithich,
     //      dapan (mảng chuỗi, ô trống bị bỏ qua), dung (chỉ số trong mảng dapan gốc)
     // $boQuaTrungCSDL = true: không kiểm tra trùng với CSDL (NhapCauHoi::kiemTraBang tự kiểm tra để gắn nhãn "Trùng")
+    // $daKiemTraMonKT = true: nơi gọi đã tự đối chiếu môn học và loại kỳ thi với CSDL (import hàng loạt đã nạp sẵn
+    //                   danh sách môn, kỳ thi), nên không truy vấn lại cho từng dòng
     // Trả về [mảng lỗi, dữ liệu sạch hoặc null nếu có lỗi]
-    public static function kiemTra(PDO $pdo, array $in, int $boQuaId = 0, bool $boQuaTrungCSDL = false): array
+    public static function kiemTra(PDO $pdo, array $in, int $boQuaId = 0, bool $boQuaTrungCSDL = false, bool $daKiemTraMonKT = false): array
     {
         $loi = [];
 
@@ -44,16 +46,22 @@ class CauHoiHelper
         $doKho     = (string) ($in['dokho'] ?? '');
 
         // Môn học (chỉ nhận môn đang mở hoặc đã ẩn, không nhận môn chờ duyệt)
-        $st = $pdo->prepare("SELECT COUNT(*) FROM MONHOC WHERE MaMon = ? AND TrangThai IN ('Đang mở','Đã ẩn')");
-        $st->execute([$maMon]);
-        if ((int) $st->fetchColumn() === 0) {
-            $loi[] = 'Hãy chọn môn học.';
-        }
-        if ($maLoai !== null) {
-            $st = $pdo->prepare('SELECT COUNT(*) FROM LOAIKYTHI WHERE MaLoaiKT = ?');
-            $st->execute([$maLoai]);
+        if ($daKiemTraMonKT) {
+            if ($maMon <= 0) {
+                $loi[] = 'Hãy chọn môn học.';
+            }
+        } else {
+            $st = $pdo->prepare("SELECT COUNT(*) FROM MONHOC WHERE MaMon = ? AND TrangThai IN ('Đang mở','Đã ẩn')");
+            $st->execute([$maMon]);
             if ((int) $st->fetchColumn() === 0) {
-                $loi[] = 'Loại kỳ thi không hợp lệ.';
+                $loi[] = 'Hãy chọn môn học.';
+            }
+            if ($maLoai !== null) {
+                $st = $pdo->prepare('SELECT COUNT(*) FROM LOAIKYTHI WHERE MaLoaiKT = ?');
+                $st->execute([$maLoai]);
+                if ((int) $st->fetchColumn() === 0) {
+                    $loi[] = 'Loại kỳ thi không hợp lệ.';
+                }
             }
         }
         if (!in_array($doKho, self::DO_KHO, true)) {
@@ -123,10 +131,24 @@ class CauHoiHelper
         ]];
     }
 
+    // Câu lệnh đã chuẩn bị, dùng lại giữa các lần gọi (import hàng loạt gọi chen() hàng trăm lần;
+    // prepare lại mỗi lần là thêm một lượt gửi tới MySQL). Đổi sang đối tượng PDO khác thì tạo lại.
+    private static ?PDO $pdoDem = null;
+    private static array $stDem = [];
+
+    private static function cauLenh(PDO $pdo, string $khoa, string $sql): PDOStatement
+    {
+        if (self::$pdoDem !== $pdo) {
+            self::$pdoDem = $pdo;
+            self::$stDem  = [];
+        }
+        return self::$stDem[$khoa] ??= $pdo->prepare($sql);
+    }
+
     // Thêm câu hỏi mới (trạng thái Hiển thị) kèm đáp án. Không tự mở giao dịch.
     public static function chen(PDO $pdo, array $c): int
     {
-        $pdo->prepare(
+        self::cauLenh($pdo, 'chen',
             "INSERT INTO CAUHOI (MaMon, MaLoaiKT, NoiDung, GiaiThich, DoKho, TrangThai)
              VALUES (?, ?, ?, ?, ?, 'Hiển thị')"
         )->execute([$c['mon'], $c['loai'], $c['noidung'], $c['giaithich'], $c['dokho']]);
@@ -135,12 +157,20 @@ class CauHoiHelper
         return $id;
     }
 
-    // Ghi các đáp án của một câu (câu chưa có đáp án nào)
+    // Ghi các đáp án của một câu (câu chưa có đáp án nào) bằng MỘT câu INSERT nhiều dòng
     public static function ghiDapAn(PDO $pdo, int $maCauHoi, array $c): void
     {
-        $st = $pdo->prepare('INSERT INTO DAPAN (MaCauHoi, NoiDungDapAn, LaDapAnDung) VALUES (?, ?, ?)');
-        foreach ($c['dapan'] as $i => $tx) {
-            $st->execute([$maCauHoi, $tx, $i === $c['dung'] ? 1 : 0]);
+        $n = count($c['dapan']);
+        if ($n === 0) {
+            return;
         }
+        $st = self::cauLenh($pdo, 'dapan' . $n,
+            'INSERT INTO DAPAN (MaCauHoi, NoiDungDapAn, LaDapAnDung) VALUES '
+            . implode(', ', array_fill(0, $n, '(?, ?, ?)')));
+        $tham = [];
+        foreach ($c['dapan'] as $i => $tx) {
+            array_push($tham, $maCauHoi, $tx, $i === $c['dung'] ? 1 : 0);
+        }
+        $st->execute($tham);
     }
 }
