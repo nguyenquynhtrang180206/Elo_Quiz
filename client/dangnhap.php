@@ -9,6 +9,11 @@ if (Auth::clientId() !== null) {
 $loi   = [];
 $email = '';
 
+if (($_GET['khoa'] ?? '') === '1') {
+    // Vừa bấm vào thông báo khóa tài khoản và đã bị đăng xuất (client/thongbao_khoa.php)
+    $loi[] = 'Tài khoản của bạn đã bị khóa nên bạn đã được đăng xuất. Vui lòng liên hệ quản trị viên để được hỗ trợ.';
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_check();
 

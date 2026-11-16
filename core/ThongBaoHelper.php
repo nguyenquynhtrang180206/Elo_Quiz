@@ -40,7 +40,9 @@ class ThongBaoHelper
             : 'Bạn có thể đăng nhập và thi đấu bình thường.';
         $sql = 'INSERT INTO THONGBAO (MaND, MaNguoiGui, MaBaiDang, MaBinhLuan, Loai, TieuDe, NoiDung, LienKet, DaDoc, NgayTao)
                 VALUES (?, 0, NULL, NULL, ?, ?, ?, ?, 0, NOW())';
-        $tham = [$maNguoiNhan, $loai, $tieuDe, mb_substr($noiDung, 0, 500), BASE_URL . '/client/index.php'];
+        // Bấm vào thông báo khóa thì đăng xuất luôn (client/thongbao_khoa.php); thông báo mở khóa chỉ đưa về trang chủ
+        $lienKet = BASE_URL . ($khoa ? '/client/thongbao_khoa.php' : '/client/index.php');
+        $tham = [$maNguoiNhan, $loai, $tieuDe, mb_substr($noiDung, 0, 500), $lienKet];
         try {
             return $pdo->prepare($sql)->execute($tham);
         } catch (PDOException $e) {
