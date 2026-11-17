@@ -3,6 +3,7 @@
 // Đặt tại: elo_quiz/admin/trandau.php. Chi tiết và hủy trận: admin/trandau_chitiet.php
 require_once __DIR__ . '/../core/bootstrap.php';
 require_once __DIR__ . '/../core/DotBien.php';
+require_once __DIR__ . '/../core/TranDauGiamSat.php';
 Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');   // A-04
 
 $pdo = Database::pdo();
@@ -23,35 +24,46 @@ if (!in_array($tt, ['Đã ghép', 'Đang diễn ra', 'Kết thúc', 'Hủy'], tr
 $nguongPhut = max(1, Config::int('NGUONG_TRAN_KEO_DAI', 10));
 $nguongGiay = $nguongPhut * 60;
 
-$dieuKien = [];
-$tham     = [];
+// A-25: tiêu chí trận bất thường nằm trong core/TranDauGiamSat.php, dùng chung với biểu đồ (trandau_nhip.php)
+[$dkBatThuong, $thamBatThuong] = TranDauGiamSat::dieuKienBatThuong($coCotTao, $nguongGiay);
+
+$dkNen   = [];   // điều kiện nền (tìm kiếm, môn): cũng dùng để đếm số trận trên từng nhãn trạng thái
+$thamNen = [];
 if ($q !== '') {
     $maTran = ctype_digit(ltrim($q, '#')) ? (int) ltrim($q, '#') : 0;
     $like   = '%' . addcslashes($q, '\\%_') . '%';
-    $dieuKien[] = '(t.MaTran = ? OR EXISTS (
+    $dkNen[] = '(t.MaTran = ? OR EXISTS (
         SELECT 1 FROM NGUOICHOITRANDAU p JOIN NGUOIDUNG n ON n.MaND = p.MaND
          WHERE p.MaTran = t.MaTran AND (n.HoTen LIKE ? OR n.Email LIKE ?)))';
-    array_push($tham, $maTran, $like, $like);
+    array_push($thamNen, $maTran, $like, $like);
 }
 if ($mon > 0) {
-    $dieuKien[] = 't.MaMon = ?';
-    $tham[]     = $mon;
+    $dkNen[]   = 't.MaMon = ?';
+    $thamNen[] = $mon;
 }
+$dieuKien = $dkNen;
+$tham     = $thamNen;
 if ($tt !== '') {
     $dieuKien[] = 't.TrangThai = ?';
     $tham[]     = $tt;
 }
 if ($bt) {
-    // A-25: hủy do lỗi, có người bị xử thua, hoặc ở trạng thái chưa kết thúc quá ngưỡng thời gian cấu hình
-    $bd = "(t.LyDoKetThuc IN ('Hủy do lỗi hệ thống', 'Đối thủ bỏ trận (xử thua)')
-            OR (t.TrangThai = 'Đang diễn ra' AND TIMESTAMPDIFF(SECOND, t.ThoiGianBatDau, NOW(3)) > ?)";
-    $tham[] = $nguongGiay;
-    if ($coCotTao) {
-        $bd    .= " OR (t.TrangThai = 'Đã ghép' AND TIMESTAMPDIFF(SECOND, t.ThoiGianTao, NOW(3)) > ?)";
-        $tham[] = $nguongGiay;
-    }
-    $dieuKien[] = $bd . ')';
+    $dieuKien[] = $dkBatThuong;
+    array_push($tham, ...$thamBatThuong);
 }
+// ---- 4 thẻ số liệu đầu trang (tính trên toàn bộ trận, không phụ thuộc bộ lọc bên dưới) ----
+$mocTG = $coCotTao ? 'COALESCE(t.ThoiGianBatDau, t.ThoiGianTao)' : 't.ThoiGianBatDau';
+$st = $pdo->prepare(
+    "SELECT COUNT(*) AS tong,
+            COALESCE(SUM(DATE($mocTG) = CURDATE()), 0) AS hom_nay,
+            AVG(CASE WHEN t.TrangThai = 'Kết thúc' AND t.ThoiGianBatDau IS NOT NULL AND t.ThoiGianKetThuc IS NOT NULL
+                     THEN TIMESTAMPDIFF(SECOND, t.ThoiGianBatDau, t.ThoiGianKetThuc) END) AS tb_giay,
+            COALESCE(SUM($dkBatThuong), 0) AS bat_thuong
+       FROM TRANDAU t"
+);
+$st->execute($thamBatThuong);
+$soLieu = $st->fetch();
+
 $where = $dieuKien ? 'WHERE ' . implode(' AND ', $dieuKien) : '';
 
 $cotTao = $coCotTao ? ', TIMESTAMPDIFF(SECOND, t.ThoiGianTao, NOW(3)) AS giay_da_ghep' : ', NULL AS giay_da_ghep';
@@ -59,15 +71,13 @@ $cotTao = $coCotTao ? ', TIMESTAMPDIFF(SECOND, t.ThoiGianTao, NOW(3)) AS giay_da
 // ---- Danh sách có phân trang (20 dòng/trang, có tổng số bản ghi) ----
 $st = $pdo->prepare("SELECT COUNT(*) FROM TRANDAU t $where");
 $st->execute($tham);
-$p = new Paginator((int) $st->fetchColumn(), 20);
+$tongLoc = (int) $st->fetchColumn();
+$p = new Paginator($tongLoc, 20);
 
 $st = $pdo->prepare(
     "SELECT t.MaTran, m.TenMon, k.TenLoaiKT, t.TrangThai, t.LyDoKetThuc, t.ThoiGianBatDau, t.ThoiGianKetThuc, t.DotBien,
-            TIMESTAMPDIFF(SECOND, t.ThoiGianBatDau, NOW(3)) AS giay_dien_ra $cotTao,
-            (SELECT GROUP_CONCAT(CONCAT(n.HoTen, ' (', p.DiemSo, IF(p.KetQua IS NULL, '', CONCAT(', ', p.KetQua)), ')')
-                                 ORDER BY p.MaND SEPARATOR ' vs ')
-               FROM NGUOICHOITRANDAU p JOIN NGUOIDUNG n ON n.MaND = p.MaND
-              WHERE p.MaTran = t.MaTran) AS nguoi
+            TIMESTAMPDIFF(SECOND, t.ThoiGianBatDau, NOW(3)) AS giay_dien_ra,
+            TIMESTAMPDIFF(SECOND, t.ThoiGianBatDau, t.ThoiGianKetThuc) AS giay_tong $cotTao
        FROM TRANDAU t
        JOIN MONHOC m ON m.MaMon = t.MaMon
        JOIN LOAIKYTHI k ON k.MaLoaiKT = t.MaLoaiKT
@@ -78,114 +88,422 @@ $st = $pdo->prepare(
 $st->execute($tham);
 $ds = $st->fetchAll();
 
+// Người chơi của các trận trong trang hiện tại (tên, điểm, kết quả, có bỏ trận không)
+$nguoiDs = [];
+if ($ds) {
+    $maDs = array_map(static fn ($r) => (int) $r['MaTran'], $ds);
+    $st = $pdo->prepare(
+        'SELECT p.MaTran, n.HoTen, p.DiemSo, p.KetQua, p.TrangThaiThamGia
+           FROM NGUOICHOITRANDAU p JOIN NGUOIDUNG n ON n.MaND = p.MaND
+          WHERE p.MaTran IN (' . implode(',', array_fill(0, count($maDs), '?')) . ')
+          ORDER BY p.MaND'
+    );
+    $st->execute($maDs);
+    foreach ($st->fetchAll() as $r) {
+        $nguoiDs[(int) $r['MaTran']][] = $r;
+    }
+}
+
+// Số trận trên từng nhãn lọc (theo tìm kiếm + môn đang chọn, không phụ thuộc trạng thái / bất thường đang chọn)
+$demTT = ['Đã ghép' => 0, 'Đang diễn ra' => 0, 'Kết thúc' => 0, 'Hủy' => 0];
+$demBt = 0;
+$st = $pdo->prepare(
+    "SELECT t.TrangThai, COUNT(*) AS n, COALESCE(SUM($dkBatThuong), 0) AS bt
+       FROM TRANDAU t " . ($dkNen ? 'WHERE ' . implode(' AND ', $dkNen) : '') . ' GROUP BY t.TrangThai'
+);
+$st->execute(array_merge($thamBatThuong, $thamNen));
+foreach ($st->fetchAll() as $r) {
+    $demTT[$r['TrangThai']] = (int) $r['n'];
+    $demBt += (int) $r['bt'];
+}
+$demTat = array_sum($demTT);
+
+// Liên kết giữ nguyên các bộ lọc đang chọn, chỉ đổi phần $doi
+$lienKet = static function (array $doi) use ($q, $mon, $tt, $bt): string {
+    $t = array_merge(['q' => $q, 'mon' => $mon ?: '', 'tt' => $tt, 'bt' => $bt ? '1' : ''], $doi);
+    $t = array_filter($t, static fn ($v) => $v !== '' && $v !== null);
+    return $t ? '?' . http_build_query($t) : '?';
+};
+$dangLoc = $q !== '' || $mon > 0 || $tt !== '' || $bt;
+
 $monHoc = $pdo->query('SELECT MaMon, TenMon FROM MONHOC ORDER BY TenMon')->fetchAll();
 
-// Nhãn bất thường cho từng dòng (cùng tiêu chí với bộ lọc ở trên)
-function nhan_bat_thuong(array $r, int $nguongGiay): ?string
-{
-    if ($r['LyDoKetThuc'] === 'Hủy do lỗi hệ thống') {
-        return 'Hủy do lỗi';
+// ---- Panel "Trận bất thường": tối đa 10 trận, trận còn đang chạy (có thể bị treo) xếp trước ----
+$st = $pdo->prepare(
+    "SELECT t.MaTran, m.TenMon, t.TrangThai, t.LyDoKetThuc, t.ThoiGianKetThuc,
+            TIMESTAMPDIFF(SECOND, t.ThoiGianBatDau, NOW(3)) AS giay_dien_ra $cotTao
+       FROM TRANDAU t
+       JOIN MONHOC m ON m.MaMon = t.MaMon
+      WHERE $dkBatThuong
+      ORDER BY (t.TrangThai IN ('Đã ghép', 'Đang diễn ra')) DESC, t.MaTran DESC
+      LIMIT 10"
+);
+$st->execute($thamBatThuong);
+$dsBt = $st->fetchAll();
+
+// Người chơi của các trận đó (tên, điểm, có bỏ trận không)
+$nguoiBt = [];
+if ($dsBt) {
+    $maBt = array_map(static fn ($r) => (int) $r['MaTran'], $dsBt);
+    $st = $pdo->prepare(
+        'SELECT p.MaTran, n.HoTen, p.DiemSo, p.TrangThaiThamGia
+           FROM NGUOICHOITRANDAU p JOIN NGUOIDUNG n ON n.MaND = p.MaND
+          WHERE p.MaTran IN (' . implode(',', array_fill(0, count($maBt), '?')) . ')
+          ORDER BY p.MaND'
+    );
+    $st->execute($maBt);
+    foreach ($st->fetchAll() as $r) {
+        $nguoiBt[(int) $r['MaTran']][] = $r;
     }
-    if ($r['LyDoKetThuc'] === 'Đối thủ bỏ trận (xử thua)') {
-        return 'Có người bị xử thua';
-    }
-    if ($r['TrangThai'] === 'Đang diễn ra' && $r['giay_dien_ra'] !== null && (int) $r['giay_dien_ra'] > $nguongGiay) {
-        return 'Đang diễn ra quá lâu';
-    }
-    if ($r['TrangThai'] === 'Đã ghép' && $r['giay_da_ghep'] !== null && (int) $r['giay_da_ghep'] > $nguongGiay) {
-        return 'Đã ghép quá lâu';
-    }
-    return null;
 }
 
 $lopTT = ['Đã ghép' => 'tt-daghep', 'Đang diễn ra' => 'tt-dangdau', 'Kết thúc' => 'tt-ketthuc', 'Hủy' => 'tt-huy'];
 
 $tieuDe  = 'Trận đấu';
 $mucChon = 'trandau';
-$cssTrang = 'trandau';
+$cssTrang = ['trandau', 'trandau_xuat'];
+$jsTrang  = ['trandau_bieudo', 'trandau_xuat'];   // biểu đồ nhịp trận (gọi admin/trandau_nhip.php)
 require __DIR__ . '/layout/header.php';
 ?>
-<div class="card adm-page-hero-card">
-  <div class="adm-header-eyebrow">
-    <span class="live-pulse"></span>
-    <span>LIVE MATCH MONITORING & AUDIT</span>
-  </div>
-  <div class="adm-header-main">
-    <h2 class="adm-title-pro">
-      <svg class="title-svg-icon" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
-      <span>Danh sách trận đấu</span>
-    </h2>
-    <div class="adm-header-badge-count">
-      <span class="badge-num"><?= (int) $p->tong() ?></span>
-      <span class="badge-txt">trận đấu</span>
+<div class="td">
+  <nav class="td-duongdan" aria-label="Đường dẫn">
+    <a href="<?= e(BASE_URL) ?>/admin/index.php" title="Tổng quan" aria-label="Tổng quan"><?= $svg('dashboard', 18) ?></a>
+    <span class="td-cach">/</span>
+    <span>Trận đấu</span>
+  </nav>
+
+  <div class="td-tieude">
+    <div>
+      <h2>Trận đấu <span class="td-live"><i></i>LIVE</span></h2>
+      <p class="nhan-phu">Theo dõi lượng trận theo thời gian và các trận bất thường cần admin xem.</p>
     </div>
+    <button type="button" class="td-xuat-btn" id="nutXuatTran" title="Xuất Excel / PDF">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+      Xuất báo cáo
+    </button>
   </div>
-  <p class="adm-subtitle-pro">
-    Giám sát diễn biến phòng thi đấu, theo dõi kết quả đối kháng và phát hiện các trận bất thường thời gian thực.
-  </p>
+
+  <div class="td-so-khung">
+    <div class="td-so">
+      <b><?= number_format((int) $soLieu['tong'], 0, ',', '.') ?></b>
+      <span>Tổng số trận</span>
+    </div>
+    <div class="td-so">
+      <b><?= number_format((int) $soLieu['hom_nay'], 0, ',', '.') ?></b>
+      <span>Trận hôm nay</span>
+    </div>
+    <div class="td-so">
+      <b><?= e(TranDauGiamSat::thoiLuong($soLieu['tb_giay'])) ?></b>
+      <span>Thời lượng TB</span>
+    </div>
+    <a class="td-so td-so-bt" href="?bt=1" title="Lọc các trận bất thường">
+      <b><?= number_format((int) $soLieu['bat_thuong'], 0, ',', '.') ?></b>
+      <span>Trận bất thường</span>
+    </a>
+  </div>
+
+  <div class="td-hang">
+  <!-- Biểu đồ nhịp trận: dữ liệu lấy từ admin/trandau_nhip.php, vẽ bằng assets/js/admin/trandau_bieudo.js -->
+  <section class="td-bd" id="tdBd" data-api="<?= e(BASE_URL) ?>/admin/trandau_nhip.php">
+    <div class="td-bd-dau">
+      <div>
+        <div class="td-bd-nhan" id="tdBdNhan">TRẬN BẮT ĐẦU MỖI 5 PHÚT</div>
+        <div class="td-bd-hientai"><b id="tdBdHienTai">–</b><span id="tdBdDelta"></span></div>
+      </div>
+      <div class="td-bd-nut">
+        <div class="td-nhom" role="group" aria-label="Số liệu hiển thị">
+          <button type="button" data-chedo="batdau" class="on" title="Số trận bắt đầu trong mỗi mốc thời gian">Bắt đầu</button>
+          <button type="button" data-chedo="dadau" title="Số trận đã đấu xong trong mỗi mốc thời gian">Đã đấu</button>
+          <button type="button" data-chedo="tichluy" title="Tổng số trận đã đấu xong tính đến từng mốc">Tích lũy</button>
+        </div>
+        <div class="td-nhom" role="group" aria-label="Kiểu biểu đồ">
+          <button type="button" data-kieu="duong" class="on">Đường</button>
+          <button type="button" data-kieu="nen">Nền</button>
+        </div>
+        <div class="td-nhom" role="group" aria-label="Khoảng thời gian">
+          <button type="button" data-khoang="1h">1H</button>
+          <button type="button" data-khoang="3h" class="on">3H</button>
+          <button type="button" data-khoang="1d">1D</button>
+          <button type="button" data-khoang="1w">1W</button>
+          <button type="button" data-khoang="1m">1M</button>
+        </div>
+      </div>
+    </div>
+    <div class="td-bd-tk">
+      <div><span>Cao nhất</span><b id="tdTkCao">–</b></div>
+      <div><span>Thấp nhất</span><b id="tdTkThap">–</b></div>
+      <div><span id="tdTkTongNhan">Tổng 3 giờ</span><b id="tdTkTong">–</b></div>
+      <div><span>Trận bất thường</span><b id="tdTkBt" class="mau-do">–</b></div>
+      <div><span>Thời lượng TB</span><b id="tdTkTl">–</b></div>
+    </div>
+    <div class="td-bd-ve" id="tdBdVe"></div>
+  </section>
+
+  <!-- Panel trận bất thường (dữ liệu dựng ở máy chủ, cùng tiêu chí A-25 với biểu đồ và bộ lọc) -->
+  <aside class="td-bt" aria-label="Trận bất thường">
+    <div class="td-bt-dau">
+      <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>Trận bất thường</h3>
+      <span class="td-bt-dem"><?= (int) $soLieu['bat_thuong'] ?></span>
+    </div>
+    <p class="td-bt-gt">Trận có vấn đề, admin nên mở ra xem. Gồm: <b>chạy quá <?= $nguongPhut ?> phút</b> mà chưa xong (có thể bị treo), <b>hủy do lỗi hệ thống</b>, hoặc <b>có người bỏ trận</b> nên bị xử thua.</p>
+
+    <?php if (!$dsBt): ?>
+      <p class="td-bt-rong">Hiện không có trận bất thường.</p>
+    <?php endif; ?>
+
+    <?php foreach ($dsBt as $r):
+      $ma      = (int) $r['MaTran'];
+      $nhanBt  = TranDauGiamSat::nhan($r, $nguongGiay);
+      $dangChay = in_array($r['TrangThai'], ['Đã ghép', 'Đang diễn ra'], true);
+      $nguoi   = $nguoiBt[$ma] ?? [];
+      $tenNguoi = implode(' vs ', array_map(static fn ($x) => $x['HoTen'], $nguoi));
+      $diemChuoi = count($nguoi) === 2 ? $nguoi[0]['DiemSo'] . ':' . $nguoi[1]['DiemSo'] : '';
+      $bo = '';
+      foreach ($nguoi as $x) { if ($x['TrangThaiThamGia'] === 'Bỏ trận') { $bo = $x['HoTen']; break; } }
+
+      if ($nhanBt === 'Đang diễn ra quá lâu') {
+          $lop = 'td-bt-treo'; $tag = 'Chạy quá ' . $nguongPhut . ' phút · có thể bị treo';
+          $gio = TranDauGiamSat::thoiLuong($r['giay_dien_ra']);
+      } elseif ($nhanBt === 'Đã ghép quá lâu') {
+          $lop = 'td-bt-treo'; $tag = 'Đã ghép quá ' . $nguongPhut . ' phút · chưa vào trận';
+          $gio = TranDauGiamSat::thoiLuong($r['giay_da_ghep']);
+      } elseif ($nhanBt === 'Hủy do lỗi') {
+          $lop = 'td-bt-loi'; $tag = 'Hủy do lỗi hệ thống';
+          $gio = $r['ThoiGianKetThuc'] ? date('H:i', strtotime($r['ThoiGianKetThuc'])) : '';
+      } else {
+          $lop = 'td-bt-thua'; $tag = 'Có người bỏ trận (xử thua)';
+          $gio = $r['ThoiGianKetThuc'] ? date('H:i', strtotime($r['ThoiGianKetThuc'])) : '';
+      }
+      $linkCt = e(BASE_URL) . '/admin/trandau_chitiet.php?id=' . $ma;
+    ?>
+      <article class="td-bt-the <?= $lop ?>">
+        <span class="td-bt-tag"><?= e($tag) ?></span>
+        <div class="td-bt-dong"><b>#<?= $ma ?> · <?= e($r['TenMon']) ?></b><time><?= e($gio) ?></time></div>
+        <?php if ($lop === 'td-bt-loi'): ?>
+          <p class="td-bt-nguoi">Hệ thống tự hủy, không ai thắng hay thua.</p>
+        <?php elseif ($lop === 'td-bt-thua'): ?>
+          <p class="td-bt-nguoi"><?= $bo !== '' ? e($bo) : 'Có người chơi' ?> bỏ giữa chừng nên bị xử thua.</p>
+        <?php else: ?>
+          <p class="td-bt-nguoi"><?= e($tenNguoi) ?><?= $diemChuoi !== '' ? ' · ' . e($diemChuoi) : '' ?></p>
+        <?php endif; ?>
+
+        <div class="td-bt-nut">
+          <a class="td-nut td-nut-xanh" href="<?= $linkCt ?>">Xem chi tiết</a>
+          <?php if ($dangChay): ?>
+            <!-- Hủy trận (A-26): gửi thẳng tới trandau_chitiet.php, nơi xử lý hủy + ghi nhật ký; bắt buộc có lý do -->
+            <details class="td-huy">
+              <summary class="td-nut td-nut-do">Hủy trận</summary>
+              <form method="post" action="<?= $linkCt ?>" data-xacnhan="Hủy trận #<?= $ma ?>? Thao tác này không thể hoàn tác.">
+                <?= csrf_field() ?>
+                <input type="hidden" name="hanh_dong" value="huy">
+                <input type="text" name="ly_do" maxlength="300" required placeholder="Lý do hủy (bắt buộc)">
+                <button type="submit" class="td-nut td-nut-do td-nut-dac">Xác nhận hủy</button>
+              </form>
+            </details>
+          <?php endif; ?>
+        </div>
+        <?php if ($dangChay): ?>
+          <p class="td-bt-ghichu">Nếu trận đã treo thật, bấm Hủy trận để giải phóng hai người chơi.</p>
+        <?php endif; ?>
+      </article>
+    <?php endforeach; ?>
+
+    <?php if ((int) $soLieu['bat_thuong'] > count($dsBt)): ?>
+      <a class="td-bt-tatca" href="?bt=1">Xem tất cả <?= (int) $soLieu['bat_thuong'] ?> trận bất thường</a>
+    <?php endif; ?>
+  </aside>
+  </div>
+
+
+  <!-- ===== Bộ lọc: ô tìm, môn, nhãn trạng thái có số đếm ===== -->
+  <form method="get" action="" class="td-loc">
+    <div class="td-loc-hang">
+      <label class="td-tim">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input type="text" name="q" value="<?= e($q) ?>" placeholder="Mã trận, tên hoặc email người chơi">
+      </label>
+      <select name="mon" aria-label="Môn học" onchange="this.form.submit()">
+        <option value="0">Mọi môn</option>
+        <?php foreach ($monHoc as $m): ?>
+          <option value="<?= (int) $m['MaMon'] ?>"<?= $mon === (int) $m['MaMon'] ? ' selected' : '' ?>><?= e($m['TenMon']) ?></option>
+        <?php endforeach; ?>
+      </select>
+      <?php if ($tt !== ''): ?><input type="hidden" name="tt" value="<?= e($tt) ?>"><?php endif; ?>
+      <?php if ($bt): ?><input type="hidden" name="bt" value="1"><?php endif; ?>
+      <button type="submit" class="td-nut-tim">Tìm</button>
+    </div>
+
+    <div class="td-chips">
+      <a class="td-chip<?= ($tt === '' && !$bt) ? ' on' : '' ?>" href="<?= e($lienKet(['tt' => '', 'bt' => ''])) ?>">Tất cả <b><?= number_format($demTat, 0, ',', '.') ?></b></a>
+      <?php foreach ($demTT as $ten => $n): ?>
+        <a class="td-chip<?= $tt === $ten ? ' on' : '' ?>" href="<?= e($lienKet(['tt' => $tt === $ten ? '' : $ten])) ?>"><?= e($ten) ?> <b><?= number_format($n, 0, ',', '.') ?></b></a>
+      <?php endforeach; ?>
+      <a class="td-chip td-chip-bt<?= $bt ? ' on' : '' ?>" href="<?= e($lienKet(['bt' => $bt ? '' : '1'])) ?>" title="Hủy do lỗi, có người bị xử thua, hoặc chưa xong quá <?= $nguongPhut ?> phút (ngưỡng NGUONG_TRAN_KEO_DAI)">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+        Bất thường <b><?= number_format($demBt, 0, ',', '.') ?></b>
+      </a>
+      <?php if ($dangLoc): ?><a class="td-chip-xoa" href="?">Xóa lọc</a><?php endif; ?>
+    </div>
+  </form>
+
+  <?php if (!$coCotTao): ?>
+    <p class="td-luuy">Chưa đo được thời gian chờ của trận "Đã ghép" vì bảng TRANDAU chưa có cột ThoiGianTao (xem sql/trandau_thoigiantao.sql).</p>
+  <?php endif; ?>
+
+  <!-- ===== Danh sách trận ===== -->
+  <section class="td-ds">
+    <div class="td-ds-dau">
+      <h3>Danh sách trận</h3>
+      <span class="nhan-phu"><?= number_format($tongLoc, 0, ',', '.') ?> trận<?= $dangLoc ? ' khớp bộ lọc' : '' ?></span>
+    </div>
+
+    <?php if (!$ds): ?>
+      <div class="td-rong">
+        <p>Không có trận nào khớp.</p>
+        <?php if ($dangLoc): ?><a class="td-xem" href="?">Xóa bộ lọc</a><?php endif; ?>
+      </div>
+    <?php else: ?>
+      <div class="td-bang-cuon">
+        <table class="td-bang">
+          <thead>
+            <tr><th>Trận</th><th>Đối đầu</th><th>Trạng thái</th><th>Thời gian</th><th></th></tr>
+          </thead>
+          <tbody>
+          <?php foreach ($ds as $r):
+            $ma    = (int) $r['MaTran'];
+            $nhan  = TranDauGiamSat::nhan($r, $nguongGiay);
+            $nguoi = $nguoiDs[$ma] ?? [];
+
+            // Thời gian: trận đã xong hiện tổng thời lượng, trận đang chạy hiện đã chạy bao lâu, trận đã ghép hiện đã chờ bao lâu
+            if ($r['TrangThai'] === 'Kết thúc' || $r['TrangThai'] === 'Hủy') {
+                $phuGio = $r['giay_tong'] !== null ? 'Kéo dài ' . TranDauGiamSat::thoiLuong($r['giay_tong']) : '';
+            } elseif ($r['TrangThai'] === 'Đang diễn ra') {
+                $phuGio = 'Đã chạy ' . TranDauGiamSat::thoiLuong($r['giay_dien_ra']);
+            } else {
+                $phuGio = $r['giay_da_ghep'] !== null ? 'Chờ vào ' . TranDauGiamSat::thoiLuong($r['giay_da_ghep']) : 'Chờ vào trận';
+            }
+          ?>
+            <tr class="<?= $nhan !== null ? 'td-dong-bt' : '' ?>">
+              <td class="td-ma">
+                <b>#<?= $ma ?></b>
+                <span><?= e($r['TenMon']) ?> · <?= e($r['TenLoaiKT']) ?></span>
+                <?php
+                  $dbK = DotBien::layDotBien($r['DotBien'] ?? 'chuan');
+                  if (($dbK['id'] ?? 'chuan') !== 'chuan'): ?>
+                  <i class="td-db" style="color:<?= e($dbK['mau']) ?>;background:<?= e($dbK['mau']) ?>1a;border-color:<?= e($dbK['mau']) ?>44;"><?= e($dbK['icon']) ?> <?= e($dbK['ten']) ?></i>
+                <?php endif; ?>
+              </td>
+
+              <td>
+                <?php if (count($nguoi) === 2): ?>
+                  <div class="td-vs">
+                    <?php foreach ($nguoi as $i => $x):
+                      $lop = ''; $ket = '';
+                      if ($x['TrangThaiThamGia'] === 'Bỏ trận') { $lop = 'td-bo';   $ket = 'Bỏ trận'; }
+                      elseif ($x['KetQua'] === 'Thắng')         { $lop = 'td-thang'; $ket = 'Thắng'; }
+                      elseif ($x['KetQua'] === 'Thua')          { $lop = 'td-thua'; }
+                      elseif ($x['KetQua'] === 'Hòa')           { $lop = 'td-hoa';   $ket = 'Hòa'; }
+                      $chuCai = mb_strtoupper(mb_substr(trim((string) (preg_split('/\s+/u', trim($x['HoTen']))[count(preg_split('/\s+/u', trim($x['HoTen']))) - 1] ?? '?')), 0, 1));
+                    ?>
+                      <?php if ($i === 1): ?><span class="td-diem"><?= (int) $nguoi[0]['DiemSo'] ?> : <?= (int) $nguoi[1]['DiemSo'] ?></span><?php endif; ?>
+                      <span class="td-ng <?= $lop ?><?= $i === 1 ? ' td-ng-phai' : '' ?>">
+                        <span class="td-ava"><?= e($chuCai !== '' ? $chuCai : '?') ?></span>
+                        <span><span class="td-ten" title="<?= e($x['HoTen']) ?>"><?= e($x['HoTen']) ?></span><?php if ($ket !== ''): ?><span class="td-ket"><?= e($ket) ?></span><?php endif; ?></span>
+                      </span>
+                    <?php endforeach; ?>
+                  </div>
+                <?php elseif ($nguoi): ?>
+                  <?= e(implode(' vs ', array_map(static fn ($x) => $x['HoTen'], $nguoi))) ?>
+                <?php else: ?>
+                  <span class="nhan-phu">—</span>
+                <?php endif; ?>
+              </td>
+
+              <td>
+                <span class="dam nhan-trang-thai <?= e($lopTT[$r['TrangThai']] ?? '') ?>"><?= e($r['TrangThai']) ?></span>
+                <?php if ($nhan !== null): ?>
+                  <span class="td-tt-phu td-tt-co">&#9888; <?= e($nhan) ?></span>
+                <?php elseif (!empty($r['LyDoKetThuc'])): ?>
+                  <span class="td-tt-phu"><?= e($r['LyDoKetThuc']) ?></span>
+                <?php endif; ?>
+              </td>
+
+              <td class="td-gio">
+                <?php if ($r['ThoiGianBatDau']): ?>
+                  <b><?= e(date('H:i:s', strtotime($r['ThoiGianBatDau']))) ?> <small><?= e(date('d/m/Y', strtotime($r['ThoiGianBatDau']))) ?></small></b>
+                <?php else: ?>
+                  <b>—</b>
+                <?php endif; ?>
+                <span><?= e($phuGio) ?></span>
+              </td>
+
+              <td class="td-hd"><a class="td-xem" href="<?= e(BASE_URL) ?>/admin/trandau_chitiet.php?id=<?= $ma ?>">Chi tiết</a></td>
+            </tr>
+          <?php endforeach; ?>
+          </tbody>
+        </table>
+      </div>
+    <?php endif; ?>
+    <div class="td-ds-chan"><?= $p->links() ?></div>
+  </section>
 </div>
 
-<form method="get" action="" class="card form-loc khung-tran">
-  <input type="text" name="q" value="<?= e($q) ?>" placeholder="Mã trận, tên hoặc email người chơi" class="o-tim">
-  <select name="mon">
-    <option value="0">Mọi môn</option>
-    <?php foreach ($monHoc as $m): ?>
-      <option value="<?= (int) $m['MaMon'] ?>"<?= $mon === (int) $m['MaMon'] ? ' selected' : '' ?>><?= e($m['TenMon']) ?></option>
-    <?php endforeach; ?>
-  </select>
-  <select name="tt">
-    <option value="">Mọi trạng thái</option>
-    <?php foreach (['Đã ghép', 'Đang diễn ra', 'Kết thúc', 'Hủy'] as $v): ?>
-      <option value="<?= e($v) ?>"<?= $tt === $v ? ' selected' : '' ?>><?= e($v) ?></option>
-    <?php endforeach; ?>
-  </select>
-  <label class="nhan-checkbox">
-    <input type="checkbox" name="bt" value="1"<?= $bt ? ' checked' : '' ?>> Chỉ trận bất thường
-  </label>
-  <button type="submit" class="btn">Tìm</button>
-  <a class="btn btn-phu" href="?">Xóa lọc</a>
-</form>
+<!-- Hộp thoại xuất Excel / PDF: xử lý ở admin/trandau_xuat.php, tải file bằng assets/js/admin/trandau_xuat.js -->
+<div class="tx-nen" id="hopXuatTran" hidden>
+  <form class="tx-hop" id="formXuatTran" method="post" action="<?= e(BASE_URL) ?>/admin/trandau_xuat.php" role="dialog" aria-modal="true" aria-labelledby="txTieuDe">
+    <h3 id="txTieuDe">Xuất báo cáo trận đấu</h3>
+    <p class="tx-phu">Chọn nội dung, phạm vi và định dạng file cần xuất.</p>
+    <?= csrf_field() ?>
+    <input type="hidden" name="q" value="<?= e($q) ?>">
+    <input type="hidden" name="mon" value="<?= (int) $mon ?>">
+    <input type="hidden" name="tt" value="<?= e($tt) ?>">
+    <input type="hidden" name="bt" value="<?= $bt ? '1' : '' ?>">
 
-<p class="nhan-phu ghi-chu-bat-thuong">
-  Trận bất thường: hủy do lỗi hệ thống, có người bị xử thua, hoặc ở trạng thái chưa kết thúc quá <?= $nguongPhut ?> phút
-  (ngưỡng NGUONG_TRAN_KEO_DAI trong Cấu hình hệ thống).
-  <?php if (!$coCotTao): ?>
-    <br>Chưa đo được thời gian chờ của trận "Đã ghép" vì bảng TRANDAU chưa có cột ThoiGianTao (xem sql/trandau_thoigiantao.sql).
-  <?php endif; ?>
-</p>
+    <div class="tx-chia">
+    <div class="tx-trai">
+    <div class="tx-luoi">
+      <fieldset>
+        <legend>Phạm vi</legend>
+        <label class="tx-chon"><input type="radio" name="pham_vi" value="loc" checked> Đang lọc (<?= number_format($tongLoc, 0, ',', '.') ?> trận)</label>
+        <label class="tx-chon"><input type="radio" name="pham_vi" value="tatca"> Toàn bộ trận (<?= number_format((int) $soLieu['tong'], 0, ',', '.') ?> trận)</label>
+      </fieldset>
+      <fieldset>
+        <legend>Định dạng</legend>
+        <label class="tx-chon"><input type="radio" name="dinhdang" value="excel" checked> Excel (.xlsx)</label>
+        <label class="tx-chon"><input type="radio" name="dinhdang" value="pdf"> PDF</label>
+        <label class="tx-chon"><input type="radio" name="dinhdang" value="ca"> Cả hai (tải liên tiếp 2 file)</label>
+      </fieldset>
+      <fieldset class="tx-rong">
+        <legend>Nội dung</legend>
+        <div class="tx-cot">
+          <label class="tx-chon"><input type="checkbox" name="noidung[]" value="tongquan" checked> Tổng quan (4 số liệu, số trận theo trạng thái)</label>
+          <label class="tx-chon"><input type="checkbox" name="noidung[]" value="bieudo" checked> Biểu đồ nhịp trận (đang xem)</label>
+          <label class="tx-chon"><input type="checkbox" name="noidung[]" value="ds" checked> Danh sách trận</label>
+          <label class="tx-chon"><input type="checkbox" name="noidung[]" value="batthuong"> Danh sách trận bất thường</label>
+        </div>
+        <p class="tx-ghichu">Biểu đồ được xuất đúng như đang hiển thị (số liệu, khoảng thời gian, kiểu đường/nền). Muốn xuất khoảng khác, hãy chọn trên biểu đồ trước.</p>
+      </fieldset>
+      <fieldset class="tx-rong">
+        <legend>Cột trong danh sách</legend>
+        <div class="tx-cot">
+          <?php foreach (['ma' => 'Mã trận', 'mon' => 'Môn học', 'kythi' => 'Kỳ thi', 'nguoi' => 'Người chơi (điểm, kết quả)', 'tt' => 'Trạng thái', 'canhbao' => 'Cảnh báo', 'lydo' => 'Lý do kết thúc', 'bd' => 'Bắt đầu', 'kt' => 'Kết thúc', 'tl' => 'Thời lượng'] as $k => $ten): ?>
+            <label class="tx-chon"><input type="checkbox" name="truong[]" value="<?= e($k) ?>" checked> <?= e($ten) ?></label>
+          <?php endforeach; ?>
+        </div>
+      </fieldset>
+    </div>
+    </div>
+    <div class="tx-phai">
+      <div class="tx-xem-dau">Xem trước</div>
+      <div class="tx-xem" id="txXem"><p class="tx-ghichu">Đang tải...</p></div>
+    </div>
+    </div>
 
-<div class="card khung-tran">
-  <?php if (!$ds): ?>
-    <p class="nhan-phu">Không có trận nào khớp.</p>
-  <?php else: ?>
-    <table>
-      <tr><th>Mã</th><th>Môn / kỳ thi</th><th>Người chơi (điểm, kết quả)</th><th>Trạng thái</th><th>Lý do kết thúc</th><th>Bắt đầu</th><th>Kết thúc</th><th></th></tr>
-      <?php foreach ($ds as $r): $nhan = nhan_bat_thuong($r, $nguongGiay); ?>
-        <tr>
-          <td><?= (int) $r['MaTran'] ?></td>
-          <td>
-            <?= e($r['TenMon']) ?><br><span class="nhan-phu"><?= e($r['TenLoaiKT']) ?></span>
-            <?php
-              $dbK = DotBien::layDotBien($r['DotBien'] ?? 'chuan');
-              if (($dbK['id'] ?? 'chuan') !== 'chuan'): ?>
-                <br><span style="display:inline-block;margin-top:3px;font-size:11px;font-weight:700;color:<?= e($dbK['mau']) ?>;background:<?= e($dbK['mau']) ?>1a;border:1px solid <?= e($dbK['mau']) ?>44;padding:1px 6px;border-radius:10px;">
-                  <?= e($dbK['icon']) ?> <?= e($dbK['ten']) ?>
-                </span>
-            <?php endif; ?>
-          </td>
-          <td><?= e($r['nguoi']) ?></td>
-          <td>
-            <span class="dam nhan-trang-thai <?= e($lopTT[$r['TrangThai']] ?? '') ?>"><?= e($r['TrangThai']) ?></span>
-            <?php if ($nhan !== null): ?><br><span class="mau-do canh-bao-nho">&#9888; <?= e($nhan) ?></span><?php endif; ?>
-          </td>
-          <td><?= e($r['LyDoKetThuc']) ?></td>
-          <td><?= $r['ThoiGianBatDau'] ? e(date('d/m/Y H:i:s', strtotime($r['ThoiGianBatDau']))) : '' ?></td>
-          <td><?= $r['ThoiGianKetThuc'] ? e(date('d/m/Y H:i:s', strtotime($r['ThoiGianKetThuc']))) : '' ?></td>
-          <td><a href="<?= e(BASE_URL) ?>/admin/trandau_chitiet.php?id=<?= (int) $r['MaTran'] ?>">Chi tiết</a></td>
-        </tr>
-      <?php endforeach; ?>
-    </table>
-  <?php endif; ?>
-  <?= $p->links() ?>
+    <p class="tx-loi" id="txLoi" hidden></p>
+    <div class="tx-nut">
+      <button type="button" class="tx-huy" id="txHuy">Hủy</button>
+      <button type="submit" class="tx-ok" id="txOk">Xuất</button>
+    </div>
+  </form>
 </div>
 <?php require __DIR__ . '/layout/footer.php'; ?>

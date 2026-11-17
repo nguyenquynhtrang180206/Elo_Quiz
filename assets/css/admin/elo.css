@@ -1,60 +1,164 @@
-/* Trang Elo và xếp hạng (admin/elo.php) */
-.admin-noidung .form-loc input.o-tim { flex:1; min-width:220px; width:auto; }
-.admin-noidung .elo-tabs { display:flex; flex-wrap:wrap; gap:8px; margin:0 0 12px; }
-.admin-noidung .elo-tabs .btn { text-shadow:none; }
-.admin-noidung .elo-note {
-  margin:0 0 16px;
-  padding:12px 16px;
-  border:1px solid #dce7fa;
-  border-radius:12px;
-  background:#f3f7ff;
-  color:#52617d;
+/* Trang Elo và xếp hạng (admin/elo.php) - thẻ nền trắng giống trang Tổng quan, nền ngoài giữ nguyên */
+.admin-noidung .elo-arena {
+  --ea-chu:#0f172a; --ea-phu:#64748b; --ea-vien:#e2e8f0; --ea-nhat:#f1f5f9; --ea-nen:#f8fafc;
+  --ea-xanh:#2563eb; --ea-vang:#f59e0b; --ea-len:#059669; --ea-xuong:#dc2626;
+  color:var(--ea-chu);
 }
-.admin-noidung .elo-filter,
-.admin-noidung .elo-results {
-  background:#fff;
-  color:#26334d;
-  border-color:#e6ecf8;
-  box-shadow:0 4px 16px rgba(31,53,92,.08);
-}
-.admin-noidung .elo-filter { padding:14px 18px; }
-.admin-noidung .elo-filter input[type=text],
-.admin-noidung .elo-filter select {
-  background:#fff;
-  color:#26334d;
-  border-color:#cfd9f0;
-}
-.admin-noidung .elo-filter input::placeholder { color:#8a97b5; }
-.admin-noidung .elo-filter input:focus,
-.admin-noidung .elo-filter select:focus {
-  border-color:#245edb;
-  box-shadow:0 0 0 3px rgba(36,94,219,.15);
-}
-.admin-noidung .elo-filter select option { background:#fff; color:#26334d; }
-.admin-noidung .elo-results { overflow-x:auto; }
-.admin-noidung .elo-results table { min-width:760px; }
-.admin-noidung .elo-results th {
-  background:#f3f6fd;
-  color:#26334d;
-  border-bottom-color:#e6ecf8;
-}
-.admin-noidung .elo-results td { border-bottom-color:#eef2fb; }
-.admin-noidung .elo-results .nhan-phu,
-.admin-noidung .elo-results .phantrang { color:#68758e; }
-.admin-noidung .elo-results td a { color:#245edb; }
-.admin-noidung .elo-results td a:hover { color:#1746ad; text-shadow:none; }
-.admin-noidung .elo-results .mau-do { color:#c62852; }
-.admin-noidung .elo-results .mau-xanh { color:#087a61; }
-.admin-noidung .elo-results .phantrang a {
-  color:#245edb;
-  background:#f3f6fd;
-  border-color:#e6ecf8;
-}
-.admin-noidung .elo-results .phantrang a:hover { border-color:#245edb; box-shadow:none; }
+.admin-noidung .elo-arena a { text-decoration:none; text-shadow:none; }
+.admin-noidung .elo-arena * { box-sizing:border-box; }
 
+/* Tab dạng viên thuốc (nằm trên nền ngoài tối) */
+.admin-noidung .elo-arena .ea-tabs { display:flex; flex-wrap:wrap; gap:8px; margin:0 0 14px; }
+.admin-noidung .elo-arena .ea-tab {
+  padding:9px 18px; border-radius:999px; font-size:13px; font-weight:600; transition:.15s;
+  color:#a9b7de; background:rgba(14,30,92,.62); border:1px solid rgba(150,180,255,.18);
+}
+.admin-noidung .elo-arena .ea-tab:hover { color:#fff; border-color:rgba(150,180,255,.4); }
+.admin-noidung .elo-arena .ea-tab.dang-chon { background:#f5b82e; color:#3b2800; border-color:#f5b82e; box-shadow:0 0 20px rgba(245,184,46,.4); }
+.admin-noidung .elo-arena .ea-tab.canh-bao:not(.dang-chon) { color:#ff9fb0; }
+.admin-noidung .elo-arena .ea-dem {
+  display:inline-block; min-width:20px; padding:1px 6px; margin-left:4px; border-radius:99px;
+  background:#e5484d; color:#fff; font-size:11px; font-weight:800; text-align:center;
+}
+
+.admin-noidung .elo-arena .ea-note {
+  margin:0 0 16px; padding:11px 16px; border-radius:12px; font-size:13px; line-height:1.6;
+  border:1px solid rgba(245,184,46,.35); background:rgba(245,184,46,.09); color:#f6dc9a;
+}
+.admin-noidung .elo-arena .ea-note-link { margin-left:6px; font-weight:700; color:#ffb4c0; white-space:nowrap; }
+.admin-noidung .elo-arena .ea-note-link:hover { text-decoration:underline; }
+
+/* Khối nền trắng (giống .dash-khung của Tổng quan) */
+.admin-noidung .elo-arena .ea-khoi {
+  min-width:0; overflow:hidden; background:#ffffff; color:var(--ea-chu); border-radius:18px;
+  border:1px solid rgba(255,255,255,.95);
+  box-shadow:0 10px 30px -10px rgba(0,0,0,.35), 0 0 0 1px rgba(0,0,0,.04);
+}
+
+/* Hàng biểu đồ */
+.admin-noidung .elo-arena .ea-bieudo-luoi { display:grid; grid-template-columns:1.05fr 1.35fr 1.2fr; gap:18px; margin-bottom:18px; }
+.admin-noidung .elo-arena .ea-bieudo-khung { padding:20px 22px; }
+.admin-noidung .elo-arena .ea-khung-dau { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
+.admin-noidung .elo-arena .ea-khung-dau h3 {
+  display:flex; align-items:center; gap:8px; margin:0; font-size:15px; font-weight:700; color:var(--ea-chu); text-shadow:none;
+}
+.admin-noidung .elo-arena .ea-ico { color:var(--ea-xanh); flex-shrink:0; }
+.admin-noidung .elo-arena .ea-bieudo { position:relative; height:190px; }
+.admin-noidung .elo-arena .ea-phu { margin:12px 0 0; font-size:12.5px; color:var(--ea-phu); }
+.admin-noidung .elo-arena .ea-phu b { color:var(--ea-chu); }
+.admin-noidung .elo-arena .ea-ghichu-trong { padding:30px 0; text-align:center; color:var(--ea-phu); font-size:13px; }
+.admin-noidung .elo-arena .ea-tron { display:flex; align-items:center; gap:16px; flex-wrap:wrap; justify-content:center; }
+.admin-noidung .elo-arena .ea-tron-hinh { position:relative; width:160px; height:160px; flex-shrink:0; }
+.admin-noidung .elo-arena .ea-tron-giua { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; pointer-events:none; }
+.admin-noidung .elo-arena .ea-tron-giua strong { font-size:26px; font-weight:800; line-height:1.1; color:var(--ea-chu); }
+.admin-noidung .elo-arena .ea-tron-giua span { font-size:12px; font-weight:600; color:var(--ea-phu); }
+.admin-noidung .elo-arena .ea-chuthich { list-style:none; margin:0; padding:0; flex:1; min-width:130px; }
+.admin-noidung .elo-arena .ea-chuthich li { display:flex; align-items:center; gap:8px; padding:5px 0; font-size:13px; color:#1e293b; }
+.admin-noidung .elo-arena .ea-chuthich i { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+.admin-noidung .elo-arena .ea-chuthich span { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.admin-noidung .elo-arena .ea-chuthich b { color:var(--ea-chu); font-weight:700; }
+
+/* Bố cục 2 cột của tab Bảng xếp hạng */
+.admin-noidung .elo-arena .ea-luoi { display:grid; grid-template-columns:minmax(0,1fr) 340px; gap:18px; align-items:start; }
+.admin-noidung .elo-arena .ea-ben { display:flex; flex-direction:column; gap:18px; }
+
+/* Bộ lọc */
+.admin-noidung .elo-arena .ea-loc { display:flex; flex-wrap:wrap; gap:10px; align-items:center; padding:16px 18px; border-bottom:1px solid var(--ea-nhat); }
+.admin-noidung .elo-arena .ea-o,
+.admin-noidung .elo-arena input.ea-o,
+.admin-noidung .elo-arena select.ea-o {
+  width:auto !important; min-width:200px; height:38px; padding:0 14px !important; border-radius:9px !important; font-size:13px !important;
+  color:var(--ea-chu) !important; background:#ffffff !important; border:1px solid #cbd5e1 !important; box-shadow:none !important; outline:none;
+}
+.admin-noidung .elo-arena .ea-o-tim, .admin-noidung .elo-arena input.ea-o-tim { flex:1; min-width:220px; }
+.admin-noidung .elo-arena .ea-o::placeholder { color:#94a3b8 !important; }
+.admin-noidung .elo-arena .ea-o:focus { border-color:var(--ea-xanh) !important; box-shadow:0 0 0 3px rgba(37,99,235,.15) !important; }
+.admin-noidung .elo-arena select.ea-o option { background:#ffffff !important; color:var(--ea-chu) !important; }
+.admin-noidung .elo-arena .ea-nut {
+  display:inline-flex; align-items:center; height:38px; padding:0 16px; border-radius:9px; border:1px solid var(--ea-xanh);
+  font-size:13px; font-weight:600; color:#fff; background:var(--ea-xanh); cursor:pointer; box-shadow:none; text-shadow:none;
+}
+.admin-noidung .elo-arena .ea-nut:hover { filter:brightness(1.1); }
+.admin-noidung .elo-arena .ea-nut-o { background:#ffffff; color:#475569; border-color:#cbd5e1; }
+.admin-noidung .elo-arena .ea-nut-o:hover { background:var(--ea-nen); color:var(--ea-chu); filter:none; }
+.admin-noidung .elo-arena .ea-phai { margin-left:auto; }
+.admin-noidung .elo-arena .ea-ghichu { padding:10px 18px; font-size:12.5px; line-height:1.5; color:var(--ea-phu); border-bottom:1px solid var(--ea-nhat); }
+.admin-noidung .elo-arena .ea-trong { padding:36px 16px; text-align:center; color:var(--ea-phu); }
+
+/* Bảng dạng lưới (không dùng <table> để không dính style bảng chung) */
+.admin-noidung .elo-arena .ea-bang { overflow-x:auto; }
+.admin-noidung .elo-arena .ea-dong {
+  display:grid; align-items:center; gap:10px; min-width:640px; padding:11px 18px; font-size:13px;
+  color:var(--ea-chu); border-bottom:1px solid var(--ea-nhat);
+}
+.admin-noidung .elo-arena .ea-xh .ea-dong { grid-template-columns:54px minmax(180px,1fr) 130px 110px 100px; }
+.admin-noidung .elo-arena .ea-tra .ea-dong { grid-template-columns:minmax(180px,1.3fr) 1fr 130px 80px 150px 130px; min-width:820px; }
+.admin-noidung .elo-arena .ea-bd .ea-dong { grid-template-columns:minmax(180px,1.3fr) 1fr 190px 100px 90px 100px; min-width:820px; }
+.admin-noidung .elo-arena .ea-dau { background:var(--ea-nen); font-size:11px; font-weight:700; letter-spacing:.04em; color:var(--ea-phu); border-bottom:1px solid var(--ea-vien); }
+.admin-noidung .elo-arena .ea-bam { transition:background .12s; }
+.admin-noidung .elo-arena .ea-bam:hover { background:var(--ea-nen); }
+.admin-noidung .elo-arena .ea-bam.dang-chon { background:#fffbeb; box-shadow:inset 3px 0 0 var(--ea-vang); }
+
+.admin-noidung .elo-arena .ea-hang { font-size:15px; font-weight:800; color:#94a3b8; }
+.admin-noidung .elo-arena .ea-hang.top { font-size:18px; color:#d97706; }
+.admin-noidung .elo-arena .ea-nd { display:flex; align-items:center; gap:11px; min-width:0; }
+.admin-noidung .elo-arena .ea-ava { flex:none; display:grid; place-items:center; width:36px; height:36px; border-radius:50%; font-size:12px; font-weight:700; color:#fff; }
+.admin-noidung .elo-arena .ea-ava.lon { width:76px; height:76px; margin:0 auto 10px; font-size:24px; box-shadow:0 0 0 4px #fde68a, 0 8px 22px rgba(245,158,11,.35); }
+.admin-noidung .elo-arena .ea-ten { font-weight:600; color:var(--ea-chu); }
+.admin-noidung .elo-arena a.ea-ten:hover { color:var(--ea-xanh); }
+.admin-noidung .elo-arena .ea-mail { font-size:11.5px; color:var(--ea-phu); }
+.admin-noidung .elo-arena .ea-elo { font-size:16px; font-weight:800; color:var(--ea-chu); }
+.admin-noidung .elo-arena .ea-mui { color:#94a3b8; }
+.admin-noidung .elo-arena b.xanh { color:var(--ea-len); }
+.admin-noidung .elo-arena b.do { color:var(--ea-xuong); }
+
+/* Bậc rank (viên ngọc) */
+.admin-noidung .elo-arena .ea-bac { display:inline-flex; align-items:center; gap:8px; font-weight:700; font-size:12.5px; color:var(--ea-chu); }
+.admin-noidung .elo-arena .ea-bac.giua { justify-content:center; }
+.admin-noidung .elo-arena .ea-ngoc { flex:none; width:15px; height:15px; border-radius:3px; transform:rotate(45deg); }
+.admin-noidung .elo-arena .cao  { background:linear-gradient(135deg,#ff6b9d,#c13cff); }
+.admin-noidung .elo-arena .kc   { background:linear-gradient(135deg,#7be9ff,#2f8bff); }
+.admin-noidung .elo-arena .vang { background:linear-gradient(135deg,#ffe27a,#e08a00); }
+.admin-noidung .elo-arena .bac  { background:linear-gradient(135deg,#dfe6f5,#8a96b3); }
+.admin-noidung .elo-arena .dong { background:linear-gradient(135deg,#e0a070,#9a5a28); }
+
+/* Mũi tên tăng giảm, nhãn, thanh tiến độ */
+.admin-noidung .elo-arena .ea-dt { margin-left:7px; font-size:11.5px; font-weight:700; }
+.admin-noidung .elo-arena .len { color:var(--ea-len); }
+.admin-noidung .elo-arena .xuong { color:var(--ea-xuong); }
+.admin-noidung .elo-arena .ea-chip { display:inline-block; padding:3px 10px; border-radius:99px; font-weight:800; background:var(--ea-nhat); }
+.admin-noidung .elo-arena .ea-chip.len { background:#ecfdf5; }
+.admin-noidung .elo-arena .ea-chip.xuong { background:#fef2f2; }
+.admin-noidung .elo-arena .ea-nhan { display:inline-block; padding:3px 10px; border-radius:99px; font-size:11px; font-weight:600; }
+.admin-noidung .elo-arena .ea-nhan.ok { background:#ecfdf5; color:#047857; }
+.admin-noidung .elo-arena .ea-nhan.khoa { background:#fef2f2; color:#dc2626; }
+.admin-noidung .elo-arena .ea-tl { display:flex; align-items:center; gap:8px; }
+.admin-noidung .elo-arena .ea-thanh { flex:1; height:7px; min-width:40px; border-radius:5px; background:var(--ea-nhat); overflow:hidden; }
+.admin-noidung .elo-arena .ea-thanh i { display:block; height:100%; border-radius:5px; background:#10b981; }
+
+/* Panel chi tiết bên phải */
+.admin-noidung .elo-arena .ea-hoso { padding:22px 20px; text-align:center; background:linear-gradient(180deg,#fffbeb,#ffffff 55%); }
+.admin-noidung .elo-arena .ea-hoso-ten { font-size:17px; font-weight:700; color:var(--ea-chu); }
+.admin-noidung .elo-arena .ea-so-lon { margin:8px 0 2px; font-size:40px; font-weight:800; letter-spacing:-1.5px; line-height:1.1; color:#d97706; }
+.admin-noidung .elo-arena .ea-kv { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:14px; }
+.admin-noidung .elo-arena .ea-kv div { padding:8px; border-radius:10px; background:var(--ea-nen); border:1px solid var(--ea-nhat); }
+.admin-noidung .elo-arena .ea-kv b { display:block; font-size:16px; color:var(--ea-chu); }
+.admin-noidung .elo-arena .ea-kv small { font-size:10px; font-weight:600; color:var(--ea-phu); }
+.admin-noidung .elo-arena .ea-xuhuong { position:relative; height:110px; margin-top:14px; }
+.admin-noidung .elo-arena .ea-trai { margin-top:6px; text-align:left; }
+.admin-noidung .elo-arena .ea-cach { margin-top:12px; }
+.admin-noidung .elo-arena .ea-xem { display:inline-block; margin-top:14px; font-size:12.5px; font-weight:600; color:var(--ea-xanh); }
+.admin-noidung .elo-arena .ea-xem:hover { text-decoration:underline; }
+
+/* Phân trang: dùng style chung của admin (nền trắng), chỉ thêm lề trong thẻ */
+.admin-noidung .elo-arena .ea-pt { padding:0 18px 16px; }
+.admin-noidung .elo-arena .ea-pt .phantrang { margin-top:14px !important; }
+
+@media (max-width:1100px) {
+  .admin-noidung .elo-arena .ea-luoi { grid-template-columns:1fr; }
+  .admin-noidung .elo-arena .ea-bieudo-luoi { grid-template-columns:1fr; }
+}
 @media (max-width:720px) {
-  .admin-noidung .elo-filter { align-items:stretch; }
-  .admin-noidung .elo-filter select,
-  .admin-noidung .elo-filter .btn,
-  .admin-noidung .elo-filter .btn-phu { width:100%; text-align:center; }
+  .admin-noidung .elo-arena .ea-o, .admin-noidung .elo-arena .ea-nut { width:100% !important; justify-content:center; }
+  .admin-noidung .elo-arena .ea-phai { margin-left:0; }
 }
