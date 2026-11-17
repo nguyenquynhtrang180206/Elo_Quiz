@@ -67,15 +67,11 @@
       t.appendChild(tt);
       xem.appendChild(t);
     }
-    if (form.querySelector('input[name="noidung[]"][value="bieudo"]:checked')) {
-      var svg = document.querySelector('#tdBdVe svg');
+    if (j.bd) {
       var b = el('div', 'tx-the');
-      b.appendChild(el('h4', '', 'Biểu đồ nhịp trận')).appendChild(el('small', '', nhanBieuDo()));
-      if (svg) {
-        var ban = svg.cloneNode(true);
-        ban.removeAttribute('width'); ban.removeAttribute('height');
-        var kb = el('div', 'tx-bd'); kb.appendChild(ban); b.appendChild(kb);
-      } else { b.appendChild(el('p', 'tx-ghichu', 'Biểu đồ chưa tải xong.')); }
+      b.appendChild(el('h4', '', 'Trận bắt đầu mỗi ngày')).appendChild(el('small', '', so(j.bd.tk.tong) + ' trận · TB ' + so(j.bd.tk.tb) + '/ngày'));
+      b.appendChild(el('p', 'tx-ghichu', j.bd.mota));
+      var kb = el('div', 'tx-bd'); kb.appendChild(veCot(j.bd.ngay)); b.appendChild(kb);
       xem.appendChild(b);
     }
     [['ds', 'Danh sách trận', j.ds, j.tong], ['bt', 'Trận bất thường', j.bt, j.tongBt]].forEach(function (m) {
@@ -91,47 +87,93 @@
       xem.appendChild(t);
     });
   }
-  function xemTruoc() {
-    var lan = ++soLanTai;
+  // Vẽ biểu đồ "trận bắt đầu mỗi ngày" lên canvas, cùng kiểu với biểu đồ trên trang Trận đấu:
+  // đường xanh + vùng tô, đường trung bình nét đứt, chấm đỏ rỗng ở ngày có trận bất thường, dải "TRẬN BẤT THƯỜNG" bên dưới.
+  // Nền trắng; dùng cho cả xem trước lẫn ảnh JPEG đưa vào file xuất.
+  function veCot(ngay) {
+    var W = 900, H = 340, tr = 16, ph = 58, tren = 18, yDay = 220, xLan = 258, xCot = 294;
+    var XANH = '#2563eb', DO = '#e5484d', LUOI = '#e6ecf8', CHU = '#8a97b5';
+    var c = document.createElement('canvas');
+    c.width = W; c.height = H;
+    var g = c.getContext('2d');
+    g.fillStyle = '#fff'; g.fillRect(0, 0, W, H);
+    var n = ngay.length, rong = W - tr - ph, i, tong = 0, max = 0, maxBt = 1;
+    ngay.forEach(function (d) { tong += d.n; if (d.n > max) { max = d.n; } if (d.bt > maxBt) { maxBt = d.bt; } });
+    var ds = [1, 2, 4, 5, 10, 20, 25, 50, 100, 200, 250, 500, 1000, 2000, 5000], buoc = Math.ceil(Math.max(max, 3) / 3);
+    for (i = 0; i < ds.length; i++) { if (ds[i] * 3 >= Math.max(max, 3)) { buoc = ds[i]; break; } }
+    var yMax = buoc * 3;
+    function X(k) { return n > 1 ? tr + rong * k / (n - 1) : tr + rong / 2; }
+    function Y(v) { return yDay - (yDay - tren) * v / yMax; }
+    function chu(t, x, y, co, mau, can, dam) { g.font = (dam ? '700 ' : '') + co + 'px Arial, sans-serif'; g.fillStyle = mau; g.textAlign = can || 'left'; g.textBaseline = 'alphabetic'; g.fillText(t, x, y); }
+    function hop(x, y, w, h, r) { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); }
+
+    // Lưới ngang + nhãn trục dọc (bên phải)
+    for (i = 0; i <= 3; i++) {
+      var yy = Y(buoc * i);
+      g.strokeStyle = LUOI; g.lineWidth = 1; g.beginPath(); g.moveTo(tr, yy); g.lineTo(W - ph, yy); g.stroke();
+      chu(String(buoc * i), W - ph + 12, yy + 4, 12, CHU);
+    }
+    // Nhãn trục ngang thưa dần theo bề rộng (mỗi nhãn cần khoảng 56px), đường dọc nét đứt
+    var cach = n > 1 ? Math.max(1, Math.ceil(56 / (rong / (n - 1)))) : 1;
+    g.setLineDash([2, 4]);
+    for (i = n - 1; i >= 0; i -= cach) {
+      g.strokeStyle = LUOI; g.beginPath(); g.moveTo(X(i), tren); g.lineTo(X(i), yDay); g.stroke();
+      chu(ngay[i].nhan, X(i), H - 10, 12, CHU, i === 0 ? 'left' : 'center');
+    }
+    g.setLineDash([]);
+
+    // Vùng tô + đường
+    var gr = g.createLinearGradient(0, tren, 0, yDay);
+    gr.addColorStop(0, 'rgba(37,99,235,.22)'); gr.addColorStop(1, 'rgba(37,99,235,.02)');
+    g.beginPath(); g.moveTo(X(0), yDay);
+    for (i = 0; i < n; i++) { g.lineTo(X(i), Y(ngay[i].n)); }
+    g.lineTo(X(n - 1), yDay); g.closePath(); g.fillStyle = gr; g.fill();
+    g.beginPath();
+    for (i = 0; i < n; i++) { if (i) { g.lineTo(X(i), Y(ngay[i].n)); } else { g.moveTo(X(i), Y(ngay[i].n)); } }
+    g.strokeStyle = XANH; g.lineWidth = 2.6; g.lineJoin = 'round'; g.lineCap = 'round'; g.stroke();
+
+    // Đường trung bình (nét đứt) + nhãn
+    var tb = n ? tong / n : 0, yTb = Y(tb);
+    g.setLineDash([4, 3]); g.strokeStyle = '#9aa7c7'; g.lineWidth = 1;
+    g.beginPath(); g.moveTo(tr, yTb); g.lineTo(W - ph, yTb); g.stroke(); g.setLineDash([]);
+    chu('Trung bình ' + (Math.round(tb * 10) / 10).toLocaleString('vi-VN') + ' trận / ngày', tr + 6, yTb - 6, 11.5, '#6b7694');
+
+    // Chấm đỏ rỗng trên đường tại các ngày có trận bất thường
+    for (i = 0; i < n; i++) {
+      if (ngay[i].bt > 0) { g.beginPath(); g.arc(X(i), Y(ngay[i].n), 4, 0, Math.PI * 2); g.fillStyle = '#fff'; g.fill(); g.strokeStyle = DO; g.lineWidth = 2.2; g.stroke(); }
+    }
+    // Nhãn giá trị ngày cuối ở mép phải
+    var yh = Y(ngay[n - 1].n);
+    hop(W - ph + 2, yh - 11, 38, 22, 6); g.fillStyle = XANH; g.fill();
+    chu(String(ngay[n - 1].n), W - ph + 21, yh + 4.5, 13, '#fff', 'center', true);
+
+    // Dải "TRẬN BẤT THƯỜNG": đường đứt đáy + cột đỏ
+    chu('TRẬN BẤT THƯỜNG', tr, xLan, 11, CHU, 'left', true);
+    g.setLineDash([7, 5]); g.strokeStyle = '#d6dcf3'; g.lineWidth = 3;
+    g.beginPath(); g.moveTo(tr, xCot + 1); g.lineTo(W - ph, xCot + 1); g.stroke(); g.setLineDash([]);
+    var rc = Math.max(4, Math.min(12, rong / n * 0.7));
+    for (i = 0; i < n; i++) {
+      if (ngay[i].bt > 0) { var cao = 14 + 14 * ngay[i].bt / maxBt; hop(X(i) - rc / 2, xCot - cao, rc, cao, 2); g.fillStyle = DO; g.fill(); }
+    }
+    return c;
+  }
+
+  function layXem() {
     var fd = new FormData(form);
     fd.set('buoc', 'xemtruoc');
-    fetch(form.action, { method: 'POST', body: fd, credentials: 'same-origin' })
-      .then(function (r) { if (!r.ok) { return r.text().then(function (t) { throw new Error(t || 'Không tải được xem trước.'); }); } return r.json(); })
+    return fetch(form.action, { method: 'POST', body: fd, credentials: 'same-origin' })
+      .then(function (r) { if (!r.ok) { return r.text().then(function (t) { throw new Error(t || 'Không tải được xem trước.'); }); } return r.json(); });
+  }
+  function xemTruoc() {
+    var lan = ++soLanTai;
+    layXem()
       .then(function (j) { if (lan === soLanTai && !hop.hidden) { veXem(j); } })
       .catch(function (err) { if (lan === soLanTai) { xem.textContent = ''; xem.appendChild(el('p', 'tx-ghichu', err.message)); } });
   }
+  form.addEventListener('input', function (e) {
+    if (e.target.type === 'date') { var r = form.querySelector('input[name="bd_khoang"][value="tuychon"]'); if (r) { r.checked = true; } }
+  });
   form.addEventListener('change', function () { clearTimeout(hen); hen = setTimeout(xemTruoc, 250); });
-
-  // Chụp SVG biểu đồ thành JPEG nền trắng (gấp đôi độ phân giải cho nét)
-  function chupBieuDo() {
-    return new Promise(function (xong) {
-      var svg = document.querySelector('#tdBdVe svg');
-      if (!svg) { xong(''); return; }
-      var w = svg.clientWidth || svg.viewBox.baseVal.width, h = svg.clientHeight || svg.viewBox.baseVal.height;
-      var goc = svg.cloneNode(true);
-      goc.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-      goc.setAttribute('width', w); goc.setAttribute('height', h);
-      goc.setAttribute('font-family', 'Arial, Helvetica, sans-serif');
-      var url = URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(goc)], { type: 'image/svg+xml;charset=utf-8' }));
-      var img = new Image();
-      img.onload = function () {
-        var c = document.createElement('canvas');
-        c.width = w * 2; c.height = h * 2;
-        var g = c.getContext('2d');
-        g.fillStyle = '#ffffff'; g.fillRect(0, 0, c.width, c.height);
-        g.drawImage(img, 0, 0, c.width, c.height);
-        URL.revokeObjectURL(url);
-        xong(c.toDataURL('image/jpeg', 0.95));
-      };
-      img.onerror = function () { URL.revokeObjectURL(url); xong(''); };
-      img.src = url;
-    });
-  }
-  function nhanBieuDo() {
-    var a = document.getElementById('tdBdNhan');
-    var k = document.querySelector('#tdBd [data-khoang].on');
-    return (a ? a.textContent : '') + (k ? ' · ' + k.textContent : '');
-  }
 
   function taoFile(fd, dinhDang) {
     fd.set('dinhdang', dinhDang);
@@ -157,10 +199,13 @@
     if (dungDs && !form.querySelector('input[name="truong[]"]:checked')) { bao('Hãy chọn ít nhất một cột cho danh sách trận.'); return; }
 
     ok.disabled = true; ok.textContent = 'Đang chuẩn bị...';
-    var layAnh = form.querySelector('input[name="noidung[]"][value="bieudo"]:checked') ? chupBieuDo() : Promise.resolve('');
+    // Ảnh biểu đồ: lấy số liệu theo ngày từ máy chủ rồi vẽ canvas, gửi kèm dạng JPEG
+    var layAnh = form.querySelector('input[name="noidung[]"][value="bieudo"]:checked')
+      ? layXem().then(function (j) { return j.bd ? veCot(j.bd.ngay).toDataURL('image/jpeg', 0.95) : ''; })
+      : Promise.resolve('');
     layAnh.then(function (anh) {
       var fd = new FormData(form);
-      if (anh) { fd.append('anh_bieudo', anh); fd.append('nhan_bieudo', nhanBieuDo()); }
+      if (anh) { fd.append('anh_bieudo', anh); }
       // "Cả hai" = tải liên tiếp hai file riêng (Excel rồi PDF), không nén zip
       var dds = radio('dinhdang') === 'ca' ? ['excel', 'pdf'] : [radio('dinhdang')];
       var daTai = 0, chuoi = Promise.resolve();

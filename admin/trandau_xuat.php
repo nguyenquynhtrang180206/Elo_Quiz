@@ -5,12 +5,13 @@
 //
 // Tham số:
 //   pham_vi  : loc = đang lọc (q, mon, tt, bt gửi kèm từ trang, cùng tiêu chí với danh sách), tatca = mọi trận.
-//   noidung[]: tongquan = ô số liệu + số trận theo trạng thái, bieudo = ảnh biểu đồ nhịp trận đang xem (do trình duyệt chụp),
+//   noidung[]: tongquan = ô số liệu + số trận theo trạng thái, bieudo = trận bắt đầu mỗi ngày trong khoảng ngày tự chọn
+//              (bd_khoang = 7|30|90|tuychon, bd_tu, bd_den; KHÔNG phụ thuộc bộ lọc),
 //              ds = danh sách trận, batthuong = danh sách trận bất thường (A-25).
 //   truong[] : các cột của danh sách (xem $COT). Thứ tự cột trong file luôn theo $COT.
 //   dinhdang : excel | pdf.
 //   buoc=xemtruoc: không xuất file mà trả JSON (số liệu, vài dòng đầu của danh sách) để dựng khung "Xem trước" trong hộp thoại.
-//   anh_bieudo, nhan_bieudo: ảnh JPEG (data URL) và dòng mô tả của biểu đồ đang xem.
+//   anh_bieudo: ảnh JPEG (data URL) của biểu đồ cột "trận bắt đầu mỗi ngày", do trình duyệt vẽ từ số liệu xem trước.
 require_once __DIR__ . '/../core/bootstrap.php';
 require_once __DIR__ . '/../core/TranDauGiamSat.php';
 require_once __DIR__ . '/../core/XlsxWriter.php';
@@ -59,7 +60,7 @@ $COT = [
     'kt'    => ['Kết thúc',                    2.3],
     'tl'    => ['Thời lượng',                  1.4],
 ];
-$NOI_DUNG = ['tongquan' => 'Tổng quan', 'bieudo' => 'Biểu đồ nhịp trận', 'ds' => 'Danh sách trận', 'batthuong' => 'Trận bất thường'];
+$NOI_DUNG = ['tongquan' => 'Tổng quan', 'bieudo' => 'Trận bắt đầu mỗi ngày', 'ds' => 'Danh sách trận', 'batthuong' => 'Trận bất thường'];
 
 $chon = static fn (string $khoa, array $hopLe): array => array_values(array_intersect(
     $hopLe, is_array($_POST[$khoa] ?? null) ? array_map('strval', $_POST[$khoa]) : []
@@ -155,6 +156,44 @@ if ($coTq) {
     foreach ($st->fetchAll(PDO::FETCH_NUM) as [$k, $n]) { $tq['tt'][$k] = (int) $n; }
 }
 
+// ---- Trận bắt đầu mỗi ngày: khoảng ngày chọn trong hộp thoại, tính trên toàn bộ trận (không theo bộ lọc) ----
+$ngayBd = []; $moTaBd = ''; $tkBd = ['tong' => 0, 'tb' => 0, 'cao' => '—', 'bt' => 0];
+if ($coBd) {
+    $kBd = (string) ($_POST['bd_khoang'] ?? '7');
+    if (in_array($kBd, ['7', '30', '90'], true)) {
+        $denD = new DateTime('today');
+        $tuD  = (clone $denD)->modify('-' . ((int) $kBd - 1) . ' days');
+    } else {
+        $tuD  = DateTime::createFromFormat('!Y-m-d', (string) ($_POST['bd_tu'] ?? ''));
+        $denD = DateTime::createFromFormat('!Y-m-d', (string) ($_POST['bd_den'] ?? ''));
+        if (!$tuD || !$denD) { loi_xuat('Hãy chọn đủ "Từ ngày" và "Đến ngày" cho biểu đồ.'); }
+        if ($tuD > $denD) { [$tuD, $denD] = [$denD, $tuD]; }
+    }
+    if ($tuD->diff($denD)->days > 365) { loi_xuat('Biểu đồ theo ngày chỉ chọn tối đa 366 ngày.'); }
+    $st = $pdo->prepare(
+        "SELECT DATE(t.ThoiGianBatDau) AS d, COUNT(*) AS n,
+                COALESCE(SUM(t.TrangThai = 'Kết thúc'), 0) AS xong, COALESCE(SUM(t.TrangThai = 'Hủy'), 0) AS huy,
+                COALESCE(SUM($dkBt), 0) AS bt
+           FROM TRANDAU t
+          WHERE t.ThoiGianBatDau >= ? AND t.ThoiGianBatDau < DATE_ADD(?, INTERVAL 1 DAY)
+          GROUP BY DATE(t.ThoiGianBatDau)"
+    );
+    $st->execute(array_merge($thamBt, [$tuD->format('Y-m-d'), $denD->format('Y-m-d')]));
+    $theoNgay = [];
+    foreach ($st->fetchAll() as $r) { $theoNgay[$r['d']] = $r; }
+    $cao = -1;
+    foreach (new DatePeriod($tuD, new DateInterval('P1D'), (clone $denD)->modify('+1 day')) as $d) {
+        $r = $theoNgay[$d->format('Y-m-d')] ?? null;
+        $n = $r ? (int) $r['n'] : 0;
+        $ngayBd[] = ['ngay' => $d->format('d/m/Y'), 'nhan' => $d->format('d/m'), 'n' => $n,
+                     'xong' => $r ? (int) $r['xong'] : 0, 'huy' => $r ? (int) $r['huy'] : 0, 'bt' => $r ? (int) $r['bt'] : 0];
+        $tkBd['tong'] += $n; $tkBd['bt'] += $r ? (int) $r['bt'] : 0;
+        if ($n > $cao) { $cao = $n; $tkBd['cao'] = $d->format('d/m') . ' (' . $n . ' trận)'; }
+    }
+    $tkBd['tb'] = $ngayBd ? round($tkBd['tong'] / count($ngayBd), 1) : 0;
+    $moTaBd = 'Trận bắt đầu mỗi ngày · ' . $tuD->format('d/m/Y') . ' - ' . $denD->format('d/m/Y') . ' (' . count($ngayBd) . ' ngày, toàn bộ trận, không theo bộ lọc)';
+}
+
 // ---- Danh sách trận (và danh sách bất thường) ----
 $sqlDs = static function (string $whereSql) use ($cotTao): string {
     return "SELECT t.MaTran, m.TenMon, k.TenLoaiKT, t.TrangThai, t.LyDoKetThuc, t.ThoiGianBatDau, t.ThoiGianKetThuc,
@@ -199,7 +238,6 @@ if ($coBt) {
 }
 
 $anh      = $coBd ? anh_bieu_do('anh_bieudo') : null;
-$nhanBd   = mb_substr(trim((string) ($_POST['nhan_bieudo'] ?? '')), 0, 120);
 $luc      = 'Xuất lúc ' . date('H:i d/m/Y');
 $tenFile  = 'trandau_' . date('Ymd_His');
 $so       = static fn (int $n): string => number_format($n, 0, ',', '.');
@@ -227,6 +265,7 @@ if ($xemTruoc) {
         'ds'    => $coDs ? $cat($dsTran) : null,
         'bt'    => $coBt ? $cat($dsBt) : null,
         'tongBt' => $demBt,
+        'bd'    => $coBd ? ['mota' => $moTaBd, 'ngay' => $ngayBd, 'tk' => $tkBd] : null,
     ], JSON_UNESCAPED_UNICODE);
     exit;
 }
@@ -235,7 +274,7 @@ if ($xemTruoc) {
 NhatKy::ghi('Xuất danh sách trận đấu', null,
     ($dinhDang === 'pdf' ? 'PDF' : 'Excel') . ' · ' . $so($tongPhamVi) . ' trận trong phạm vi · Nội dung: '
     . implode(', ', array_map(static fn (string $k): string => $NOI_DUNG[$k], $noiDung))
-    . (($coDs || $coBt) ? ' · Cột: ' . implode(', ', $tieuDeCot) : '') . ' · ' . $moTaPhamVi . '.');
+    . ($coBd ? ' · ' . $moTaBd : '') . (($coDs || $coBt) ? ' · Cột: ' . implode(', ', $tieuDeCot) : '') . ' · ' . $moTaPhamVi . '.');
 
 $mauTT = ['Kết thúc' => ['xlsx' => 10, 'pdf' => '#dcf5ea'], 'Hủy' => ['xlsx' => 8, 'pdf' => '#fde3e6'],
           'Đang diễn ra' => ['xlsx' => 0, 'pdf' => '#e3ebff'], 'Đã ghép' => ['xlsx' => 0, 'pdf' => '#fff4d6']];
@@ -258,7 +297,7 @@ try {
         $ghiChu = static fn (string $s): array => ['kieu' => 16, 'o' => [$s]];
         $sheets = [];
 
-        if ($coTq || $coBd) {
+        if ($coTq) {
             $h = [['kieu' => 2, 'o' => ['Trận đấu - Tổng quan']], $ghiChu($luc), $ghiChu($moTaPhamVi)];
             if ($coTq) {
                 $h[] = ['kieu' => 3, 'o' => ['Tổng số trận', 'Trận hôm nay', 'Thời lượng TB', 'Trận bất thường']];
@@ -268,12 +307,21 @@ try {
                 $tongTT = max(1, array_sum($tq['tt']));
                 foreach ($tq['tt'] as $ten => $n) { $h[] = ['kieu' => 0, 'o' => [$ten, $n, round($n * 100 / $tongTT) . '%']]; }
             }
+            $sheets[] = ['ten' => 'Tổng quan', 'rongToiThieu' => 16, 'dong' => $h];
+        }
+        if ($coBd) {
+            $h = [['kieu' => 2, 'o' => ['Trận bắt đầu mỗi ngày']], $ghiChu($luc . ' · ' . $moTaBd),
+                  ['kieu' => 3, 'o' => ['Tổng trận bắt đầu', 'Trung bình mỗi ngày', 'Ngày cao nhất', 'Trận bất thường']],
+                  ['kieu' => 4, 'o' => [$tkBd['tong'], $tkBd['tb'], $tkBd['cao'], $tkBd['bt']]]];
             if ($anh) {
                 $h[] = ['kieu' => 0, 'o' => []];
-                if ($nhanBd !== '') { $h[] = ['kieu' => 1, 'o' => [$nhanBd]]; }
                 $h[] = ['anh' => [['jpeg' => $anh['jpeg'], 'rong' => 720, 'cao' => (int) round($anh['cao'] * 720 / $anh['rong']), 'x' => 0]]];
             }
-            $sheets[] = ['ten' => 'Tổng quan', 'rongToiThieu' => 16, 'dong' => $h];
+            $h[] = ['kieu' => 0, 'o' => []];
+            $h[] = ['kieu' => 6, 'o' => ['Ngày', 'Trận bắt đầu', 'Đã đấu xong', 'Hủy', 'Bất thường']];
+            foreach ($ngayBd as $r) { $h[] = ['kieu' => 0, 'o' => [$r['ngay'], $r['n'], $r['xong'], $r['huy'], $r['bt']]]; }
+            $h[] = ['kieu' => 1, 'o' => ['Tổng', $tkBd['tong'], array_sum(array_column($ngayBd, 'xong')), array_sum(array_column($ngayBd, 'huy')), $tkBd['bt']]];
+            $sheets[] = ['ten' => 'Trận mỗi ngày', 'rongToiThieu' => 16, 'dong' => $h];
         }
         if ($coDs) {
             $h = [['kieu' => 2, 'o' => ['Trận đấu - Danh sách (' . $so(count($dsTran)) . ' trận)']], $ghiChu($luc . ' · ' . $moTaPhamVi)];
@@ -304,7 +352,7 @@ try {
         $pdf->bang($tieuDeCot, $dong, $tyLe, [], $mauO, $viTri !== false ? [$viTri] : []);
     };
     $dau = true;
-    if ($coTq || $coBd) {
+    if ($coTq) {
         $dau = false;
         $pdf->tieuDe('TRẬN ĐẤU - TỔNG QUAN', 20);
         $pdf->doan($luc . ' · ' . $moTaPhamVi, 10, false, '#5b6b8c');
@@ -313,17 +361,27 @@ try {
             $pdf->oSoLieu([['Tổng số trận', $so($tq['tong']), ''], ['Trận hôm nay', $so($tq['hom_nay']), ''],
                            ['Thời lượng TB', $tbChu, ''], ['Trận bất thường', $so($tq['bat_thuong']), '']]);
         }
-        if ($anh) {
-            if ($nhanBd !== '') { $pdf->doan($nhanBd, 10, true); }
-            $pdf->anh($anh['jpeg']);
-        }
-        if ($coTq) {
+        {
             $tongTT = max(1, array_sum($tq['tt']));
             $dong = [];
             foreach ($tq['tt'] as $ten => $n) { $dong[] = [$ten, $so($n), round($n * 100 / $tongTT) . '%']; }
             $pdf->khoang(6);
             $pdf->bang(['Trạng thái', 'Số trận', 'Tỷ lệ'], $dong, [3, 1, 1], [], [], [1, 2]);
         }
+    }
+    if ($coBd) {
+        if (!$dau) { $pdf->trangMoi(); }
+        $dau = false;
+        $pdf->tieuDe('TRẬN BẮT ĐẦU MỖI NGÀY', 20);
+        $pdf->doan($luc . ' · ' . $moTaBd, 10, false, '#5b6b8c');
+        $pdf->khoang(8);
+        $pdf->oSoLieu([['Tổng trận bắt đầu', $so($tkBd['tong']), ''], ['Trung bình mỗi ngày', (string) $tkBd['tb'], ''],
+                       ['Ngày cao nhất', $tkBd['cao'], ''], ['Trận bất thường', $so($tkBd['bt']), '']]);
+        if ($anh) { $pdf->anh($anh['jpeg']); }
+        $dong = [];
+        foreach ($ngayBd as $r) { $dong[] = [$r['ngay'], (string) $r['n'], (string) $r['xong'], (string) $r['huy'], (string) $r['bt']]; }
+        $pdf->khoang(6);
+        $pdf->bang(['Ngày', 'Trận bắt đầu', 'Đã đấu xong', 'Hủy', 'Bất thường'], $dong, [2, 1.4, 1.4, 1, 1.2], [], [], [1, 2, 3, 4]);
     }
     if ($coDs) {
         if (!$dau) { $pdf->trangMoi(); }

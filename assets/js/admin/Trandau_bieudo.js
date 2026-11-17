@@ -10,8 +10,8 @@
 
   var NS = 'http://www.w3.org/2000/svg';
   var XANH = '#2563eb', DO = '#e5484d', LUOI = '#e6ecf8', CHU = '#8a97b5';
-  var NHAN_TONG = { '1h': 'Tổng 1 giờ', '3h': 'Tổng 3 giờ', '1d': 'Tổng 1 ngày', '1w': 'Tổng 1 tuần', '1m': 'Tổng 1 tháng' };
-  var NHAN_TANG = { '1h': 'Thêm trong 1 giờ', '3h': 'Thêm trong 3 giờ', '1d': 'Thêm trong 1 ngày', '1w': 'Thêm trong 1 tuần', '1m': 'Thêm trong 1 tháng' };
+  var NHAN_TONG = { '1h': 'Tổng 1 giờ', '3h': 'Tổng 3 giờ', '1d': 'Tổng 1 ngày', '1w': 'Tổng 1 tuần', '1m': 'Tổng 1 tháng', d7: 'Tổng 7 ngày', d30: 'Tổng 30 ngày', d90: 'Tổng 90 ngày', tuychon: 'Tổng khoảng chọn' };
+  var NHAN_TANG = { '1h': 'Thêm trong 1 giờ', '3h': 'Thêm trong 3 giờ', '1d': 'Thêm trong 1 ngày', '1w': 'Thêm trong 1 tuần', '1m': 'Thêm trong 1 tháng', d7: 'Thêm trong 7 ngày', d30: 'Thêm trong 30 ngày', d90: 'Thêm trong 90 ngày', tuychon: 'Thêm trong khoảng chọn' };
   var NHAN_TIEUDE = { batdau: 'TRẬN BẮT ĐẦU MỖI ', dadau: 'TRẬN ĐÃ ĐẤU XONG MỖI ' };
   var NHAN_HOP = { batdau: 'Trận bắt đầu: ', dadau: 'Trận đã đấu: ', tichluy: 'Tổng đã đấu: ' };
   var NHAN_KY = { '5 phút': '5 phút', '30 phút': '30 phút', '3 giờ': '3 giờ' };
@@ -39,10 +39,14 @@
   function tai() {
     if (dangTai) { return; }
     dangTai = true;
-    fetch(api + '?khoang=' + encodeURIComponent(khoang) + '&che_do=' + encodeURIComponent(cheDo), { credentials: 'same-origin', cache: 'no-store' })
-      .then(function (r) { if (!r.ok) { throw new Error('http'); } return r.json(); })
+    fetch(api + '?khoang=' + encodeURIComponent(khoang) + '&che_do=' + encodeURIComponent(cheDo) + (khoang === 'tuychon' ? '&tu=' + encodeURIComponent($('tdBdTu').value) + '&den=' + encodeURIComponent($('tdBdDen').value) : ''), { credentials: 'same-origin', cache: 'no-store' })
+      .then(function (r) {
+        if (r.ok) { return r.json(); }
+        return r.json().catch(function () { return {}; }).then(function (j) { var e = new Error(j.loi || 'http'); e.tuServer = !!j.loi; throw e; });
+      })
       .then(function (d) { du = d; capNhatSo(); veBieuDo(); })
-      .catch(function () {
+      .catch(function (err) {
+        if (err && err.tuServer) { ve.textContent = err.message; ve.className = 'td-bd-ve td-bd-loi'; return; }
         if (!du) { ve.textContent = 'Không tải được dữ liệu biểu đồ.'; ve.className = 'td-bd-ve td-bd-loi'; }
       })
       .then(function () { dangTai = false; });
@@ -237,7 +241,15 @@
       kieu = chonNhom(nut, 'kieu', nut.getAttribute('data-kieu'));
       if (du) { veBieuDo(); }
     } else if (nut.hasAttribute('data-khoang')) {
-      khoang = chonNhom(nut, 'khoang', nut.getAttribute('data-khoang'));
+      khoang = nut.getAttribute('data-khoang');
+      var tatCa = goc.querySelectorAll('[data-khoang]');
+      for (var q = 0; q < tatCa.length; q++) { tatCa[q].classList.toggle('on', tatCa[q] === nut); }
+      var hang = $('tdBdNgay');
+      if (hang) { hang.hidden = khoang !== 'tuychon'; }
+      if (khoang === 'tuychon') { if ($('tdBdTu').value && $('tdBdDen').value) { tai(); } else { ve.className = 'td-bd-ve td-bd-loi'; ve.textContent = 'Chọn "Từ ngày" và "Đến ngày" rồi bấm Xem.'; } }
+      else { tai(); }
+    } else if (nut.id === 'tdBdXem') {
+      if (!$('tdBdTu').value || !$('tdBdDen').value) { ve.className = 'td-bd-ve td-bd-loi'; ve.textContent = 'Hãy chọn đủ "Từ ngày" và "Đến ngày".'; return; }
       tai();
     }
   });

@@ -50,6 +50,11 @@ a.td-so-bt:hover { background:#fff5f5; }
 .td-nhom button { border:0; background:transparent; color:#6b7694; font:inherit; font-size:12.5px; font-weight:700; padding:5px 12px; border-radius:8px; cursor:pointer; }
 .td-nhom button:hover { color:#1e5cf0; }
 .td-nhom button.on { background:#1e5cf0; color:#fff; box-shadow:0 2px 8px rgba(30,92,240,.35); }
+.td-bd-ngay { display:flex; flex-wrap:wrap; align-items:center; gap:10px 14px; margin:10px 0 0; padding:10px 12px; border-radius:10px; background:#f3f6fd; }
+.td-bd-ngay[hidden] { display:none; }
+.td-bd-ngay label { display:flex; align-items:center; gap:7px; margin:0; font-size:13px; font-weight:600; color:#26334d; }
+.admin-noidung .td-bd-ngay input[type=date] { width:auto; padding:5px 9px; border:1px solid #cfd9f0; border-radius:8px; background:#fff; color:#26334d; font:inherit; font-size:13px; }
+.td-bd-ngay .td-nut { flex:none; min-width:0; padding:6px 16px; }
 .td-bd-tk { display:flex; flex-wrap:wrap; gap:8px 34px; margin:10px 0 6px; padding-bottom:10px; border-bottom:1px solid #eef2fb; }
 .td-bd-tk div { display:flex; flex-direction:column; gap:1px; }
 .td-bd-tk span { font-size:12px; color:#6b7694; }

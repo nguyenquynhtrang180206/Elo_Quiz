@@ -220,14 +220,25 @@ require __DIR__ . '/layout/header.php';
           <button type="button" data-kieu="duong" class="on">Đường</button>
           <button type="button" data-kieu="nen">Nền</button>
         </div>
-        <div class="td-nhom" role="group" aria-label="Khoảng thời gian">
+        <div class="td-nhom" role="group" aria-label="Khoảng giờ">
           <button type="button" data-khoang="1h">1H</button>
           <button type="button" data-khoang="3h" class="on">3H</button>
           <button type="button" data-khoang="1d">1D</button>
           <button type="button" data-khoang="1w">1W</button>
-          <button type="button" data-khoang="1m">1M</button>
+        </div>
+        <div class="td-nhom" role="group" aria-label="Khoảng ngày">
+          <button type="button" data-khoang="d7" title="7 ngày gần nhất, mỗi mốc một ngày">7N</button>
+          <button type="button" data-khoang="d30" title="30 ngày gần nhất, mỗi mốc một ngày">30N</button>
+          <button type="button" data-khoang="d90" title="90 ngày gần nhất, mỗi mốc một ngày">90N</button>
+          <button type="button" data-khoang="tuychon" title="Chọn từ ngày đến ngày (tối đa 366 ngày)">Chọn ngày</button>
         </div>
       </div>
+    </div>
+    <div class="td-bd-ngay" id="tdBdNgay" hidden>
+      <label>Từ ngày <input type="date" id="tdBdTu" max="<?= date('Y-m-d') ?>" value="<?= date('Y-m-d', strtotime('-6 days')) ?>"></label>
+      <label>Đến ngày <input type="date" id="tdBdDen" max="<?= date('Y-m-d') ?>" value="<?= date('Y-m-d') ?>"></label>
+      <button type="button" id="tdBdXem" class="td-nut td-nut-xanh">Xem</button>
+      <span class="nhan-phu">Tối đa 366 ngày, mỗi mốc là một ngày.</span>
     </div>
     <div class="td-bd-tk">
       <div><span>Cao nhất</span><b id="tdTkCao">–</b></div>
@@ -477,11 +488,25 @@ require __DIR__ . '/layout/header.php';
         <legend>Nội dung</legend>
         <div class="tx-cot">
           <label class="tx-chon"><input type="checkbox" name="noidung[]" value="tongquan" checked> Tổng quan (4 số liệu, số trận theo trạng thái)</label>
-          <label class="tx-chon"><input type="checkbox" name="noidung[]" value="bieudo" checked> Biểu đồ nhịp trận (đang xem)</label>
+          <label class="tx-chon"><input type="checkbox" name="noidung[]" value="bieudo" checked> Trận bắt đầu mỗi ngày (biểu đồ + bảng)</label>
           <label class="tx-chon"><input type="checkbox" name="noidung[]" value="ds" checked> Danh sách trận</label>
           <label class="tx-chon"><input type="checkbox" name="noidung[]" value="batthuong"> Danh sách trận bất thường</label>
         </div>
-        <p class="tx-ghichu">Biểu đồ được xuất đúng như đang hiển thị (số liệu, khoảng thời gian, kiểu đường/nền). Muốn xuất khoảng khác, hãy chọn trên biểu đồ trước.</p>
+        <p class="tx-ghichu">Danh sách trận theo phạm vi ở trên; "Trận bắt đầu mỗi ngày" theo khoảng ngày chọn bên dưới.</p>
+      </fieldset>
+      <fieldset class="tx-rong" id="txBdChon">
+        <legend>Trận bắt đầu mỗi ngày: chọn khoảng ngày</legend>
+        <div class="tx-cot">
+          <label class="tx-chon"><input type="radio" name="bd_khoang" value="7" checked> 7 ngày gần nhất</label>
+          <label class="tx-chon"><input type="radio" name="bd_khoang" value="30"> 30 ngày gần nhất</label>
+          <label class="tx-chon"><input type="radio" name="bd_khoang" value="90"> 90 ngày gần nhất</label>
+          <label class="tx-chon"><input type="radio" name="bd_khoang" value="tuychon"> Chọn ngày</label>
+        </div>
+        <div class="tx-ngay">
+          <label>Từ ngày <input type="date" name="bd_tu" max="<?= date('Y-m-d') ?>"></label>
+          <label>Đến ngày <input type="date" name="bd_den" max="<?= date('Y-m-d') ?>"></label>
+        </div>
+        <p class="tx-ghichu">Đếm số trận bắt đầu trong từng ngày trên toàn bộ trận, không phụ thuộc bộ lọc của trang. Tối đa 366 ngày.</p>
       </fieldset>
       <fieldset class="tx-rong">
         <legend>Cột trong danh sách</legend>
