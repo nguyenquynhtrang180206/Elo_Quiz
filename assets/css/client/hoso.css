@@ -1,138 +1,33 @@
-/* Trang Hồ sơ cá nhân (client/hoso.php) - giao diện Cosmic
-   Chỉ đổi CSS: không cần sửa hoso.php / hoso.js. Đặt tại: assets/css/client/hoso.css */
+/* Trang Hồ sơ cá nhân (client/hoso.php) */
+.hoso-luoi { display:flex; flex-wrap:wrap; gap:16px; }
+.hoso-luoi > .card { flex:1 1 340px; }
+.avatar, .avatar-mac-dinh { width:96px; height:96px; border-radius:50%; display:block; }
+.avatar { object-fit:cover; border:1px solid var(--mau-vien); }
+.avatar-mac-dinh { background:var(--mau-chinh); color:#fff; font-size:40px; font-weight:700;
+                   display:flex; align-items:center; justify-content:center; }
+input[type=file] { margin-top:4px; }
+.ghichu { color:var(--mau-phu); font-size:13px; }
+input[readonly] { background:#f3f4f6; }
 
-/* ---------- Tiêu đề trang ---------- */
-.container > h2 {
-  display:inline-block; margin:8px 0 22px;
-  font-size:clamp(26px, 4vw, 34px); font-weight:800; letter-spacing:.01em;
-  background:linear-gradient(90deg, var(--light-cyan), #fff 45%, var(--magenta));
-  -webkit-background-clip:text; background-clip:text; color:transparent;
-  text-shadow:none; filter:drop-shadow(0 0 14px rgba(0,217,255,.35));
-}
+/* Chân trang Elo theo môn: dấu "…" báo có trang bị bỏ qua */
+.elo-dots { display:inline-block; padding:3px 4px; margin:0 2px 4px 0; color:var(--mau-phu); }
 
-/* ---------- Bố cục 2 cột: thông tin (hẹp) | Elo theo môn (rộng) ---------- */
-.hoso-luoi {
-  display:grid; grid-template-columns:minmax(300px, 360px) minmax(0, 1fr);
-  gap:22px; align-items:start;
-}
-.hoso-luoi > .card {
-  position:relative; overflow:hidden; margin:0; padding:26px 24px 22px;
-  background:linear-gradient(180deg, #0d1a3c 0%, #0a1430 100%);
-  border:1px solid rgba(0,217,255,.35);
-  box-shadow:0 14px 40px rgba(0,0,0,.45), 0 0 26px rgba(0,217,255,.12), inset 0 1px 0 rgba(255,255,255,.06);
-  animation:hoso-vao .5s ease both;
-}
-.hoso-luoi > .card:nth-child(2) { animation-delay:.08s; }
-.hoso-luoi > .card::before {                     /* vạch neon trên đỉnh thẻ */
-  content:""; position:absolute; inset:0 0 auto 0; height:3px;
-  background:var(--gradient-neon);
-}
-@keyframes hoso-vao { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:none; } }
-@media (prefers-reduced-motion: reduce) { .hoso-luoi > .card { animation:none; } }
-
-/* Tiêu đề từng thẻ */
-.hoso-luoi > .card > h3 {
-  display:flex; align-items:center; gap:10px; margin:0 0 20px;
-  font-size:17px; font-weight:700; letter-spacing:.06em; text-transform:uppercase;
-  color:var(--light-cyan); text-shadow:none;
-}
-.hoso-luoi > .card > h3::before {
-  content:""; width:4px; height:20px; border-radius:4px;
-  background:linear-gradient(180deg, var(--cyan), var(--purple));
-  box-shadow:0 0 10px rgba(0,217,255,.6);
-}
-
-/* ---------- Ảnh đại diện ---------- */
-.avatar, .avatar-mac-dinh {
-  width:128px; height:128px; border-radius:50%; display:block; margin:6px auto 22px;
-}
-.hoso-luoi .avatar {
-  object-fit:cover; border:3px solid #0a1430;
-  box-shadow:0 0 0 3px var(--cyan), 0 0 0 7px rgba(139,53,255,.35), 0 0 32px rgba(0,217,255,.45);
-}
-.hoso-luoi .avatar-mac-dinh {
-  display:flex; align-items:center; justify-content:center;
-  font-size:54px; font-weight:800; color:#fff; border:3px solid #0a1430;
-  box-shadow:0 0 0 3px var(--cyan), 0 0 0 7px rgba(139,53,255,.35), 0 0 32px rgba(139,53,255,.5);
-}
-
-/* ---------- Form ---------- */
-.hoso-luoi form label {
-  margin:18px 0 6px; font-size:13px; font-weight:600; letter-spacing:.05em;
-  color:var(--light-cyan); opacity:.9;
-}
-.hoso-luoi form label:first-of-type { margin-top:0; }
-.hoso-luoi form input[type=text],
-.hoso-luoi form input[type=email] { padding:11px 14px; border-radius:12px; }
-
-input[type=file] { margin-top:0; padding:8px; cursor:pointer; }
-input[type=file]::file-selector-button {
-  margin-right:12px; padding:7px 14px; border:1px solid var(--cyan); border-radius:8px;
-  background:rgba(0,217,255,.12); color:var(--light-cyan);
-  font-family:inherit; font-size:14px; font-weight:600; cursor:pointer;
-  transition:background .2s, box-shadow .2s;
-}
-input[type=file]::file-selector-button:hover { background:rgba(0,217,255,.24); box-shadow:var(--glow-cyan); }
-
-input[readonly] { border-style:dashed; cursor:not-allowed; }    /* email: chỉ xem, không sửa */
-
-.ghichu { font-size:13px; line-height:1.5; margin:8px 0 0; }
-
-/* Hai nút: Lưu thay đổi | Đổi mật khẩu */
-.hoso-luoi form > p { display:flex; flex-wrap:wrap; gap:10px; margin:26px 0 0; }
-.hoso-luoi form > p .btn { flex:1 1 130px; padding:11px 16px; text-align:center; border-radius:12px; }
-.hoso-luoi form > p a.btn-phu { border:1px solid var(--cyan); }
-
-/* ---------- Elo theo môn ---------- */
-#elo-theo-mon table {
-  border-collapse:separate; border-spacing:0; overflow:hidden;
-  border:1px solid var(--mau-vien); border-radius:12px; background:rgba(5,10,32,.35);
-}
-#elo-theo-mon th {
-  padding:12px 12px; font-size:12px; font-weight:700; text-transform:uppercase;
-  letter-spacing:.07em; white-space:nowrap;
-  background:linear-gradient(180deg, rgba(8,123,255,.28), rgba(8,123,255,.12));
-}
-#elo-theo-mon td { padding:12px; font-variant-numeric:tabular-nums; }
-#elo-theo-mon th:nth-child(n+2),
-#elo-theo-mon td:nth-child(n+2) { text-align:center; }
-#elo-theo-mon tr:last-child td { border-bottom:0; }
-#elo-theo-mon td:first-child { font-weight:600; min-width:120px; }
-
-/* Cột Elo nổi bật; thắng / thua / hòa có màu riêng để dễ đọc lướt */
-#elo-theo-mon td:nth-child(2) {
-  font-family:'Rajdhani', 'Be Vietnam Pro', sans-serif; font-size:21px; font-weight:700;
-  color:var(--cyan); text-shadow:0 0 12px rgba(0,217,255,.5);
-}
-#elo-theo-mon td:nth-child(4) { color:#8dffe0; font-weight:600; }
-#elo-theo-mon td:nth-child(5) { color:#ff9db8; font-weight:600; }
-#elo-theo-mon td:nth-child(6) { color:#ffd08a; font-weight:600; }
-#elo-theo-mon td:last-child  { font-weight:700; color:var(--light-cyan); }
-
-/* Chân trang Elo theo môn */
-.elo-phantrang { display:flex; flex-wrap:wrap; justify-content:center; gap:6px; margin:18px 0 4px; }
-.elo-phantrang a, .elo-phantrang strong {
-  min-width:36px; margin:0; padding:6px 11px; text-align:center; border-radius:10px;
-}
-.elo-dots { display:inline-block; padding:6px 2px; margin:0; color:var(--mau-phu); }   /* dấu "…" báo có trang bị bỏ qua */
-
-/* Ghi chú cuối thẻ + trạng thái chưa có dữ liệu */
-#elo-theo-mon > p.ghichu:last-child {
-  margin-top:16px; padding:10px 14px; border-left:3px solid var(--purple);
-  border-radius:0 10px 10px 0; background:rgba(139,53,255,.10);
-}
-#elo-theo-mon > p.ghichu:not(:last-child) {
-  margin:0; padding:34px 16px; text-align:center; font-size:14px;
-  border:1px dashed var(--mau-vien); border-radius:12px; background:rgba(5,10,32,.35);
-}
-
-/* ---------- Responsive ---------- */
-@media (max-width: 880px) {
-  .hoso-luoi { grid-template-columns:minmax(0, 1fr); }
-}
-@media (max-width: 640px) {
-  .hoso-luoi > .card { padding:22px 16px 18px; }
-  .avatar, .avatar-mac-dinh { width:108px; height:108px; }
-  .hoso-luoi .avatar-mac-dinh { font-size:46px; }
-  #elo-theo-mon table { display:block; overflow-x:auto; white-space:nowrap; }   /* bảng 7 cột: cuộn ngang trên điện thoại */
+/* C-15: biểu đồ biến động Elo */
+#bieudo-elo { margin-top:16px; }
+.bd-dieukhien { display:flex; flex-wrap:wrap; align-items:center; gap:10px 12px; margin-bottom:12px; }
+.bd-dieukhien label { margin:0; }
+.bd-dieukhien select { width:auto; min-width:180px; max-width:100%; }
+.bd-khoang { display:flex; flex-wrap:wrap; gap:8px; margin-left:auto; }
+.bd-khoang .btn { padding:6px 14px; font-size:13px; }
+.bd-khoang .btn.bd-chon { background:rgba(0,217,255,.2); color:#fff; box-shadow:var(--glow-cyan); }
+.bd-tomtat { display:grid; grid-template-columns:repeat(auto-fit, minmax(110px, 1fr)); gap:10px; margin-bottom:12px; }
+.bd-tomtat > div { background:rgba(8,123,255,.12); border:1px solid var(--mau-vien); border-radius:10px; padding:8px 12px; }
+.bd-tomtat span { display:block; color:var(--mau-phu); font-size:12px; }
+.bd-tomtat b { font-size:20px; }
+.bd-tomtat b.bd-len { color:#34d399; }
+.bd-tomtat b.bd-xuong { color:#f87171; }
+.bd-khung { position:relative; height:320px; }
+@media (max-width:600px) {
+  .bd-khoang { margin-left:0; }
+  .bd-khung { height:260px; }
 }

@@ -1,6 +1,6 @@
 <?php
 // Hồ sơ cá nhân (C-13, C-14). Đặt tại: elo_quiz/client/hoso.php
-// C-15 (biểu đồ biến động Elo) làm sau, xem chỗ TODO ở cuối trang.
+// C-15: biểu đồ biến động Elo theo môn (Chart.js, dữ liệu từ LICHSUELO), chuyển môn và khoảng trận ngay trên trang.
 require_once __DIR__ . '/../core/bootstrap.php';
 
 $maND = Auth::requireClient(BASE_URL . '/client/dangnhap.php');
@@ -162,7 +162,43 @@ function chanTrangElo(Paginator $p): string
     return $h . '</nav>';
 }
 
+// ---- C-15: dữ liệu biểu đồ biến động Elo (LICHSUELO), gom theo môn, mỗi môn giữ tối đa 200 trận gần nhất ----
+const BIEUDO_TOI_DA = 200;
+$st = $pdo->prepare(
+    'SELECT l.MaMon, m.TenMon, l.MaTran, l.EloTruoc, l.EloSau, l.ThayDoi, l.ThoiGian
+       FROM LICHSUELO l
+       JOIN MONHOC m ON m.MaMon = l.MaMon
+      WHERE l.MaND = ?
+      ORDER BY l.ThoiGian, l.MaLichSu'
+);
+$st->execute([$maND]);
+$bieuDo = [];
+foreach ($st->fetchAll() as $r) {
+    $k = (int) $r['MaMon'];
+    if (!isset($bieuDo[$k])) {
+        $bieuDo[$k] = ['ten' => $r['TenMon'], 'cuoi' => '', 'tran' => []];
+    }
+    $bieuDo[$k]['cuoi'] = $r['ThoiGian'];
+    $bieuDo[$k]['tran'][] = [
+        'id'    => (int) $r['MaTran'],
+        'truoc' => (int) $r['EloTruoc'],
+        'sau'   => (int) $r['EloSau'],
+        'dd'    => (int) $r['ThayDoi'],
+        'luc'   => date('d/m/Y H:i', strtotime($r['ThoiGian'])),
+    ];
+}
+foreach ($bieuDo as $k => $b) {
+    $bieuDo[$k]['tran'] = array_slice($b['tran'], -BIEUDO_TOI_DA);
+}
+// Môn vừa đấu gần nhất đứng đầu danh sách (và là môn được chọn sẵn)
+uasort($bieuDo, fn($a, $b) => strcmp($b['cuoi'], $a['cuoi']));
+$bieuDoJson = [];
+foreach ($bieuDo as $k => $b) {
+    $bieuDoJson[] = ['ma' => $k, 'ten' => $b['ten'], 'tran' => $b['tran']];
+}
+
 $tieuDe = 'Hồ sơ cá nhân';
+$jsTrang = 'hoso_elo';
 $cssTrang = 'hoso';
 require __DIR__ . '/layout/header.php';
 ?>
@@ -225,8 +261,43 @@ require __DIR__ . '/layout/header.php';
         <?= chanTrangElo($pElo) ?>
       <?php endif; ?>
       <p class="ghichu">Elo chỉ thay đổi theo kết quả trận đấu, không chỉnh tay được.</p>
-      <!-- TODO (C-15): biểu đồ biến động Elo theo môn, lấy dữ liệu từ LICHSUELO -->
     </div>
   </div>
+
+  <div class="card" id="bieudo-elo">
+    <h3>Biến động Elo</h3>
+    <?php if (!$bieuDoJson): ?>
+      <p class="ghichu">Chưa có lịch sử Elo. Biểu đồ sẽ xuất hiện sau trận đấu đầu tiên.</p>
+    <?php else: ?>
+      <div class="bd-dieukhien">
+        <label for="bdMon">Môn</label>
+        <select id="bdMon">
+          <?php foreach ($bieuDoJson as $b): ?>
+            <option value="<?= (int) $b['ma'] ?>"><?= e($b['ten']) ?></option>
+          <?php endforeach; ?>
+        </select>
+        <div class="bd-khoang" role="group" aria-label="Khoảng trận hiển thị">
+          <button type="button" class="btn btn-phu" data-khoang="10">10 trận</button>
+          <button type="button" class="btn btn-phu" data-khoang="30">30 trận</button>
+          <button type="button" class="btn btn-phu" data-khoang="0">Tất cả</button>
+        </div>
+      </div>
+
+      <div class="bd-tomtat" id="bdTomTat" aria-live="polite">
+        <div><span>Elo hiện tại</span><b id="bdHienTai">–</b></div>
+        <div><span>Cao nhất</span><b id="bdCao">–</b></div>
+        <div><span>Thấp nhất</span><b id="bdThap">–</b></div>
+        <div><span>Thay đổi</span><b id="bdDoi">–</b></div>
+        <div><span>Số trận</span><b id="bdSoTran">–</b></div>
+      </div>
+
+      <div class="bd-khung"><canvas id="bdCanvas" role="img" aria-label="Biểu đồ đường biến động Elo theo từng trận"></canvas></div>
+      <p class="ghichu" id="bdGhiChu">Mỗi điểm là Elo sau một trận: xanh là tăng, đỏ là giảm. Rê chuột (hoặc chạm) vào điểm để xem chi tiết.</p>
+      <noscript><p class="ghichu">Cần bật JavaScript để xem biểu đồ.</p></noscript>
+
+      <script type="application/json" id="bdDuLieu"><?= json_encode($bieuDoJson, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?></script>
+    <?php endif; ?>
+  </div>
 </div>
+<?php if ($bieuDoJson): ?><script src="<?= e(BASE_URL) ?>/assets/vendor/chart.umd.js"></script><?php endif; ?>
 <?php require __DIR__ . '/layout/footer.php'; ?>
