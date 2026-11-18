@@ -1,17 +1,120 @@
-/* Trang Bạn bè (client/banbe.php) */
-.ghichu { color:var(--mau-phu); font-size:13px; }
-.dong { display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;
-        padding:8px 0; border-top:1px solid var(--mau-vien); }
-.dong:first-of-type { border-top:0; }
-.timkiem { display:flex; gap:8px; }
-.timkiem input { flex:1; }
+/* Trang Bạn bè (client/banbe.php) - giao diện Cosmic
+   Chỉ đổi CSS: không cần sửa banbe.php. Đặt tại: assets/css/client/banbe.css */
+
+/* ---------- Khung trang: thu hẹp còn 860px cho dòng không bị kéo dãn quá rộng ---------- */
+.container > .card, .container > .thanhcong, .container > .loi {
+  max-width:860px; margin-left:auto; margin-right:auto;
+}
+.container > h2 {
+  display:block; width:fit-content; margin:8px 0 22px max(0px, calc((100% - 860px) / 2));
+  font-size:clamp(26px, 4vw, 34px); font-weight:800; letter-spacing:.01em;
+  background:linear-gradient(90deg, var(--light-cyan), #fff 45%, var(--magenta));
+  -webkit-background-clip:text; background-clip:text; color:transparent;
+  text-shadow:none; filter:drop-shadow(0 0 14px rgba(0,217,255,.35));
+}
+
+/* ---------- Thẻ ---------- */
+.container > .card {
+  position:relative; overflow:hidden; margin-bottom:20px; padding:24px 24px 20px;
+  background:linear-gradient(180deg, #0d1a3c 0%, #0a1430 100%);
+  border:1px solid rgba(0,217,255,.35);
+  box-shadow:0 14px 40px rgba(0,0,0,.45), 0 0 26px rgba(0,217,255,.12), inset 0 1px 0 rgba(255,255,255,.06);
+  animation:banbe-vao .45s ease both;
+}
+.container > .card::before {                       /* vạch neon trên đỉnh thẻ */
+  content:""; position:absolute; inset:0 0 auto 0; height:3px; background:var(--gradient-neon);
+}
+.container > .card:nth-of-type(2) { animation-delay:.06s; }
+.container > .card:nth-of-type(3) { animation-delay:.12s; }
+.container > .card:nth-of-type(4) { animation-delay:.18s; }
+@keyframes banbe-vao { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:none; } }
+@media (prefers-reduced-motion: reduce) { .container > .card { animation:none; } }
+
+.container > .card > h3 {
+  display:flex; align-items:center; gap:10px; margin:0 0 18px;
+  font-size:17px; font-weight:700; letter-spacing:.05em; text-transform:uppercase;
+  color:var(--light-cyan); text-shadow:none;
+}
+.container > .card > h3::before {
+  content:""; width:4px; height:20px; border-radius:4px;
+  background:linear-gradient(180deg, var(--cyan), var(--purple)); box-shadow:0 0 10px rgba(0,217,255,.6);
+}
+
+/* Có lời mời chờ xử lý: thẻ nổi bật màu tím - hồng */
+.card.co-moi {
+  border-color:rgba(224,68,255,.65);
+  box-shadow:0 14px 40px rgba(0,0,0,.45), 0 0 30px rgba(224,68,255,.28), inset 0 0 18px rgba(139,53,255,.12);
+}
+.card.co-moi > h3 { color:#f3b6ff; }
+.card.co-moi > h3::before { background:linear-gradient(180deg, var(--magenta), var(--purple)); box-shadow:0 0 10px rgba(224,68,255,.7); }
+
+/* ---------- Ô tìm kiếm ---------- */
+.timkiem { gap:10px; }
+.timkiem input { padding:12px 16px; border-radius:12px; }
+.timkiem .btn { padding:0 26px; border-radius:12px; }
+.khoi-ketqua { margin-top:16px; }
+
+/* ---------- Mỗi người là một dòng dạng thẻ nhỏ ---------- */
+.dong, .dong:first-of-type {
+  padding:12px 14px; margin-bottom:8px; border:1px solid var(--mau-vien); border-radius:14px;
+  background:rgba(5,10,32,.45); transition:border-color .2s, background .2s, box-shadow .2s;
+}
+.dong:last-child { margin-bottom:0; }
+.dong:hover { border-color:rgba(0,217,255,.5); background:rgba(139,53,255,.10); box-shadow:0 0 16px rgba(0,217,255,.12); }
+
+.nguoi { gap:14px; }
+.nguoi > div { min-width:0; }
+.nguoi b { font-size:15px; font-weight:600; overflow-wrap:anywhere; }
+.nguoi .ghichu { margin-top:2px; font-size:12.5px; line-height:1.4; }
+.nguoi .ghichu b { color:var(--cyan); font-family:'Rajdhani', 'Be Vietnam Pro', sans-serif; font-size:15px; }
+
+.avatar-nho {
+  width:46px; height:46px; flex:0 0 46px; border:2px solid #0a1430;
+  box-shadow:0 0 0 2px rgba(0,217,255,.7), 0 0 14px rgba(0,217,255,.3);
+}
+.avatar-chu {
+  font-size:19px; color:#fff; background:var(--gradient-neon);
+  box-shadow:0 0 0 2px rgba(0,217,255,.7), 0 0 14px rgba(139,53,255,.45);
+}
+
+/* Cụm nút bên phải mỗi dòng */
+.dong > div:last-child { display:flex; align-items:center; flex-wrap:wrap; gap:8px; }
+.dong .btn { padding:7px 15px; font-size:14px; border-radius:10px; white-space:nowrap; }
+.dong .btn-phu { border:1px solid rgba(0,217,255,.7); }
+.dong .btn-phu:hover {                              /* Hủy / Từ chối: hover đỏ hồng để báo thao tác "tiêu cực" */
+  border-color:rgba(255,100,130,.75); color:#ff9db8; background:rgba(255,60,110,.10);
+  box-shadow:0 0 14px rgba(255,60,110,.25);
+}
+/* Nút "Thách đấu" có style inline trong PHP nên cần !important để đồng bộ kích thước */
+#danhsach a.btn-sm {
+  padding:7px 15px !important; border-radius:10px !important; font-size:14px;
+  white-space:nowrap; box-shadow:0 0 14px rgba(16,185,129,.35) !important;
+}
+
+/* Nhãn trạng thái: "Đã là bạn bè", "Đã gửi lời mời"... */
+.dong > div:last-child > .ghichu {
+  display:inline-block; margin:0; padding:3px 12px; font-size:12.5px; border-radius:999px;
+  border:1px solid var(--mau-vien); background:rgba(0,217,255,.08);
+}
+
+/* ---------- Trạng thái trống ---------- */
+.card > p.ghichu:not(.lien-ket-bxh), .khoi-ketqua > p.ghichu {
+  margin:0; padding:26px 16px; text-align:center; font-size:14px;
+  border:1px dashed var(--mau-vien); border-radius:12px; background:rgba(5,10,32,.35);
+}
+.lien-ket-bxh { margin:16px 0 0; text-align:right; font-size:14px; }
+.lien-ket-bxh a { color:var(--light-cyan); font-weight:600; }
+.khoi-ketqua .phantrang { text-align:center; margin-top:16px; }
+
 .form-dong { display:inline; }
-.khoi-ketqua { margin-top:12px; }
-.nguoi { display:flex; align-items:center; gap:10px; min-width:0; }
-.avatar-nho { width:38px; height:38px; flex:0 0 38px; border-radius:50%; object-fit:cover; border:1px solid var(--mau-vien); }
-.avatar-chu { display:inline-flex; align-items:center; justify-content:center; font-weight:700;
-              background:rgba(0,217,255,.14); color:var(--light-cyan); }
-.card.co-moi { border-color:var(--cyan); box-shadow:var(--glow-cyan); }   /* nổi bật khi có lời mời chờ xử lý */
-.lien-ket-bxh { margin:12px 0 0; }
-.lien-ket-bxh a { color:var(--light-cyan); }
+.card.co-moi { scroll-margin-top:80px; }
 :target { scroll-margin-top:80px; }   /* mốc #loimoi, #danhsach không bị thanh menu che */
+
+/* ---------- Điện thoại ---------- */
+@media (max-width: 560px) {
+  .container > .card { padding:20px 14px 16px; }
+  .dong { flex-direction:column; align-items:stretch; }
+  .dong > div:last-child { justify-content:flex-start; }
+  .timkiem .btn { padding:0 18px; }
+  .lien-ket-bxh { text-align:center; }
+}
