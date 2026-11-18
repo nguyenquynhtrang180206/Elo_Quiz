@@ -112,3 +112,67 @@
 .xuat-con { display:grid; grid-template-columns:1fr 1fr; gap:0 8px; margin:2px 0 4px 26px; }
 .xuat-con[hidden] { display:none; }
 .xuat-con .xuat-chon { margin-top:6px; font-size:13px; }
+
+/* ==========================================================================
+   ĐIỆN THOẠI (<= 720px): thu gọn lề, bộ lọc ngày xếp dọc, bảng thành dạng thẻ (không kéo ngang)
+   Sidebar -> nút 3 gạch đã có sẵn ở style_admin.css + sidebar_toggle.js
+   ========================================================================== */
+@media (max-width:720px) {
+  .ks { padding:14px; border-radius:16px; }
+  .ks-tieude { gap:10px; margin-bottom:12px; }
+  .ks-tieude h2 { font-size:20px; }
+  .ks-tieude p { font-size:12.5px; }
+  .ks-icon { width:38px; height:38px; border-radius:10px; }
+
+  /* Thẻ số liệu: 2 cột */
+  .ks-the { grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin-bottom:12px; }
+  .ks-so { padding:12px; }
+  .ks-so-nhan { font-size:12px; }
+  .ks-so-lon { font-size:24px; }
+  .ks-so-ngay { font-size:17px; }
+  .ks-so-phu { font-size:11.5px; }
+
+  /* Bộ lọc ngày */
+  .ks-loc { gap:10px; }
+  .ks-loc-ngay { width:100%; flex-wrap:wrap; gap:6px 8px; }
+  .ks-loc-ngay label { color:#3a3f63; margin:0; font-size:13px; }
+  .ks-loc-ngay input[type=date] { flex:1 1 120px; min-width:0; width:auto; border:1px solid var(--ks-vien); border-radius:8px; padding:6px 8px; background:#fff; }
+  .ks-loc-ngay .btn { flex:1 1 100%; }
+  .ks-loc-phai { width:100%; justify-content:space-between; gap:8px; }
+
+  /* Biểu đồ */
+  .ks-khung { padding:14px; }
+  .ks-bieudo { gap:12px; margin-bottom:12px; }
+  .ks-hinh { height:220px; }
+  .ks-donut { justify-content:center; }
+  .ks-donut-hinh, .ks-hinh { max-width:100%; overflow:hidden; }
+  .ks-donut-hinh canvas, .ks-hinh canvas { max-width:100%; }
+  .ks-chuthich { min-width:0; flex:1 1 100%; }
+
+  /* Bảng -> thẻ: mỗi dòng một khối, mỗi ô là "nhãn ........ giá trị" */
+  .ks-bang table { display:block; overflow:visible; }
+  .ks-bang tbody { display:block; }
+  .ks-bang tr { display:block; }
+  .ks-bang tr:first-child { display:none; }   /* dòng tiêu đề cột: đã có nhãn ở từng ô */
+  .ks-bang tr + tr { margin-top:10px; padding:10px 12px; border:1px solid var(--ks-vien); border-radius:12px; background:#fbfaff; }
+  .ks-bang td { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:6px 0; border-bottom:1px dashed #e6e3f7; text-align:right; font-size:13px; }
+  .ks-bang td:last-child { border-bottom:0; }
+  .ks-bang td::before { flex:none; max-width:45%; text-align:left; font-size:11px; font-weight:700; letter-spacing:.03em; text-transform:uppercase; color:#6b7094; }
+  .ks-bang td:first-child { display:block; text-align:left; font-weight:700; }
+  .ks-bang td:first-child::before { content:none; }
+  .ks-bang tbody tr:hover td { background:transparent; }
+  /* Chi tiết câu hỏi */
+  .ks-bang:not(.ks-sv) td:nth-child(2)::before { content:"Đáp án nhiều nhất"; }
+  .ks-bang:not(.ks-sv) td:nth-child(3)::before { content:"Số lượng"; }
+  .ks-bang:not(.ks-sv) td:nth-child(4)::before { content:"Tỷ lệ"; }
+  /* Chi tiết từng sinh viên */
+  .ks-sv td:nth-child(2)::before { content:"Trạng thái"; }
+  .ks-sv td:nth-child(3)::before { content:"Thời gian"; }
+  .ks-sv td:nth-child(4)::before { content:"Mục tiêu"; }
+  .ks-sv td:nth-child(5)::before { content:"Lĩnh vực"; }
+  .ks-sv td:nth-child(6)::before { content:"Trình độ"; }
+  .ks-sv td[colspan], .ks-bang td[colspan] { display:block; text-align:center; }
+
+  .ks-chantrang .phantrang span { margin-left:0; width:100%; text-align:center; }
+  .xuat-con { grid-template-columns:1fr; margin-left:18px; }
+}

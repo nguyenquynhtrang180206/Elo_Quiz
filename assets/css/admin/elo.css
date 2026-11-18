@@ -159,6 +159,76 @@
   .admin-noidung .elo-arena .ea-bieudo-luoi { grid-template-columns:1fr; }
 }
 @media (max-width:720px) {
-  .admin-noidung .elo-arena .ea-o, .admin-noidung .elo-arena .ea-nut { width:100% !important; justify-content:center; }
+  /* Tab: 1 hàng cuộn ngang, không xuống dòng lộn xộn */
+  .admin-noidung .elo-arena .ea-tabs { flex-wrap:nowrap; overflow-x:auto; gap:6px; padding-bottom:4px; margin-bottom:12px; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
+  .admin-noidung .elo-arena .ea-tabs::-webkit-scrollbar { display:none; }
+  .admin-noidung .elo-arena .ea-tab { flex:none; padding:8px 14px; font-size:12.5px; white-space:nowrap; }
+  .admin-noidung .elo-arena .ea-note { padding:10px 12px; font-size:12.5px; }
+  .admin-noidung .elo-arena .ea-note-link { display:block; margin:6px 0 0; white-space:normal; }
+
+  /* Biểu đồ */
+  .admin-noidung .elo-arena .ea-bieudo-luoi, .admin-noidung .elo-arena .ea-luoi, .admin-noidung .elo-arena .ea-ben { gap:14px; }
+  .admin-noidung .elo-arena .ea-bieudo-khung { padding:16px; }
+  .admin-noidung .elo-arena .ea-bieudo { height:200px; }
+  .admin-noidung .elo-arena .ea-tron { justify-content:flex-start; }
+
+  /* Bộ lọc: các ô xếp dọc, rộng hết dòng */
+  .admin-noidung .elo-arena .ea-loc { padding:14px; gap:8px; }
+  .admin-noidung .elo-arena .ea-o, .admin-noidung .elo-arena input.ea-o, .admin-noidung .elo-arena select.ea-o, .admin-noidung .elo-arena .ea-nut { width:100% !important; max-width:100% !important; flex:1 1 100%; justify-content:center; text-align:center; }
+  .admin-noidung .elo-arena .ea-o-tim, .admin-noidung .elo-arena input.ea-o-tim { min-width:0; flex:1 1 100%; }
   .admin-noidung .elo-arena .ea-phai { margin-left:0; }
+  .admin-noidung .elo-arena .ea-ghichu { padding:10px 14px; }
+  .admin-noidung .elo-arena .ea-pt { padding:0 14px 14px; }
+
+  /* Bảng -> dạng thẻ, không phải kéo ngang; ẩn dòng tiêu đề cột */
+  .admin-noidung .elo-arena .ea-bang { overflow-x:visible; }
+  .admin-noidung .elo-arena .ea-dau { display:none; }
+  .admin-noidung .elo-arena .ea-xh .ea-dong,
+  .admin-noidung .elo-arena .ea-tra .ea-dong,
+  .admin-noidung .elo-arena .ea-bd .ea-dong { min-width:0; padding:12px 14px; }
+
+  /* Bảng xếp hạng: [hạng] [người dùng] [Elo] / [bậc] [trạng thái] */
+  .admin-noidung .elo-arena .ea-xh .ea-dong {
+    grid-template-columns:30px minmax(0,1fr) auto; grid-template-areas:"h n e" "h b t"; column-gap:10px; row-gap:6px;
+  }
+  .admin-noidung .elo-arena .ea-xh .ea-dong > :nth-child(1) { grid-area:h; align-self:start; text-align:center; padding-top:8px; }
+  .admin-noidung .elo-arena .ea-xh .ea-dong > :nth-child(2) { grid-area:n; }
+  .admin-noidung .elo-arena .ea-xh .ea-dong > :nth-child(3) { grid-area:b; }
+  .admin-noidung .elo-arena .ea-xh .ea-dong > :nth-child(4) { grid-area:e; text-align:right; white-space:nowrap; }
+  .admin-noidung .elo-arena .ea-xh .ea-dong > :nth-child(5) { grid-area:t; justify-self:end; }
+  .admin-noidung .elo-arena .ea-ten { overflow:hidden; text-overflow:ellipsis; }
+  .admin-noidung .elo-arena .ea-nd > div { min-width:0; }
+
+  /* Tra cứu Elo + Biến động: mỗi dòng là một thẻ 2 cột, có nhãn nhỏ phía trên từng giá trị */
+  .admin-noidung .elo-arena .ea-tra .ea-dong,
+  .admin-noidung .elo-arena .ea-bd .ea-dong { grid-template-columns:1fr 1fr; gap:10px 14px; }
+  .admin-noidung .elo-arena .ea-tra .ea-dong > :nth-child(1),
+  .admin-noidung .elo-arena .ea-bd .ea-dong > :nth-child(1) { grid-column:1 / -1; }
+  .admin-noidung .elo-arena .ea-tra .ea-dong > :nth-child(n+2),
+  .admin-noidung .elo-arena .ea-bd .ea-dong > :nth-child(n+2) { min-width:0; }
+  .admin-noidung .elo-arena .ea-tra .ea-dong > :nth-child(n+2)::before,
+  .admin-noidung .elo-arena .ea-bd .ea-dong > :nth-child(n+2)::before {
+    display:block; margin-bottom:2px; font-size:10.5px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--ea-phu);
+  }
+  .admin-noidung .elo-arena .ea-tra .ea-dong > :nth-child(2)::before { content:"Môn"; }
+  .admin-noidung .elo-arena .ea-tra .ea-dong > :nth-child(3)::before { content:"Bậc · Elo"; }
+  .admin-noidung .elo-arena .ea-tra .ea-dong > :nth-child(4)::before { content:"Số trận"; }
+  .admin-noidung .elo-arena .ea-tra .ea-dong > :nth-child(5)::before { content:"Thắng / Thua / Hòa"; }
+  .admin-noidung .elo-arena .ea-tra .ea-dong > :nth-child(6)::before { content:"Tỷ lệ thắng"; }
+  .admin-noidung .elo-arena .ea-tra .ea-dong > :nth-child(6) { grid-column:1 / -1; }
+  .admin-noidung .elo-arena .ea-tra .ea-dong > :nth-child(3) { display:flex; flex-wrap:wrap; align-items:center; gap:0 8px; }
+  .admin-noidung .elo-arena .ea-tra .ea-dong > :nth-child(3)::before { flex:0 0 100%; }
+  .admin-noidung .elo-arena .ea-bd .ea-dong > :nth-child(2)::before { content:"Môn"; }
+  .admin-noidung .elo-arena .ea-bd .ea-dong > :nth-child(3)::before { content:"Elo đầu kỳ → cuối kỳ"; }
+  .admin-noidung .elo-arena .ea-bd .ea-dong > :nth-child(4)::before { content:"Thay đổi"; }
+  .admin-noidung .elo-arena .ea-bd .ea-dong > :nth-child(5)::before { content:"Số trận trong kỳ"; }
+  .admin-noidung .elo-arena .ea-bd .ea-dong > :nth-child(6)::before { content:"Trạng thái"; }
+
+  /* Hồ sơ bên phải */
+  .admin-noidung .elo-arena .ea-hoso { padding:18px 14px; }
+  .admin-noidung .elo-arena .ea-so-lon { font-size:34px; }
+}
+@media (max-width:380px) {
+  .admin-noidung .elo-arena .ea-kv { gap:6px; }
+  .admin-noidung .elo-arena .ea-kv b { font-size:14px; }
 }

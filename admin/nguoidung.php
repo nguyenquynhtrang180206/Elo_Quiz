@@ -1,7 +1,6 @@
 <?php
 // Danh sách người dùng (UC11: A-11, A-45). Đặt tại: elo_quiz/admin/nguoidung.php
 require_once __DIR__ . '/../core/bootstrap.php';
-require_once __DIR__ . '/../core/XlsxWriter.php';
 require_once __DIR__ . '/../core/ThongBaoHelper.php';
 Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');   // A-04
 
@@ -81,38 +80,7 @@ $thongBao = [
     'loi'            => ['loi', 'Không thực hiện được: tài khoản đã đổi trạng thái trước đó hoặc không được phép khóa.'],
 ][$_GET['kq'] ?? ''] ?? null;
 
-// ---- A-45: xuất Excel theo đúng bộ lọc đang xem ----
-if (isset($_GET['xuat'])) {
-    $st = $pdo->prepare("SELECT $cotChon FROM NGUOIDUNG n $where ORDER BY n.NgayTao DESC, n.MaND DESC LIMIT 10000");
-    $st->execute($tham);
-    $nguoi = $st->fetchAll();
-
-    $monHoc = $pdo->query('SELECT MaMon, TenMon FROM MONHOC ORDER BY MaMon')->fetchAll();
-
-    $st = $pdo->prepare("SELECT e.MaND, e.MaMon, e.DiemElo FROM ELOMONHOC e JOIN NGUOIDUNG n ON n.MaND = e.MaND $where");
-    $st->execute($tham);
-    $elo = [];
-    foreach ($st as $r) {
-        $elo[(int) $r['MaND']][(int) $r['MaMon']] = (int) $r['DiemElo'];
-    }
-
-    $tieuDe = ['Họ tên', 'Email', 'Trạng thái'];
-    foreach ($monHoc as $m) {
-        $tieuDe[] = 'Elo - ' . $m['TenMon'];
-    }
-    $tieuDe[] = 'Số trận';
-
-    $dong = [];
-    foreach ($nguoi as $r) {
-        $d = [$r['HoTen'], $r['Email'], $r['TrangThai']];
-        foreach ($monHoc as $m) {
-            $d[] = $elo[(int) $r['MaND']][(int) $m['MaMon']] ?? null;   // chưa chơi môn nào thì để trống
-        }
-        $d[]    = (int) $r['so_tran'];
-        $dong[] = $d;
-    }
-    XlsxWriter::tai('nguoidung_' . date('Ymd_His') . '.xlsx', 'Người dùng', $tieuDe, $dong);
-}
+// ---- A-45: xuất Excel / PDF qua hộp thoại "Xuất" (xử lý ở admin/nguoidung_xuat.php, theo đúng bộ lọc đang xem) ----
 
 // ---- Danh sách có phân trang (20 dòng/trang, có hiển thị tổng số) ----
 $st = $pdo->prepare("SELECT COUNT(*) FROM NGUOIDUNG n $where");
@@ -129,7 +97,6 @@ $ds = $st->fetchAll();
 
 
 
-$linkXuat = '?' . http_build_query(array_merge(array_diff_key($_GET, ['page' => 1, 'kq' => 1]), ['xuat' => 1]));
 
 // ---- Số liệu cho sơ đồ phía trên (không phụ thuộc bộ lọc) ----
 $loaiAdmin = 'n.MaND NOT IN (SELECT MaND FROM ADMIN WHERE MaND IS NOT NULL)';
@@ -160,8 +127,8 @@ $jsonFlag = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_U
 
 $tieuDe  = 'Người dùng';
 $mucChon = 'nguoidung';
-$cssTrang = 'nguoidung';
-$jsTrang  = 'nguoidung';
+$cssTrang = ['thongke_xuat', 'nguoidung'];   // nguoidung nạp sau để ghi đè giao diện hộp thoại Xuất (nền trắng)
+$jsTrang  = ['nguoidung', 'nguoidung_xuat'];
 $giaoDienMoi = true;   // khung giao diện sáng mới (sidebar xanh + thanh trên + breadcrumb)
 require __DIR__ . '/layout/header.php';
 ?>
@@ -217,7 +184,7 @@ require __DIR__ . '/layout/header.php';
       <button type="submit" class="nd-nut">Tìm</button>
       <a class="nd-nut nd-nut-vien" href="?">Xóa lọc</a>
       <span class="nd-giua"></span>
-      <a class="nd-nut nd-nut-vien" href="<?= e($linkXuat) ?>">Xuất Excel</a>
+      <button type="button" class="nd-nut nd-nut-vien" id="ndMoXuat" aria-haspopup="dialog">Xuất Excel / PDF</button>
     </form>
 
     <?php if (!$ds): ?>
@@ -231,15 +198,15 @@ require __DIR__ . '/layout/header.php';
           <tbody>
           <?php foreach ($ds as $r): $biKhoa = $r['TrangThai'] === 'Bị khóa'; ?>
             <tr>
-              <td class="nd-ma"><?= (int) $r['MaND'] ?></td>
-              <td><a href="<?= e(BASE_URL) ?>/admin/nguoidung_chitiet.php?id=<?= (int) $r['MaND'] ?>"><?= e($r['HoTen']) ?></a></td>
-              <td><?= e($r['Email']) ?></td>
-              <td><?= (int) $r['so_tran'] ?></td>
-              <td><?= $biKhoa
+              <td class="nd-ma" data-label="Mã"><?= (int) $r['MaND'] ?></td>
+              <td data-label="Họ tên"><a href="<?= e(BASE_URL) ?>/admin/nguoidung_chitiet.php?id=<?= (int) $r['MaND'] ?>"><?= e($r['HoTen']) ?></a></td>
+              <td data-label="Email"><?= e($r['Email']) ?></td>
+              <td data-label="Số trận"><?= (int) $r['so_tran'] ?></td>
+              <td data-label="Trạng thái"><?= $biKhoa
                     ? '<span class="tt-badge tt-khoa"><span class="badge-dot"></span> Bị khóa</span>'
                     : '<span class="tt-badge tt-hoatdong"><span class="badge-dot"></span> Hoạt động</span>' ?></td>
-              <td><?= e(date('d/m/Y H:i', strtotime($r['NgayTao']))) ?></td>
-              <td>
+              <td data-label="Ngày tạo"><?= e(date('d/m/Y H:i', strtotime($r['NgayTao']))) ?></td>
+              <td data-label="Thao tác">
                 <button type="button" class="nd-khoa-nut <?= $biKhoa ? 'mo' : 'khoa' ?>"
                         data-id="<?= (int) $r['MaND'] ?>" data-ten="<?= e($r['HoTen']) ?>"
                         data-hanh-dong="<?= $biKhoa ? 'mokhoa' : 'khoa' ?>">
@@ -274,4 +241,57 @@ require __DIR__ . '/layout/header.php';
 </dialog>
 
 <script src="<?= e(BASE_URL) ?>/assets/vendor/chart.umd.js"></script>
+<!-- Hộp thoại Xuất người dùng (Excel / PDF): cùng giao diện với hộp thoại Xuất của trang Tổng quan (modal-nen, modal xuat-hop);
+     cột trái chọn phạm vi, trường và định dạng, cột phải xem trước. Xử lý ở nguoidung_xuat.php -->
+<div class="modal-nen" id="ndXuatHop" hidden>
+  <form class="modal xuat-hop nd-xuat-hop" id="ndXuatForm" method="post" action="<?= e(BASE_URL) ?>/admin/nguoidung_xuat.php" role="dialog" aria-modal="true" aria-labelledby="ndXuatTieuDe">
+    <h3 id="ndXuatTieuDe">Xuất danh sách người dùng</h3>
+    <?= csrf_field() ?>
+    <input type="hidden" name="q" value="<?= e($q) ?>">
+    <input type="hidden" name="tt" value="<?= e($tt) ?>">
+    <div class="xuat-luoi">
+      <div class="xuat-chonCot">
+        <fieldset>
+          <legend>Xuất phạm vi nào?</legend>
+          <label class="xuat-chon"><input type="radio" name="pham_vi" value="loc" checked> Đang lọc <span class="xuat-phu">(<?= number_format($p->tong(), 0, ',', '.') ?> người dùng, mọi trang)</span></label>
+          <label class="xuat-chon"><input type="radio" name="pham_vi" value="tatca"> Toàn bộ người dùng <span class="xuat-phu">(<?= number_format((int) $tk['tong'], 0, ',', '.') ?> người dùng)</span></label>
+        </fieldset>
+        <fieldset>
+          <legend>Nội dung xuất</legend>
+          <label class="xuat-chon"><input type="checkbox" name="noidung[]" value="ds" checked> Danh sách người dùng <span class="xuat-phu">(bảng)</span></label>
+          <label class="xuat-chon"><input type="checkbox" name="noidung[]" value="tk" checked> Sơ đồ trạng thái tài khoản</label>
+          <label class="xuat-chon"><input type="checkbox" name="noidung[]" value="ngay" checked> Sơ đồ tài khoản mới 30 ngày</label>
+        </fieldset>
+        <fieldset id="ndTruongBox">
+          <legend>Chọn trường của danh sách</legend>
+          <?php foreach ([
+              'ma' => 'Mã', 'ten' => 'Họ tên', 'email' => 'Email', 'tt' => 'Trạng thái',
+              'sotran' => 'Số trận', 'ngay' => 'Ngày tạo', 'elo' => 'Điểm Elo theo từng môn',
+          ] as $k => $ten): ?>
+            <label class="xuat-chon"><input type="checkbox" name="truong[]" value="<?= e($k) ?>" checked> <?= e($ten) ?></label>
+          <?php endforeach; ?>
+          <div class="nd-xuat-nut">
+            <button type="button" class="btn btn-phu xuat-tatca" id="ndChonHet">Chọn tất cả</button>
+            <button type="button" class="btn btn-phu xuat-tatca" id="ndBoChon">Bỏ chọn</button>
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend>Định dạng</legend>
+          <label class="xuat-chon"><input type="radio" name="dinhdang" value="excel" checked> Excel (.xlsx)</label>
+          <label class="xuat-chon"><input type="radio" name="dinhdang" value="pdf"> PDF</label>
+          <label class="xuat-chon"><input type="radio" name="dinhdang" value="ca"> Cả hai (tải liên tiếp 2 file)</label>
+        </fieldset>
+      </div>
+      <div class="xuat-xemCot">
+        <div class="xuat-xemDau">Xem trước <small id="ndXemGhiChu"></small></div>
+        <div class="xuat-xem" id="ndXem"><p class="xuat-ghichu">Đang tải...</p></div>
+      </div>
+    </div>
+    <p class="xuat-loi" id="ndXuatLoi" hidden></p>
+    <div class="hanh-dong">
+      <button type="button" class="btn btn-phu" id="ndXuatHuy">Hủy</button>
+      <button type="submit" class="btn" id="ndXuatOk">Xuất</button>
+    </div>
+  </form>
+</div>
 <?php require __DIR__ . '/layout/footer.php'; ?>

@@ -375,7 +375,7 @@ require __DIR__ . '/layout/header.php';
       </div>
     <?php else: ?>
       <div class="td-bang-cuon">
-        <table class="td-bang">
+        <table class="td-bang td-bang-the">
           <thead>
             <tr><th>Trận</th><th>Đối đầu</th><th>Trạng thái</th><th>Thời gian</th><th></th></tr>
           </thead>
@@ -405,7 +405,7 @@ require __DIR__ . '/layout/header.php';
                 <?php endif; ?>
               </td>
 
-              <td>
+              <td class="td-c-vs">
                 <?php if (count($nguoi) === 2): ?>
                   <div class="td-vs">
                     <?php foreach ($nguoi as $i => $x):
@@ -430,7 +430,7 @@ require __DIR__ . '/layout/header.php';
                 <?php endif; ?>
               </td>
 
-              <td>
+              <td data-label="Trạng thái">
                 <span class="dam nhan-trang-thai <?= e($lopTT[$r['TrangThai']] ?? '') ?>"><?= e($r['TrangThai']) ?></span>
                 <?php if ($nhan !== null): ?>
                   <span class="td-tt-phu td-tt-co">&#9888; <?= e($nhan) ?></span>
@@ -439,7 +439,7 @@ require __DIR__ . '/layout/header.php';
                 <?php endif; ?>
               </td>
 
-              <td class="td-gio">
+              <td class="td-gio" data-label="Thời gian">
                 <?php if ($r['ThoiGianBatDau']): ?>
                   <b><?= e(date('H:i:s', strtotime($r['ThoiGianBatDau']))) ?> <small><?= e(date('d/m/Y', strtotime($r['ThoiGianBatDau']))) ?></small></b>
                 <?php else: ?>

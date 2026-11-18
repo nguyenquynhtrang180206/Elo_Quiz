@@ -76,7 +76,7 @@ $chuCaiAdmin = mb_strtoupper(mb_substr(trim($tenAdmin), 0, 1)) ?: 'A';
   <link rel="stylesheet" href="<?= e(BASE_URL) ?>/assets/style.css?v=<?= (int) @filemtime(__DIR__ . '/../../assets/style.css') ?>">
   <link rel="stylesheet" href="<?= e(BASE_URL) ?>/assets/style_admin.css?v=<?= (int) @filemtime(__DIR__ . '/../../assets/style_admin.css') ?>">
   <?php if ($giaoDienMoi): ?>
-  <link rel="stylesheet" href="<?= e(BASE_URL) ?>/assets/css/admin/khung.css">
+  <link rel="stylesheet" href="<?= e(BASE_URL) ?>/assets/css/admin/khung.css?v=<?= (int) @filemtime(__DIR__ . '/../../assets/css/admin/khung.css') ?>">
   <?php endif; ?>
   <?php foreach ($cssTrang as $f): ?>
   <link rel="stylesheet" href="<?= e(BASE_URL) ?>/assets/css/admin/<?= e($f) ?>.css?v=<?= (int) @filemtime(__DIR__ . '/../../assets/css/admin/' . $f . '.css') ?>">
@@ -97,7 +97,13 @@ $chuCaiAdmin = mb_strtoupper(mb_substr(trim($tenAdmin), 0, 1)) ?: 'A';
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/><path d="m13 15 3-3-3-3"/></svg>
   <span>Menu</span>
 </button>
+<!-- Nút 3 gạch: chỉ hiện trên điện thoại, bấm để mở menu -->
+<button type="button" class="admin-hamburger" id="adminHamburger" aria-label="Mở menu điều hướng" aria-controls="adminSidebar" aria-expanded="false">
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
+</button>
 <div class="admin-khung">
+  <!-- Lớp nền mờ phía sau menu trượt (điện thoại); bấm vào để đóng menu -->
+  <div class="sidebar-overlay" id="sidebarOverlay" aria-hidden="true"></div>
   <nav class="sidebar" id="adminSidebar" aria-label="Menu quản trị">
     <div class="logo">
       <img class="quizup-logo-emblem" src="<?= e(BASE_URL) ?>/assets/img/quizup-emblem.svg" alt="" width="44" height="44">
@@ -131,7 +137,9 @@ $chuCaiAdmin = mb_strtoupper(mb_substr(trim($tenAdmin), 0, 1)) ?: 'A';
   <span>Menu</span>
 </button>
 <div class="admin-khung">
-  <nav class="sidebar" aria-label="Menu quản trị">
+  <!-- Lớp nền mờ phía sau menu trượt (điện thoại); bấm vào để đóng menu -->
+  <div class="sidebar-overlay" id="sidebarOverlay" aria-hidden="true"></div>
+  <nav class="sidebar" id="adminSidebar" aria-label="Menu quản trị">
     <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; padding-bottom:8px; border-bottom:1px solid rgba(255,255,255,0.08);">
       <a class="logo" href="<?= e(BASE_URL) ?>/admin/index.php" style="margin-bottom:0; padding-bottom:0; border-bottom:none;">
         <img class="quizup-logo-emblem" src="<?= e(BASE_URL) ?>/assets/img/quizup-emblem.svg" alt="" width="44" height="44">
@@ -159,7 +167,12 @@ $chuCaiAdmin = mb_strtoupper(mb_substr(trim($tenAdmin), 0, 1)) ?: 'A';
   </nav>
 
   <div class="admin-chinh">
-    <header class="thanh-tren">
+    <header class="thanh-tren<?= $mucChon === 'nguoidung' ? ' thanh-tren-trong' : '' ?>">
+      <!-- Nút 3 gạch: chỉ hiện trên điện thoại, bấm để mở menu -->
+      <button type="button" class="admin-hamburger" id="adminHamburger" aria-label="Mở menu điều hướng" aria-controls="adminSidebar" aria-expanded="false">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
+      </button>
+      <?php if ($mucChon !== 'nguoidung'): ?>
       <!-- Ô tìm kiếm nhanh: có trong ảnh thiết kế nhưng code gốc chưa có chức năng tương ứng, hiện chỉ là giao diện -->
       <label class="tt-tim"><?= $svg('tim', 18) ?><input type="search" placeholder="Tìm kiếm nhanh..." aria-label="Tìm kiếm nhanh" autocomplete="off"></label>
       <div class="tt-phai">
@@ -186,6 +199,7 @@ $chuCaiAdmin = mb_strtoupper(mb_substr(trim($tenAdmin), 0, 1)) ?: 'A';
           <?= $svg('xuong', 16) ?>
         </div>
       </div>
+      <?php endif; ?>
     </header>
 
     <main class="admin-noidung">

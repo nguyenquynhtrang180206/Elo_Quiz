@@ -500,10 +500,10 @@ require __DIR__ . '/layout/header.php';
             $an    = $r['TrangThai'] === 'Đã ẩn';
             $mucO  = static fn (int $n): string => $n >= 80 ? 'mh-o3' : ($n >= 30 ? 'mh-o2' : 'mh-o1'); ?>
           <tr<?= $an ? ' class="mh-da-an"' : '' ?>>
-            <td><span class="mh-ten"><span class="mh-chip mh-c<?= $mm % 5 ?>"><?= $svgMon(mh_bieu_tuong($r['TenMon']), 18) ?></span><span class="mh-ten-chu" title="<?= e((string) $r['MoTa']) ?>"><?= e($r['TenMon']) ?></span><?= $an ? '<span class="mh-tt mh-tt-an">Đã ẩn</span>' : '' ?></span></td>
+            <td class="mh-td-ten"><span class="mh-ten"><span class="mh-chip mh-c<?= $mm % 5 ?>"><?= $svgMon(mh_bieu_tuong($r['TenMon']), 18) ?></span><span class="mh-ten-chu" title="<?= e((string) $r['MoTa']) ?>"><?= e($r['TenMon']) ?></span><?= $an ? '<span class="mh-tt mh-tt-an">Đã ẩn</span>' : '' ?></span></td>
             <?php foreach ($cotKT as $k):
                 $n = $soO[$mm][(int) $k['MaLoaiKT']] ?? 0; ?>
-              <td class="giua">
+              <td class="giua" data-label="<?= e($k['TenLoaiKT']) ?>">
                 <?php if ($n > 0): ?>
                   <a class="mh-o <?= $mucO($n) ?>" href="<?= e(BASE_URL . '/admin/cauhoi.php?' . http_build_query(['mon' => $mm, 'kt' => (int) $k['MaLoaiKT']])) ?>" title="Xem <?= $n ?> câu hỏi"><?= $n ?></a>
                 <?php elseif (!$an): ?>
@@ -513,7 +513,7 @@ require __DIR__ . '/layout/header.php';
                 <?php endif; ?>
               </td>
             <?php endforeach; ?>
-            <td class="giua">
+            <td class="giua" data-label="Dùng chung cả hai">
               <?php $nc = $soO[$mm]['chung'] ?? 0; ?>
               <?php if ($nc > 0): ?>
                 <a class="mh-o <?= $mucO($nc) ?>" href="<?= e(BASE_URL . '/admin/cauhoi.php?' . http_build_query(['mon' => $mm, 'kt' => 'chung'])) ?>" title="Xem <?= $nc ?> câu hỏi dùng chung"><?= $nc ?></a>
@@ -521,8 +521,8 @@ require __DIR__ . '/layout/header.php';
                 <span class="mh-o mh-o0">&mdash;</span>
               <?php endif; ?>
             </td>
-            <td class="giua"><?= (int) $r['so_tran'] ?></td>
-            <td class="giua khong-ngat">
+            <td class="giua" data-label="Trận đấu"><?= (int) $r['so_tran'] ?></td>
+            <td class="giua khong-ngat" data-label="Thao tác">
               <span class="mh-thao-tac">
                 <button type="button" class="mh-nut mh-nut-sua" data-sua-mon
                         data-id="<?= $mm ?>" data-ten="<?= e($r['TenMon']) ?>" data-mota="<?= e((string) $r['MoTa']) ?>">Sửa</button>

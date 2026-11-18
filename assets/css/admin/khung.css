@@ -63,6 +63,7 @@ body.admin-moi {
 
 /* ---------- Thanh trên ---------- */
 .admin-moi .thanh-tren { display:flex; align-items:center; justify-content:space-between; gap:16px; height:72px; padding:0 24px 0 28px; flex:none; position:relative; z-index:20; }
+.admin-moi .thanh-tren.thanh-tren-trong { height:0; padding:0; }   /* trang Người dùng: bỏ thanh trên, chỉ còn nút 3 gạch trên điện thoại */
 .admin-moi .tt-tim {
   display:flex; align-items:center; gap:10px; margin:0; width:min(410px,100%); height:40px; padding:0 16px; border-radius:999px;
   background:rgba(8,28,110,.55); border:1px solid rgba(150,190,255,.45); color:rgba(255,255,255,.85); font-weight:400;
@@ -166,16 +167,36 @@ body.admin-moi {
 .admin-moi .admin-noidung .phantrang a:hover { border-color:var(--kh-xanh); box-shadow:none; }
 .admin-moi .admin-noidung .phantrang strong { background:var(--kh-xanh); color:#fff; border-color:var(--kh-xanh); }
 
-/* ---------- Màn hình nhỏ ---------- */
-@media (max-width:900px) {
-  .admin-moi .admin-khung { grid-template-columns:1fr; }
-  .admin-moi .sidebar { position:static; height:auto; flex-direction:row; flex-wrap:wrap; align-items:center; gap:4px; padding:10px; overflow:visible; }
-  .admin-moi .sidebar .logo { flex-direction:row; gap:8px; width:100%; padding:0 6px 6px; }
-  .admin-moi .sidebar .quizup-logo-emblem { width:36px; height:36px; }
-  .admin-moi .menu-chinh, .admin-moi .menu-phu { display:flex; flex-wrap:wrap; gap:4px; margin:0; padding:0; border:0; }
-  .admin-moi .menu-chinh a, .admin-moi .menu-phu a { height:36px; }
-  .admin-moi .sidebar-cup { display:none; }
-  .admin-moi .thanh-tren { padding:0 14px; }
-  .admin-moi .tt-admin b { display:none; }
+/* ---------- Điện thoại (<= 768px): sidebar thành menu trượt, mở bằng nút 3 gạch ---------- */
+@media (max-width:768px) {
+  .admin-moi .admin-khung { grid-template-columns:minmax(0,1fr); }
+
+  /* Sidebar -> ngăn kéo trượt từ mép trái (hiệu ứng mở/đóng và nền mờ dùng chung với style_admin.css) */
+  .admin-moi .sidebar {
+    position:fixed; top:0; left:0; bottom:0; z-index:910;
+    width:min(84vw,300px); max-width:300px; height:100vh; height:100dvh;
+    padding:18px 10px 0; border-radius:0 18px 18px 0; overflow-y:auto; overflow-x:hidden;
+    display:flex; flex-direction:column; flex-wrap:nowrap; gap:0;
+    transform:translateX(-105%); visibility:hidden; overscroll-behavior:contain;
+  }
+  body.admin-moi.sidebar-open .sidebar { transform:translateX(0); visibility:visible; }
+  .admin-moi .sidebar .logo { width:auto; padding:0 0 12px; }
+  .admin-moi .menu-chinh a, .admin-moi .menu-phu a { height:42px; }
+  .admin-moi .menu-chinh, .admin-moi .menu-phu { display:block; }
+
+  /* Thanh trên: [nút 3 gạch] [ô tìm kiếm] [chuông + tên] */
+  .admin-moi .thanh-tren { gap:10px; padding:0 12px; height:64px; }
+  .admin-moi .thanh-tren.thanh-tren-trong { height:56px; padding:0 12px; }
+  .admin-moi .admin-hamburger {
+    position:static; flex:none; width:40px; height:40px; z-index:auto;
+    background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.35); color:#fff;
+    box-shadow:none; backdrop-filter:none; -webkit-backdrop-filter:none;
+  }
+  .admin-moi .tt-tim { flex:1; width:auto; min-width:0; }
+  .admin-moi .tt-phai { gap:8px; flex:none; }
+  .admin-moi .tt-vach, .admin-moi .tt-admin b, .admin-moi .tt-admin > svg { display:none; }
+  .admin-moi .tt-ava { width:38px; height:38px; font-size:16px; }
+  .admin-moi .adm-tb-hop { position:fixed; top:68px; left:4vw; right:4vw; width:auto; }
+
   .admin-moi .admin-noidung { border-top-left-radius:0; padding:14px; }
 }

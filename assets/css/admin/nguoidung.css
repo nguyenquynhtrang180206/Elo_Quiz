@@ -86,3 +86,159 @@ dialog.nd-hop::backdrop { background:rgba(8,20,70,.55); }
 
 @media (max-width:1000px) { .admin-noidung .nd-so-do { grid-template-columns:1fr; } }
 @media (max-width:640px) { .admin-noidung .nd-banh { flex-direction:column; align-items:flex-start; } }
+
+/* ===== Điện thoại: trang Người dùng ===== */
+@media (max-width:768px) {
+  .admin-noidung .nd-dau { flex-wrap:wrap; align-items:center; gap:4px 12px; }
+  .admin-noidung .nd-tieude { font-size:20px; }
+  .admin-noidung .nd-so-do-trai, .admin-noidung .nd-so-do-phai { padding:14px; }
+  .admin-noidung .nd-so-do-tieude { flex-wrap:wrap; gap:2px 10px; }
+  .admin-noidung .nd-cot-khung { height:150px; }
+
+  /* Thanh công cụ: ô tìm kiếm full ngang, các nút xếp đều */
+  .admin-noidung .nd-thanh-cu { padding:12px; gap:8px; }
+  .admin-noidung input.nd-o-tim { flex:1 1 100%; max-width:none; height:42px; }
+  .admin-noidung select.nd-chon { flex:1 1 140px; height:42px; }
+  .admin-noidung .nd-nut, .admin-noidung button.nd-nut { height:42px; }
+  .admin-noidung .nd-giua { display:none; }
+  .admin-noidung .nd-thanh-cu .nd-nut-vien:last-child { flex:1 1 100%; }
+
+  /* Bảng -> danh sách thẻ: mỗi người dùng là một thẻ, mỗi ô có nhãn bên trái */
+  .admin-noidung .nd-cuon { overflow-x:visible; }
+  .admin-noidung table.nd-bang, .admin-noidung table.nd-bang tbody,
+  .admin-noidung table.nd-bang tr, .admin-noidung table.nd-bang td { display:block; width:100%; box-sizing:border-box; }
+  .admin-noidung table.nd-bang thead { display:none; }
+  .admin-noidung table.nd-bang tbody tr { padding:10px 14px; border-bottom:1px solid #e1e8f7; }
+  .admin-noidung table.nd-bang tbody tr:last-child { border-bottom:0; }
+  .admin-noidung table.nd-bang td {
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    padding:6px 0; border-bottom:0 !important; text-align:right; word-break:break-word;
+  }
+  .admin-noidung table.nd-bang td::before {
+    content:attr(data-label); flex:none; text-align:left; font-size:12.5px; font-weight:600; color:#6b7694;
+  }
+  .admin-noidung td.nd-ma { width:100%; }
+  .admin-noidung table.nd-bang tbody tr:hover td { background:transparent; }
+  .admin-noidung .nd-khoa-nut { height:36px; }
+  .admin-noidung .nd-chan { padding:10px 12px; }
+
+  /* Hộp xác nhận khóa */
+  .nd-hop-form { padding:18px; }
+  .nd-hop-nut { flex-direction:column-reverse; }
+  .nd-hop-nut .nd-nut { width:100%; }
+}
+/* ---------- Hộp thoại Xuất (Excel / PDF) ----------
+   Dùng chung giao diện hộp thoại Xuất của trang Tổng quan (modal-nen, modal xuat-hop, xuat-* trong thongke_xuat.css). */
+.xuat-hop.nd-xuat-hop { width:min(1040px, 100%); }
+.nd-xuat-hop .xuat-luoi { grid-template-columns:280px minmax(0, 1fr); align-items:stretch; }
+.nd-xuat-hop .xuat-phu { opacity:.65; font-size:13px; }
+.nd-xuat-hop .xuat-xemDau small { font-weight:400; font-size:13px; opacity:.75; margin-left:6px; }
+.nd-xuat-nut { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+.nd-xuat-nut .xuat-tatca { margin-top:0; }
+.nd-xuat-hop .xuat-xemCot { position:relative; min-height:360px; }
+.nd-xuat-hop .xuat-xem { position:absolute; inset:30px 0 0 0; max-height:none; }
+@media (max-width:760px) {
+  .nd-xuat-hop .xuat-luoi { grid-template-columns:1fr; }
+  .nd-xuat-hop .xuat-xemCot { position:static; min-height:0; }
+  .nd-xuat-hop .xuat-xem { position:static; max-height:56vh; }
+}
+.xuat-the .nd-xb-cuon { overflow-x:auto; border:1px solid #e2e7f6; border-radius:10px; }
+.xuat-the .nd-xb { display:table; width:100%; border-collapse:collapse; font-size:12.5px; color:#24324f; }
+.xuat-the .nd-xb th { padding:6px 9px; text-align:left; font-size:11.5px; font-weight:700; white-space:nowrap; background:#f3f6fd; color:#4a5679; border-bottom:1px solid #e2e7f6; letter-spacing:0; }
+.xuat-the .nd-xb td { padding:6px 9px; vertical-align:top; border-bottom:1px solid #eef1fa; background:transparent; color:#24324f; }
+.xuat-the .nd-xb tr:last-child td { border-bottom:0; }
+.xuat-the .nd-xb .nd-xb-nowrap { white-space:nowrap; }
+.xuat-the .nd-xb-tt { display:inline-block; padding:2px 9px; border-radius:999px; font-size:11.5px; font-weight:700; white-space:nowrap; }
+.xuat-the .nd-xb-ok  { background:#dcf5ea; color:#0b7f62; }
+.xuat-the .nd-xb-loi { background:#fde3e6; color:#c11f35; }
+.xuat-the .xuat-canhbao { margin:8px 0 0; padding:6px 10px; border-radius:8px; font-size:12.5px; background:#fff0d6; color:#a86400; }
+.nd-xuat-hop .xuat-ghichu { margin:8px 0 0; }
+
+/* ---------- Hộp thoại Xuất: nền trắng, chữ đen rõ ràng (ghi đè nền tối mặc định của .modal) ---------- */
+.modal-nen:has(.nd-xuat-hop) { background:rgba(8,20,70,.55); backdrop-filter:none; -webkit-backdrop-filter:none; }
+.xuat-hop.nd-xuat-hop { background:#fff; color:#12235e; border:1px solid #dfe6f6; border-radius:16px; box-shadow:0 24px 60px rgba(10,25,80,.35); }
+.nd-xuat-hop h3 { color:#12235e; text-shadow:none; font-size:20px; margin:0 0 12px; }
+.nd-xuat-hop fieldset { border:1px solid #dfe6f6; background:#fff; }
+.nd-xuat-hop legend { color:#12235e; font-weight:700; }
+.nd-xuat-hop .xuat-chon { color:#12235e; font-weight:500; }
+.nd-xuat-hop .xuat-phu { color:#6b7694; opacity:1; }
+.nd-xuat-hop input[type=checkbox], .nd-xuat-hop input[type=radio] { accent-color:#1e5cf0; }
+.nd-xuat-hop .xuat-xemDau { color:#12235e; font-weight:700; }
+.nd-xuat-hop .xuat-xemDau small { color:#6b7694; opacity:1; }
+.nd-xuat-hop .xuat-xemCot { background:#f6f8fd; border:1px solid #dfe6f6; border-radius:12px; padding:10px; }
+.nd-xuat-hop .xuat-xem { inset:42px 10px 10px 10px; }
+.nd-xuat-hop .xuat-ghichu { color:#44527a; opacity:1; }
+.nd-xuat-hop .xuat-the { background:#fff; border:1px solid #dfe6f6; color:#12235e; }
+.nd-xuat-hop .xuat-the .xuat-ghichu { color:#44527a; }
+.nd-xuat-hop .xuat-loi { background:#fde8ea; color:#b4232a; border:1px solid #f5c2c6; }
+.nd-xuat-hop .btn { background:#1e5cf0; color:#fff; border:0; box-shadow:none; text-shadow:none; }
+.nd-xuat-hop .btn:hover { background:#174ed0; color:#fff; box-shadow:none; filter:none; }
+.nd-xuat-hop .btn.btn-phu { background:#e3edff; color:#1e5cf0; }
+.nd-xuat-hop .btn.btn-phu:hover { background:#d3e3ff; color:#1e5cf0; }
+.nd-xuat-hop .btn:disabled { opacity:.6; cursor:default; }
+@media (max-width:760px) { .nd-xuat-hop .xuat-xem { inset:auto; } }
+
+/* ---------- Sơ đồ trong khung xem trước của hộp thoại Xuất ---------- */
+.nd-xuat-hop .nd-xb-bieudo { display:grid; grid-template-columns:minmax(0, 2fr) minmax(0, 1fr); gap:12px; margin:10px 0; }
+.nd-xuat-hop .nd-xb-bd { position:relative; height:230px; background:#fff; border:1px solid #e2e7f6; border-radius:10px; padding:8px; }
+.nd-xuat-hop .nd-xb-bieudo.nd-xb-mot { grid-template-columns:1fr; }
+@media (max-width:700px) { .nd-xuat-hop .nd-xb-bieudo { grid-template-columns:1fr; } }
+
+/* ---------- Hộp thoại Xuất: responsive (máy tính bảng → điện thoại) ---------- */
+.modal-nen:has(.nd-xuat-hop) { overflow-y:auto; -webkit-overflow-scrolling:touch; }
+.xuat-hop.nd-xuat-hop { box-sizing:border-box; max-height:92vh; max-height:92dvh; overflow-y:auto; overflow-x:hidden; }
+.nd-xuat-hop .xuat-luoi > * { min-width:0; }
+.nd-xuat-hop .hanh-dong { position:sticky; bottom:-22px; background:#fff; padding:12px 0 2px; margin-top:12px; border-top:1px solid #eef1fa; z-index:2; }
+
+/* Máy tính bảng / màn hình hẹp */
+@media (max-width:1000px) {
+  .nd-xuat-hop .xuat-luoi { grid-template-columns:240px minmax(0, 1fr); gap:12px; }
+  .nd-xuat-hop .nd-xb-bieudo { grid-template-columns:1fr; }
+  .nd-xuat-hop .nd-xb-bd { height:200px; }
+}
+
+/* Điện thoại lớn / máy tính bảng dọc: xếp 1 cột (chọn ở trên, xem trước ở dưới) */
+@media (max-width:760px) {
+  .modal-nen:has(.nd-xuat-hop) { align-items:flex-start; padding:10px; }
+  .xuat-hop.nd-xuat-hop { width:100%; max-height:none; overflow:visible; padding:16px; border-radius:14px; margin:auto 0; }
+  .nd-xuat-hop h3 { font-size:18px; margin-bottom:10px; }
+  .nd-xuat-hop .xuat-luoi { grid-template-columns:1fr; gap:12px; }
+  .nd-xuat-hop .xuat-xemCot { position:static; min-height:0; padding:10px; }
+  .nd-xuat-hop .xuat-xem { position:static; inset:auto; max-height:none; overflow:visible; }
+  .nd-xuat-hop .xuat-chon { font-size:15px; padding:2px 0; }
+  .nd-xuat-hop input[type=checkbox], .nd-xuat-hop input[type=radio] { width:18px; height:18px; }
+  .nd-xuat-hop .nd-xb-bieudo { grid-template-columns:1fr; }
+  .nd-xuat-hop .nd-xb-bd { height:210px; }
+  .nd-xuat-hop .hanh-dong { bottom:-16px; padding:10px 0 2px; }
+}
+
+/* Điện thoại nhỏ */
+@media (max-width:480px) {
+  .modal-nen:has(.nd-xuat-hop) { padding:0; }
+  .xuat-hop.nd-xuat-hop { border-radius:0; min-height:100vh; min-height:100dvh; margin:0; padding:14px 14px 0; border:0; }
+  .nd-xuat-hop h3 { font-size:17px; }
+  .nd-xuat-hop fieldset { padding:2px 12px 10px; }
+  .nd-xuat-hop .xuat-so { grid-template-columns:repeat(3, minmax(0, 1fr)); }
+  .nd-xuat-hop .xuat-so-o { padding:6px; }
+  .nd-xuat-hop .xuat-so-o strong { font-size:15px; }
+  .nd-xuat-hop .xuat-the { padding:10px; }
+  .nd-xuat-hop .xuat-the-dau { flex-wrap:wrap; }
+  .nd-xuat-hop .nd-xb-bd { height:190px; }
+  .nd-xuat-hop .nd-xuat-nut .xuat-tatca { flex:1 1 0; }
+  .nd-xuat-hop .hanh-dong { bottom:0; margin:12px -14px 0; padding:10px 14px calc(10px + env(safe-area-inset-bottom, 0px)); box-shadow:0 -6px 14px rgba(10,25,80,.08); }
+  .nd-xuat-hop .hanh-dong .btn { flex:1 1 0; padding:11px 12px; font-size:15px; }
+}
+
+/* Màn hình thấp (điện thoại xoay ngang): bỏ thanh dính để khỏi che nội dung */
+@media (max-height:480px) and (orientation:landscape) {
+  .nd-xuat-hop .hanh-dong { position:static; box-shadow:none; }
+}
+
+/* ---------- Hộp thoại Xuất: bảng xem trước vừa khung, không phải kéo ngang ---------- */
+.xuat-hop.nd-xuat-hop { width:min(1200px, 100%); }
+.nd-xuat-hop .xuat-the .nd-xb-cuon { overflow-x:auto; }   /* chỉ cuộn ngang khi quá nhiều cột */
+.nd-xuat-hop .xuat-the .nd-xb { table-layout:auto; width:100%; font-size:12px; }
+.nd-xuat-hop .xuat-the .nd-xb th { white-space:normal; padding:6px 6px; font-size:11px; line-height:1.25; vertical-align:bottom; }
+.nd-xuat-hop .xuat-the .nd-xb td { padding:6px 6px; overflow-wrap:anywhere; word-break:normal; line-height:1.35; }
+.nd-xuat-hop .xuat-the .nd-xb .nd-xb-nowrap { white-space:normal; }
+.nd-xuat-hop .xuat-the .nd-xb-tt { padding:2px 7px; font-size:11px; }

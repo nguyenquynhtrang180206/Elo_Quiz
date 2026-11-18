@@ -49,3 +49,13 @@
 .tx-ngay label { display:flex; align-items:center; gap:8px; margin:0; font-size:13.5px; color:#26334d; }
 .admin-noidung .tx-ngay input[type=date] { width:auto; padding:6px 9px; border:1px solid #cfd9f0; border-radius:8px; background:#fff; color:#26334d; font:inherit; font-size:13.5px; }
 .tx-bd canvas { display:block; width:100%; height:auto; border-radius:8px; background:#fff; }
+
+/* ===== Điện thoại: hộp thoại Xuất báo cáo ===== */
+@media (max-width:768px) {
+  .tx-nen { padding:8px; }
+  .tx-hop { max-height:96vh; padding:14px; border-radius:14px; }
+  .tx-xem { max-height:40vh; }
+  .tx-nut { flex-direction:column-reverse; }
+  .tx-nut button { width:100%; }
+  .tx-ngay label { width:100%; justify-content:space-between; }
+}

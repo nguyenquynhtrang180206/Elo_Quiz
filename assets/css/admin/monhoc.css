@@ -206,3 +206,47 @@
 .mh-bs-thanh small { min-width:56px; text-align:right; color:#6b7694; font-size:12px; }
 .mh-tuong[data-co="to"] .mh-ov-thieu { color:#3d2600; }
 .mh-tuong[data-co="to"] .mh-ov-chua { color:#0f1b4d; }
+
+/* ===== Điện thoại: trang Môn học, kỳ thi ===== */
+@media (max-width:768px) {
+  .mh-khung { padding:12px; border-radius:14px; margin-bottom:14px; }
+  .mh-khung .card, .mh-khung .mh-ds { padding:14px; }
+
+  /* Hero: bỏ hình, hai nút xếp đều */
+  .mh-hero { flex-wrap:wrap; gap:12px; padding:14px; border-radius:16px; }
+  .mh-hero-hinh { display:none; }
+  .mh-hero-chu { flex:1 1 100%; }
+  .mh-hero-chu h2 { font-size:20px; }
+  .mh-hero-chu p { font-size:13.5px; }
+  .mh-khung .mh-nut-them { flex:1 1 calc(50% - 6px); justify-content:center; padding:0 12px; font-size:14px; }
+
+  /* Toàn cảnh: ba cột xếp dọc, lưới ô vuông tự co theo bề ngang */
+  .mh-khung .mh-tc { gap:20px; }
+  .mh-tc-cot, .mh-tc-tt, .mh-tc-bs { flex:1 1 100%; min-width:0; width:100%; }
+  .mh-tc-cot .nhan-phu { max-width:none; }
+  .mh-tuong[data-co="vua"] { grid-template-columns:repeat(auto-fill,minmax(26px,1fr)); }
+  .mh-tuong[data-co="nho"] { max-width:none; }
+  .mh-tuong[data-co="to"] { grid-template-columns:repeat(auto-fill,minmax(100px,1fr)); width:100%; }
+
+  /* Thanh tìm kiếm */
+  .mh-loc { flex-wrap:wrap; }
+  .mh-troi { flex:1 1 100%; text-align:center; }
+
+  /* Bản đồ môn học -> danh sách thẻ: mỗi môn một thẻ, mỗi loại kỳ thi một dòng có nhãn */
+  .mh-cuon { overflow:visible; border:0; border-radius:0; }
+  .mh-khung table.mh-bang.mh-bando, .mh-khung .mh-bando tbody, .mh-khung .mh-bando tr, .mh-khung .mh-bando td { display:block; width:100%; box-sizing:border-box; }
+  .mh-khung .mh-bando thead { display:none; }
+  .mh-khung .mh-bando tr { margin:0 0 10px; padding:10px 12px; background:#fff; border:1px solid #e6ecf8; border-radius:14px; }
+  .mh-khung .mh-bando tr:hover td { background:transparent; }
+  .mh-khung .mh-bando td {
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    padding:6px 0; border:0; text-align:right;
+  }
+  .mh-khung .mh-bando td[data-label]::before { content:attr(data-label); flex:none; text-align:left; font-size:12.5px; font-weight:600; color:#6b7694; white-space:normal; }
+  .mh-khung .mh-bando td.mh-td-ten { justify-content:flex-start; padding:0 0 8px; margin-bottom:4px; border-bottom:1px solid #edf1fa; text-align:left; }
+  .mh-khung .mh-bando td.mh-td-ten .mh-ten { max-width:100%; }
+  .mh-khung .mh-bando td.khong-ngat .mh-thao-tac { margin-left:auto; }
+  .mh-khung .mh-nut { height:34px; }
+
+  .mh-chan { flex-direction:column; align-items:flex-start; }
+}
