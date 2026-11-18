@@ -197,7 +197,7 @@ require __DIR__ . '/layout/header.php';
       <div class="td-rong"><p>Trận chưa có câu hỏi nào.</p></div>
     <?php else: ?>
       <div class="td-bang-cuon">
-        <table class="td-bang">
+        <table class="td-bang tc-bang">
           <thead>
             <tr><th>#</th><th>Câu hỏi</th>
               <?php foreach ($nguoi as $x): ?><th><?= e($x['HoTen']) ?></th><?php endforeach; ?>
@@ -206,12 +206,12 @@ require __DIR__ . '/layout/header.php';
           <tbody>
           <?php foreach ($cauHoi as $c): ?>
             <tr>
-              <td><b><?= (int) $c['ThuTu'] ?></b></td>
+              <td class="tc-stt"><b><?= (int) $c['ThuTu'] ?></b></td>
               <td class="tc-cau"><?= e(mb_strimwidth(strip_tags((string) $c['NoiDung']), 0, 110, '…')) ?>
                 <span class="nhan-phu"><?= (int) $c['DiemCoBan'] ?> điểm · <?= (int) $c['ThoiGianQuyDinh'] ?>s</span></td>
               <?php foreach ($nguoi as $x):
                 $r = $bai[(int) $c['MaCauHoi']][(int) $x['MaND']] ?? null; ?>
-                <td>
+                <td class="tc-bai" data-label="<?= e($x['HoTen']) ?>">
                   <?php if (!$r || $r['TrangThai'] === 'Không làm'): ?>
                     <span class="nhan-phu">—</span>
                   <?php elseif ($r['TrangThai'] === 'Hết giờ'): ?>

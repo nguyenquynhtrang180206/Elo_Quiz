@@ -1,6 +1,6 @@
-// Biểu đồ "Trận bắt đầu mỗi 5 phút" của trang Trận đấu (admin/trandau.php), vẽ bằng SVG thuần, không cần thư viện.
+// Biểu đồ "Tổng số trận đã đấu" (tích lũy, kiểu nền) của trang Trận đấu (admin/trandau.php), vẽ bằng SVG thuần, không cần thư viện.
 // Dữ liệu: admin/trandau_nhip.php?khoang=1h|3h|1d|1w. Tự làm mới mỗi 30 giây (trang LIVE).
-// Nút Đường/Nền đổi kiểu vẽ; rê chuột để xem từng mốc, mốc có trận bất thường hiện thêm cờ đỏ.
+// Chỉ còn một chế độ (tích lũy) và một kiểu vẽ (nền); rê chuột để xem từng mốc, mốc có trận bất thường hiện thêm cờ đỏ.
 (function () {
   'use strict';
 
@@ -17,7 +17,7 @@
   var NHAN_KY = { '5 phút': '5 phút', '30 phút': '30 phút', '3 giờ': '3 giờ' };
 
   var api = goc.getAttribute('data-api');
-  var khoang = '3h', cheDo = 'batdau', kieu = 'duong', du = null, dangTai = false;
+  var khoang = '3h', cheDo = 'tichluy', kieu = 'nen', du = null, dangTai = false;
 
   function $(id) { return document.getElementById(id); }
   function so(n, tp) { return Number(n).toLocaleString('vi-VN', { maximumFractionDigits: tp || 0 }); }
@@ -226,21 +226,10 @@
   }
 
   // ---------- Nút điều khiển ----------
-  function chonNhom(nut, thuocTinh, giaTri) {
-    var nhom = nut.parentNode.querySelectorAll('button');
-    for (var i = 0; i < nhom.length; i++) { nhom[i].classList.toggle('on', nhom[i] === nut); }
-    return giaTri;
-  }
   goc.addEventListener('click', function (e) {
     var nut = e.target.closest ? e.target.closest('button') : null;
     if (!nut || !goc.contains(nut)) { return; }
-    if (nut.hasAttribute('data-chedo')) {
-      cheDo = chonNhom(nut, 'chedo', nut.getAttribute('data-chedo'));
-      tai();
-    } else if (nut.hasAttribute('data-kieu')) {
-      kieu = chonNhom(nut, 'kieu', nut.getAttribute('data-kieu'));
-      if (du) { veBieuDo(); }
-    } else if (nut.hasAttribute('data-khoang')) {
+    if (nut.hasAttribute('data-khoang')) {
       khoang = nut.getAttribute('data-khoang');
       var tatCa = goc.querySelectorAll('[data-khoang]');
       for (var q = 0; q < tatCa.length; q++) { tatCa[q].classList.toggle('on', tatCa[q] === nut); }

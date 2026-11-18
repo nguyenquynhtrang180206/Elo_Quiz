@@ -42,29 +42,33 @@
 .cdm-cv-trong { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #8a94b3; font-size: 12.5px; background: rgba(255,255,255,.85); }
 
 /* ----- Tab + tìm kiếm + bộ lọc ----- */
-.cdm-loc { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
-.cdm-tab { display: flex; background: #fff; border: 1px solid var(--vien); border-radius: 12px; padding: 4px; }
-.cdm-tab a { padding: 8px 16px; border-radius: 9px; font-weight: 700; color: var(--phu); text-decoration: none; }
+.cdm-loc { display: flex; align-items: stretch; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+.cdm-tab { display: flex; flex: 0 0 auto; background: #fff; border: 1px solid var(--vien); border-radius: 12px; padding: 4px; }
+.cdm-tab a { display: flex; align-items: center; justify-content: center; white-space: nowrap; padding: 8px 16px; border-radius: 9px; font-weight: 700; color: var(--phu); text-decoration: none; }
 .cdm-tab a.on { background: var(--x); color: #fff; }
 .cdm-tab i { font-style: normal; font-size: 11px; background: #e3edff; color: var(--x); border-radius: 10px; padding: 1px 7px; margin-left: 6px; }
 .cdm-tab a.on i { background: rgba(255,255,255,.25); color: #fff; }
 .cdm-loc input.cdm-tim, .cdm-loc select {
-  background: #fff; color: var(--navy); border: 1px solid var(--vien); border-radius: 12px; padding: 10px 14px; font: inherit; font-size: 14px; width: auto;
+  background: #fff; color: var(--navy); border: 1px solid var(--vien); border-radius: 12px; padding: 10px 14px; font: inherit; font-size: 14px;
+  min-height: 46px; min-width: 0; box-sizing: border-box; width: auto; max-width: 100%;
 }
-.cdm-loc input.cdm-tim { flex: 1; min-width: 240px; }
+/* Ô tìm co giãn; hai ô chọn có bề rộng cố định (không phình theo mục dài nhất); nút Tìm giữ nguyên cỡ */
+.cdm-loc input.cdm-tim { flex: 1 1 220px; }
+.cdm-loc > .cdm-nut { flex: 0 0 auto; min-height: 46px; padding: 0 22px; border-radius: 12px; font-size: 14px; }
 
-.cdm-chip-hang { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
 .cdm-chip {
+  display: inline-flex; align-items: center; flex: 0 0 auto; white-space: nowrap;
   padding: 7px 13px; border-radius: 20px; background: #fff; border: 1px solid var(--vien); font: 600 13px/1.2 inherit; font-family: inherit;
   color: var(--phu); cursor: pointer; text-decoration: none; box-shadow: none; text-shadow: none;
 }
 .cdm-chip:hover { border-color: #9bbcff; color: var(--x); }
 .cdm-chip.on { background: #e3edff; border-color: #9bbcff; color: var(--x); }
 .cdm-chip-xoa { color: var(--do); border-color: #ffd0d3; }
-.cdm-chip-cach { width: 12px; }
+/* Vạch ngăn giữa nhóm "trạng thái" và nhóm "loại bài" */
+.cdm-chip-cach { flex: 0 0 auto; width: 1px; height: 22px; margin: 0 4px; background: rgba(255,255,255,.35); }
 
 /* ----- Chia đôi ----- */
-.cdm-chia { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.cdm-chia { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: 16px; align-items: start; }
 .cdm-ds, .cdm-pv { background: #fff; border: 1px solid var(--vien); border-radius: 16px; box-shadow: 0 6px 20px rgba(30,60,140,.08); color: var(--navy); }
 .cdm-ds { overflow: hidden; }
 .cdm-pv { padding: 20px; position: sticky; top: 16px; max-height: calc(100vh - 32px); overflow-y: auto; }
@@ -98,6 +102,9 @@
   display: inline-flex; align-items: center; justify-content: center;
 }
 .cdm-av-nho { width: 28px; height: 28px; font-size: 12px; }
+/* Ảnh đại diện phủ lên chữ cái; ảnh lỗi thì bị gỡ và chữ cái hiện ra */
+.cdm-av { position: relative; overflow: hidden; }
+.cdm-av-anh { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
 .cdm-it-nd { display: block; min-width: 0; flex: 1; }
 .cdm-it-nd strong { display: block; font-size: 14.5px; color: var(--navy); margin-bottom: 3px; overflow-wrap: anywhere; }
 .cdm-it-nd em { display: block; font-style: normal; color: var(--phu); font-size: 13px; line-height: 1.4; overflow-wrap: anywhere; }
@@ -159,3 +166,104 @@
   .cdm-pv { position: static; max-height: none; }
 }
 @media (max-width: 640px) { .cdm-bd { grid-template-columns: 1fr; } .cdm-phim { display: none; } }
+
+/* Phần chỉ dùng trên điện thoại: mặc định ẩn trên máy tính */
+.cdm-loc-phu { display: contents; }
+.cdm-nut-loc, .cdm-nut-chon { display: none; }
+.cdm-loc-dem { font-style: normal; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--x); color: #fff; font-size: 11px; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; }
+
+/* Ô chọn môn có tìm kiếm: hiện tối đa 5 môn (5 x 40px), cuộn để xem tiếp */
+.cdm-loc select.cdm-dd-goc { display: none !important; }
+.cdm-dd { position: relative; min-width: 0; }
+.cdm-dd-nut {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; min-height: 46px; box-sizing: border-box;
+  padding: 10px 14px; border: 1px solid var(--vien); border-radius: 12px; background: #fff; color: var(--navy);
+  font: inherit; font-size: 14px; text-align: left; cursor: pointer; box-shadow: none; text-shadow: none;
+}
+.cdm-dd.mo .cdm-dd-nut, .cdm-dd-nut:focus-visible { border-color: #9bbcff; outline: 2px solid #dbe7ff; }
+.cdm-dd-chu { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cdm-dd-nut svg { flex: none; color: var(--phu); transition: transform .15s; }
+.cdm-dd.mo .cdm-dd-nut svg { transform: rotate(180deg); }
+.cdm-dd-bang {
+  position: absolute; z-index: 70; top: calc(100% + 6px); left: 0; width: max(100%, 260px); max-width: calc(100vw - 32px); box-sizing: border-box;
+  padding: 8px; background: #fff; border: 1px solid var(--vien); border-radius: 12px; box-shadow: 0 14px 34px rgba(15,23,42,.28);
+}
+.cdm-dd-bang[hidden] { display: none; }
+.cdm-dd input.cdm-dd-tim {
+  display: block; width: 100%; box-sizing: border-box; margin: 0 0 6px; padding: 9px 12px; min-height: 40px;
+  border: 1px solid var(--vien); border-radius: 10px; background: #f8faff; color: var(--navy); font: inherit; font-size: 14px;
+}
+.cdm-dd-ds { max-height: 200px; overflow-y: auto; overscroll-behavior: contain; }
+.cdm-dd-muc {
+  display: block; width: 100%; box-sizing: border-box; min-height: 40px; padding: 10px 12px; border: 0; border-radius: 8px; background: transparent;
+  color: var(--navy); font: inherit; font-size: 14px; line-height: 20px; text-align: left; cursor: pointer; box-shadow: none; text-shadow: none;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.cdm-dd-muc[hidden] { display: none; }
+.cdm-dd-muc:hover, .cdm-dd-muc.nong { background: #f0f5ff; }
+.cdm-dd-muc.on { background: #e3edff; color: var(--x); font-weight: 700; }
+.cdm-dd-rong { margin: 0; padding: 12px; color: var(--phu); font-size: 13px; text-align: center; }
+.cdm-dd-rong[hidden] { display: none; }
+
+/* ----- Bộ lọc: co theo bề rộng THỰC của khung (đã trừ sidebar), không theo bề rộng cửa sổ ----- */
+.cdm-boloc { container: cdmloc / inline-size; }
+
+/* Hàng 1: tab + ô tìm + nút Tìm. Hàng 2: các ô lọc (Môn, Trạng thái, Loại bài, Sắp xếp) chia đều bề ngang, thiếu chỗ thì tự xuống dòng */
+.cdm-tab { order: 0; }
+.cdm-loc input.cdm-tim { order: 1; }
+.cdm-loc > .cdm-nut-tim { order: 2; }
+.cdm-nut-loc { order: 2; }
+.cdm-loc-phu { display: flex; flex-wrap: wrap; order: 3; flex: 1 1 100%; gap: 10px; align-items: stretch; }
+.cdm-loc-phu > select, .cdm-loc-phu > .cdm-dd { flex: 1 1 150px; width: auto; min-width: 0; }
+.cdm-loc-phu > select { text-overflow: ellipsis; }
+.cdm-xoaloc {
+  display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; min-height: 46px; box-sizing: border-box; padding: 0 16px;
+  border: 1px solid #ffd0d3; border-radius: 12px; background: #fff; color: var(--do); font-size: 13px; font-weight: 700; text-decoration: none; white-space: nowrap;
+}
+.cdm-xoaloc:hover { background: #fff5f5; }
+
+/* Khung hẹp (điện thoại, hoặc cửa sổ nhỏ có sidebar): hàng 1 = tab; hàng 2 = ô tìm + nút Bộ lọc; cụm ô lọc chỉ hiện khi bấm Bộ lọc (2 cột) */
+@container cdmloc (max-width: 760px) {
+  .cdm-tab { flex: 1 1 100%; }
+  .cdm-tab a { flex: 1 1 0; }
+  .cdm-loc input.cdm-tim { flex: 1 1 0; min-width: 0; }
+  .cdm-nut-loc { display: inline-flex; flex: 0 0 auto; gap: 7px; background: #fff; color: var(--navy); }
+  .cdm-nut-loc[aria-expanded="true"] { background: #e3edff; border-color: #9bbcff; color: var(--x); }
+  .cdm-loc > .cdm-nut-tim { display: none; }               /* gõ xong bấm Enter / phím "Tìm" của bàn phím */
+  .cdm-loc-phu { display: none; }
+  .cdm-boloc.mo .cdm-loc-phu { display: grid; grid-template-columns: 1fr 1fr; }
+  .cdm-loc-phu > select, .cdm-loc-phu > .cdm-dd { width: 100%; }
+  .cdm-xoaloc { grid-column: 1 / -1; }
+}
+@container cdmloc (max-width: 420px) {
+  .cdm-boloc.mo .cdm-loc-phu { grid-template-columns: 1fr; }
+  .cdm-tab a { padding: 8px 10px; font-size: 14px; }
+}
+
+/* ----- Điện thoại: đầu trang, danh sách, thanh xử lý hàng loạt ----- */
+@media (max-width: 700px) {
+  .cdm-dau-phai { margin-left: 0; width: 100%; }
+  .cdm-dau-phai .cdm-nut { flex: 1 1 100%; }
+
+  /* Danh sách: chỉ hiện ô tích khi bấm "Chọn" */
+  .cdm-nut-chon { display: inline-flex; flex: 0 0 auto; }
+  .cdm-ds:not(.chon-mode) .cdm-it > .cdm-cb,
+  .cdm-ds:not(.chon-mode) .cdm-ds-dau .cdm-cb,
+  .cdm-ds:not(.chon-mode) .cdm-chu-chon { display: none; }
+  .cdm-ds.chon-mode .cdm-nut-chon { background: var(--x); border-color: var(--x); color: #fff; }
+
+  /* Thanh xử lý hàng loạt: ghim ở đáy màn hình, nằm trong tầm ngón cái */
+  .cdm-hl { position: fixed; left: 8px; right: 8px; bottom: calc(8px + env(safe-area-inset-bottom, 0px)); z-index: 60; gap: 8px;
+    border: 1px solid #ffd0d3; border-radius: 14px; box-shadow: 0 -4px 24px rgba(15,23,42,.28); padding: 12px; }
+  .cdm-hl strong { flex: 1 1 100%; }
+  .cdm-hl input[type=text] { flex: 1 1 100%; min-width: 0; }
+  .cdm-hl .cdm-nut { flex: 1 1 0; min-height: 42px; }
+  .cdm-ds.chon-mode:has(.cdm-hl:not([hidden])) { padding-bottom: 190px; }
+}
+
+/* Nút "Về danh sách" trong khung xem nội dung: chỉ hiện khi khung nằm dưới danh sách (màn hình hẹp) */
+.cdm-pv-ve { display: none; }
+@media (max-width: 1050px) {
+  .cdm-pv { scroll-margin-top: 64px; }
+  .cdm-pv-ve { display: inline-flex; margin-bottom: 12px; min-height: 40px; }
+}

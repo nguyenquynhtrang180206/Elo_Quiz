@@ -19,7 +19,7 @@ try {
 
 // C-44: mọi người chỉ thấy bài "Hiển thị"; riêng chủ bài vẫn xem được bài của mình khi đang "Bị ẩn" (chỉ đọc, để xem thông báo và lý do); quản trị viên xem được cả bài bị ẩn để hiện lại
 $st = $pdo->prepare(
-    "SELECT b.MaBaiDang, b.MaND, b.MaMon, b.TieuDe, b.NoiDung, b.NgayDang, b.TrangThai, u.HoTen, m.TenMon,
+    "SELECT b.MaBaiDang, b.MaND, b.MaMon, b.TieuDe, b.NoiDung, b.NgayDang, b.TrangThai, u.HoTen, u.AnhDaiDien, m.TenMon,
             " . (CongDongHelper::coCotNguoiAn() ? 'b.NguoiAn' : 'NULL AS NguoiAn') . ",
             " . ($coLoai ? 'b.LoaiBai' : "'" . CongDongHelper::LOAI_MAC_DINH . "' AS LoaiBai") . ",
             TIMESTAMPDIFF(SECOND, b.NgayDang, NOW()) AS GiayTuDang,
@@ -254,7 +254,7 @@ if ($bai) {
     }
     
     $st = $pdo->prepare(
-        "SELECT c.MaBinhLuan, c.MaND, c.NoiDung, c.NgayBinhLuan, c.TrangThai, u.HoTen, 
+        "SELECT c.MaBinhLuan, c.MaND, c.NoiDung, c.NgayBinhLuan, c.TrangThai, u.HoTen, u.AnhDaiDien,
                 c.MaBinhLuanCha,
                 " . ($coAnBL ? 'c.NguoiAn' : 'NULL AS NguoiAn') . ",
                 TIMESTAMPDIFF(SECOND, c.NgayBinhLuan, NOW()) AS GiayTuLuc,
@@ -303,11 +303,14 @@ function renderBinhLuan($c, $level, $maND, $coAnBL, $coLikeBL, $bai, $eloMap, $c
     $truongBL = '<input type="hidden" name="ma_bl" value="' . (int) $c['MaBinhLuan'] . '">';
     ?>
     <div class="binhluan<?= $levelClass ?>" id="bl-<?= (int) $c['MaBinhLuan'] ?>">
-        <div class="meta">
-            <b><?= e($c['HoTen']) ?></b>
-            <?= CongDongHelper::huyHieuElo($eloMap[(int) $c['MaND']] ?? [], $bai['MaMon'] !== null ? (int) $bai['MaMon'] : null) ?>
-            · <?= e(CongDongHelper::ngay($c['NgayBinhLuan'])) ?>
-            <?php if ($dangAn): ?><span class="nhan-an"><?= $laChu ? 'Đang ẩn (chỉ bạn thấy)' : 'Đang ẩn (bạn thấy vì là quản trị viên)' ?></span><?php endif; ?>
+        <div class="meta meta-av">
+            <?= CongDongHelper::avatar((string) $c['HoTen'], $c['AnhDaiDien'], 'cd-av cd-av-bl') ?>
+            <div class="meta-txt">
+                <b><?= e($c['HoTen']) ?></b>
+                <?= CongDongHelper::huyHieuElo($eloMap[(int) $c['MaND']] ?? [], $bai['MaMon'] !== null ? (int) $bai['MaMon'] : null) ?>
+                · <?= e(CongDongHelper::ngay($c['NgayBinhLuan'])) ?>
+                <?php if ($dangAn): ?><span class="nhan-an"><?= $laChu ? 'Đang ẩn (chỉ bạn thấy)' : 'Đang ẩn (bạn thấy vì là quản trị viên)' ?></span><?php endif; ?>
+            </div>
         </div>
 
         <?php if ($moSua): ?>
@@ -321,7 +324,7 @@ function renderBinhLuan($c, $level, $maND, $coAnBL, $coLikeBL, $bai, $eloMap, $c
                 <textarea name="noi_dung" maxlength="1000" required><?= e($noiDungSua ?? $c['NoiDung']) ?></textarea>
                 <p>
                     <button type="submit" class="btn">Lưu</button>
-                    <a class="btn btn-phu" href="?id=<?= (int) $id ?>#bl-<?= (int) $c['MaBinhLuan'] ?>">Hủy</a>
+                    <a class="btn btn-phu" data-mem-lien href="?id=<?= (int) $id ?>#bl-<?= (int) $c['MaBinhLuan'] ?>">Hủy</a>
                 </p>
             </form>
         <?php else: ?>
@@ -364,7 +367,7 @@ function renderBinhLuan($c, $level, $maND, $coAnBL, $coLikeBL, $bai, $eloMap, $c
 
             <?php if ($laChu): ?>
                 <?php if ($conSua): ?>
-                    <a class="btn btn-phu btn-nho" href="?id=<?= (int) $id ?>&amp;sua=<?= (int) $c['MaBinhLuan'] ?>#bl-<?= (int) $c['MaBinhLuan'] ?>">
+                    <a class="btn btn-phu btn-nho" data-mem-lien href="?id=<?= (int) $id ?>&amp;sua=<?= (int) $c['MaBinhLuan'] ?>#bl-<?= (int) $c['MaBinhLuan'] ?>">
                         <svg viewBox="0 0 16 16" width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="vertical-align: -1px; margin-right: 2px;" aria-hidden="true"><path d="M11 2.5l2.5 2.5-8 8H3v-2.5l8-8z"/></svg>
                         Sửa
                     </a>
@@ -432,7 +435,7 @@ function renderBinhLuan($c, $level, $maND, $coAnBL, $coLikeBL, $bai, $eloMap, $c
 
 $tieuDe = $bai ? $bai['TieuDe'] : 'Bài đăng';
 $cssTrang = 'baidang';
-$jsTrang  = 'baidang';
+$jsTrang  = ['capnhat_mem', 'baidang'];
 require __DIR__ . '/layout/header.php';
 ?>
 <!-- Reusable Cyber Gradients for Community SVG Icons -->
@@ -478,7 +481,7 @@ require __DIR__ . '/layout/header.php';
 }
 </style>
 
-<div class="container">
+<div class="container" data-mem-vung="baidang">
   <p><a href="<?= e(BASE_URL) ?>/client/congdong.php">&laquo; Về bảng tin</a></p>
 
   <?php if (!$bai): ?>
@@ -500,12 +503,15 @@ require __DIR__ . '/layout/header.php';
 
     <div class="card">
       <h2 class="tieu-de-bai"><?= e($bai['TieuDe']) ?></h2>
-      <div class="meta">
-        <?= e($bai['HoTen']) ?>
-        <?= CongDongHelper::huyHieuElo($eloMap[(int) $bai['MaND']] ?? [], $bai['MaMon'] !== null ? (int) $bai['MaMon'] : null) ?>
-        · <?= e(CongDongHelper::ngay($bai['NgayDang'])) ?>
-        <?php if ($bai['TenMon']): ?> · <?= e($bai['TenMon']) ?><?php endif; ?>
-        <?= CongDongHelper::nhanLoai($bai['LoaiBai']) ?>
+      <div class="meta meta-av">
+        <?= CongDongHelper::avatar((string) $bai['HoTen'], $bai['AnhDaiDien']) ?>
+        <div class="meta-txt">
+          <b><?= e($bai['HoTen']) ?></b>
+          <?= CongDongHelper::huyHieuElo($eloMap[(int) $bai['MaND']] ?? [], $bai['MaMon'] !== null ? (int) $bai['MaMon'] : null) ?>
+          · <?= e(CongDongHelper::ngay($bai['NgayDang'])) ?>
+          <?php if ($bai['TenMon']): ?> · <?= e($bai['TenMon']) ?><?php endif; ?>
+          <?= CongDongHelper::nhanLoai($bai['LoaiBai']) ?>
+        </div>
       </div>
       <p><?= nl2br(e($bai['NoiDung'])) ?></p>
 
@@ -629,55 +635,4 @@ require __DIR__ . '/layout/header.php';
   <?php endif; ?>
 </div>
 
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-  var textarea = document.getElementById('noi_dung');
-  var repMandInput = document.getElementById('rep_mand');
-  var repBlIdInput = document.getElementById('rep_bl_id');
-  var repIndicator = document.getElementById('repIndicator');
-  var repTenDisplay = document.getElementById('repTenDisplay');
-  var btnCancelRep = document.getElementById('btnCancelRep');
-
-  // Sử dụng Event Delegation để bắt sự kiện click cho tất cả các nút trả lời (kể cả bình luận con)
-  document.addEventListener('click', function (e) {
-    var btn = e.target.closest('.btn-rep-bl');
-    if (!btn) return;
-    
-    e.preventDefault();
-    var ten = btn.getAttribute('data-ten') || '';
-    var mand = btn.getAttribute('data-mand') || '';
-    var blId = btn.getAttribute('data-bl-id') || '';
-
-    if (repMandInput) repMandInput.value = mand;
-    if (repBlIdInput) repBlIdInput.value = blId;
-    if (repTenDisplay) repTenDisplay.textContent = '@' + ten;
-    if (repIndicator) repIndicator.style.display = 'inline-flex';
-
-    if (textarea) {
-      var prefix = '@' + ten + ' ';
-      // Nếu textarea đang trống hoặc chưa có tag của người này thì thêm vào
-      if (!textarea.value.startsWith(prefix)) {
-        textarea.value = prefix + textarea.value;
-      }
-      var formBL = document.getElementById('form-bl');
-      if (formBL) {
-        formBL.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
-      textarea.focus();
-    }
-  });
-
-  // Nút hủy trả lời
-  if (btnCancelRep) {
-    btnCancelRep.addEventListener('click', function () {
-      if (repMandInput) repMandInput.value = '';
-      if (repBlIdInput) repBlIdInput.value = '';
-      if (repIndicator) repIndicator.style.display = 'none';
-      if (textarea && textarea.value.startsWith('@')) {
-        textarea.value = textarea.value.replace(/^@[^\s]+\s*/, '');
-      }
-    });
-  }
-});
-</script>
 <?php require __DIR__ . '/layout/footer.php'; ?>

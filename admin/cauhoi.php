@@ -727,7 +727,7 @@ require __DIR__ . '/layout/header.php';
               <td class="ch-td-chon"><input type="checkbox" class="ch-chon" value="<?= (int) $r['MaCauHoi'] ?>" aria-label="Chọn câu hỏi #<?= (int) $r['MaCauHoi'] ?>"></td>
               <td class="ch-ma">#<?= (int) $r['MaCauHoi'] ?></td>
               <td class="ch-nd"><?= e($cat((string) $r['NoiDung'], 60)) ?></td>
-              <td><span class="ch-mon-o"><span class="ch-ico-mon m<?= (int) $r['MaMon'] % 6 ?>" aria-hidden="true"><?= e($chuMon((string) $r['TenMon'])) ?></span><span class="ch-mon-ten"><?= e($r['TenMon']) ?></span></span></td>
+              <td><span class="ch-mon-o"><span class="ch-ico-mon m<?= (int) $r['MaMon'] % 6 ?>" aria-hidden="true"><?= e($chuMon((string) $r['TenMon'])) ?></span><span class="ch-mon-ten"><?= str_replace('_', '_<wbr>', e($r['TenMon'])) ?></span></span></td>
               <td><span class="ch-pill <?= e($lopDoKho[$r['DoKho']] ?? '') ?>"><?= e($r['DoKho']) ?></span></td>
               <td class="ch-td-ty">
                 <div class="ch-ty">

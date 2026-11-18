@@ -232,3 +232,152 @@
   .admin-noidung .elo-arena .ea-kv { gap:6px; }
   .admin-noidung .elo-arena .ea-kv b { font-size:14px; }
 }
+
+/* ---------- Hộp thoại Xuất (Excel / PDF) ----------
+   Cùng giao diện hộp thoại Xuất của trang Người dùng / Tổng quan (modal-nen, modal xuat-hop, xuat-* trong thongke_xuat.css). */
+.xuat-hop.ex-xuat-hop { width:min(1040px, 100%); }
+.ex-xuat-hop .xuat-luoi { grid-template-columns:280px minmax(0, 1fr); align-items:stretch; }
+.ex-xuat-hop .xuat-phu { opacity:.65; font-size:13px; }
+.ex-xuat-hop .xuat-xemDau small { font-weight:400; font-size:13px; opacity:.75; margin-left:6px; }
+.ex-xuat-nut { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+.ex-xuat-nut .xuat-tatca { margin-top:0; }
+.ex-xuat-hop .xuat-xemCot { position:relative; min-height:360px; }
+.ex-xuat-hop .xuat-xem { position:absolute; inset:30px 0 0 0; max-height:none; }
+@media (max-width:760px) {
+  .ex-xuat-hop .xuat-luoi { grid-template-columns:1fr; }
+  .ex-xuat-hop .xuat-xemCot { position:static; min-height:0; }
+  .ex-xuat-hop .xuat-xem { position:static; max-height:56vh; }
+}
+.xuat-the .ex-xb-cuon { overflow-x:auto; border:1px solid #e2e7f6; border-radius:10px; }
+.xuat-the .ex-xb { display:table; width:100%; border-collapse:collapse; font-size:12.5px; color:#24324f; }
+.xuat-the .ex-xb th { padding:6px 9px; text-align:left; font-size:11.5px; font-weight:700; white-space:nowrap; background:#f3f6fd; color:#4a5679; border-bottom:1px solid #e2e7f6; letter-spacing:0; }
+.xuat-the .ex-xb td { padding:6px 9px; vertical-align:top; border-bottom:1px solid #eef1fa; background:transparent; color:#24324f; }
+.xuat-the .ex-xb tr:last-child td { border-bottom:0; }
+.xuat-the .ex-xb .ex-xb-nowrap { white-space:nowrap; }
+.xuat-the .ex-xb-tt { display:inline-block; padding:2px 9px; border-radius:999px; font-size:11.5px; font-weight:700; white-space:nowrap; }
+.xuat-the .ex-xb-ok  { background:#dcf5ea; color:#0b7f62; }
+.xuat-the .ex-xb-loi { background:#fde3e6; color:#c11f35; }
+.xuat-the .xuat-canhbao { margin:8px 0 0; padding:6px 10px; border-radius:8px; font-size:12.5px; background:#fff0d6; color:#a86400; }
+.ex-xuat-hop .xuat-ghichu { margin:8px 0 0; }
+
+/* ---------- Hộp thoại Xuất: nền trắng, chữ đen rõ ràng (ghi đè nền tối mặc định của .modal) ---------- */
+.modal-nen:has(.ex-xuat-hop) { background:rgba(8,20,70,.55); backdrop-filter:none; -webkit-backdrop-filter:none; }
+.xuat-hop.ex-xuat-hop { background:#fff; color:#12235e; border:1px solid #dfe6f6; border-radius:16px; box-shadow:0 24px 60px rgba(10,25,80,.35); }
+.ex-xuat-hop h3 { color:#12235e; text-shadow:none; font-size:20px; margin:0 0 12px; }
+.ex-xuat-hop fieldset { border:1px solid #dfe6f6; background:#fff; }
+.ex-xuat-hop legend { color:#12235e; font-weight:700; }
+.ex-xuat-hop .xuat-chon { color:#12235e; font-weight:500; }
+.ex-xuat-hop .xuat-phu { color:#6b7694; opacity:1; }
+.ex-xuat-hop input[type=checkbox], .ex-xuat-hop input[type=radio] { accent-color:#1e5cf0; }
+.ex-xuat-hop .xuat-xemDau { color:#12235e; font-weight:700; }
+.ex-xuat-hop .xuat-xemDau small { color:#6b7694; opacity:1; }
+.ex-xuat-hop .xuat-xemCot { background:#f6f8fd; border:1px solid #dfe6f6; border-radius:12px; padding:10px; }
+.ex-xuat-hop .xuat-xem { inset:42px 10px 10px 10px; }
+.ex-xuat-hop .xuat-ghichu { color:#44527a; opacity:1; }
+.ex-xuat-hop .xuat-the { background:#fff; border:1px solid #dfe6f6; color:#12235e; }
+.ex-xuat-hop .xuat-the .xuat-ghichu { color:#44527a; }
+.ex-xuat-hop .xuat-loi { background:#fde8ea; color:#b4232a; border:1px solid #f5c2c6; }
+.ex-xuat-hop .btn { background:#1e5cf0; color:#fff; border:0; box-shadow:none; text-shadow:none; }
+.ex-xuat-hop .btn:hover { background:#174ed0; color:#fff; box-shadow:none; filter:none; }
+.ex-xuat-hop .btn.btn-phu { background:#e3edff; color:#1e5cf0; }
+.ex-xuat-hop .btn.btn-phu:hover { background:#d3e3ff; color:#1e5cf0; }
+.ex-xuat-hop .btn:disabled { opacity:.6; cursor:default; }
+@media (max-width:760px) { .ex-xuat-hop .xuat-xem { inset:auto; } }
+
+/* ---------- Sơ đồ trong khung xem trước của hộp thoại Xuất ---------- */
+.ex-xuat-hop .ex-xb-bieudo { display:grid; grid-template-columns:minmax(0, 2fr) minmax(0, 1fr); gap:12px; margin:10px 0; }
+.ex-xuat-hop .ex-xb-bd { position:relative; height:230px; background:#fff; border:1px solid #e2e7f6; border-radius:10px; padding:8px; }
+.ex-xuat-hop .ex-xb-bieudo.ex-xb-mot { grid-template-columns:1fr; }
+@media (max-width:700px) { .ex-xuat-hop .ex-xb-bieudo { grid-template-columns:1fr; } }
+
+/* ---------- Hộp thoại Xuất: responsive (máy tính bảng → điện thoại) ---------- */
+.modal-nen:has(.ex-xuat-hop) { overflow-y:auto; -webkit-overflow-scrolling:touch; }
+.xuat-hop.ex-xuat-hop { box-sizing:border-box; max-height:92vh; max-height:92dvh; overflow-y:auto; overflow-x:hidden; }
+.ex-xuat-hop .xuat-luoi > * { min-width:0; }
+.ex-xuat-hop .hanh-dong { position:sticky; bottom:-22px; background:#fff; padding:12px 0 2px; margin-top:12px; border-top:1px solid #eef1fa; z-index:2; }
+
+/* Máy tính bảng / màn hình hẹp */
+@media (max-width:1000px) {
+  .ex-xuat-hop .xuat-luoi { grid-template-columns:240px minmax(0, 1fr); gap:12px; }
+  .ex-xuat-hop .ex-xb-bieudo { grid-template-columns:1fr; }
+  .ex-xuat-hop .ex-xb-bd { height:200px; }
+}
+
+/* Điện thoại lớn / máy tính bảng dọc: xếp 1 cột (chọn ở trên, xem trước ở dưới) */
+@media (max-width:760px) {
+  .modal-nen:has(.ex-xuat-hop) { align-items:flex-start; padding:10px; }
+  .xuat-hop.ex-xuat-hop { width:100%; max-height:none; overflow:visible; padding:16px; border-radius:14px; margin:auto 0; }
+  .ex-xuat-hop h3 { font-size:18px; margin-bottom:10px; }
+  .ex-xuat-hop .xuat-luoi { grid-template-columns:1fr; gap:12px; }
+  .ex-xuat-hop .xuat-xemCot { position:static; min-height:0; padding:10px; }
+  .ex-xuat-hop .xuat-xem { position:static; inset:auto; max-height:none; overflow:visible; }
+  .ex-xuat-hop .xuat-chon { font-size:15px; padding:2px 0; }
+  .ex-xuat-hop input[type=checkbox], .ex-xuat-hop input[type=radio] { width:18px; height:18px; }
+  .ex-xuat-hop .ex-xb-bieudo { grid-template-columns:1fr; }
+  .ex-xuat-hop .ex-xb-bd { height:210px; }
+  .ex-xuat-hop .hanh-dong { bottom:-16px; padding:10px 0 2px; }
+}
+
+/* Điện thoại nhỏ */
+@media (max-width:480px) {
+  .modal-nen:has(.ex-xuat-hop) { padding:0; }
+  .xuat-hop.ex-xuat-hop { border-radius:0; min-height:100vh; min-height:100dvh; margin:0; padding:14px 14px 0; border:0; }
+  .ex-xuat-hop h3 { font-size:17px; }
+  .ex-xuat-hop fieldset { padding:2px 12px 10px; }
+  .ex-xuat-hop .xuat-so { grid-template-columns:repeat(3, minmax(0, 1fr)); }
+  .ex-xuat-hop .xuat-so-o { padding:6px; }
+  .ex-xuat-hop .xuat-so-o strong { font-size:15px; }
+  .ex-xuat-hop .xuat-the { padding:10px; }
+  .ex-xuat-hop .xuat-the-dau { flex-wrap:wrap; }
+  .ex-xuat-hop .ex-xb-bd { height:190px; }
+  .ex-xuat-hop .ex-xuat-nut .xuat-tatca { flex:1 1 0; }
+  .ex-xuat-hop .hanh-dong { bottom:0; margin:12px -14px 0; padding:10px 14px calc(10px + env(safe-area-inset-bottom, 0px)); box-shadow:0 -6px 14px rgba(10,25,80,.08); }
+  .ex-xuat-hop .hanh-dong .btn { flex:1 1 0; padding:11px 12px; font-size:15px; }
+}
+
+/* Màn hình thấp (điện thoại xoay ngang): bỏ thanh dính để khỏi che nội dung */
+@media (max-height:480px) and (orientation:landscape) {
+  .ex-xuat-hop .hanh-dong { position:static; box-shadow:none; }
+}
+
+/* ---------- Hộp thoại Xuất: bảng xem trước vừa khung, không phải kéo ngang ---------- */
+.xuat-hop.ex-xuat-hop { width:min(1200px, 100%); }
+.ex-xuat-hop .xuat-the .ex-xb-cuon { overflow-x:auto; }   /* chỉ cuộn ngang khi quá nhiều cột */
+.ex-xuat-hop .xuat-the .ex-xb { table-layout:auto; width:100%; font-size:12px; }
+.ex-xuat-hop .xuat-the .ex-xb th { white-space:normal; padding:6px 6px; font-size:11px; line-height:1.25; vertical-align:bottom; }
+.ex-xuat-hop .xuat-the .ex-xb td { padding:6px 6px; overflow-wrap:anywhere; word-break:normal; line-height:1.35; }
+.ex-xuat-hop .xuat-the .ex-xb .ex-xb-nowrap { white-space:normal; }
+.ex-xuat-hop .xuat-the .ex-xb-tt { padding:2px 7px; font-size:11px; }
+/* ---------- Bảng xem trước trong hộp thoại Xuất (cột Mã, Tên...): nền trắng, gọn, đọc được trên điện thoại ----------
+   style_admin.css ép th/td của .admin-noidung bằng !important (chữ HOA, padding 13px 16px...) nên phải ghi đè lại bằng !important. */
+.ex-xuat-hop .xuat-the .ex-xb-cuon { background:#fff; border:1px solid #dfe6f6; border-radius:10px; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+.ex-xuat-hop .xuat-the table.ex-xb { margin:0 !important; width:100% !important; min-width:max-content; border-collapse:collapse !important; border-spacing:0 !important; background:#fff !important; display:table !important; }
+.ex-xuat-hop .xuat-the .ex-xb th { background:#f3f6fd !important; color:#33415f !important; font-size:12px !important; font-weight:700 !important; text-transform:none !important; letter-spacing:0 !important;
+  padding:8px 10px !important; border-bottom:1px solid #dfe6f6 !important; white-space:nowrap; position:sticky; top:0; z-index:1; }
+.ex-xuat-hop .xuat-the .ex-xb td { background:#fff !important; color:#1b2a4a !important; font-size:13px !important; font-weight:500 !important;
+  padding:7px 10px !important; border-bottom:1px solid #eef1fa !important; vertical-align:middle !important; }
+.ex-xuat-hop .xuat-the .ex-xb tbody tr:nth-child(even) td { background:#fafbff !important; }
+.ex-xuat-hop .xuat-the .ex-xb tbody tr:hover td { background:#eef4ff !important; }
+.ex-xuat-hop .xuat-the .ex-xb tr:last-child td { border-bottom:0 !important; }
+@media (max-width:760px) {
+  .ex-xuat-hop .xuat-the .ex-xb-cuon { max-height:60vh; }
+  .ex-xuat-hop .xuat-the .ex-xb th { font-size:11.5px !important; padding:7px 8px !important; }
+  .ex-xuat-hop .xuat-the .ex-xb td { font-size:12.5px !important; padding:7px 8px !important; }
+}
+
+/* Điện thoại: ép bảng xem trước vừa khung (không tràn ngang): bỏ min-width, cho chữ tiêu đề và ô xuống dòng */
+@media (max-width:760px) {
+  .ex-xuat-hop .xuat-luoi, .ex-xuat-hop .xuat-xemCot, .ex-xuat-hop .xuat-xem, .ex-xuat-hop .xuat-the { max-width:100%; min-width:0; box-sizing:border-box; }
+  .ex-xuat-hop .xuat-the .ex-xb-cuon { max-width:100%; }
+  .ex-xuat-hop .xuat-the table.ex-xb { min-width:0 !important; width:100% !important; table-layout:auto; }
+  .ex-xuat-hop .xuat-the .ex-xb th { white-space:normal !important; word-break:break-word; overflow-wrap:anywhere; line-height:1.25; vertical-align:bottom; position:static; }
+  .ex-xuat-hop .xuat-the .ex-xb td { word-break:break-word; overflow-wrap:anywhere; line-height:1.3; }
+  .ex-xuat-hop .xuat-the .ex-xb td.ex-xb-nowrap { white-space:normal; }
+  .ex-xuat-hop .xuat-the .ex-xb th, .ex-xuat-hop .xuat-the .ex-xb td { padding:6px 5px !important; font-size:11.5px !important; }
+  .ex-xuat-hop .xuat-the .ex-xb-tt { font-size:10.5px; padding:2px 6px; }
+}
+
+/* Ô chọn môn trong hộp thoại Xuất */
+.ex-xuat-hop .ex-chon-mon { width:100%; box-sizing:border-box; margin:8px 0 0; padding:9px 10px; border:1px solid #cbd5e1; border-radius:10px; background:#fff; color:#12235e; font-size:14px; }
+.ex-xuat-hop .ex-chon-mon:focus { outline:2px solid #bcd0ff; border-color:#1e5cf0; }
+.ex-xuat-hop .xuat-phu { color:#6b7694; opacity:1; font-size:13px; }

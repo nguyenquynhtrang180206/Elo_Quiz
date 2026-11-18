@@ -281,8 +281,8 @@ if ($v === 'bd') {
 
 $tieuDe   = 'Elo và xếp hạng';
 $mucChon  = 'elo';
-$cssTrang = 'elo';
-$jsTrang  = 'elo';
+$cssTrang = ['thongke_xuat', 'elo'];   // elo nạp sau để ghi đè giao diện hộp thoại Xuất (nền trắng)
+$jsTrang  = ['elo', 'elo_xuat'];
 require __DIR__ . '/layout/header.php';
 
 $tabs = ['bxh' => 'Bảng xếp hạng', 'tra' => 'Tra cứu Elo', 'bd' => 'Biến động bất thường'];
@@ -376,7 +376,7 @@ $chiTiet = static fn (int $id): string => e(BASE_URL) . '/admin/nguoidung_chitie
       </select>
       <button type="submit" class="ea-nut">Lọc</button>
       <a class="ea-nut ea-nut-o" href="?v=<?= e($v) ?>">Xóa lọc</a>
-      <?php if ($v === 'bxh'): ?><a class="ea-nut ea-nut-o ea-phai" href="<?= e($linkXuat) ?>">⬇ Xuất Excel</a><?php endif; ?>
+      <?php if ($v === 'bxh'): ?><button type="button" class="ea-nut ea-nut-o ea-phai" id="exMoXuat" aria-haspopup="dialog">⬇ Xuất Excel / PDF</button><?php endif; ?>
     </form>
 
     <?php if ($v === 'bxh' && $mon === 0): ?>
@@ -487,6 +487,69 @@ $chiTiet = static fn (int $id): string => e(BASE_URL) . '/admin/nguoidung_chitie
       ],
       'xuhuong' => $diemElo,
   ]; ?>
+<!-- Hộp thoại Xuất bảng xếp hạng (Excel / PDF): cùng giao diện với hộp thoại Xuất của trang Người dùng (modal-nen, modal xuat-hop);
+     cột trái chọn môn, số người, nội dung, cột và định dạng, cột phải xem trước. Xử lý ở elo_xuat.php (A-46) -->
+<div class="modal-nen" id="exXuatHop" hidden>
+  <form class="modal xuat-hop ex-xuat-hop" id="exXuatForm" method="post" action="<?= e(BASE_URL) ?>/admin/elo_xuat.php" role="dialog" aria-modal="true" aria-labelledby="exXuatTieuDe">
+    <h3 id="exXuatTieuDe">Xuất bảng xếp hạng Elo</h3>
+    <?= csrf_field() ?>
+    <div class="xuat-luoi">
+      <div class="xuat-chonCot">
+        <fieldset>
+          <legend>Bảng xếp hạng nào?</legend>
+          <select name="mon" class="ex-chon-mon">
+            <option value="0"<?= $mon === 0 ? ' selected' : '' ?>>Toàn trường</option>
+            <?php foreach ($monHoc as $m): ?>
+              <option value="<?= (int) $m['MaMon'] ?>"<?= $mon === (int) $m['MaMon'] ? ' selected' : '' ?>><?= e($m['TenMon']) ?></option>
+            <?php endforeach; ?>
+          </select>
+          <p class="xuat-ghichu">Mặc định là bảng đang xem. Toàn trường chỉ tính Elo trung bình các môn đã đủ <?= (int) $nMin ?> trận.</p>
+        </fieldset>
+        <fieldset>
+          <legend>Xuất bao nhiêu người?</legend>
+          <label class="xuat-chon"><input type="radio" name="top" value="0" checked> Toàn bộ bảng xếp hạng</label>
+          <label class="xuat-chon"><input type="radio" name="top" value="10"> Top 10</label>
+          <label class="xuat-chon"><input type="radio" name="top" value="50"> Top 50</label>
+          <label class="xuat-chon"><input type="radio" name="top" value="100"> Top 100</label>
+        </fieldset>
+        <fieldset>
+          <legend>Nội dung xuất</legend>
+          <label class="xuat-chon"><input type="checkbox" name="noidung[]" value="ds" checked> Bảng xếp hạng <span class="xuat-phu">(bảng)</span></label>
+          <label class="xuat-chon"><input type="checkbox" name="noidung[]" value="bac" checked> Sơ đồ phân bố theo bậc</label>
+          <label class="xuat-chon"><input type="checkbox" name="noidung[]" value="pho" checked> Sơ đồ phân bố điểm Elo</label>
+        </fieldset>
+        <fieldset id="exCotBox">
+          <legend>Chọn cột của bảng</legend>
+          <?php foreach ([
+              'hang' => 'Hạng', 'ten' => 'Họ tên', 'email' => 'Email', 'bac' => 'Bậc',
+              'elo' => 'Elo', 'sotran' => 'Số trận', 'tyle' => 'Tỷ lệ thắng', 'tt' => 'Trạng thái',
+          ] as $k => $ten): ?>
+            <label class="xuat-chon"><input type="checkbox" name="truong[]" value="<?= e($k) ?>" checked> <?= e($ten) ?></label>
+          <?php endforeach; ?>
+          <div class="ex-xuat-nut">
+            <button type="button" class="btn btn-phu xuat-tatca" id="exChonHet">Chọn tất cả</button>
+            <button type="button" class="btn btn-phu xuat-tatca" id="exBoChon">Bỏ chọn</button>
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend>Định dạng</legend>
+          <label class="xuat-chon"><input type="radio" name="dinhdang" value="excel" checked> Excel (.xlsx)</label>
+          <label class="xuat-chon"><input type="radio" name="dinhdang" value="pdf"> PDF</label>
+          <label class="xuat-chon"><input type="radio" name="dinhdang" value="ca"> Cả hai (tải liên tiếp 2 file)</label>
+        </fieldset>
+      </div>
+      <div class="xuat-xemCot">
+        <div class="xuat-xemDau">Xem trước <small id="exXemGhiChu"></small></div>
+        <div class="xuat-xem" id="exXem"><p class="xuat-ghichu">Đang tải...</p></div>
+      </div>
+    </div>
+    <p class="xuat-loi" id="exXuatLoi" hidden></p>
+    <div class="hanh-dong">
+      <button type="button" class="btn btn-phu" id="exXuatHuy">Hủy</button>
+      <button type="submit" class="btn" id="exXuatOk">Xuất</button>
+    </div>
+  </form>
+</div>
 <script src="<?= e(BASE_URL) ?>/assets/vendor/chart.umd.js"></script>
 <script id="du-lieu-elo" type="application/json"><?= json_encode($duLieuElo, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) ?></script>
 <?php endif; ?>

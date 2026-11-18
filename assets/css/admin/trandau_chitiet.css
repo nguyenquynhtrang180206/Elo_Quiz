@@ -40,3 +40,69 @@
 .tc-sai { background:#fde8ea; color:#c2272d; }
 .tc-het { background:#fff1d6; color:#b45309; }
 .td-bang td .nhan-phu { display:block; margin-top:3px; font-size:12px; }
+
+/* ===== Điện thoại: trang Chi tiết trận đấu ===== */
+@media (max-width:768px) {
+  .tc-dau { gap:10px; margin-bottom:12px; }
+  .tc-dau h2 { flex-wrap:wrap; gap:6px 10px; font-size:20px; }
+  .tc-dau .td-xem { width:100%; justify-content:center; padding:9px 13px; }
+  .td .thanhcong, .td .loi { padding:9px 12px; font-size:13px; }
+  .tc-luoi { gap:12px; margin-bottom:12px; }
+  .tc-the { padding:14px 12px; border-radius:12px; }
+  .admin-noidung .td .tc-tieu { margin-bottom:10px; }
+
+  /* Đối đầu: hai người hai bên, tỷ số ở giữa; tên được phép xuống dòng */
+  .tc-vs { gap:6px; padding:2px 0 14px; align-items:flex-start; }
+  .tc-ng { flex:1 1 0; min-width:0; }
+  .tc-ng b { max-width:100%; font-size:13.5px; line-height:1.3; white-space:normal; overflow-wrap:anywhere; }
+  .tc-ng small { max-width:100%; font-size:11px; }
+  .tc-ava { width:44px; height:44px; font-size:17px; margin-bottom:4px; }
+  .tc-elo { display:flex; flex-direction:column; align-items:center; gap:1px; font-size:11.5px; line-height:1.35; }
+  .tc-diem { flex:none; align-self:center; gap:4px; font-size:26px; }
+
+  /* Thông tin trận: mỗi mục một dòng, nhãn trái - giá trị phải */
+  .tc-tt { grid-template-columns:minmax(0,1fr); gap:0; padding-top:6px; }
+  .tc-tt > div { display:flex; justify-content:space-between; align-items:baseline; gap:12px; padding:9px 0; border-bottom:1px solid #eef2fb; }
+  .tc-tt > div:last-child { border-bottom:0; }
+  .tc-tt dt { flex:none; }
+  .tc-tt dd { margin:0; font-size:13.5px; text-align:right; overflow-wrap:anywhere; }
+
+  /* Thao tác: nút hủy rộng đủ ngón tay bấm */
+  .admin-noidung .td .tc-huy textarea { font-size:16px; } /* >=16px để iOS không tự phóng to khi chạm vào ô */
+  .tc-huy .td-nut { width:100%; padding:12px 14px; font-size:14px; }
+
+  /* Bài làm từng câu: mỗi câu là một thẻ, không còn cuộn ngang */
+  .td-ds-dau { padding:12px 14px; }
+  .td-bang-cuon { overflow-x:visible; }
+  .admin-noidung .td table.tc-bang { min-width:0; }
+  .admin-noidung .td table.tc-bang, .admin-noidung .td .tc-bang tbody { display:block; width:100%; }
+  .admin-noidung .td .tc-bang thead { display:none; }
+  .admin-noidung .td .tc-bang tbody tr {
+    display:grid; grid-template-columns:auto minmax(0,1fr); column-gap:10px; align-items:start;
+    padding:12px 14px; border-bottom:1px solid #e6ecf8;
+  }
+  .admin-noidung .td .tc-bang tbody tr:last-child { border-bottom:0; }
+  .admin-noidung .td .tc-bang tbody tr:hover td { background:transparent; }
+  .admin-noidung .td .tc-bang td { display:block; padding:0; border-bottom:0; }
+
+  .admin-noidung .td .tc-bang td.tc-stt { grid-column:1; }
+  .tc-stt b { display:grid; place-items:center; min-width:26px; height:26px; padding:0 6px; border-radius:8px; background:#e8f0ff; color:#1e5cf0; font-size:13px; }
+  .admin-noidung .td .tc-bang td.tc-cau { grid-column:2; max-width:none; font-size:13.5px; line-height:1.45; overflow-wrap:anywhere; }
+
+  /* Kết quả từng người: nhãn (tên) trái, kết quả phải */
+  .admin-noidung .td .tc-bang td.tc-bai {
+    grid-column:1 / -1; display:flex; align-items:center; justify-content:space-between; gap:12px;
+    margin-top:8px; padding:8px 10px; border-radius:10px; background:#f7f9fe; text-align:right;
+  }
+  .tc-bai::before { content:attr(data-label); flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-align:left; font-size:13px; font-weight:700; color:#12235e; }
+  .tc-bai > * { flex:none; }
+  .tc-bai .tc-kq { margin-left:auto; }
+  .td-bang td.tc-bai .nhan-phu { display:inline; margin:0; white-space:nowrap; }
+  .tc-bai .tc-kq + .nhan-phu { margin-left:8px; }
+}
+
+@media (max-width:380px) {
+  .tc-diem { font-size:22px; }
+  .tc-ava { width:38px; height:38px; font-size:15px; }
+  .tc-ng .td-ket { font-size:11px; padding:2px 8px; }
+}

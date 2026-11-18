@@ -513,45 +513,6 @@ b.ty-kho { color:#c0314f; }
   .ch-trang .ch-chip { font-size:12.5px; padding:5px 6px 5px 11px; }
   .ch-xoa-mon { padding:10px 12px; }
 
-  /* Bảng -> thẻ. Hàng tiêu đề chỉ còn ô "Chọn tất cả" */
-  .ch-cuon { overflow-x:visible; }
-  .admin-noidung .ch-trang table.ch-bang { display:block; min-width:0; width:100%; }
-  .ch-bang thead, .ch-bang tbody { display:block; }
-  .ch-bang thead tr { display:flex; align-items:center; gap:8px; padding:4px 4px 8px; }
-  .ch-bang thead th { display:none; padding:0; background:transparent; }
-  .ch-bang thead th:first-child { display:flex; align-items:center; gap:8px; border-radius:0; width:auto; }
-  .ch-bang thead th:first-child::after { content:"Chọn tất cả câu trong trang"; font-size:13px; font-weight:600; color:var(--ch-phu); }
-
-  .ch-bang tbody tr.ch-dong {
-    display:grid; grid-template-columns:28px minmax(0,1fr) auto; column-gap:8px; row-gap:8px; align-items:center;
-    grid-template-areas:"c m s" "n n n" "o o d" "t t t" "u u u" "a a a";
-    margin-top:10px; padding:12px; border:1px solid #dbe1f3; border-radius:14px; background:#fff;
-  }
-  .ch-bang tbody tr.ch-dong.dong-lech { background:#fff6df; border-color:#f0d9a0; }
-  .ch-bang tbody tr.ch-dong.dang-xem { border-color:#5b8cff; box-shadow:0 0 0 2px rgba(91,140,255,.25); }
-  .admin-noidung .ch-trang .ch-bang tbody tr td,
-  .admin-noidung .ch-trang .ch-bang tbody tr:hover td,
-  .admin-noidung .ch-trang .ch-bang tr.dang-xem td,
-  .admin-noidung .ch-trang .ch-bang tbody tr.dong-lech td,
-  .admin-noidung .ch-trang .ch-bang tbody tr.dong-lech:hover td { padding:0; border:0; background:transparent; box-shadow:none; width:auto; min-width:0; max-width:none; }
-  .ch-bang tbody td:nth-child(1) { grid-area:c; }
-  .ch-bang tbody td:nth-child(2) { grid-area:m; }
-  .ch-bang tbody td:nth-child(3) { grid-area:n; display:block; font-weight:600; line-height:1.45; overflow-wrap:anywhere; }
-  .ch-bang tbody td:nth-child(4) { grid-area:o; min-width:0; }
-  .ch-bang tbody td:nth-child(4) .ch-mon-o { white-space:normal; }
-  .ch-bang tbody td:nth-child(5) { grid-area:d; justify-self:end; }
-  .ch-bang tbody td:nth-child(6) { grid-area:t; }
-  .ch-bang tbody td:nth-child(7) { grid-area:u; }
-  .ch-bang tbody td:nth-child(8) { grid-area:s; justify-self:end; }
-  .ch-bang tbody td:nth-child(9) { grid-area:a; display:flex; flex-wrap:wrap; gap:6px; padding-top:8px; border-top:1px dashed #e3e8f6 !important; }
-  .ch-bang tbody td:nth-child(9) .ch-nut { flex:1 1 0; justify-content:center; padding:8px 10px; }
-  .ch-bang tbody td:nth-child(9) form { display:flex; flex:1 1 0; margin:0 !important; }
-  .ch-bang tbody td:nth-child(9) form .ch-nut { width:100%; }
-  .ch-bang tbody td:nth-child(6)::before { content:"Tỉ lệ đúng thực tế"; display:block; margin-bottom:2px; font-size:10.5px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--ch-phu); }
-  .ch-bang tbody td:nth-child(7)::before { content:"Đã dùng: "; font-size:12px; color:var(--ch-phu); }
-  .ch-ty { width:100%; }
-  .ch-td-ty { min-width:0; }
-
   /* Phân trang */
   .ch-pt { gap:5px; }
 
@@ -566,30 +527,127 @@ b.ty-kho { color:#c0314f; }
   .ch-ngan-dau h3 { font-size:19px; }
   .ch-ngan-chan .ch-nut-chinh, .ch-ngan-chan form { flex:1 1 auto; }
 }
-/* ---------- Bảng câu hỏi: nằm gọn trong một khung, không phải kéo ngang (máy tính / máy tính bảng) ----------
-   Từ 721px trở lên bảng chia cột theo %, chữ tự xuống dòng. Dưới 721px vẫn chuyển sang dạng thẻ như trước. */
-@media (min-width:721px) {
+
+/* =====================================================================
+   BẢNG CÂU HỎI - TỰ CO GIÃN THEO BỀ RỘNG KHUNG CHỨA (không phụ thuộc cỡ màn hình / zoom / sidebar mở hay ẩn)
+   Dùng container query trên .ch-cuon, nên dù là màn hình lớn, laptop 125-150%, máy tính bảng hay điện thoại
+   thì chữ cũng không bị đè và 3 nút Sửa / Ẩn / Xóa luôn nằm trên cùng một hàng:
+     - khung >= 1140px : bảng 9 cột, cột cố định px, nút không xuống dòng
+     - 740 - 1139px    : mỗi câu là một thẻ 2 hàng (nội dung + nút ở hàng trên, thông tin ở hàng dưới)
+     - < 740px         : thẻ xếp dọc cho điện thoại
+   ===================================================================== */
+/* body là flex dọc + .admin-khung có margin auto nên khung tự co theo nội dung; bảng giờ tự co giãn nên phải giữ khung đủ rộng (chỉ trang này) */
+.admin-khung:has(.ch-trang) { width:100%; }
+.ch-nut { white-space:nowrap; }
+.ch-pill { white-space:nowrap; }
+.ch-cuon { container-type:inline-size; container-name:chbang; overflow-x:auto; border-radius:14px; }
+.ch-ty-chu { flex-wrap:wrap; gap:0 8px; white-space:normal; }
+
+/* ---------- Bảng thường (khung >= 1140px) ---------- */
+.admin-noidung .ch-trang table.ch-bang { display:table; table-layout:fixed; width:100%; min-width:1100px; font-size:13px; }
+/* style_admin.css có .admin-noidung th/td { padding:13px 16px !important; ... } nên phải ghi đè bằng !important + độ ưu tiên cao hơn */
+.admin-noidung .ch-trang .ch-bang th { padding:10px 8px !important; font-size:12px !important; letter-spacing:.03em !important; line-height:1.25; vertical-align:bottom !important; }
+.admin-noidung .ch-trang .ch-bang td { padding:10px 8px !important; overflow-wrap:anywhere; }
+.admin-noidung .ch-trang .ch-bang td a.ch-nut { font-weight:600 !important; text-decoration:none !important; }
+.admin-noidung .ch-trang .ch-bang td a.ch-nut-vien { color:var(--ch-xanh) !important; }
+.ch-bang th:nth-child(1), .ch-bang td:nth-child(1) { width:40px; }
+.ch-bang th:nth-child(2), .ch-bang td:nth-child(2) { width:62px; }
+/* cột 3 (Nội dung) không đặt width: nhận phần còn lại */
+.ch-bang th:nth-child(4), .ch-bang td:nth-child(4) { width:140px; }
+.ch-bang th:nth-child(5), .ch-bang td:nth-child(5) { width:108px; }
+.ch-bang th:nth-child(6), .ch-bang td:nth-child(6) { width:168px; }
+.ch-bang th:nth-child(7), .ch-bang td:nth-child(7) { width:72px; }
+.ch-bang th:nth-child(8), .ch-bang td:nth-child(8) { width:100px; }
+.ch-bang th:nth-child(9), .ch-bang td:nth-child(9) { width:218px; }
+.ch-nd { min-width:0; max-width:none; }
+.ch-mon-o { white-space:normal; align-items:center; }
+.ch-mon-o .ch-ico-mon { flex:none; }
+.ch-mon-ten { min-width:0; overflow-wrap:anywhere; }
+.ch-td-ty { min-width:0; }
+.ch-ty { width:100%; max-width:160px; }
+.ch-td-dung { white-space:nowrap; }
+.ch-bang td.ch-td-tt { white-space:nowrap; }
+.ch-bang td.ch-td-tt > * { vertical-align:middle; }
+.ch-bang td.ch-td-tt .ch-nut-nho { padding:5px 10px; flex:none; }
+.ch-bang td.ch-td-tt form { display:inline-block; margin:0 0 0 4px !important; }
+
+/* ---------- Thẻ 2 hàng (khung 740 - 1139px) ----------
+   Hàng 1: [chọn] [mã] [nội dung - chiếm hết chỗ trống] [Sửa Ẩn Xóa]   Hàng 2: môn, độ khó, tỉ lệ đúng, số trận, trạng thái */
+@container chbang (max-width:1139px) {
   .ch-cuon { overflow-x:visible; }
-  .admin-noidung .ch-trang table.ch-bang { table-layout:fixed; width:100%; min-width:0; font-size:13px; }
-  .ch-bang th { padding:10px 8px; font-size:12.5px; line-height:1.25; vertical-align:bottom; }
-  .ch-bang td { padding:10px 8px; overflow-wrap:anywhere; }
-  .ch-bang th:nth-child(1), .ch-bang td:nth-child(1) { width:4%; }
-  .ch-bang th:nth-child(2), .ch-bang td:nth-child(2) { width:6%; }
-  .ch-bang th:nth-child(3), .ch-bang td:nth-child(3) { width:25%; }
-  .ch-bang th:nth-child(4), .ch-bang td:nth-child(4) { width:13%; }
-  .ch-bang th:nth-child(5), .ch-bang td:nth-child(5) { width:9%; }
-  .ch-bang th:nth-child(6), .ch-bang td:nth-child(6) { width:16%; }
-  .ch-bang th:nth-child(7), .ch-bang td:nth-child(7) { width:8%; }
-  .ch-bang th:nth-child(8), .ch-bang td:nth-child(8) { width:9%; }
-  .ch-bang th:nth-child(9), .ch-bang td:nth-child(9) { width:10%; }
-  .ch-nd { min-width:0; max-width:none; }
-  .ch-mon-o { white-space:normal; align-items:center; }
-  .ch-mon-o .ch-ico-mon { flex:none; }
-  .ch-td-ty { min-width:0; }
-  .ch-ty { width:100%; max-width:150px; }
-  .ch-ty-chu { flex-wrap:wrap; gap:0 6px; white-space:normal; }
-  .ch-td-dung { white-space:normal; }
-  .ch-bang td.ch-td-tt { white-space:normal; }
-  .ch-bang td.ch-td-tt > * { margin:2px 4px 2px 0; vertical-align:middle; }
-  .ch-bang td.ch-td-tt .ch-nut + form { margin-left:0; }
+  .admin-noidung .ch-trang table.ch-bang { display:block; table-layout:auto; min-width:0; width:100%; }
+  .ch-bang thead, .ch-bang tbody { display:block; }
+  .ch-bang thead tr { display:flex; align-items:center; gap:8px; padding:4px 4px 8px; }
+  .admin-noidung .ch-trang .ch-bang thead th { display:none; padding:0 !important; border:0 !important; background:transparent !important; }
+  .admin-noidung .ch-trang .ch-bang thead th:first-child { display:flex; align-items:center; gap:8px; border-radius:0; width:auto; }
+  .ch-bang thead th:first-child::after { content:"Chọn tất cả câu trong trang"; font-size:13px; font-weight:600; color:var(--ch-phu); text-transform:none; letter-spacing:0; }
+
+  .ch-bang tbody tr.ch-dong {
+    display:flex; flex-wrap:wrap; align-items:center; gap:0 14px;
+    margin-top:10px; padding:12px 14px; border:1px solid #dbe1f3; border-radius:14px; background:#fff;
+  }
+  .ch-bang tbody tr.ch-dong::after { content:""; order:5; flex:0 0 100%; height:0; }   /* ngắt xuống hàng 2 */
+  .ch-bang tbody tr.ch-dong.dong-lech { background:#fff6df; border-color:#f0d9a0; }
+  .ch-bang tbody tr.ch-dong.dang-xem { border-color:#5b8cff; box-shadow:0 0 0 2px rgba(91,140,255,.25); }
+  .admin-noidung .ch-trang .ch-bang tbody tr td,
+  .admin-noidung .ch-trang .ch-bang tbody tr:hover td,
+  .admin-noidung .ch-trang .ch-bang tr.dang-xem td,
+  .admin-noidung .ch-trang .ch-bang tbody tr.dong-lech td,
+  .admin-noidung .ch-trang .ch-bang tbody tr.dong-lech:hover td { padding:0 !important; border:0 !important; background:transparent !important; box-shadow:none; }
+
+  /* hàng 1 */
+  .ch-bang tbody td:nth-child(1) { order:1; flex:none; width:20px; min-width:20px; }
+  .ch-bang tbody td:nth-child(2) { order:2; flex:none; width:56px; min-width:56px; }
+  .ch-bang tbody td:nth-child(3) { order:3; flex:1 1 0; width:auto; min-width:0; display:block; font-weight:600 !important; line-height:1.45; overflow-wrap:anywhere; }
+  .ch-bang tbody td:nth-child(9) { order:4; flex:none; width:auto; display:flex; align-items:center; gap:6px; white-space:nowrap; }
+  .ch-bang tbody td:nth-child(9) form { display:flex; margin:0 !important; }
+  .ch-bang tbody td:nth-child(9) .ch-nut-nho { padding:6px 12px; flex:none; }
+  /* hàng 2: thụt vào thẳng hàng với nội dung (20 + 56 + 2 khoảng cách 14) */
+  .ch-bang tbody td:nth-child(4), .ch-bang tbody td:nth-child(5), .ch-bang tbody td:nth-child(6),
+  .ch-bang tbody td:nth-child(7), .ch-bang tbody td:nth-child(8) { margin-top:12px; flex:none; width:auto; }
+  .ch-bang tbody td:nth-child(4) { order:6; margin-left:104px; min-width:120px; }
+  .ch-bang tbody td:nth-child(5) { order:7; }
+  .ch-bang tbody td:nth-child(6) { order:8; flex:1 1 150px; max-width:260px; min-width:130px; }
+  .ch-bang tbody td:nth-child(7) { order:9; }
+  .ch-bang tbody td:nth-child(8) { order:10; }
+  .ch-ty { max-width:none; }
+}
+
+/* ---------- Thẻ xếp dọc cho điện thoại (khung < 740px) ---------- */
+@container chbang (max-width:739px) {
+  .ch-bang tbody tr.ch-dong::after { display:none; }
+  .ch-bang tbody td:nth-child(n) { order:0; flex:none; width:auto; margin:0; max-width:none; min-width:0; }
+  .ch-bang tbody td:nth-child(1) { grid-area:c; }
+  .ch-bang tbody td:nth-child(2) { grid-area:m; }
+  .ch-bang tbody td:nth-child(3) { grid-area:n; }
+  .ch-bang tbody td:nth-child(4) { grid-area:o; }
+  .ch-bang tbody td:nth-child(5) { grid-area:k; }
+  .ch-bang tbody td:nth-child(6) { grid-area:t; }
+  .ch-bang tbody td:nth-child(7) { grid-area:u; }
+  .ch-bang tbody td:nth-child(8) { grid-area:s; }
+  .ch-bang tbody td:nth-child(9) { grid-area:a; }
+  .ch-bang tbody tr.ch-dong {
+    display:grid; gap:0; grid-template-columns:28px minmax(0,1fr) auto; column-gap:8px; row-gap:8px; padding:12px;
+    grid-template-areas:"c m s" "n n n" "o o k" "t t t" "u u u" "a a a";
+  }
+  .ch-bang tbody td:nth-child(5) { justify-self:end; }
+  .ch-bang tbody td:nth-child(8) { justify-self:end; }
+  .ch-bang tbody td:nth-child(4) .ch-mon-o { white-space:normal; }
+  .admin-noidung .ch-trang .ch-bang tbody tr td:nth-child(9) { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; padding-top:8px !important; border-top:1px dashed #e3e8f6 !important; }
+  .ch-bang tbody td:nth-child(9) > .ch-nut, .ch-bang tbody td:nth-child(9) form { min-width:0; width:auto; }
+  .ch-bang tbody td:nth-child(9) .ch-nut { justify-content:center; padding:8px 10px; }
+  .ch-bang tbody td:nth-child(9) form .ch-nut { width:100%; }
+  .ch-bang tbody td:nth-child(6)::before { content:"Tỉ lệ đúng thực tế"; display:block; margin-bottom:2px; font-size:10.5px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--ch-phu); }
+  .ch-bang tbody td:nth-child(7)::before { content:"Đã dùng: "; font-size:12px; color:var(--ch-phu); }
+  .ch-ty { max-width:none; }
+}
+
+/* Trình duyệt quá cũ chưa hiểu container query hoặc :has(): giữ bảng + thanh cuộn ngang để không bao giờ đè chữ */
+@supports not (container-type:inline-size) {
+  .ch-cuon { overflow-x:auto; }
+  .admin-noidung .ch-trang table.ch-bang { min-width:1100px; }
+}
+@supports not selector(:has(*)) {
+  .ch-cuon { container-type:normal; overflow-x:auto; }
+  .admin-noidung .ch-trang table.ch-bang { min-width:1100px; }
 }

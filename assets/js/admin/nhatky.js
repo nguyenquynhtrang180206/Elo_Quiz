@@ -182,7 +182,7 @@
 
   // Khớp với $COT, $MOC, $NOI_DUNG trong nhatky_xuat.php
   var COT = [
-    ['tg', 'Thời gian'], ['hd', 'Hành động'], ['dt', 'Đối tượng'], ['mota', 'Mô tả'], ['tt', 'Trạng thái']
+    ['tg', 'Thời gian'], ['hd', 'Hành động'], ['dt', 'Đối tượng'], ['mota', 'Mô tả']
   ];
   var MOC = [['d7', '7 ngày'], ['d30', '30 ngày'], ['tatca', 'Toàn bộ']];
   var TEN_LOAI = { ds: 'Danh sách', nhip: 'Biểu đồ theo ngày', cocau: 'Cơ cấu hành động' };
@@ -248,15 +248,14 @@
         data: {
           labels: dm.theoNgay.map(function (m) { return ddmm(m.ngay); }),
           datasets: [
-            { label: 'Thành công', data: dm.theoNgay.map(function (m) { return m.tong - m.loi; }), backgroundColor: '#4f46e5', maxBarThickness: 44, stack: 'nhip' },
-            { label: 'Thất bại', data: dm.theoNgay.map(function (m) { return m.loi; }), backgroundColor: '#d6293e', maxBarThickness: 44, stack: 'nhip' }
+            { label: 'Thao tác', data: dm.theoNgay.map(function (m) { return m.tong; }), backgroundColor: '#4f46e5', maxBarThickness: 44 }
           ]
         },
         options: Object.assign({}, chung, {
-          plugins: { legend: { display: true, position: 'bottom' }, title: { display: true, text: 'Số thao tác theo ngày · ' + dm.nhanDai } },
+          plugins: { legend: { display: false }, title: { display: true, text: 'Số thao tác theo ngày · ' + dm.nhanDai } },
           scales: {
-            x: { stacked: true, grid: { display: false }, ticks: { autoSkip: true, maxTicksLimit: 15, maxRotation: 0 } },
-            y: { stacked: true, beginAtZero: true, ticks: { precision: 0 } }
+            x: { grid: { display: false }, ticks: { autoSkip: true, maxTicksLimit: 15, maxRotation: 0 } },
+            y: { beginAtZero: true, ticks: { precision: 0 } }
           }
         })
       };
@@ -371,12 +370,8 @@
       cotHien.forEach(function (c) {
         var td = el('td');
         var v = r[c[0]];
-        if (c[0] === 'tt') {
-          td.appendChild(el('span', 'nk-xb-tt ' + (v === 'Thất bại' ? 'nk-xb-loi' : 'nk-xb-ok'), v));
-        } else {
-          td.textContent = v === '' ? '—' : v;
-          if (c[0] === 'tg') { td.className = 'nk-xb-nowrap'; }
-        }
+        td.textContent = v === '' ? '—' : v;
+        if (c[0] === 'tg') { td.className = 'nk-xb-nowrap'; }
         row.appendChild(td);
       });
       tBody.appendChild(row);
@@ -415,8 +410,6 @@
 
       var soLieu = el('div', 'xuat-so');
       soLieu.appendChild(oSo('Tổng số bản ghi', so(dm.tong)));
-      soLieu.appendChild(oSo('Thành công', so(dm.thanhCong)));
-      soLieu.appendChild(oSo('Thất bại', so(dm.thatBai)));
       the.appendChild(soLieu);
 
       if (!dm.tong) {

@@ -187,46 +187,80 @@ a.td-so-bt:hover { background:#fff5f5; }
   .td-loc-hang select, .td-nut-tim { flex:1 1 100%; }
 }
 
-/* ===== Điện thoại: trang Trận đấu ===== */
+/* ===== Điện thoại: trang Trận đấu (danh sách) ===== */
 @media (max-width:768px) {
   .td { padding:12px; border-radius:14px; }
+  .td-duongdan { margin-bottom:10px; }
   .td-tieude { gap:10px; margin-bottom:12px; }
-  .td-tieude h2 { font-size:20px; }
-  .td-tieude p { font-size:13px; }
-  .td-xuat-btn { width:100%; justify-content:center; }
+  .td-tieude > div { min-width:0; flex:1 1 100%; }
+  .td-tieude h2 { flex-wrap:wrap; gap:6px 10px; font-size:20px; }
+  .td-tieude p { font-size:13px; line-height:1.45; }
+  .td-xuat-btn { width:100%; justify-content:center; padding:11px 16px; }
 
-  /* 4 số liệu: 2 x 2 gọn hơn */
-  .td-so { padding:12px 14px; }
-  .td-so b { font-size:20px; }
+  /* 4 số liệu: lưới 2 x 2, mỗi ô là một thẻ nhỏ */
+  .td-so-khung { margin-bottom:12px; }
+  .td-so { padding:11px 14px; min-width:0; }
+  .td-so b { font-size:20px; overflow-wrap:anywhere; }
+  .td-so span { font-size:11.5px; }
 
   /* Biểu đồ nhịp trận */
-  .td-bd { padding:12px 12px 6px; }
+  .td-hang { gap:12px; margin-bottom:12px; }
+  .td-bd { padding:12px 12px 8px; margin-bottom:12px; }
+  .td-hang .td-bd { margin-bottom:0; }
+  .td-bd-dau { gap:10px; }
+  .td-bd-dau > div:first-child { flex:1 1 100%; }
+  .td-bd-hientai { flex-wrap:wrap; gap:2px 10px; }
   .td-bd-hientai b { font-size:26px; }
-  .td-bd-nut { width:100%; gap:8px; }
-  .td-nhom { max-width:100%; flex-wrap:wrap; }
-  .td-nhom button { padding:6px 10px; }
-  .td-bd-ngay { flex-direction:column; align-items:stretch; }
+  .td-bd-nut { width:100%; flex-direction:column; gap:8px; }
+  .td-nhom { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); width:100%; }
+  .td-nhom button { padding:8px 2px; font-size:12px; text-align:center; white-space:nowrap; }
+  .td-bd-ngay { flex-direction:column; align-items:stretch; gap:8px; }
   .td-bd-ngay label { justify-content:space-between; }
-  .td-bd-tk { gap:8px 20px; }
+  .admin-noidung .td-bd-ngay input[type=date] { flex:1; max-width:62%; font-size:16px; }
+  .td-bd-ngay .td-nut { width:100%; padding:10px 16px; }
+  .td-bd-tk { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px 14px; }
+  .td-bd-tk span { font-size:11.5px; }
   .td-bd-ve { overflow:hidden; min-height:260px; }
 
-  /* Bộ lọc */
-  .td-loc { padding:12px; }
-  .td-tim { flex:1 1 100%; min-width:0; }
-  .td-loc-hang select { flex:1 1 100%; }
-  .td-ds-dau { padding:12px 14px; flex-wrap:wrap; }
-  .td-ds-chan { padding:2px 12px 12px; }
+  /* Panel trận bất thường */
+  .td-bt { padding:12px 12px 6px; }
+  .td-bt-nut { gap:8px; }
+  .td-bt-nut > .td-nut { min-height:40px; }
+  .td-huy summary.td-nut { min-height:40px; }
+  .td-huy form { flex-direction:column; }
+  .td-huy input[type=text] { padding:10px 11px; font-size:16px; }
+  .td-huy form .td-nut { width:100%; min-height:40px; }
 
-  /* Bảng chi tiết trận (trang chi tiết): vẫn cuộn ngang, hạ độ rộng tối thiểu */
+  /* Bộ lọc: ô tìm, môn học, nút Tìm mỗi thứ một dòng; nhãn trạng thái cuộn ngang một hàng */
+  .td-loc { padding:12px; gap:10px; margin-bottom:12px; }
+  .td-loc-hang { gap:8px; }
+  .td-tim { flex:1 1 100%; min-width:0; }
+  .admin-noidung .td .td-tim input[type=text],
+  .admin-noidung .td .td-loc select { height:44px; font-size:16px; }
+  .admin-noidung .td .td-loc select { width:100%; min-width:0; flex:1 1 100%; }
+  .td-nut-tim { flex:1 1 100%; height:44px; }
+  .td-chips { flex-wrap:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; margin:0 -12px; padding:2px 12px 4px; }
+  .td-chips::-webkit-scrollbar { display:none; }
+  .admin-noidung .td a.td-chip { flex:none; white-space:nowrap; padding:7px 9px 7px 13px; }
+  .admin-noidung .td a.td-chip-xoa { flex:none; white-space:nowrap; margin-left:6px; padding:7px 4px; }
+  .td-luuy { margin:-2px 0 12px; font-size:12px; }
+
+  /* Danh sách trận */
+  .td-ds-dau { padding:12px 14px; flex-wrap:wrap; }
+  .td-ds-chan { padding:0 12px 12px; }
+  .admin-noidung .td-ds-chan .phantrang { flex-wrap:wrap !important; justify-content:center !important; margin-top:12px !important; padding-top:12px !important; }
+  .td-rong { padding:30px 14px; }
+
+  /* Bảng chi tiết trận (trang chi tiết): hạ độ rộng tối thiểu */
   .admin-noidung .td table.td-bang { min-width:640px; }
 
-  /* Danh sách trận -> thẻ */
+  /* Danh sách trận -> mỗi trận một thẻ */
   .td-bang-cuon { overflow-x:visible; }
   .admin-noidung .td table.td-bang.td-bang-the { min-width:0; }
   .admin-noidung .td table.td-bang-the, .admin-noidung .td .td-bang-the tbody,
   .admin-noidung .td .td-bang-the tr, .admin-noidung .td .td-bang-the td { display:block; width:100%; }
   .admin-noidung .td .td-bang-the thead { display:none; }
-  .admin-noidung .td .td-bang-the tbody tr { padding:12px 14px; border-bottom:1px solid #e6ecf8; }
+  .admin-noidung .td .td-bang-the tbody tr { padding:12px 14px; border-bottom:8px solid #eef2fb; }
   .admin-noidung .td .td-bang-the tbody tr:last-child { border-bottom:0; }
   .admin-noidung .td .td-bang-the tr.td-dong-bt { box-shadow:inset 3px 0 0 #e5484d; }
   .admin-noidung .td .td-bang-the tr.td-dong-bt td:first-child { box-shadow:none; }
@@ -240,13 +274,22 @@ a.td-so-bt:hover { background:#fff5f5; }
   }
   .admin-noidung .td .td-bang-the td[data-label] > * { grid-column:2; }
   .admin-noidung .td .td-bang-the td[data-label] > .nhan-trang-thai { justify-self:end; }
-  .td-vs { gap:8px; justify-content:space-between; }
+
+  /* Đối đầu: tên - tỷ số - tên, chia đều hai bên */
+  .admin-noidung .td .td-bang-the td.td-c-vs { padding:8px 10px; margin:4px 0; border-radius:10px; background:#f7f9fe; }
+  .td-vs { display:grid; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); align-items:center; gap:8px; }
+  .td-ng { min-width:0; }
+  .td-ng > span:last-child { min-width:0; }
   .td-ava { width:28px; height:28px; font-size:12px; }
-  .td-ten { max-width:76px; }
+  .td-ten { max-width:100%; font-size:13px; }
   .td-diem { padding:4px 9px; }
   .td-hd { text-align:left; padding-top:8px !important; }
-  .admin-noidung .td a.td-xem { width:100%; justify-content:center; padding:9px 13px; }
+  .admin-noidung .td a.td-xem { width:100%; justify-content:center; padding:10px 13px; }
+}
 
-  /* Panel trận bất thường */
-  .td-bt { padding:12px 12px 6px; }
+@media (max-width:380px) {
+  .td-so { padding:10px; }
+  .td-so b { font-size:18px; }
+  .td-ng { flex-direction:column; text-align:center; gap:2px; }
+  .td-ng-phai { flex-direction:column; text-align:center; }
 }

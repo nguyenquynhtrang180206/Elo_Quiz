@@ -207,19 +207,10 @@ require __DIR__ . '/layout/header.php';
   <section class="td-bd" id="tdBd" data-api="<?= e(BASE_URL) ?>/admin/trandau_nhip.php">
     <div class="td-bd-dau">
       <div>
-        <div class="td-bd-nhan" id="tdBdNhan">TRẬN BẮT ĐẦU MỖI 5 PHÚT</div>
+        <div class="td-bd-nhan" id="tdBdNhan">TỔNG SỐ TRẬN ĐÃ ĐẤU</div>
         <div class="td-bd-hientai"><b id="tdBdHienTai">–</b><span id="tdBdDelta"></span></div>
       </div>
       <div class="td-bd-nut">
-        <div class="td-nhom" role="group" aria-label="Số liệu hiển thị">
-          <button type="button" data-chedo="batdau" class="on" title="Số trận bắt đầu trong mỗi mốc thời gian">Bắt đầu</button>
-          <button type="button" data-chedo="dadau" title="Số trận đã đấu xong trong mỗi mốc thời gian">Đã đấu</button>
-          <button type="button" data-chedo="tichluy" title="Tổng số trận đã đấu xong tính đến từng mốc">Tích lũy</button>
-        </div>
-        <div class="td-nhom" role="group" aria-label="Kiểu biểu đồ">
-          <button type="button" data-kieu="duong" class="on">Đường</button>
-          <button type="button" data-kieu="nen">Nền</button>
-        </div>
         <div class="td-nhom" role="group" aria-label="Khoảng giờ">
           <button type="button" data-khoang="1h">1H</button>
           <button type="button" data-khoang="3h" class="on">3H</button>
@@ -243,7 +234,7 @@ require __DIR__ . '/layout/header.php';
     <div class="td-bd-tk">
       <div><span>Cao nhất</span><b id="tdTkCao">–</b></div>
       <div><span>Thấp nhất</span><b id="tdTkThap">–</b></div>
-      <div><span id="tdTkTongNhan">Tổng 3 giờ</span><b id="tdTkTong">–</b></div>
+      <div><span id="tdTkTongNhan">Thêm trong 3 giờ</span><b id="tdTkTong">–</b></div>
       <div><span>Trận bất thường</span><b id="tdTkBt" class="mau-do">–</b></div>
       <div><span>Thời lượng TB</span><b id="tdTkTl">–</b></div>
     </div>

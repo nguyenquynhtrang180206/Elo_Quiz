@@ -14,7 +14,6 @@ $pdo = Database::pdo();
 // ---- Cấu hình nhỏ (sửa tại đây nếu muốn đổi) ----
 $LY_DO_AN  = ['Spam / quảng cáo', 'Sai nội dung học thuật', 'Ngôn từ không phù hợp', 'Lộ đề thi / gian lận'];
 $LY_DO_HIEN = ['Đã xem xét lại, nội dung phù hợp', 'Ẩn nhầm'];
-$GIO_DUYET_NHANH = 24;                       // chế độ duyệt nhanh: chỉ lấy mục "Hiển thị" trong ngần này giờ gần đây
 $TU_NHAY_CAM = ['vcl', 'vkl', 'đéo', 'óc chó', 'mất dạy', 'đồ ngu', 'đm'];   // chỉ để GỢI Ý cho admin, không tự động ẩn
 
 // ---- Tham số lọc ----
@@ -45,10 +44,6 @@ if (!$coLoaiBai || $loai !== 'bai' || !in_array($lb, CongDongHelper::LOAI_BAI, t
 $sx = (string) ($_GET['sx'] ?? 'moi');
 if (!in_array($sx, $loai === 'bai' ? ['moi', 'cu', 'nhieu'] : ['moi', 'cu'], true)) {
     $sx = 'moi';
-}
-$nhanh = ($_GET['nhanh'] ?? '') === '1';
-if ($nhanh) {
-    $tt = '';
 }
 $chon = (int) ($_GET['chon'] ?? 0);
 
@@ -87,9 +82,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $kq = CongDongHelper::kiemDuyet($pdo, $hd, (int) ($_POST['ma'] ?? 0), $ly);
     if ($veBai > 0) {
         redirect('congdong_baidang.php?' . http_build_query(['id' => $veBai] + ($kq === 'sai' ? [] : ['kq' => $kq])));
-    }
-    if ($kq === 'ok' && $nhanh) {
-        unset($giu['chon']);      // duyệt nhanh: xử lý xong thì mục biến khỏi danh sách, tự nhảy sang mục kế
     }
     if ($kq !== 'sai') {
         $giu['kq'] = $kq;
@@ -132,16 +124,12 @@ if ($lb !== '') {
     $dk[]   = 'x.LoaiBai = ?';
     $tham[] = $lb;
 }
-if ($nhanh) {
-    $dk[] = "x.TrangThai = 'Hiển thị'";
-    $dk[] = ($loai === 'bai' ? 'x.NgayDang' : 'x.NgayBinhLuan') . ' >= DATE_SUB(NOW(), INTERVAL ' . (int) $GIO_DUYET_NHANH . ' HOUR)';
-}
 $where = $dk ? 'WHERE ' . implode(' AND ', $dk) : '';
 
 if ($loai === 'bai') {
     $cotPhu = ($coLoaiBai ? ', x.LoaiBai' : ', NULL AS LoaiBai') . (CongDongHelper::coCotNguoiAn() ? ', x.NguoiAn' : ', NULL AS NguoiAn');
     $from  = 'FROM BAIDANG x JOIN NGUOIDUNG n ON n.MaND = x.MaND LEFT JOIN MONHOC m ON m.MaMon = x.MaMon';
-    $cot   = 'x.MaBaiDang AS ma, x.TieuDe, x.NoiDung, x.NgayDang AS ngay, x.TrangThai, n.MaND, n.HoTen, m.TenMon' . $cotPhu . ',
+    $cot   = 'x.MaBaiDang AS ma, x.TieuDe, x.NoiDung, x.NgayDang AS ngay, x.TrangThai, n.MaND, n.HoTen, n.AnhDaiDien, m.TenMon' . $cotPhu . ',
              (SELECT COUNT(*) FROM BINHLUAN c WHERE c.MaBaiDang = x.MaBaiDang) AS so_bl';
     $order = [
         'moi'   => 'ORDER BY x.NgayDang DESC, x.MaBaiDang DESC',
@@ -151,7 +139,7 @@ if ($loai === 'bai') {
 } else {
     $cotPhu = CongDongHelper::coCotNguoiAnBL() ? ', x.NguoiAn' : ', NULL AS NguoiAn';
     $from  = 'FROM BINHLUAN x JOIN NGUOIDUNG n ON n.MaND = x.MaND JOIN BAIDANG b ON b.MaBaiDang = x.MaBaiDang';
-    $cot   = 'x.MaBinhLuan AS ma, x.NoiDung, x.NgayBinhLuan AS ngay, x.TrangThai, n.MaND, n.HoTen,
+    $cot   = 'x.MaBinhLuan AS ma, x.NoiDung, x.NgayBinhLuan AS ngay, x.TrangThai, n.MaND, n.HoTen, n.AnhDaiDien,
              b.MaBaiDang, b.TieuDe AS tieu_de_bai, b.TrangThai AS tt_bai' . $cotPhu;
     $order = [
         'moi' => 'ORDER BY x.NgayBinhLuan DESC, x.MaBinhLuan DESC',
@@ -172,7 +160,7 @@ $soBai = (int) $pdo->query('SELECT COUNT(*) FROM BAIDANG')->fetchColumn();
 $soBL  = (int) $pdo->query('SELECT COUNT(*) FROM BINHLUAN')->fetchColumn();
 
 // ---- Hàm dựng link giữ nguyên bộ lọc hiện tại ----
-$thamUrl = ['loai' => $loai, 'tt' => $tt, 'q' => $q, 'mon' => $mon, 'lb' => $lb, 'sx' => $sx === 'moi' ? '' : $sx, 'nhanh' => $nhanh ? '1' : ''];
+$thamUrl = ['loai' => $loai, 'tt' => $tt, 'q' => $q, 'mon' => $mon, 'lb' => $lb, 'sx' => $sx === 'moi' ? '' : $sx];
 $lienKet = static function (array $doi) use ($thamUrl): string {
     $kq = array_filter(array_merge($thamUrl, $doi), static fn ($v) => $v !== '' && $v !== null && $v !== 0 && $v !== false);
     return '?' . http_build_query($kq);
@@ -326,9 +314,16 @@ foreach ($rows as $k => $v) {
 // ---- Hàm hiển thị ----
 $cat = static fn (string $s, int $n = 150): string => mb_strlen($s) > $n ? mb_substr($s, 0, $n) . '…' : $s;
 $chuCai = static function (string $hoTen): string {
-    $tu = preg_split('/\s+/u', trim($hoTen)) ?: ['?'];
-    return mb_strtoupper(mb_substr((string) end($tu), 0, 1)) ?: '?';
+    // Lấy chữ/số đầu của từ cuối; tên kết thúc bằng emoji thì lùi về các từ trước, không có thì lấy chữ/số đầu tiên trong tên
+    $tu = preg_split('/\s+/u', trim($hoTen)) ?: [];
+    for ($i = count($tu) - 1; $i >= 0; $i--) {
+        if (preg_match('/[\p{L}\p{N}]/u', (string) $tu[$i], $m)) {
+            return mb_strtoupper($m[0]);
+        }
+    }
+    return '?';
 };
+
 $lopTT  = ['Hiển thị' => 'cdm-tt-hien', 'Bị ẩn' => 'cdm-tt-an', 'Đã xóa' => 'cdm-tt-xoa'];
 $nhanTT = static function (array $r): string {
     return $r['TrangThai'] . ($r['TrangThai'] === 'Bị ẩn' && !empty($r['NguoiAn']) ? ' · ' . $r['NguoiAn'] : '')
@@ -363,10 +358,6 @@ unset($_GET['chon'], $_GET['kq'], $_GET['n'], $_GET['t']);
     </div>
     <div class="cdm-dau-phai">
       <a class="cdm-nut" href="<?= e(BASE_URL) ?>/client/congdong.php" target="_blank" rel="noopener">↗ Xem trang Cộng đồng</a>
-      <a class="cdm-nut cdm-nut-chinh<?= $nhanh ? ' dang-bat' : '' ?>" href="<?= e($lienKet(['nhanh' => $nhanh ? '' : '1', 'tt' => ''])) ?>"
-         title="Chỉ hiện các mục đang hiển thị trong <?= (int) $GIO_DUYET_NHANH ?> giờ gần đây; xử lý xong tự nhảy sang mục kế">
-        <?= $nhanh ? '✓ Đang duyệt nhanh (bấm để tắt)' : 'Chế độ duyệt nhanh' ?>
-      </a>
     </div>
   </header>
 
@@ -383,50 +374,50 @@ unset($_GET['chon'], $_GET['kq'], $_GET['n'], $_GET['t']);
   <?php if ($loiBao !== ''): ?><div class="loi"><?= e($loiBao) ?></div><?php endif; ?>
 
   <!-- Tab + tìm kiếm + bộ lọc -->
+  <?php $soLocBat = ($tt !== '' ? 1 : 0) + ($mon > 0 ? 1 : 0) + ($lb !== '' ? 1 : 0) + ($sx !== 'moi' ? 1 : 0); ?>
+  <div class="cdm-boloc" id="cdmBoLoc">
   <form method="get" action="" class="cdm-loc" id="cdmFormLoc">
     <input type="hidden" name="loai" value="<?= e($loai) ?>">
-    <?php if ($tt !== ''): ?><input type="hidden" name="tt" value="<?= e($tt) ?>"><?php endif; ?>
-    <?php if ($lb !== ''): ?><input type="hidden" name="lb" value="<?= e($lb) ?>"><?php endif; ?>
-    <?php if ($nhanh): ?><input type="hidden" name="nhanh" value="1"><?php endif; ?>
     <div class="cdm-tab">
       <a class="<?= $loai === 'bai' ? 'on' : '' ?>" href="<?= e($lienKet(['loai' => 'bai', 'lb' => '', 'sx' => ''])) ?>">Bài đăng<i><?= $soBai ?></i></a>
       <a class="<?= $loai === 'bl' ? 'on' : '' ?>" href="<?= e($lienKet(['loai' => 'bl', 'lb' => '', 'sx' => ''])) ?>">Bình luận<i><?= $soBL ?></i></a>
     </div>
     <input type="search" name="q" value="<?= e($q) ?>" class="cdm-tim" maxlength="100"
            placeholder="<?= $loai === 'bai' ? 'Tìm theo tiêu đề, nội dung, người đăng…' : 'Tìm theo nội dung, người bình luận, tiêu đề bài…' ?>">
+    <div class="cdm-loc-phu">
     <select name="mon" data-tu-gui aria-label="Lọc theo môn">
       <option value="0">Môn: Tất cả</option>
       <?php foreach ($dsMon as $maM => $tenM): ?>
         <option value="<?= (int) $maM ?>"<?= $mon === $maM ? ' selected' : '' ?>><?= e($tenM) ?></option>
       <?php endforeach; ?>
     </select>
+    <select name="tt" data-tu-gui aria-label="Lọc theo trạng thái">
+      <option value="">Trạng thái: Tất cả</option>
+      <?php foreach ($dsTT as $v): ?><option value="<?= e($v) ?>"<?= $tt === $v ? ' selected' : '' ?>><?= e($v) ?></option><?php endforeach; ?>
+    </select>
+    <?php if ($loai === 'bai' && $coLoaiBai): ?>
+    <select name="lb" data-tu-gui aria-label="Lọc theo loại bài">
+      <option value="">Loại bài: Tất cả</option>
+      <?php foreach (CongDongHelper::LOAI_BAI as $v): ?><option value="<?= e($v) ?>"<?= $lb === $v ? ' selected' : '' ?>><?= e($v) ?></option><?php endforeach; ?>
+    </select>
+    <?php endif; ?>
     <select name="sx" data-tu-gui aria-label="Sắp xếp">
       <option value="moi"<?= $sx === 'moi' ? ' selected' : '' ?>>Mới nhất</option>
       <option value="cu"<?= $sx === 'cu' ? ' selected' : '' ?>>Cũ nhất</option>
       <?php if ($loai === 'bai'): ?><option value="nhieu"<?= $sx === 'nhieu' ? ' selected' : '' ?>>Nhiều bình luận nhất</option><?php endif; ?>
     </select>
-    <button type="submit" class="cdm-nut cdm-nut-chinh">Tìm</button>
+    <?php if ($q !== '' || $tt !== '' || $mon > 0 || $lb !== '' || $sx !== 'moi'): ?>
+      <a class="cdm-xoaloc" href="?loai=<?= e($loai) ?>">✕ Xóa lọc</a>
+    <?php endif; ?>
+    </div>
+    <button type="submit" class="cdm-nut cdm-nut-chinh cdm-nut-tim">Tìm</button>
+    <!-- Chỉ hiện trên điện thoại: mở / đóng cụm ô lọc (Môn, Trạng thái, Loại bài, Sắp xếp) -->
+    <button type="button" class="cdm-nut cdm-nut-loc" id="cdmNutLoc" aria-expanded="false" aria-controls="cdmBoLoc">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5h18M6 12h12M10 19h4"/></svg>
+      Bộ lọc<?php if ($soLocBat > 0): ?><i class="cdm-loc-dem"><?= $soLocBat ?></i><?php endif; ?>
+    </button>
   </form>
 
-  <div class="cdm-chip-hang">
-    <?php if (!$nhanh): ?>
-      <a class="cdm-chip<?= $tt === '' ? ' on' : '' ?>" href="<?= e($lienKet(['tt' => ''])) ?>">Tất cả</a>
-      <?php foreach ($dsTT as $v): ?>
-        <a class="cdm-chip<?= $tt === $v ? ' on' : '' ?>" href="<?= e($lienKet(['tt' => $v])) ?>"><?= e($v) ?></a>
-      <?php endforeach; ?>
-    <?php else: ?>
-      <span class="cdm-chip on">Duyệt nhanh: mục hiển thị trong <?= (int) $GIO_DUYET_NHANH ?> giờ qua</span>
-    <?php endif; ?>
-    <?php if ($loai === 'bai' && $coLoaiBai): ?>
-      <span class="cdm-chip-cach"></span>
-      <a class="cdm-chip<?= $lb === '' ? ' on' : '' ?>" href="<?= e($lienKet(['lb' => ''])) ?>">Mọi loại bài</a>
-      <?php foreach (CongDongHelper::LOAI_BAI as $v): ?>
-        <a class="cdm-chip<?= $lb === $v ? ' on' : '' ?>" href="<?= e($lienKet(['lb' => $v])) ?>"><?= e($v) ?></a>
-      <?php endforeach; ?>
-    <?php endif; ?>
-    <?php if ($q !== '' || $tt !== '' || $mon > 0 || $lb !== '' || $sx !== 'moi'): ?>
-      <a class="cdm-chip cdm-chip-xoa" href="?loai=<?= e($loai) ?><?= $nhanh ? '&amp;nhanh=1' : '' ?>">✕ Xóa lọc</a>
-    <?php endif; ?>
   </div>
 
   <div class="cdm-chia">
@@ -434,8 +425,9 @@ unset($_GET['chon'], $_GET['kq'], $_GET['n'], $_GET['t']);
     <section class="cdm-ds">
       <div class="cdm-ds-dau">
         <label class="cdm-cb"><input type="checkbox" id="cdmChonTatCa"<?= $ds ? '' : ' disabled' ?>><span></span></label>
-        <span>Chọn tất cả · <?= count($ds) ?> / <?= $tongKQ ?> mục</span>
+        <span><span class="cdm-chu-chon">Chọn tất cả · </span><?= count($ds) ?> / <?= $tongKQ ?> mục</span>
         <span class="cdm-ds-trang">Trang <?= $p->trang() ?> / <?= $p->soTrang() ?></span>
+        <?php if ($ds): ?><button type="button" class="cdm-nut cdm-nut-nho cdm-nut-chon" id="cdmCheDoChon" aria-pressed="false">Chọn</button><?php endif; ?>
       </div>
 
       <!-- Thanh xử lý hàng loạt: hiện khi có mục được tích; dùng cùng một lý do cho mọi mục -->
@@ -458,7 +450,7 @@ unset($_GET['chon'], $_GET['kq'], $_GET['n'], $_GET['t']);
           <div class="cdm-it<?= $ma === $maChonHienTai ? ' chon' : '' ?>">
             <label class="cdm-cb"><input type="checkbox" name="ids[]" value="<?= $ma ?>" form="formHangLoat" class="cdm-chon-hang"<?= $daXoa ? ' disabled' : '' ?>><span></span></label>
             <a class="cdm-it-lk" href="<?= e($lienKet(['chon' => $ma, 'page' => $p->trang()])) ?>">
-              <span class="cdm-av"><?= e($chuCai((string) $r['HoTen'])) ?></span>
+              <span class="cdm-av"><?= e($chuCai((string) $r['HoTen'])) ?><?php if (!empty($r['AnhDaiDien'])): ?><img class="cdm-av-anh" src="<?= e(BASE_URL . '/' . ltrim((string) $r['AnhDaiDien'], '/')) ?>" alt="" loading="lazy" onerror="this.remove()"><?php endif; ?></span>
               <span class="cdm-it-nd">
                 <?php if ($loai === 'bai'): ?>
                   <strong><?= e($r['TieuDe']) ?></strong>

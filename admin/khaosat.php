@@ -325,7 +325,7 @@ $denHienThi = $den->format('d/m/Y');
 
 <!-- Hộp thoại Xuất: cột trái chọn các trường cần xuất, cột phải xem trước toàn bộ -->
 <div class="modal-nen" id="hopXuat" hidden>
-  <form class="modal xuat-hop" id="formXuat" method="post" action="<?= e(BASE_URL) ?>/admin/khaosat_xuat.php" role="dialog" aria-modal="true" aria-labelledby="xuatTieuDe"
+  <form class="modal xuat-hop ks-xuat-hop" id="formXuat" method="post" action="<?= e(BASE_URL) ?>/admin/khaosat_xuat.php" role="dialog" aria-modal="true" aria-labelledby="xuatTieuDe"
         data-api="<?= e(BASE_URL) ?>/admin/khaosat_du_lieu.php">
     <h3 id="xuatTieuDe">Xuất thống kê khảo sát</h3>
     <?= csrf_field() ?>

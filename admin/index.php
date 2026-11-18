@@ -585,7 +585,7 @@ require __DIR__ . '/layout/header.php';
 </div>
 
 <div class="modal-nen" id="hopXuat" hidden>
-  <form class="modal xuat-hop" id="formXuat" method="post" action="<?= e(BASE_URL) ?>/admin/thongke_xuat.php" role="dialog" aria-modal="true" aria-labelledby="xuatTieuDe"
+  <form class="modal xuat-hop tq-xuat-hop" id="formXuat" method="post" action="<?= e(BASE_URL) ?>/admin/thongke_xuat.php" role="dialog" aria-modal="true" aria-labelledby="xuatTieuDe"
         data-api="<?= e(BASE_URL) ?>/admin/thongke_du_lieu.php">
     <h3 id="xuatTieuDe">Xuất báo cáo thống kê</h3>
     <?= csrf_field() ?>

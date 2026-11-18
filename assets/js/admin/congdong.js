@@ -120,6 +120,88 @@
     s.addEventListener('change', function () { s.form.submit(); });
   });
 
+  /* Ô chọn môn: chỉ hiện khoảng 5 môn một lúc (cuộn để xem tiếp) và có ô tìm môn, dùng cho cả máy tính lẫn điện thoại.
+     Vẫn giữ <select name="mon"> thật (ẩn đi) để gửi form; chọn xong thì đổi giá trị select rồi gửi luôn. */
+  (function () {
+    var goc = document.querySelector('select[name="mon"]');
+    if (!goc) { return; }
+    function bo(t) { return String(t).toLowerCase().replace(/đ/g, 'd').normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
+
+    var khung = document.createElement('div');
+    khung.className = 'cdm-dd';
+    khung.innerHTML =
+      '<button type="button" class="cdm-dd-nut" aria-haspopup="listbox" aria-expanded="false"><span class="cdm-dd-chu"></span>' +
+      '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>' +
+      '<div class="cdm-dd-bang" hidden>' +
+      '<input type="search" class="cdm-dd-tim" placeholder="Tìm môn…" autocomplete="off" aria-label="Tìm môn">' +
+      '<div class="cdm-dd-ds" role="listbox"></div>' +
+      '<p class="cdm-dd-rong" hidden>Không có môn nào khớp.</p></div>';
+    goc.classList.add('cdm-dd-goc');
+    goc.parentNode.insertBefore(khung, goc);
+
+    var nut = khung.querySelector('.cdm-dd-nut'), chu = khung.querySelector('.cdm-dd-chu');
+    var bang = khung.querySelector('.cdm-dd-bang'), tim = khung.querySelector('.cdm-dd-tim');
+    var ds = khung.querySelector('.cdm-dd-ds'), rong = khung.querySelector('.cdm-dd-rong');
+    var muc = [], dangChon = -1;
+
+    Array.prototype.forEach.call(goc.options, function (o) {
+      var b = document.createElement('button');
+      b.type = 'button'; b.className = 'cdm-dd-muc'; b.setAttribute('role', 'option');
+      b.textContent = o.textContent; b.setAttribute('data-v', o.value); b.setAttribute('data-k', bo(o.textContent));
+      ds.appendChild(b); muc.push(b);
+    });
+    function veNhan() {
+      var o = goc.options[goc.selectedIndex];
+      chu.textContent = o ? o.textContent : '';
+      muc.forEach(function (b) { var on = b.getAttribute('data-v') === goc.value; b.classList.toggle('on', on); b.setAttribute('aria-selected', on ? 'true' : 'false'); });
+    }
+    function hienThay() { return muc.filter(function (b) { return !b.hidden; }); }
+    function danhDau(i) {
+      var h = hienThay();
+      muc.forEach(function (b) { b.classList.remove('nong'); });
+      if (!h.length) { dangChon = -1; return; }
+      dangChon = Math.max(0, Math.min(i, h.length - 1));
+      h[dangChon].classList.add('nong');
+      h[dangChon].scrollIntoView({ block: 'nearest' });
+    }
+    function loc() {
+      var k = bo(tim.value.trim()), dem = 0;
+      muc.forEach(function (b) { var ok = k === '' || b.getAttribute('data-k').indexOf(k) !== -1; b.hidden = !ok; if (ok) { dem++; } });
+      rong.hidden = dem > 0;
+      danhDau(0);
+    }
+    function mo() {
+      bang.hidden = false; khung.classList.add('mo'); nut.setAttribute('aria-expanded', 'true');
+      tim.value = ''; loc();
+      var on = ds.querySelector('.cdm-dd-muc.on');
+      if (on) { ds.scrollTop = Math.max(0, on.offsetTop - 40); }
+      tim.focus();
+    }
+    function dong() { bang.hidden = true; khung.classList.remove('mo'); nut.setAttribute('aria-expanded', 'false'); }
+    function chon(b) {
+      var v = b.getAttribute('data-v');
+      dong();
+      if (v === goc.value) { return; }
+      goc.value = v; veNhan();
+      goc.dispatchEvent(new Event('change', { bubbles: true }));   // data-tu-gui: gửi form luôn
+    }
+
+    nut.addEventListener('click', function () { if (bang.hidden) { mo(); } else { dong(); } });
+    tim.addEventListener('input', loc);
+    tim.addEventListener('keydown', function (e) {
+      if (e.key === 'ArrowDown') { e.preventDefault(); danhDau(dangChon + 1); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); danhDau(dangChon - 1); }
+      else if (e.key === 'Enter') { e.preventDefault(); var h = hienThay(); if (h[dangChon]) { chon(h[dangChon]); } }
+      else if (e.key === 'Escape') { e.preventDefault(); dong(); nut.focus(); }
+    });
+    ds.addEventListener('click', function (e) {
+      var b = e.target.closest ? e.target.closest('.cdm-dd-muc') : null;
+      if (b) { chon(b); }
+    });
+    document.addEventListener('click', function (e) { if (!bang.hidden && !khung.contains(e.target)) { dong(); } });
+    veNhan();
+  })();
+
   /* ================= 3) Chọn hàng loạt ================= */
   var tatCa = document.getElementById('cdmChonTatCa');
   var hl = document.getElementById('formHangLoat');
@@ -147,6 +229,30 @@
       var nut = ev.submitter, hanh = nut ? nut.textContent.trim() : 'xử lý';
       var n = soChon ? soChon.textContent : '';
       if (!window.confirm(hanh + ' ' + n + ' mục với cùng một lý do?')) { ev.preventDefault(); }
+    });
+  }
+
+  /* Điện thoại: nút "Bộ lọc" mở / đóng ô Môn, Sắp xếp và các chip lọc */
+  var boLoc = document.getElementById('cdmBoLoc'), nutLoc = document.getElementById('cdmNutLoc');
+  if (boLoc && nutLoc) {
+    nutLoc.addEventListener('click', function () {
+      var mo = boLoc.classList.toggle('mo');
+      nutLoc.setAttribute('aria-expanded', mo ? 'true' : 'false');
+    });
+  }
+
+  /* Điện thoại: nút "Chọn" bật chế độ chọn nhiều (hiện ô tích + thanh xử lý ở đáy); bấm lại để thoát và bỏ chọn hết */
+  var nutChon = document.getElementById('cdmCheDoChon');
+  if (nutChon) {
+    var khungDs = nutChon.closest('.cdm-ds');
+    nutChon.addEventListener('click', function () {
+      var bat = khungDs.classList.toggle('chon-mode');
+      nutChon.setAttribute('aria-pressed', bat ? 'true' : 'false');
+      nutChon.textContent = bat ? 'Xong' : 'Chọn';
+      if (!bat) {
+        cacHang.forEach(function (c) { c.checked = false; });
+        capNhatHL();
+      }
     });
   }
 
@@ -217,4 +323,31 @@
       if (bq) { ev.preventDefault(); window.location.href = bq.href; }
     }
   });
+})();
+
+/* Điện thoại / máy tính bảng: bấm một mục ở danh sách thì trang tải lại và cuộn thẳng tới khung xem nội dung,
+   không phải lướt xuống. Có nút "Về danh sách" để quay lại đúng mục vừa bấm. */
+(function () {
+  'use strict';
+  var pv = document.getElementById('cdmPv');
+  if (!pv) { return; }
+  var hep = window.matchMedia ? window.matchMedia('(max-width: 1050px)') : { matches: false };
+  var q = new URLSearchParams(location.search);
+
+  var dangChon = document.querySelector('.cdm-it.chon');
+  if (dangChon && !pv.querySelector('.cdm-pv-ve')) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'cdm-nut cdm-pv-ve';
+    b.textContent = '← Về danh sách';
+    b.addEventListener('click', function () { dangChon.scrollIntoView({ block: 'center' }); });
+    pv.insertBefore(b, pv.firstChild);
+  }
+
+  // Chỉ cuộn khi người dùng vừa bấm chọn một mục (có tham số chon, không phải vừa xử lý xong)
+  if (hep.matches && q.has('chon') && !q.has('kq')) {
+    var cuon = function () { pv.scrollIntoView({ block: 'start' }); };
+    cuon();
+    window.addEventListener('load', cuon);
+  }
 })();
