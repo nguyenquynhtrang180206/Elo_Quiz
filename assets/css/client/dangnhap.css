@@ -1,4 +1,32 @@
 @import url("../../pw_security.css");
 
 /* Trang Đăng nhập (client/dangnhap.php) */
-.container.khung-login { max-width: 440px; }
+.container.khung-login { 
+  max-width: 440px; 
+}
+
+.hang-mat-khau-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 14px;
+  margin-bottom: 6px;
+}
+
+.hang-mat-khau-header label {
+  margin: 0 !important;
+}
+
+.link-quen-mk {
+  color: #00D9FF;
+  font-size: 0.88rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.link-quen-mk:hover {
+  color: #FDE047;
+  text-shadow: 0 0 8px rgba(0, 217, 255, 0.6);
+  text-decoration: underline;
+}

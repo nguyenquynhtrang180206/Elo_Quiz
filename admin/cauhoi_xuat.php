@@ -15,9 +15,6 @@
 //
 // Các ngưỡng và công thức tỉ lệ đúng dưới đây phải khớp với admin/cauhoi.php để số trong file giống số trên màn hình.
 require_once __DIR__ . '/../core/bootstrap.php';
-require_once __DIR__ . '/../core/CauHoiHelper.php';
-require_once __DIR__ . '/../core/XlsxWriter.php';
-require_once __DIR__ . '/../core/PdfWriter.php';
 Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');   // A-04
 
 function loi_xuat(string $thongBao, int $ma = 400): never

@@ -4,7 +4,6 @@
 // Đặt tại: elo_quiz/admin/cauhoi.php
 // Thêm/sửa câu hỏi nằm ở cauhoi_form.php. Chi tiết một câu (ngăn "Xem nhanh") lấy qua cauhoi_api.php.
 require_once __DIR__ . '/../core/bootstrap.php';
-require_once __DIR__ . '/../core/CauHoiHelper.php';
 Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');   // A-04
 
 $pdo = Database::pdo();

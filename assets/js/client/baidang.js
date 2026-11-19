@@ -110,4 +110,62 @@
       btn.style.pointerEvents = '';
     });
   }
+
+  // 3. AJAX Kết bạn trực tiếp cạnh tên tác giả bài đăng & từng bình luận (đồng bộ tất cả bình luận của cùng user)
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest ? e.target.closest('[data-friend-action]') : null;
+    if (!btn) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (btn.dataset.loading === '1') return;
+    var action = btn.getAttribute('data-friend-action');
+    var uid = btn.getAttribute('data-friend-uid');
+    if (!action || !uid) return;
+
+    var metaCsrf = document.querySelector('meta[name="csrf-token"]');
+    var inputCsrf = document.querySelector('input[name="csrf"]');
+    var csrfVal = (metaCsrf && metaCsrf.getAttribute('content')) || (inputCsrf && inputCsrf.value) || '';
+    if (!csrfVal) return;
+
+    btn.dataset.loading = '1';
+    btn.disabled = true;
+
+    var fd = new FormData();
+    fd.append('csrf', csrfVal);
+    fd.append('hanh_dong', 'ajax_ket_ban');
+    fd.append('kieu', action);
+    fd.append('nguoi', uid);
+
+    fetch(window.location.href, {
+      method: 'POST',
+      body: fd,
+      headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        if (data.yeuCauLogin && data.redirect) {
+          window.location.href = data.redirect;
+          return;
+        }
+        if (data.html) {
+          document.querySelectorAll('[data-friend-widget="' + uid + '"]').forEach(function (el) {
+            el.outerHTML = data.html;
+          });
+        } else {
+          btn.disabled = false;
+        }
+        if (data.msg && window.CosmicUI && window.CosmicUI.toast) {
+          window.CosmicUI.toast(data.msg, data.ok ? 'thanhcong' : 'loi');
+        }
+      })
+      .catch(function () {
+        btn.disabled = false;
+        btn.dataset.loading = '0';
+        if (window.CosmicUI && window.CosmicUI.toast) {
+          window.CosmicUI.toast('Lỗi kết nối khi thao tác bạn bè.', 'loi');
+        }
+      });
+  });
 })();

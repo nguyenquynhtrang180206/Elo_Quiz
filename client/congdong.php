@@ -2,7 +2,6 @@
 // Trang Cộng đồng: menu trái, danh sách bài giữa, banner phải. Đặt tại: elo_quiz/client/congdong.php
 // Xem (C-42), đăng bài (C-43), thích bài. Khách chưa đăng nhập vẫn xem được.
 require_once __DIR__ . '/../core/bootstrap.php';
-require_once __DIR__ . '/../core/CongDongHelper.php';
 
 $maND = Auth::clientId();
 $laQT = Auth::laQuanTriKiemDuyet();   // admin đang ở khu sinh viên: ẩn bài kèm lý do ngay trên bảng tin
@@ -56,6 +55,14 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         redirect(BASE_URL . '/client/dangnhap.php');
     }
     csrf_check();
+
+    if (($_POST['hanh_dong'] ?? '') === 'ajax_ket_ban') {
+        header('Content-Type: application/json; charset=utf-8');
+        $kieu  = (string) ($_POST['kieu'] ?? '');
+        $nguoi = (int) ($_POST['nguoi'] ?? 0);
+        echo json_encode(BanBeHelper::xuLyAjax($maND, $kieu, $nguoi), JSON_UNESCAPED_UNICODE);
+        exit;
+    }
 
     if (($_POST['hanh_dong'] ?? '') === 'qt_an_bai') {
         // ---- Quản trị viên ẩn bài ngay trên bảng tin (bắt buộc lý do, ghi nhật ký, báo cho chủ bài) ----
@@ -316,6 +323,14 @@ $topMvp = $pdo->query("
      ORDER BY t.SoBai * 3 + t.SoBL DESC, t.EloCao DESC, t.MaND LIMIT 1
 ")->fetch(PDO::FETCH_ASSOC);
 
+// Nạp hàng loạt trạng thái bạn bè của mọi người dùng hiển thị trên trang (MVP, Thành viên, Bài đăng)
+$dsMaNDTrang = array_merge(
+    $topMvp ? [(int) $topMvp['MaND']] : [],
+    array_column($thanhVien, 'MaND'),
+    array_column($baiDang, 'MaND')
+);
+$mapBanBe = ($maND !== null && $dsMaNDTrang) ? BanBeHelper::layTrangThaiCacNguoi($pdo, (int) $maND, $dsMaNDTrang) : [];
+
 $tieuDe = 'Cộng đồng';
 $cssTrang = 'congdong';
 $jsTrang  = 'congdong';
@@ -540,6 +555,7 @@ require __DIR__ . '/layout/header.php';
                 <svg viewBox="0 0 12 12" width="10" height="10" fill="#FDE047"><polygon points="6,0.5 7.6,4.2 11.5,4.5 8.5,7.1 9.4,11 6,8.9 2.6,11 3.5,7.1 0.5,4.5 4.4,4.2"/></svg>
                 CHIẾN THẦN
               </span>
+              <?= $maND ? BanBeHelper::renderNutKetBan($maND, (int) $topMvp['MaND'], $mapBanBe[(int) $topMvp['MaND']]['trangThai'] ?? 'chua_ket_ban', (string) $topMvp['HoTen']) : '' ?>
             </div>
             
             <div class="cd-mvp-tier-capsule" title="Môn sở trường và Điểm Elo xếp hạng cao nhất">
@@ -893,7 +909,10 @@ require __DIR__ . '/layout/header.php';
           </div>
           <?= CongDongHelper::avatar((string) $tv['HoTen'], $tv['AnhDaiDien']) ?>
           <div class="cd-the-than">
-            <div class="cd-ten"><?= e($tv['HoTen']) ?></div>
+            <div class="cd-ten cd-ten-row">
+              <span><?= e($tv['HoTen']) ?></span>
+              <?= $maND ? BanBeHelper::renderNutKetBan($maND, (int) $tv['MaND'], $mapBanBe[(int) $tv['MaND']]['trangThai'] ?? 'chua_ket_ban', (string) $tv['HoTen']) : '' ?>
+            </div>
             <div class="cd-tk">
               <span class="cd-tk-pill">
                 <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="#38BDF8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -1.5px; margin-right: 3px;" aria-hidden="true"><path d="M11 2.5l2.5 2.5-8 8H3v-2.5l8-8z"/></svg>
@@ -952,6 +971,7 @@ require __DIR__ . '/layout/header.php';
             <div class="cd-dong-tren">
               <span class="cd-ten"><?= e($b['HoTen']) ?></span>
               <?= CongDongHelper::huyHieuElo($eloMap[(int) $b['MaND']] ?? [], $b['MaMon'] !== null ? (int) $b['MaMon'] : null) ?>
+              <?= $maND ? BanBeHelper::renderNutKetBan($maND, (int) $b['MaND'], $mapBanBe[(int) $b['MaND']]['trangThai'] ?? 'chua_ket_ban', (string) $b['HoTen']) : '' ?>
               <span class="cd-gio">&middot; <?= e(CongDongHelper::truocDo($b['NgayDang'])) ?></span>
               <?php if ($b['TenMon']): ?><span class="cd-mon"><?= e($b['TenMon']) ?></span><?php endif; ?>
               <?= CongDongHelper::nhanLoai($b['LoaiBai']) ?>

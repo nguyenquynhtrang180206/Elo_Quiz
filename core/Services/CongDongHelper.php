@@ -18,14 +18,10 @@ class CongDongHelper
         'Khác'           => 'cd-loai-khac',
     ];
 
-    // Cột BAIDANG.LoaiBai có thể chưa tạo (chạy migration_baidang_loaibai.sql); chưa có thì ẩn mọi chức năng phân loại
+    // Cột BAIDANG.LoaiBai đã được DbSchema::damBao bảo đảm tồn tại
     public static function coCotLoaiBai(): bool
     {
-        static $co = null;
-        if ($co === null) {
-            $co = Database::pdo()->query("SHOW COLUMNS FROM BAIDANG LIKE 'LoaiBai'")->fetch() !== false;
-        }
-        return $co;
+        return true;
     }
 
     // Giá trị loại bài gửi lên -> loại hợp lệ; sai hoặc rỗng thì dùng loại mặc định
@@ -44,14 +40,10 @@ class CongDongHelper
         return '<span class="cd-loai ' . self::LOAI_LOP[$loai] . '">' . e($loai) . '</span>';
     }
 
-    // Cột BAIDANG.NguoiAn (ai đã ẩn bài: 'Chủ bài' hoặc 'Quản trị') có thể chưa tạo (chạy migration_baidang_nguoian.sql)
+    // Cột BAIDANG.NguoiAn đã được DbSchema::damBao bảo đảm tồn tại
     public static function coCotNguoiAn(): bool
     {
-        static $co = null;
-        if ($co === null) {
-            $co = Database::pdo()->query("SHOW COLUMNS FROM BAIDANG LIKE 'NguoiAn'")->fetch() !== false;
-        }
-        return $co;
+        return true;
     }
 
     // Còn trong thời hạn sửa bài không ($giayTuDang = số giây từ lúc đăng, tính bằng TIMESTAMPDIFF để cùng múi giờ với DB)
@@ -198,29 +190,16 @@ class CongDongHelper
     // ================= BÌNH LUẬN: thích, sửa (15 phút), ẩn, mở lại, xóa =================
     // Cần chạy migration_binhluan.sql (cột BINHLUAN.NguoiAn, trạng thái "Đã xóa", bảng LUOTTHICH_BL)
 
-    // Đã có cột NguoiAn và trạng thái "Đã xóa" cho bình luận chưa (điều kiện để ẩn/mở lại/xóa)
+    // Cột BINHLUAN.NguoiAn đã được DbSchema::damBao bảo đảm tồn tại
     public static function coCotNguoiAnBL(): bool
     {
-        static $co = null;
-        if ($co === null) {
-            $co = Database::pdo()->query("SHOW COLUMNS FROM BINHLUAN LIKE 'NguoiAn'")->fetch() !== false;
-        }
-        return $co;
+        return true;
     }
 
-    // Đã có bảng LUOTTHICH_BL chưa (điều kiện để hiện nút thích bình luận)
+    // Bảng LUOTTHICH_BL đã được DbSchema::damBao bảo đảm tồn tại
     public static function coLikeBL(): bool
     {
-        static $co = null;
-        if ($co === null) {
-            try {
-                Database::pdo()->query('SELECT 1 FROM LUOTTHICH_BL LIMIT 1');
-                $co = true;
-            } catch (PDOException $ex) {
-                $co = false;
-            }
-        }
-        return $co;
+        return true;
     }
 
     // Thích / bỏ thích một bình luận (chỉ bình luận đang hiển thị, thuộc bài đang hiển thị)
@@ -451,7 +430,6 @@ class CongDongHelper
 
     public static function kiemDuyet(PDO $pdo, string $hanhDong, int $ma, string $lyDo): string
     {
-        require_once __DIR__ . '/ThongBaoHelper.php';
         if (!isset(self::KIEM_DUYET[$hanhDong]) || $ma <= 0) {
             return 'sai';
         }

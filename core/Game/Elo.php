@@ -73,7 +73,6 @@ class Elo
         $upTran = $pdo->prepare('UPDATE NGUOICHOITRANDAU SET EloTruoc = ?, EloSau = ? WHERE MaTran = ? AND MaND = ?');
 
         // Nhận diện hiệu ứng bùa lợi từ Đấu Thần PvZ đang xuất trận
-        require_once __DIR__ . '/LoLChampions.php';
         $champId = $_SESSION['tuong_chon'] ?? 'sunflower';
         $champInfo = LoLChampions::layTuong($champId);
         $buffLoai = $champInfo['buffLoai'] ?? '';

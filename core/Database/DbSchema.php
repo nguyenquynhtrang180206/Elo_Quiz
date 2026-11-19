@@ -3,7 +3,7 @@
 // Chạy đúng 1 lần cho mỗi phiên bản (đánh dấu bằng CAUHINH.SCHEMA_VERSION), các request sau chỉ tốn 1 truy vấn nhẹ.
 class DbSchema
 {
-    public const PHIEN_BAN = '3';
+    public const PHIEN_BAN = '4';
     private static bool $daKiemTra = false;
 
     public static function damBao(PDO $pdo): void
@@ -53,6 +53,7 @@ class DbSchema
         // 2. Cột mở rộng bảng NGUOIDUNG
         self::themCot($pdo, 'NGUOIDUNG', 'TuongChon', "VARCHAR(40) NOT NULL DEFAULT 'sunflower'");
         self::themCot($pdo, 'NGUOIDUNG', 'ChoPhepBot', 'TINYINT(1) NOT NULL DEFAULT 1');
+        self::themCot($pdo, 'NGUOIDUNG', 'NgayDoiMatKhau', 'DATETIME NULL DEFAULT NULL');
 
         // 3. Cột mở rộng bảng MONHOC (hỗ trợ sinh viên đề xuất môn)
         self::themCot($pdo, 'MONHOC', 'MaNguoiDeXuat', 'INT UNSIGNED NULL');
@@ -61,7 +62,10 @@ class DbSchema
             $pdo->exec("ALTER TABLE MONHOC MODIFY TrangThai ENUM('Đang mở','Đã ẩn','Chờ duyệt') NOT NULL DEFAULT 'Đang mở'");
         } catch (Throwable $e) { /* Bỏ qua nếu enum đã cập nhật */ }
 
-        // 4. Cột mở rộng bảng BINHLUAN (phản hồi đa cấp)
+        // 4. Cột mở rộng bảng BAIDANG & BINHLUAN (phân loại bài đăng, ẩn bài/bình luận, phản hồi đa cấp)
+        self::themCot($pdo, 'BAIDANG', 'LoaiBai', "ENUM('Thảo luận','Hỏi đáp','Chia sẻ mẹo','Tìm bạn ôn thi','Khác') NOT NULL DEFAULT 'Thảo luận'");
+        self::themCot($pdo, 'BAIDANG', 'NguoiAn', "ENUM('Chủ bài','Quản trị') DEFAULT NULL");
+        self::themCot($pdo, 'BINHLUAN', 'NguoiAn', "ENUM('Chủ bài','Quản trị') DEFAULT NULL");
         self::themCot($pdo, 'BINHLUAN', 'MaBinhLuanCha', 'INT UNSIGNED NULL DEFAULT NULL');
 
         // 5. Cột mở rộng bảng NHATKYQUANTRI (IP và trạng thái thao tác)
@@ -178,7 +182,18 @@ class DbSchema
             PRIMARY KEY (MaAdmin, Loai, MaDoiTuong)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
-        // 13. Khởi tạo tài khoản Bot AI mặc định (nếu chưa có)
+        // 13. Bảng LICHSU_MATKHAU (Lịch sử mật khẩu phục vụ kiểm tra chống tái sử dụng)
+        $pdo->exec("CREATE TABLE IF NOT EXISTS LICHSU_MATKHAU (
+            MaLS        INT UNSIGNED NOT NULL AUTO_INCREMENT,
+            MaND        INT UNSIGNED NOT NULL,
+            MatKhauHash VARCHAR(255) NOT NULL,
+            NgayTao     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (MaLS),
+            KEY idx_lsmk_nd (MaND),
+            CONSTRAINT fk_lsmk_nd FOREIGN KEY (MaND) REFERENCES NGUOIDUNG (MaND) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci");
+
+        // 14. Khởi tạo tài khoản Bot AI mặc định (nếu chưa có)
         try {
             $pdo->exec("INSERT INTO NGUOIDUNG (MaND, HoTen, Email, MatKhau, TrangThai)
                 VALUES (999999, 'Zombie Máy AI [Buckethead]', 'bot@quizup.arena', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Hoạt động')

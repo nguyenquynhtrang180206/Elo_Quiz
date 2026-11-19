@@ -2,7 +2,6 @@
 // Thống kê khảo sát định hướng (UC10, luồng thay thế: A-35, A-36). Đặt tại: elo_quiz/admin/khaosat.php
 // Bước 3: truy vấn theo khoảng ngày. Bước 4-6: khung giao diện mới, 3 biểu đồ Chart.js, bảng chi tiết câu hỏi.
 require_once __DIR__ . '/../core/bootstrap.php';
-require_once __DIR__ . '/../core/KhaoSatThongKe.php';
 Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');   // A-04
 
 $pdo = Database::pdo();

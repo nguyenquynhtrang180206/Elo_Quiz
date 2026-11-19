@@ -5,11 +5,6 @@ require_once __DIR__ . '/../core/bootstrap.php';
 if (Auth::laAdminSinhVien()) {   // admin không tìm trận và không đấu trận
     redirect(BASE_URL . '/client/khong_dau_tran.php');
 }
-require_once __DIR__ . '/../core/GhepDoi.php';
-require_once __DIR__ . '/../core/LoLChampions.php';
-require_once __DIR__ . '/../core/ThiDau.php';
-
-require_once __DIR__ . '/../core/DotBien.php';
 
 $maND   = Auth::requireClient(BASE_URL . '/client/dangnhap.php');
 $pdo    = Database::pdo();

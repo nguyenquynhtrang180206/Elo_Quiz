@@ -1,7 +1,6 @@
 <?php
 // Chi tiết bài đăng, bình luận, xóa bài của mình (C-43, C-44). Đặt tại: elo_quiz/client/baidang.php
 require_once __DIR__ . '/../core/bootstrap.php';
-require_once __DIR__ . '/../core/CongDongHelper.php';
 
 $maND = Auth::clientId();   // khách chưa đăng nhập vẫn xem được bài; bình luận/xóa/sửa cần đăng nhập
 $laQT = Auth::laQuanTriKiemDuyet();   // admin đang ở khu sinh viên: kiểm duyệt (ẩn/hiện kèm lý do) ngay tại đây
@@ -65,6 +64,15 @@ if ($bai && $_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     csrf_check();
     $hanhDong = (string) ($_POST['hanh_dong'] ?? '');
+
+    if ($hanhDong === 'ajax_ket_ban') {
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode(
+            BanBeHelper::xuLyAjax($maND, (string) ($_POST['kieu'] ?? ''), (int) ($_POST['nguoi'] ?? 0)),
+            JSON_UNESCAPED_UNICODE
+        );
+        exit;
+    }
 
     // Bài đang bị ẩn: không bình luận, không thả lửa; chủ bài chỉ còn xóa được
     if ($baiAn && $hanhDong !== 'xoa' && strpos($hanhDong, 'qt_') !== 0) {
@@ -235,6 +243,7 @@ $thanhCong   = CongDongHelper::flash();
 $thanhCongBL = CongDongHelper::flash(null, 'flash_bl');
 $binhLuanTree = [];
 $eloMap = [];
+$mapBanBe = [];
 $soBLHienThi = 0;
 
 if ($bai) {
@@ -266,6 +275,7 @@ if ($bai) {
     $st->execute($thamBL);
     $allBinhLuan = $st->fetchAll();
     $eloMap = CongDongHelper::layElo($pdo, array_merge([(int) $bai['MaND']], array_column($allBinhLuan, 'MaND')));
+    $mapBanBe = $maND ? BanBeHelper::layTrangThaiCacNguoi($pdo, (int) $maND, array_merge([(int) $bai['MaND']], array_column($allBinhLuan, 'MaND'))) : [];
 
     // Xây dựng cấu trúc cây (Tree) cho bình luận
     $binhLuanMap = [];
@@ -286,7 +296,7 @@ if ($bai) {
 /**
  * Hàm đệ quy hiển thị bình luận phân cấp
  */
-function renderBinhLuan($c, $level, $maND, $coAnBL, $coLikeBL, $bai, $eloMap, $coLike, $id, $dangSua, $loiSua, $noiDungSua, &$loiSuaDaHien) {
+function renderBinhLuan($c, $level, $maND, $coAnBL, $coLikeBL, $bai, $eloMap, $coLike, $id, $dangSua, $loiSua, $noiDungSua, &$loiSuaDaHien, array $mapBanBe = []) {
     $laChu   = $maND !== null && (int) $c['MaND'] === $maND;
     $laQT    = Auth::laQuanTriKiemDuyet();
     $dangAn  = $c['TrangThai'] === 'Bị ẩn';
@@ -306,6 +316,7 @@ function renderBinhLuan($c, $level, $maND, $coAnBL, $coLikeBL, $bai, $eloMap, $c
         <div class="meta">
             <b><?= e($c['HoTen']) ?></b>
             <?= CongDongHelper::huyHieuElo($eloMap[(int) $c['MaND']] ?? [], $bai['MaMon'] !== null ? (int) $bai['MaMon'] : null) ?>
+            <?= $maND ? BanBeHelper::renderNutKetBan($maND, (int) $c['MaND'], $mapBanBe[(int) $c['MaND']]['trangThai'] ?? 'chua_ket_ban', (string) $c['HoTen']) : '' ?>
             · <?= e(CongDongHelper::ngay($c['NgayBinhLuan'])) ?>
             <?php if ($dangAn): ?><span class="nhan-an"><?= $laChu ? 'Đang ẩn (chỉ bạn thấy)' : 'Đang ẩn (bạn thấy vì là quản trị viên)' ?></span><?php endif; ?>
         </div>
@@ -425,7 +436,7 @@ function renderBinhLuan($c, $level, $maND, $coAnBL, $coLikeBL, $bai, $eloMap, $c
     // Đệ quy hiển thị bình luận con
     if (!empty($c['children'])) {
         foreach ($c['children'] as $child) {
-            renderBinhLuan($child, $level + 1, $maND, $coAnBL, $coLikeBL, $bai, $eloMap, $coLike, $id, $dangSua, $loiSua, $noiDungSua, $loiSuaDaHien);
+            renderBinhLuan($child, $level + 1, $maND, $coAnBL, $coLikeBL, $bai, $eloMap, $coLike, $id, $dangSua, $loiSua, $noiDungSua, $loiSuaDaHien, $mapBanBe);
         }
     }
 }
@@ -503,6 +514,7 @@ require __DIR__ . '/layout/header.php';
       <div class="meta">
         <?= e($bai['HoTen']) ?>
         <?= CongDongHelper::huyHieuElo($eloMap[(int) $bai['MaND']] ?? [], $bai['MaMon'] !== null ? (int) $bai['MaMon'] : null) ?>
+        <?= $maND ? BanBeHelper::renderNutKetBan($maND, (int) $bai['MaND'], $mapBanBe[(int) $bai['MaND']]['trangThai'] ?? 'chua_ket_ban', (string) $bai['HoTen']) : '' ?>
         · <?= e(CongDongHelper::ngay($bai['NgayDang'])) ?>
         <?php if ($bai['TenMon']): ?> · <?= e($bai['TenMon']) ?><?php endif; ?>
         <?= CongDongHelper::nhanLoai($bai['LoaiBai']) ?>
@@ -585,7 +597,7 @@ require __DIR__ . '/layout/header.php';
       $loiSuaDaHien = false;
       // Bắt đầu vẽ cây bình luận đệ quy
       foreach ($binhLuanTree as $rootBl) {
-          renderBinhLuan($rootBl, 0, $maND, $coAnBL, $coLikeBL, $bai, $eloMap, $coLike, $id, $dangSua, $loiSua, $noiDungSua, $loiSuaDaHien);
+          renderBinhLuan($rootBl, 0, $maND, $coAnBL, $coLikeBL, $bai, $eloMap, $coLike, $id, $dangSua, $loiSua, $noiDungSua, $loiSuaDaHien, $mapBanBe);
       }
       ?>
       

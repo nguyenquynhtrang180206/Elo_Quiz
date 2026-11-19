@@ -10,7 +10,6 @@
 //    Điểm và Elo của các trận cũ KHÔNG được tính lại.
 //  - Câu đang nằm trong trận chưa kết thúc ('Đã ghép', 'Đang diễn ra'): tạm khóa, chỉ xem.
 require_once __DIR__ . '/../core/bootstrap.php';
-require_once __DIR__ . '/../core/CauHoiHelper.php';
 Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');   // A-04
 
 $pdo  = Database::pdo();

@@ -3,8 +3,6 @@
 // Đặt tại: elo_quiz/admin/trandau_chitiet.php   (mở bằng ?id=<MaTran>)
 // A-27: không có chức năng sửa kết quả hoặc điểm; trận đã kết thúc hoặc đã hủy thì chỉ xem.
 require_once __DIR__ . '/../core/bootstrap.php';
-require_once __DIR__ . '/../core/ThiDau.php';
-require_once __DIR__ . '/../core/DotBien.php';
 Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');   // A-04
 
 $pdo = Database::pdo();

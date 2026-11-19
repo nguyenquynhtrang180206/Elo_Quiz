@@ -232,11 +232,11 @@
   }
 
   // 3b. Bấm vào bất kỳ chỗ nào trên khung bài đăng thì mở bài và nhảy tới phần bình luận
-  //     (bỏ qua khi bấm link, nút, form, ô nhập, hoặc đang bôi đen chữ)
+  //     (bỏ qua khi bấm link, nút, form, ô nhập, widget bạn bè, hoặc đang bôi đen chữ)
   document.addEventListener('click', function (e) {
     var the = e.target.closest ? e.target.closest('.cd-the[data-href]') : null;
     if (!the) { return; }
-    if (e.target.closest('a, button, form, input, textarea, select, label, summary, details')) { return; }
+    if (e.target.closest('a, button, form, input, textarea, select, label, summary, details, .cd-friend-widget')) { return; }
     var chon = window.getSelection ? window.getSelection().toString() : '';
     if (chon) { return; }
     if (e.ctrlKey || e.metaKey) {
@@ -346,4 +346,63 @@
       btn.style.pointerEvents = '';
     });
   }
+
+  // 6. AJAX Kết bạn trực tiếp & Đồng bộ toàn trang (MVP, Thành viên, Bảng tin)
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest ? e.target.closest('[data-friend-action]') : null;
+    if (!btn) { return; }
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (btn.dataset.loading === '1') { return; }
+    var action = btn.getAttribute('data-friend-action');
+    var uid = btn.getAttribute('data-friend-uid');
+    if (!action || !uid) { return; }
+
+    var metaCsrf = document.querySelector('meta[name="csrf-token"]');
+    var inputCsrf = document.querySelector('input[name="csrf"]');
+    var csrfVal = (metaCsrf && metaCsrf.getAttribute('content')) || (inputCsrf && inputCsrf.value) || '';
+    if (!csrfVal) { return; }
+
+    btn.dataset.loading = '1';
+    var oldHtml = btn.innerHTML;
+    btn.disabled = true;
+
+    var fd = new FormData();
+    fd.append('csrf', csrfVal);
+    fd.append('hanh_dong', 'ajax_ket_ban');
+    fd.append('kieu', action);
+    fd.append('nguoi', uid);
+
+    fetch(window.location.href, {
+      method: 'POST',
+      body: fd,
+      headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        if (data.yeuCauLogin && data.redirect) {
+          window.location.href = data.redirect;
+          return;
+        }
+        if (data.html) {
+          document.querySelectorAll('[data-friend-widget="' + uid + '"]').forEach(function (el) {
+            el.outerHTML = data.html;
+          });
+        } else {
+          btn.disabled = false;
+          btn.innerHTML = oldHtml;
+        }
+        if (data.msg) {
+          var ico = data.trangThai === 'ban_be' ? '🤝' : (data.ok ? '👋' : '⚠️');
+          hienThiToast(data.msg, ico);
+        }
+      })
+      .catch(function () {
+        btn.disabled = false;
+        btn.dataset.loading = '0';
+        btn.innerHTML = oldHtml;
+        hienThiToast('Lỗi kết nối khi thao tác bạn bè.', '⚠️');
+      });
+  });
 })();

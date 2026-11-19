@@ -415,98 +415,230 @@
     });
   }
 
-  // --- Xử lý Logic Thách Đấu PIN 1v1 (Tạo phòng, nhập PIN, kiểm tra & hủy) ---
+  // --- Xử lý Logic Thách Đấu PIN 2.0 (Tạo phòng, F5 restore, Live Room Preview, Mời bạn 1 chạm) ---
   var currentRoomPin = null;
   var pinPollInterval = null;
+  var pinCountdownInterval = null;
+  var pinRemainSec = 0;
+  var lastPreviewPin = '';
+
   var btnPinTabCreate = document.getElementById('btnPinTabCreate');
   var btnPinTabJoin = document.getElementById('btnPinTabJoin');
   var pinTabPaneCreate = document.getElementById('pinTabPaneCreate');
   var pinTabPaneJoin = document.getElementById('pinTabPaneJoin');
   var btnActionCreateRoom = document.getElementById('btnActionCreateRoom');
+  var btnRefreshPinRoom = document.getElementById('btnRefreshPinRoom');
   var pinCreateInitial = document.getElementById('pinCreateInitial');
   var pinCreateActive = document.getElementById('pinCreateActive');
+  var pinCreateErrorNotice = document.getElementById('pinCreateErrorNotice');
+  var pinActiveMatchInfo = document.getElementById('pinActiveMatchInfo');
+  var pinCountdownTimer = document.getElementById('pinCountdownTimer');
   var displayPinCode = document.getElementById('displayPinCode');
+  var pinWaitMsg = document.getElementById('pinWaitMsg');
   var btnCopyPinCode = document.getElementById('btnCopyPinCode');
   var btnCopyPinLink = document.getElementById('btnCopyPinLink');
   var btnCancelPinRoom = document.getElementById('btnCancelPinRoom');
   var inputPinCode = document.getElementById('inputPinCode');
   var btnActionJoinRoom = document.getElementById('btnActionJoinRoom');
+  var pinRoomPreviewCard = document.getElementById('pinRoomPreviewCard');
   var pinJoinErrorNotice = document.getElementById('pinJoinErrorNotice');
 
-  if (btnPinTabCreate && btnPinTabJoin) {
-    btnPinTabCreate.addEventListener('click', function () {
-      btnPinTabCreate.classList.add('active');
-      btnPinTabJoin.classList.remove('active');
-      if (pinTabPaneCreate) pinTabPaneCreate.style.display = 'block';
-      if (pinTabPaneJoin) pinTabPaneJoin.style.display = 'none';
-    });
-    btnPinTabJoin.addEventListener('click', function () {
-      btnPinTabJoin.classList.add('active');
-      btnPinTabCreate.classList.remove('active');
-      if (pinTabPaneJoin) pinTabPaneJoin.style.display = 'block';
-      if (pinTabPaneCreate) pinTabPaneCreate.style.display = 'none';
-      if (inputPinCode) inputPinCode.focus();
+  function escPinHtml(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
     });
   }
 
-  // Tạo phòng thách đấu
-  if (btnActionCreateRoom) {
-    btnActionCreateRoom.addEventListener('click', function () {
-      var selMon = document.getElementById('mon');
-      var maMon = selMon ? parseInt(selMon.value, 10) : 0;
-      var selKt = document.querySelector('input[name="loaikt"]:checked');
-      var maKt = selKt ? parseInt(selKt.value, 10) : 1;
+  function extractSixDigitPin(val) {
+    var raw = String(val || '').trim();
+    var m = raw.match(/(\d{6})/);
+    if (m) return m[1];
+    return raw.replace(/\D/g, '').slice(0, 6);
+  }
 
-      if (!maMon) {
-        alert('Vui lòng chọn môn học thi đấu ở Bước 1 trước khi tạo phòng!');
-        if (selMon) selMon.focus();
-        return;
+  function formatMmSs(sec) {
+    sec = Math.max(0, parseInt(sec, 10) || 0);
+    var m = Math.floor(sec / 60);
+    var s = sec % 60;
+    return (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+  }
+
+  function stopPinTimers() {
+    if (pinPollInterval) {
+      clearInterval(pinPollInterval);
+      pinPollInterval = null;
+    }
+    if (pinCountdownInterval) {
+      clearInterval(pinCountdownInterval);
+      pinCountdownInterval = null;
+    }
+  }
+
+  function kichHoatPhongDangMo(pin, tenMon, tenKT, conLaiGiay) {
+    currentRoomPin = pin;
+    pinRemainSec = Math.max(1, parseInt(conLaiGiay, 10) || 600);
+
+    if (pinCreateErrorNotice) pinCreateErrorNotice.style.display = 'none';
+    if (pinCreateInitial) pinCreateInitial.style.display = 'none';
+    if (pinCreateActive) pinCreateActive.style.display = 'block';
+    if (displayPinCode) displayPinCode.textContent = pin;
+    if (pinActiveMatchInfo) {
+      pinActiveMatchInfo.textContent = '📚 ' + (tenMon || 'Phòng đấu riêng') + (tenKT ? ' • ' + tenKT : '');
+    }
+    if (pinWaitMsg) {
+      pinWaitMsg.textContent = 'Đang chờ bạn bè kết nối vào phòng...';
+    }
+    if (pinCountdownTimer) {
+      pinCountdownTimer.textContent = '⏱ ' + formatMmSs(pinRemainSec);
+    }
+
+    stopPinTimers();
+
+    // Đếm ngược mỗi giây trên giao diện
+    pinCountdownInterval = setInterval(function () {
+      pinRemainSec--;
+      if (pinCountdownTimer) {
+        pinCountdownTimer.textContent = '⏱ ' + formatMmSs(pinRemainSec);
       }
+      if (pinRemainSec <= 0) {
+        stopPinTimers();
+        currentRoomPin = null;
+        if (pinCreateActive) pinCreateActive.style.display = 'none';
+        if (pinCreateInitial) pinCreateInitial.style.display = 'block';
+        if (pinCreateErrorNotice) {
+          pinCreateErrorNotice.textContent = 'Mã PIN đã hết hạn sau 10 phút. Vui lòng khởi tạo mã mới!';
+          pinCreateErrorNotice.style.display = 'block';
+        }
+      }
+    }, 1000);
 
-      btnActionCreateRoom.disabled = true;
-      btnActionCreateRoom.textContent = 'Đang khởi tạo phòng...';
+    // Quét định kỳ 1.5s xem đối thủ đã vào phòng chưa
+    pinPollInterval = setInterval(function () {
+      if (!currentRoomPin) return;
+      fetch('timtran.php?ajax_thachdau_kiemtra=1&pin=' + encodeURIComponent(currentRoomPin))
+        .then(function (r) { return r.json(); })
+        .then(function (kq) {
+          if (kq.hetHan || kq.tonTai === false) {
+            stopPinTimers();
+            currentRoomPin = null;
+            if (pinCreateActive) pinCreateActive.style.display = 'none';
+            if (pinCreateInitial) pinCreateInitial.style.display = 'block';
+            if (pinCreateErrorNotice && kq.hetHan) {
+              pinCreateErrorNotice.textContent = 'Mã PIN đã hết hạn. Vui lòng tạo phòng mới!';
+              pinCreateErrorNotice.style.display = 'block';
+            }
+            return;
+          }
+          if ((kq.coTran || kq.daGhep) && kq.phongUrl) {
+            stopPinTimers();
+            if (pinWaitMsg) {
+              pinWaitMsg.textContent = '🔥 ' + (kq.tenKhach || 'Đối thủ') + ' đã nhận kèo! Đang vào đấu trường...';
+            }
+            try { playLaunchQueueSound(); } catch (err) {}
+            setTimeout(function () {
+              window.location.href = kq.phongUrl;
+            }, 420);
+          }
+        })
+        .catch(function () {});
+    }, 1500);
+  }
 
-      var fd = new FormData();
-      fd.append('mon', maMon);
-      fd.append('loaikt', maKt);
+  function thucHienTaoPhong(btnTrigger, defaultLabel) {
+    var selMon = document.getElementById('mon');
+    var maMon = selMon ? parseInt(selMon.value, 10) : 0;
+    var selKt = document.querySelector('input[name="loaikt"]:checked');
+    var maKt = selKt ? parseInt(selKt.value, 10) : 0;
 
-      fetch('timtran.php?ajax_thachdau_tao=1', {
-        method: 'POST',
-        body: fd
-      })
+    if (!maMon) {
+      if (pinCreateErrorNotice) {
+        pinCreateErrorNotice.textContent = '⚠️ Vui lòng chọn Môn học ở Bước 01 trước khi tạo phòng PIN!';
+        pinCreateErrorNotice.style.display = 'block';
+      }
+      if (selMon) {
+        selMon.focus();
+        selMon.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      return;
+    }
+
+    if (!maKt) {
+      if (pinCreateErrorNotice) {
+        pinCreateErrorNotice.textContent = '⚠️ Vui lòng chọn Hạng mục kỳ thi đủ câu hỏi ở Bước 02!';
+        pinCreateErrorNotice.style.display = 'block';
+      }
+      return;
+    }
+
+    if (pinCreateErrorNotice) pinCreateErrorNotice.style.display = 'none';
+    if (btnTrigger) {
+      btnTrigger.disabled = true;
+      btnTrigger.textContent = 'Đang khởi tạo...';
+    }
+
+    var fd = new FormData();
+    fd.append('mon', maMon);
+    fd.append('loaikt', maKt);
+
+    fetch('timtran.php?ajax_thachdau_tao=1', {
+      method: 'POST',
+      body: fd
+    })
       .then(function (r) { return r.json(); })
       .then(function (res) {
-        btnActionCreateRoom.disabled = false;
-        btnActionCreateRoom.textContent = '⚡ KHỞI TẠO PHÒNG NGAY';
-        if (res.ok && res.pin) {
-          currentRoomPin = res.pin;
-          if (pinCreateInitial) pinCreateInitial.style.display = 'none';
-          if (pinCreateActive) pinCreateActive.style.display = 'block';
-          if (displayPinCode) displayPinCode.textContent = res.pin;
-
-          // Bắt đầu quét định kỳ 1.5s xem có bạn bè vào phòng không
-          if (pinPollInterval) clearInterval(pinPollInterval);
-          pinPollInterval = setInterval(function () {
-            if (!currentRoomPin) return;
-            fetch('timtran.php?ajax_thachdau_kiemtra=1&phong=' + encodeURIComponent(currentRoomPin))
-              .then(function (r) { return r.json(); })
-              .then(function (kq) {
-                if (kq.coTran && kq.phongUrl) {
-                  clearInterval(pinPollInterval);
-                  window.location.href = kq.phongUrl;
-                }
-              })
-              .catch(function () {});
-          }, 1500);
-        } else {
-          alert(res.loi || 'Không thể tạo phòng thách đấu. Vui lòng thử lại!');
+        if (btnTrigger) {
+          btnTrigger.disabled = false;
+          btnTrigger.textContent = defaultLabel;
+        }
+        var pinCode = res.pin || res.maPin;
+        if (res.ok && pinCode) {
+          kichHoatPhongDangMo(pinCode, res.tenMon, res.tenLoaiKT, res.conLaiGiay);
+        } else if (pinCreateErrorNotice) {
+          pinCreateErrorNotice.textContent = res.loi || 'Không thể tạo phòng thách đấu. Vui lòng thử lại!';
+          pinCreateErrorNotice.style.display = 'block';
         }
       })
       .catch(function () {
-        btnActionCreateRoom.disabled = false;
-        btnActionCreateRoom.textContent = '⚡ KHỞI TẠO PHÒNG NGAY';
-        alert('Lỗi kết nối khi tạo phòng.');
+        if (btnTrigger) {
+          btnTrigger.disabled = false;
+          btnTrigger.textContent = defaultLabel;
+        }
+        if (pinCreateErrorNotice) {
+          pinCreateErrorNotice.textContent = 'Lỗi kết nối khi khởi tạo phòng.';
+          pinCreateErrorNotice.style.display = 'block';
+        }
       });
+  }
+
+  function moTabPin(tab) {
+    if (tab === 'join') {
+      if (btnPinTabJoin) btnPinTabJoin.classList.add('active');
+      if (btnPinTabCreate) btnPinTabCreate.classList.remove('active');
+      if (pinTabPaneJoin) pinTabPaneJoin.style.display = 'block';
+      if (pinTabPaneCreate) pinTabPaneCreate.style.display = 'none';
+      if (inputPinCode) inputPinCode.focus();
+    } else {
+      if (btnPinTabCreate) btnPinTabCreate.classList.add('active');
+      if (btnPinTabJoin) btnPinTabJoin.classList.remove('active');
+      if (pinTabPaneCreate) pinTabPaneCreate.style.display = 'block';
+      if (pinTabPaneJoin) pinTabPaneJoin.style.display = 'none';
+    }
+  }
+
+  if (btnPinTabCreate && btnPinTabJoin) {
+    btnPinTabCreate.addEventListener('click', function () { moTabPin('create'); });
+    btnPinTabJoin.addEventListener('click', function () { moTabPin('join'); });
+  }
+
+  if (btnActionCreateRoom) {
+    btnActionCreateRoom.addEventListener('click', function () {
+      thucHienTaoPhong(btnActionCreateRoom, '⚡ KHỞI TẠO PHÒNG NGAY');
+    });
+  }
+
+  if (btnRefreshPinRoom) {
+    btnRefreshPinRoom.addEventListener('click', function () {
+      thucHienTaoPhong(btnRefreshPinRoom, '🔄 Đổi mã');
     });
   }
 
@@ -538,25 +670,147 @@
     btnCancelPinRoom.addEventListener('click', function () {
       if (!currentRoomPin) return;
       var fd = new FormData();
-      fd.append('phong', currentRoomPin);
+      fd.append('pin', currentRoomPin);
       fetch('timtran.php?ajax_thachdau_huy=1', { method: 'POST', body: fd }).catch(function () {});
 
-      if (pinPollInterval) clearInterval(pinPollInterval);
+      stopPinTimers();
       currentRoomPin = null;
       if (pinCreateActive) pinCreateActive.style.display = 'none';
       if (pinCreateInitial) pinCreateInitial.style.display = 'block';
     });
   }
 
+  // Mời bạn bè trực tiếp 1 chạm
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest ? e.target.closest('[data-invite-friend-id]') : null;
+    if (!btn) return;
+    if (!currentRoomPin) return;
+
+    var banId = btn.getAttribute('data-invite-friend-id');
+    if (!banId || btn.disabled) return;
+
+    btn.disabled = true;
+    var oldTxt = btn.textContent;
+    btn.textContent = 'Đang gửi...';
+
+    var fd = new FormData();
+    fd.append('pin', currentRoomPin);
+    fd.append('ban_id', banId);
+
+    fetch('timtran.php?ajax_thachdau_moiban=1', { method: 'POST', body: fd })
+      .then(function (r) { return r.json(); })
+      .then(function (res) {
+        if (res.ok) {
+          btn.textContent = '✓ Đã mời!';
+          btn.classList.add('is-invited');
+          if (window.CosmicUI && window.CosmicUI.toast) {
+            window.CosmicUI.toast(res.msg || 'Đã gửi lời mời thách đấu!', 'thanhcong');
+          }
+          setTimeout(function () {
+            btn.disabled = false;
+            btn.textContent = oldTxt;
+            btn.classList.remove('is-invited');
+          }, 4000);
+        } else {
+          btn.disabled = false;
+          btn.textContent = oldTxt;
+          if (window.CosmicUI && window.CosmicUI.toast) {
+            window.CosmicUI.toast(res.loi || 'Không gửi được lời mời.', 'loi');
+          }
+        }
+      })
+      .catch(function () {
+        btn.disabled = false;
+        btn.textContent = oldTxt;
+      });
+  });
+
+  // Live Room Preview khi nhập đủ 6 chữ số PIN hoặc mở link ?phong=XXXXXX
+  function taiXemTruocPhong(pin6) {
+    if (!pinRoomPreviewCard) return;
+    if (pin6.length !== 6) {
+      lastPreviewPin = '';
+      pinRoomPreviewCard.style.display = 'none';
+      pinRoomPreviewCard.innerHTML = '';
+      if (btnActionJoinRoom) btnActionJoinRoom.disabled = false;
+      return;
+    }
+    if (lastPreviewPin === pin6) return;
+    lastPreviewPin = pin6;
+
+    if (pinJoinErrorNotice) pinJoinErrorNotice.style.display = 'none';
+    pinRoomPreviewCard.style.display = 'flex';
+    pinRoomPreviewCard.innerHTML = '<div class="pin-preview-loading">🔍 Đang kiểm tra thông tin phòng #' + escPinHtml(pin6) + '...</div>';
+
+    fetch('timtran.php?ajax_thachdau_xem=1&pin=' + encodeURIComponent(pin6))
+      .then(function (r) { return r.json(); })
+      .then(function (res) {
+        if (lastPreviewPin !== pin6) return;
+        if (!res.ok || !res.phong) {
+          pinRoomPreviewCard.style.display = 'none';
+          pinRoomPreviewCard.innerHTML = '';
+          if (pinJoinErrorNotice) {
+            pinJoinErrorNotice.textContent = res.loi || 'Không tìm thấy phòng hợp lệ hoặc mã PIN đã hết hạn.';
+            pinJoinErrorNotice.style.display = 'block';
+          }
+          return;
+        }
+
+        var p = res.phong;
+        var avHtml = p.AnhChuPhongUrl
+          ? '<img src="' + escPinHtml(p.AnhChuPhongUrl) + '" alt="" class="pin-prev-av">'
+          : '<span class="pin-prev-av pin-prev-av-txt">' + escPinHtml((p.TenChuPhong || 'U').charAt(0).toUpperCase()) + '</span>';
+
+        var ownerNote = res.laChuPhong
+          ? '<div class="pin-prev-self-warn">👑 Đây là phòng do chính bạn tạo — hãy gửi mã cho bạn bè!</div>'
+          : '';
+
+        pinRoomPreviewCard.innerHTML =
+          '<div class="pin-prev-left">' + avHtml + '</div>' +
+          '<div class="pin-prev-body">' +
+            '<div class="pin-prev-host"><span>' + escPinHtml(p.TenChuPhong) + '</span>' +
+              '<span class="pin-prev-elo">⚡ Elo ' + escPinHtml(p.EloChuPhong) + '</span></div>' +
+            '<div class="pin-prev-match">📚 <strong>' + escPinHtml(p.TenMon) + '</strong> &middot; ' + escPinHtml(p.TenLoaiKT) + '</div>' +
+            '<div class="pin-prev-meta">⚖️ ' + escPinHtml(p.SoCau) + ' câu &middot; ' + escPinHtml(p.ThoiGianCau) + 's/câu &middot; Còn ' + escPinHtml(formatMmSs(p.ConLaiGiay)) + '</div>' +
+            ownerNote +
+          '</div>';
+        if (btnActionJoinRoom) {
+          btnActionJoinRoom.disabled = !!res.laChuPhong;
+        }
+      })
+      .catch(function () {
+        pinRoomPreviewCard.style.display = 'none';
+      });
+  }
+
+  if (inputPinCode) {
+    inputPinCode.addEventListener('input', function () {
+      var clean = extractSixDigitPin(inputPinCode.value);
+      if (inputPinCode.value !== clean) {
+        inputPinCode.value = clean;
+      }
+      if (pinJoinErrorNotice) pinJoinErrorNotice.style.display = 'none';
+      taiXemTruocPhong(clean);
+    });
+    inputPinCode.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' && btnActionJoinRoom && !btnActionJoinRoom.disabled) {
+        e.preventDefault();
+        btnActionJoinRoom.click();
+      }
+    });
+  }
+
   // Vào phòng bằng mã PIN
   if (btnActionJoinRoom && inputPinCode) {
     btnActionJoinRoom.addEventListener('click', function () {
-      var pinVal = inputPinCode.value.trim();
-      if (!pinVal || pinVal.length < 4) {
+      var pinVal = extractSixDigitPin(inputPinCode.value);
+      inputPinCode.value = pinVal;
+      if (pinVal.length !== 6) {
         if (pinJoinErrorNotice) {
-          pinJoinErrorNotice.textContent = 'Vui lòng nhập mã PIN hợp lệ (4-6 chữ số)!';
+          pinJoinErrorNotice.textContent = 'Vui lòng nhập đủ mã PIN gồm 6 chữ số!';
           pinJoinErrorNotice.style.display = 'block';
         }
+        inputPinCode.focus();
         return;
       }
 
@@ -570,9 +824,14 @@
       fetch('timtran.php?ajax_thachdau_vao=1', { method: 'POST', body: fd })
         .then(function (r) { return r.json(); })
         .then(function (res) {
+          if (res.yeuCauLogin && res.redirect) {
+            window.location.href = res.redirect;
+            return;
+          }
           btnActionJoinRoom.disabled = false;
-          btnActionJoinRoom.textContent = 'VÀO PHÒNG CHIẾN ⚔️';
+          btnActionJoinRoom.textContent = 'CHẤP NHẬN THÁCH ĐẤU ⚔️';
           if (res.ok && res.phongUrl) {
+            try { playLaunchQueueSound(); } catch (err) {}
             window.location.href = res.phongUrl;
           } else {
             if (pinJoinErrorNotice) {
@@ -583,7 +842,7 @@
         })
         .catch(function () {
           btnActionJoinRoom.disabled = false;
-          btnActionJoinRoom.textContent = 'VÀO PHÒNG CHIẾN ⚔️';
+          btnActionJoinRoom.textContent = 'CHẤP NHẬN THÁCH ĐẤU ⚔️';
           if (pinJoinErrorNotice) {
             pinJoinErrorNotice.textContent = 'Lỗi kết nối khi vào phòng.';
             pinJoinErrorNotice.style.display = 'block';
@@ -592,14 +851,33 @@
     });
   }
 
-  // Tự động kích hoạt tab nhập PIN nếu URL có tham số ?phong=XXXXXX
+  // Tự động kích hoạt chế độ PIN theo URL (?phong=XXXXXX, ?che_do=pin, ?moi_ban=...) hoặc khôi phục phòng đang mở khi F5
   (function () {
     var urlParams = new URLSearchParams(window.location.search);
-    var pinParam = urlParams.get('phong');
+    var pinParam = extractSixDigitPin(urlParams.get('phong') || '');
+    var cheDoParam = urlParams.get('che_do');
+    var moiBanParam = urlParams.get('moi_ban');
+
+    var activePin = pinChallengePanel ? (pinChallengePanel.getAttribute('data-active-pin') || '') : '';
+    var activeMonTen = pinChallengePanel ? (pinChallengePanel.getAttribute('data-active-mon-ten') || '') : '';
+    var activeKtTen = pinChallengePanel ? (pinChallengePanel.getAttribute('data-active-kt-ten') || '') : '';
+    var activeRemain = pinChallengePanel ? parseInt(pinChallengePanel.getAttribute('data-active-remain') || '0', 10) : 0;
+
     if (pinParam && inputPinCode) {
       setLobbyMode('pin');
-      if (btnPinTabJoin) btnPinTabJoin.click();
+      moTabPin('join');
       inputPinCode.value = pinParam;
+      taiXemTruocPhong(pinParam);
+      if (pinChallengePanel) {
+        pinChallengePanel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    } else if (activePin && activeRemain > 0) {
+      setLobbyMode('pin');
+      moTabPin('create');
+      kichHoatPhongDangMo(activePin, activeMonTen, activeKtTen, activeRemain);
+    } else if (cheDoParam === 'pin' || moiBanParam) {
+      setLobbyMode('pin');
+      moTabPin('create');
     }
   })();
 

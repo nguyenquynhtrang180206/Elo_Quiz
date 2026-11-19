@@ -1,7 +1,6 @@
 <?php
 // Danh sách người dùng (UC11: A-11, A-45). Đặt tại: elo_quiz/admin/nguoidung.php
 require_once __DIR__ . '/../core/bootstrap.php';
-require_once __DIR__ . '/../core/XlsxWriter.php';
 Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');   // A-04
 
 $pdo = Database::pdo();

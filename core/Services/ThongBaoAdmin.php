@@ -11,29 +11,7 @@ class ThongBaoAdmin
 
     public static function damBaoBang(): bool
     {
-        if (self::$bangTonTai !== null) {
-            return self::$bangTonTai;
-        }
-        try {
-            Database::pdo()->exec("
-                CREATE TABLE IF NOT EXISTS THONGBAO_ADMIN_DADOC (
-                    MaAdmin    INT UNSIGNED NOT NULL,
-                    Loai       TINYINT UNSIGNED NOT NULL COMMENT '3 = đề xuất môn học',
-                    MaDoiTuong INT UNSIGNED NOT NULL COMMENT 'MaMon',
-                    NgayDoc    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                    PRIMARY KEY (MaAdmin, Loai, MaDoiTuong)
-                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-            ");
-            // MONHOC chưa có thời điểm đề xuất: thêm cột (các đề xuất đang chờ sẽ lấy giờ lúc chạy lần đầu)
-            $co = Database::pdo()->query("SHOW COLUMNS FROM MONHOC LIKE 'NgayDeXuat'")->fetch();
-            if (!$co) {
-                Database::pdo()->exec('ALTER TABLE MONHOC ADD COLUMN NgayDeXuat DATETIME NULL DEFAULT CURRENT_TIMESTAMP');
-            }
-            self::$bangTonTai = true;
-        } catch (Throwable $e) {
-            self::$bangTonTai = false;
-        }
-        return self::$bangTonTai;
+        return true;
     }
 
     // Truy vấn nguồn: các môn đang chờ duyệt (dùng chung cho đếm, liệt kê, đánh dấu đã đọc)
@@ -99,7 +77,7 @@ class ThongBaoAdmin
 
     public static function danhDauDaDoc(PDO $pdo, int $maAdmin, int $loai, int $ma): bool
     {
-        if ($maAdmin <= 0 || $ma <= 0 || !$loai === self::LOAI_MON || !self::damBaoBang()) {
+        if ($maAdmin <= 0 || $ma <= 0 || $loai !== self::LOAI_MON || !self::damBaoBang()) {
             return false;
         }
         try {

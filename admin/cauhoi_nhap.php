@@ -4,11 +4,6 @@
 //   Bước 2: tải file Excel (mẫu hoặc xuất từ Word đã soát) lên -> kiểm tra từng dòng -> nếu mọi dòng hợp lệ
 //           thì lưu tất cả trong MỘT giao dịch; có dòng lỗi/trùng thì không lưu gì và báo lỗi theo dòng.
 require_once __DIR__ . '/../core/bootstrap.php';
-require_once __DIR__ . '/../core/CauHoiHelper.php';
-require_once __DIR__ . '/../core/DocxReader.php';
-require_once __DIR__ . '/../core/XlsxReader.php';
-require_once __DIR__ . '/../core/XlsxWriter.php';
-require_once __DIR__ . '/../core/NhapCauHoi.php';
 Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');   // A-04
 
 $pdo = Database::pdo();

@@ -202,4 +202,151 @@ class BanBeHelper
         unset($_SESSION['flash_bb']);
         return $m;
     }
+
+    /**
+     * Lấy trạng thái bạn bè hàng loạt giữa $toi và danh sách $dsMaND (tránh N+1 query).
+     * Trả về: [$maNguoiKia => ['trangThai' => 'ban_be'|'da_gui'|'cho_minh_duyet'|'chua_ket_ban']]
+     */
+    public static function layTrangThaiCacNguoi(PDO $pdo, int $toi, array $dsMaND): array
+    {
+        if ($toi <= 0) {
+            return [];
+        }
+        $ids = array_values(array_unique(array_filter(
+            array_map('intval', $dsMaND),
+            static fn (int $id): bool => $id > 0 && $id !== $toi
+        )));
+        if (!$ids) {
+            return [];
+        }
+
+        $kq = [];
+        foreach ($ids as $id) {
+            $kq[$id] = ['trangThai' => 'chua_ket_ban'];
+        }
+
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $sql = "SELECT MaNguoiGui, MaNguoiNhan, TrangThai
+                  FROM BANBE
+                 WHERE (MaNguoiGui = ? AND MaNguoiNhan IN ($placeholders))
+                    OR (MaNguoiNhan = ? AND MaNguoiGui IN ($placeholders))";
+        $params = array_merge([$toi], $ids, [$toi], $ids);
+        $st = $pdo->prepare($sql);
+        $st->execute($params);
+
+        while ($r = $st->fetch(PDO::FETCH_ASSOC)) {
+            $gui  = (int) $r['MaNguoiGui'];
+            $nhan = (int) $r['MaNguoiNhan'];
+            $kia  = ($gui === $toi) ? $nhan : $gui;
+            $tt   = (string) $r['TrangThai'];
+
+            if ($tt === 'Đã chấp nhận') {
+                $kq[$kia] = ['trangThai' => 'ban_be'];
+            } elseif ($tt === 'Chờ') {
+                $kq[$kia] = ['trangThai' => ($gui === $toi) ? 'da_gui' : 'cho_minh_duyet'];
+            } else {
+                $kq[$kia] = ['trangThai' => 'chua_ket_ban'];
+            }
+        }
+
+        return $kq;
+    }
+
+    /**
+     * Lấy danh sách bạn bè đã chấp nhận của $toi (dùng chung cho Sảnh Thách Đấu PIN và các module khác).
+     */
+    public static function layDanhSachBanBe(PDO $pdo, int $toi): array
+    {
+        if ($toi <= 0) {
+            return [];
+        }
+        $st = $pdo->prepare(
+            "SELECT u.MaND, u.HoTen, u.AnhDaiDien, u.TuongChon,
+                    COALESCE((SELECT MAX(e.DiemElo) FROM ELOMONHOC e WHERE e.MaND = u.MaND), 1000) AS EloCao
+               FROM BANBE b
+               JOIN NGUOIDUNG u ON u.MaND = IF(b.MaNguoiGui = ?, b.MaNguoiNhan, b.MaNguoiGui)
+              WHERE (b.MaNguoiGui = ? OR b.MaNguoiNhan = ?)
+                AND b.TrangThai = 'Đã chấp nhận'
+                AND u.TrangThai = 'Hoạt động'
+              ORDER BY u.HoTen"
+        );
+        $st->execute([$toi, $toi, $toi]);
+        return $st->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Sinh HTML nút/huy hiệu kết bạn đồng bộ toàn hệ thống (Cộng đồng, Bài đăng,...).
+     */
+    public static function renderNutKetBan(int $toi, int $nguoiKia, string $trangThai = 'chua_ket_ban', string $hoTen = ''): string
+    {
+        if ($toi <= 0 || $nguoiKia <= 0 || $toi === $nguoiKia || $nguoiKia === 999999) {
+            return '';
+        }
+
+        $baseUrl = defined('BASE_URL') ? BASE_URL : '';
+        $tenEsc  = e($hoTen);
+        $noiDung = match ($trangThai) {
+            'ban_be' => '<span class="cd-fbadge is-friend" title="Đã là bạn bè">🤝 Bạn bè</span>'
+                      . '<a href="' . e($baseUrl) . '/client/timtran.php?che_do=pin&amp;moi_ban=' . $nguoiKia . '" class="cd-fbtn is-challenge" title="Thách đấu 1v1 với ' . $tenEsc . '">⚔️ Thách đấu</a>',
+            'da_gui' => '<button type="button" class="cd-fbtn is-pending" data-friend-action="huy" data-friend-uid="' . $nguoiKia . '" title="Đã gửi lời mời kết bạn • Bấm để hủy lời mời">⏳ Đã gửi</button>',
+            'cho_minh_duyet' => '<button type="button" class="cd-fbtn is-accept" data-friend-action="chapnhan" data-friend-uid="' . $nguoiKia . '" title="Người này đã gửi lời mời cho bạn • Bấm để chấp nhận">✓ Chấp nhận</button>',
+            default => '<button type="button" class="cd-fbtn is-add" data-friend-action="gui" data-friend-uid="' . $nguoiKia . '" title="Gửi lời mời kết bạn với ' . $tenEsc . '">+ Kết bạn</button>',
+        };
+
+        return '<span class="cd-friend-widget" data-friend-widget="' . $nguoiKia . '" data-friend-name="' . $tenEsc . '">' . $noiDung . '</span>';
+    }
+
+    /**
+     * Xử lý AJAX thao tác kết bạn từ Cộng đồng / Bài đăng và trả về trạng thái + HTML đồng bộ mới.
+     */
+    public static function xuLyAjax(int $toi, string $hanhDong, int $nguoiKia): array
+    {
+        if ($toi <= 0) {
+            return ['ok' => false, 'msg' => 'Vui lòng đăng nhập để thực hiện thao tác này.'];
+        }
+        if ($nguoiKia <= 0 || $nguoiKia === $toi) {
+            return ['ok' => false, 'msg' => 'Người dùng không hợp lệ.'];
+        }
+
+        $pdo = Database::pdo();
+        $st = $pdo->prepare("SELECT HoTen FROM NGUOIDUNG WHERE MaND = ? AND TrangThai = 'Hoạt động'");
+        $st->execute([$nguoiKia]);
+        $hoTenKia = $st->fetchColumn();
+        if ($hoTenKia === false) {
+            return ['ok' => false, 'msg' => 'Không tìm thấy tài khoản sinh viên này.'];
+        }
+        $hoTenKia = (string) $hoTenKia;
+
+        $ok = false;
+        $msg = 'Hành động không hợp lệ.';
+
+        if ($hanhDong === 'gui') {
+            $kq = self::guiLoiMoi($toi, $nguoiKia);
+            $ok = ($kq === self::OK);
+            $msg = $ok ? ('Đã gửi lời mời kết bạn tới ' . $hoTenKia . '.') : (self::THONG_BAO[$kq] ?? 'Không thể gửi lời mời.');
+        } elseif ($hanhDong === 'huy') {
+            $ok = self::huyLoiMoi($toi, $nguoiKia);
+            $msg = $ok ? ('Đã hủy lời mời kết bạn với ' . $hoTenKia . '.') : 'Lời mời không còn hiệu lực.';
+        } elseif ($hanhDong === 'chapnhan') {
+            $ok = self::chapNhan($toi, $nguoiKia);
+            $msg = $ok ? ('Bạn và ' . $hoTenKia . ' đã trở thành bạn bè!') : 'Lời mời không còn hiệu lực.';
+        } elseif ($hanhDong === 'tuchoi') {
+            $ok = self::tuChoi($toi, $nguoiKia);
+            $msg = $ok ? ('Đã từ chối lời mời của ' . $hoTenKia . '.') : 'Lời mời không còn hiệu lực.';
+        } elseif ($hanhDong === 'huyketban') {
+            $ok = self::huyKetBan($toi, $nguoiKia);
+            $msg = $ok ? ('Đã hủy kết bạn với ' . $hoTenKia . '.') : 'Hai bạn không còn là bạn bè.';
+        }
+
+        $map = self::layTrangThaiCacNguoi($pdo, $toi, [$nguoiKia]);
+        $ttMoi = $map[$nguoiKia]['trangThai'] ?? 'chua_ket_ban';
+
+        return [
+            'ok'          => $ok,
+            'trangThai'   => $ttMoi,
+            'msg'         => $msg,
+            'html'        => self::renderNutKetBan($toi, $nguoiKia, $ttMoi, $hoTenKia),
+            'soLoiMoiCho' => self::demLoiMoiCho($toi),
+        ];
+    }
 }

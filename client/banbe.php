@@ -1,7 +1,6 @@
 <?php
 // Bạn bè: tìm sinh viên, gửi / chấp nhận / từ chối / hủy lời mời, hủy kết bạn (C-41). Đặt tại: elo_quiz/client/banbe.php
 require_once __DIR__ . '/../core/bootstrap.php';
-require_once __DIR__ . '/../core/BanBeHelper.php';
 
 $maND = Auth::requireClient(BASE_URL . '/client/dangnhap.php');
 $pdo  = Database::pdo();
@@ -218,7 +217,7 @@ require __DIR__ . '/layout/header.php';
       <div class="dong">
         <div><?= thongTinNguoi($r) ?></div>
         <div style="display: flex; align-items: center; gap: 6px;">
-          <a href="<?= e(BASE_URL) ?>/client/timtran.php" class="btn btn-sm" style="background: linear-gradient(135deg, #10B981 0%, #059669 100%); color: #fff; font-weight: 700; text-decoration: none; padding: 5px 12px; border-radius: 6px; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);">⚔️ Thách đấu</a>
+          <a href="<?= e(BASE_URL) ?>/client/timtran.php?che_do=pin&amp;moi_ban=<?= (int) $r['MaND'] ?>" class="btn btn-sm" style="background: linear-gradient(135deg, #10B981 0%, #059669 100%); color: #fff; font-weight: 700; text-decoration: none; padding: 5px 12px; border-radius: 6px; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);">⚔️ Thách đấu</a>
           <?= nutBanBe('huyketban', (int) $r['MaND'], 'Hủy kết bạn', $q, $trangDangXem, 'btn btn-phu',
                        'Hủy kết bạn với ' . $r['HoTen'] . '? Hai bạn sẽ không còn thấy nhau trong bảng xếp hạng bạn bè.') ?>
         </div>

@@ -3,10 +3,6 @@
 // Mọi thao tác trong một trận đều khóa dòng TRANDAU trước (cùng một thứ tự khóa ở mọi nơi nên không deadlock),
 // và mọi mốc thời gian lấy từ giờ máy chủ (NOW(3)); đồng hồ trên trình duyệt chỉ để hiển thị.
 // Elo sau trận: xem core/Elo.php (C-32, C-33). Chưa làm: màn xem lại (C-34).
-require_once __DIR__ . '/Elo.php';
-require_once __DIR__ . '/GhepDoi.php';
-require_once __DIR__ . '/DotBien.php';
-require_once __DIR__ . '/LoLChampions.php';
 class ThiDau
 {
     public const DEM_NGUOC_GIAY = 3;   // đếm ngược trước khi câu 1 hiện, để hai người bắt đầu gần như cùng lúc

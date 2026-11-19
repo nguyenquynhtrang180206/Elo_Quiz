@@ -46,14 +46,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $loiManh = PasswordSecurity::kiemTraDoManh($moi, ['email' => $nd['Email'], 'hoTen' => $nd['HoTen']]);
             if ($loiManh) {
                 $loi = array_merge($loi, $loiManh);
+            } else {
+                $canhBaoLichSu = PasswordSecurity::kiemTraLichSu($pdo, $maND, $moi, $nd);
+                if ($canhBaoLichSu !== null) {
+                    $loi[] = $canhBaoLichSu['thongBao'];
+                }
             }
         }
     }
 
     if (!$loi) {
-        // Băm mật khẩu mới bằng chuẩn siêu bảo mật (Argon2id hoặc Bcrypt cost 12)
-        $st = $pdo->prepare('UPDATE NGUOIDUNG SET MatKhau = ? WHERE MaND = ?');
-        $st->execute([PasswordSecurity::hash($moi), $maND]);
+        // Băm mật khẩu mới bằng chuẩn siêu bảo mật và lưu lịch sử xoay vòng
+        PasswordSecurity::ghiNhanDoiMatKhau($pdo, $maND, PasswordSecurity::hash($moi));
 
         session_regenerate_id(true);
         $thanhCong = true;
@@ -64,7 +68,6 @@ $tieuDe = 'Đổi mật khẩu';
 $cssTrang = 'doimatkhau';
 require __DIR__ . '/layout/header.php';
 ?>
-<link rel="stylesheet" href="<?= e(BASE_URL) ?>/assets/css/pw_security.css">
 <div class="container khung-doimatkhau">
   <div class="card">
     <h2>Đổi mật khẩu</h2>

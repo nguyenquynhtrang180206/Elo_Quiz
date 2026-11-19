@@ -1703,6 +1703,214 @@ body.trang-timtran main.container {
   font-weight: 600;
 }
 
+/* THÁCH ĐẤU PIN 2.0: TOPBAR, LIVE ROOM PREVIEW, MỜI BẠN BÈ 1 CHẠM */
+.pin-active-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+.pin-match-badge {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #7DD3FC;
+  background: rgba(14, 165, 233, 0.14);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+.pin-countdown-badge {
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: #FDE047;
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(251, 191, 36, 0.45);
+  padding: 3px 9px;
+  border-radius: 999px;
+}
+.pin-wait-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.pin-friend-invite-box {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+.pin-invite-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #CBD5E1;
+  margin-bottom: 8px;
+}
+.pin-invite-manage-link {
+  color: #38BDF8;
+  font-size: 0.74rem;
+  text-decoration: none;
+}
+.pin-invite-manage-link:hover { text-decoration: underline; }
+.pin-invite-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 156px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.pin-invite-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 10px;
+  border-radius: 9px;
+  background: rgba(15, 23, 42, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+.pin-invite-item.is-target {
+  border-color: rgba(16, 185, 129, 0.75);
+  background: rgba(16, 185, 129, 0.14);
+}
+.pin-invite-user {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.pin-invite-av {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 1px solid rgba(52, 211, 153, 0.5);
+}
+.pin-invite-av-txt {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #0284C7, #10B981);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+.pin-invite-name {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #F1F5F9;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pin-invite-elo {
+  font-size: 0.7rem;
+  color: #94A3B8;
+}
+.btn-invite-friend {
+  padding: 4px 10px;
+  border-radius: 7px;
+  background: rgba(16, 185, 129, 0.18);
+  border: 1px solid rgba(52, 211, 153, 0.45);
+  color: #34D399;
+  font-family: inherit;
+  font-size: 0.74rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.18s ease;
+}
+.btn-invite-friend:hover:not(:disabled) {
+  background: linear-gradient(135deg, #10B981, #059669);
+  color: #fff;
+}
+.btn-invite-friend.is-invited {
+  background: rgba(56, 189, 248, 0.2);
+  border-color: #38BDF8;
+  color: #BAE6FD;
+}
+.pin-invite-empty {
+  font-size: 0.75rem;
+  color: #94A3B8;
+  padding: 6px 0;
+}
+.pin-invite-empty a { color: #38BDF8; text-decoration: none; }
+.pin-invite-empty a:hover { text-decoration: underline; }
+
+/* Live Room Preview Card */
+.pin-room-preview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.14), rgba(8, 20, 48, 0.9));
+  border: 1px solid rgba(52, 211, 153, 0.5);
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.15);
+}
+.pin-preview-loading {
+  font-size: 0.78rem;
+  color: #A7F3D0;
+}
+.pin-prev-av {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #34D399;
+}
+.pin-prev-av-txt {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #059669, #0284C7);
+  color: #fff;
+  font-weight: 900;
+  font-size: 1rem;
+}
+.pin-prev-body { min-width: 0; flex: 1; }
+.pin-prev-host {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.86rem;
+  font-weight: 800;
+  color: #FFFFFF;
+}
+.pin-prev-elo {
+  font-size: 0.72rem;
+  color: #FDE047;
+  background: rgba(245, 158, 11, 0.18);
+  padding: 1px 7px;
+  border-radius: 999px;
+}
+.pin-prev-match {
+  font-size: 0.78rem;
+  color: #7DD3FC;
+  margin-top: 2px;
+}
+.pin-prev-meta {
+  font-size: 0.72rem;
+  color: #94A3B8;
+  margin-top: 2px;
+}
+.pin-prev-self-warn {
+  font-size: 0.72rem;
+  color: #FDE047;
+  margin-top: 4px;
+  font-weight: 600;
+}
+
 /* RADIO DOT INDICATOR */
 .mode-card-radio-indicator {
   width: 18px;

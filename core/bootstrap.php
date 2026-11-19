@@ -1,6 +1,7 @@
 <?php
 // Mọi trang đều bắt đầu bằng: require_once __DIR__ . '/../core/bootstrap.php';
 $cfg = require __DIR__ . '/../config/config.php';
+$GLOBALS['APP_CONFIG'] = $cfg;
 
 date_default_timezone_set($cfg['timezone'] ?? 'Asia/Ho_Chi_Minh');
 error_reporting(E_ALL);
@@ -48,6 +49,7 @@ spl_autoload_register(function (string $class): void {
         'LoLChampions'     => __DIR__ . '/Game/LoLChampions.php',
 
         // Services
+        'Mailer'           => __DIR__ . '/Services/Mailer.php',
         'CongDongHelper'   => __DIR__ . '/Services/CongDongHelper.php',
         'BanBeHelper'      => __DIR__ . '/Services/BanBeHelper.php',
         'ThongBaoHelper'   => __DIR__ . '/Services/ThongBaoHelper.php',

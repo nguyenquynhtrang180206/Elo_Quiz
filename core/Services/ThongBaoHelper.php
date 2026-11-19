@@ -27,38 +27,11 @@ class ThongBaoHelper
     }
 
     /**
-     * Tự động đảm bảo bảng THONGBAO tồn tại trong CSDL
+     * Tự động đảm bảo bảng THONGBAO tồn tại trong CSDL (đã được DbSchema::damBao xử lý).
      */
     public static function damBaoBang(): bool
     {
-        if (self::$bangTonTai !== null) {
-            return self::$bangTonTai;
-        }
-        try {
-            $pdo = Database::pdo();
-            $pdo->exec("
-                CREATE TABLE IF NOT EXISTS THONGBAO (
-                    MaTB        INT UNSIGNED NOT NULL AUTO_INCREMENT,
-                    MaND        INT UNSIGNED NOT NULL COMMENT 'Người nhận thông báo',
-                    MaNguoiGui  INT UNSIGNED NOT NULL COMMENT 'Người thực hiện hành động',
-                    MaBaiDang   INT UNSIGNED NULL COMMENT 'Bài viết liên quan (NULL với thông báo kết bạn)',
-                    MaBinhLuan  INT UNSIGNED NULL COMMENT 'Bình luận liên quan nếu có',
-                    Loai        VARCHAR(30) NOT NULL DEFAULT 'binhluan' COMMENT 'binhluan, rep_bl, loi_moi_kb, chap_nhan_kb, v.v.',
-                    TieuDe      VARCHAR(255) NOT NULL,
-                    NoiDung     VARCHAR(500) NULL,
-                    LienKet     VARCHAR(255) NOT NULL,
-                    DaDoc       TINYINT(1) NOT NULL DEFAULT 0,
-                    NgayTao     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                    PRIMARY KEY (MaTB),
-                    KEY idx_thongbao_user (MaND, DaDoc, NgayTao),
-                    KEY idx_thongbao_baidang (MaBaiDang)
-                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-            ");
-            self::$bangTonTai = true;
-        } catch (Throwable $e) {
-            self::$bangTonTai = false;
-        }
-        return self::$bangTonTai;
+        return true;
     }
 
     /**
@@ -68,7 +41,7 @@ class ThongBaoHelper
         PDO $pdo,
         int $maNguoiNhan,
         int $maNguoiGui,
-        int $maBaiDang,
+        ?int $maBaiDang,
         ?int $maBinhLuan,
         string $loai,
         string $tieuDe,
@@ -90,7 +63,7 @@ class ThongBaoHelper
             return $st->execute([
                 $maNguoiNhan,
                 $maNguoiGui,
-                $maBaiDang,
+                ($maBaiDang !== null && $maBaiDang > 0) ? $maBaiDang : null,
                 $maBinhLuan,
                 $loai,
                 mb_substr($tieuDe, 0, 255),

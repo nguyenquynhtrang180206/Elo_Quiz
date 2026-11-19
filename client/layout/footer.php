@@ -16,8 +16,10 @@ try {
     // Trận đã hoàn tất
     $ftSoTranDau = (int) $db->query("SELECT COUNT(*) FROM TRANDAU WHERE TrangThai = 'Kết thúc'")->fetchColumn();
 
-    // Môn đang mở
-    $ftSoMonHoc = (int) $db->query("SELECT COUNT(*) FROM MONHOC WHERE TrangThai = 'Đang mở'")->fetchColumn();
+    // Môn đang mở (tái sử dụng nếu trang cha đã truy vấn)
+    $ftSoMonHoc = isset($soMonMo)
+        ? (int) $soMonMo
+        : (int) $db->query("SELECT COUNT(*) FROM MONHOC WHERE TrangThai = 'Đang mở'")->fetchColumn();
 
     // Elo cao nhất: trong ELOMONHOC, người đã đấu, tài khoản đang hoạt động, môn đang mở
     $maxElo = $db->query(

@@ -7,9 +7,9 @@ require_once __DIR__ . '/../core/bootstrap.php';
 if (Auth::laAdminSinhVien()) {   // admin không tìm trận và không đấu trận
     redirect(BASE_URL . '/client/khong_dau_tran.php');
 }
-require_once __DIR__ . '/../core/GhepDoi.php';
-require_once __DIR__ . '/../core/LoLChampions.php';
-require_once __DIR__ . '/../core/CongDongHelper.php';
+
+
+
 
 $maND = Auth::clientId();   // khách chưa đăng nhập vẫn xem được môn/kỳ thi; vào hàng đợi và đề xuất môn cần đăng nhập
 $pdo  = Database::pdo();
@@ -113,18 +113,35 @@ if (isset($_GET['ajax_ready_accept']) || isset($_POST['ajax_ready_accept'])) {
     exit;
 }
 
-// ---- AJAX: Tạo phòng thách đấu bạn bè 1v1 (Mã PIN) ----
+// ---- AJAX: Tạo phòng thách đấu bạn bè 1v1 (Mã PIN 2.0) ----
 if (isset($_GET['ajax_thachdau_tao']) || isset($_POST['ajax_thachdau_tao'])) {
     header('Content-Type: application/json; charset=utf-8');
     header('Cache-Control: no-store');
-    $maMon = (int) ($_POST['mon'] ?? $_GET['mon'] ?? 1);
-    $maKT  = (int) ($_POST['loaikt'] ?? $_GET['loaikt'] ?? 2);
-    if ($maND !== null) {
-        $kq = ThachDau::taoPhong($pdo, $maND, $maMon, $maKT);
-        echo json_encode($kq);
+    if ($maND === null) {
+        echo json_encode(['ok' => false, 'loi' => 'Vui lòng đăng nhập để tạo phòng thách đấu.'], JSON_UNESCAPED_UNICODE);
         exit;
     }
-    echo json_encode(['ok' => false, 'loi' => 'Chưa đăng nhập.']);
+    $maMon = (int) ($_POST['mon'] ?? $_GET['mon'] ?? 0);
+    $maKT  = (int) ($_POST['loaikt'] ?? $_GET['loaikt'] ?? 0);
+    echo json_encode(ThachDau::taoPhong($pdo, $maND, $maMon, $maKT), JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+// ---- AJAX: Xem trước thông tin phòng thách đấu qua mã PIN (Live Room Preview) ----
+if (isset($_GET['ajax_thachdau_xem']) || isset($_POST['ajax_thachdau_xem'])) {
+    header('Content-Type: application/json; charset=utf-8');
+    header('Cache-Control: no-store');
+    $pin = (string) ($_GET['pin'] ?? $_POST['pin'] ?? $_GET['phong'] ?? $_POST['phong'] ?? '');
+    $info = ThachDau::layThongTinPhong($pdo, $pin);
+    if (!$info) {
+        echo json_encode(['ok' => false, 'loi' => 'Không tìm thấy phòng hợp lệ hoặc mã PIN đã hết hạn.'], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+    echo json_encode([
+        'ok'         => true,
+        'laChuPhong' => ($maND !== null && (int) $info['ChuPhongND'] === (int) $maND),
+        'phong'      => $info,
+    ], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
@@ -132,13 +149,21 @@ if (isset($_GET['ajax_thachdau_tao']) || isset($_POST['ajax_thachdau_tao'])) {
 if (isset($_GET['ajax_thachdau_vao']) || isset($_POST['ajax_thachdau_vao'])) {
     header('Content-Type: application/json; charset=utf-8');
     header('Cache-Control: no-store');
-    $pin = trim((string) ($_POST['pin'] ?? $_GET['pin'] ?? ''));
-    if ($maND !== null && $pin !== '') {
-        $kq = ThachDau::vaoPhong($pdo, $maND, $pin);
-        echo json_encode($kq);
+    if ($maND === null) {
+        echo json_encode([
+            'ok' => false,
+            'yeuCauLogin' => true,
+            'redirect' => BASE_URL . '/client/dangnhap.php',
+            'loi' => 'Vui lòng đăng nhập để tham gia phòng đấu!'
+        ], JSON_UNESCAPED_UNICODE);
         exit;
     }
-    echo json_encode(['ok' => false, 'loi' => 'Vui lòng nhập mã PIN hợp lệ.']);
+    $pin = trim((string) ($_POST['pin'] ?? $_GET['pin'] ?? $_POST['phong'] ?? $_GET['phong'] ?? ''));
+    if ($pin !== '') {
+        echo json_encode(ThachDau::vaoPhong($pdo, $maND, $pin), JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+    echo json_encode(['ok' => false, 'loi' => 'Vui lòng nhập mã PIN 6 chữ số hợp lệ.'], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
@@ -146,13 +171,26 @@ if (isset($_GET['ajax_thachdau_vao']) || isset($_POST['ajax_thachdau_vao'])) {
 if (isset($_GET['ajax_thachdau_kiemtra'])) {
     header('Content-Type: application/json; charset=utf-8');
     header('Cache-Control: no-store');
-    $pin = trim((string) ($_GET['pin'] ?? ''));
+    $pin = trim((string) ($_GET['pin'] ?? $_GET['phong'] ?? ''));
     if ($maND !== null && $pin !== '') {
-        $kq = ThachDau::kiemTraPhongChu($pdo, $maND, $pin);
-        echo json_encode($kq);
+        echo json_encode(ThachDau::kiemTraPhongChu($pdo, $maND, $pin), JSON_UNESCAPED_UNICODE);
         exit;
     }
-    echo json_encode(['tonTai' => false, 'daGhep' => false]);
+    echo json_encode(['tonTai' => false, 'hetHan' => false, 'daGhep' => false, 'coTran' => false], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+// ---- AJAX: Chủ phòng mời bạn bè trực tiếp 1 chạm vào phòng PIN ----
+if (isset($_GET['ajax_thachdau_moiban']) || isset($_POST['ajax_thachdau_moiban'])) {
+    header('Content-Type: application/json; charset=utf-8');
+    header('Cache-Control: no-store');
+    if ($maND === null) {
+        echo json_encode(['ok' => false, 'loi' => 'Chưa đăng nhập.'], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+    $pin   = (string) ($_POST['pin'] ?? $_GET['pin'] ?? $_POST['phong'] ?? '');
+    $banId = (int) ($_POST['ban_id'] ?? $_GET['ban_id'] ?? 0);
+    echo json_encode(ThachDau::moiBanBe($pdo, $maND, $banId, $pin), JSON_UNESCAPED_UNICODE);
     exit;
 }
 
@@ -160,7 +198,7 @@ if (isset($_GET['ajax_thachdau_kiemtra'])) {
 if (isset($_GET['ajax_thachdau_huy']) || isset($_POST['ajax_thachdau_huy'])) {
     header('Content-Type: application/json; charset=utf-8');
     header('Cache-Control: no-store');
-    $pin = trim((string) ($_POST['pin'] ?? $_GET['pin'] ?? ''));
+    $pin = trim((string) ($_POST['pin'] ?? $_GET['pin'] ?? $_POST['phong'] ?? $_GET['phong'] ?? ''));
     if ($maND !== null) {
         ThachDau::huyPhong($pdo, $maND, $pin !== '' ? $pin : null);
         echo json_encode(['ok' => true]);
@@ -1165,6 +1203,18 @@ $tatCaTuong = LoLChampions::DANH_SACH;
             $dsKT[] = $k;
         }
     }
+
+    // Dữ liệu cho Sảnh Thách Đấu PIN 2.0 (khôi phục phòng khi F5 + danh sách bạn bè mời 1 chạm)
+    $phongPinDangCho = $maND !== null ? ThachDau::layPhongDangChoCuaChu($pdo, (int) $maND) : null;
+    $dsBanBePin = $maND !== null ? BanBeHelper::layDanhSachBanBe($pdo, (int) $maND) : [];
+    $moiBanId = (int) ($_GET['moi_ban'] ?? 0);
+    if ($moiBanId > 0 && $dsBanBePin) {
+        usort($dsBanBePin, static function (array $a, array $b) use ($moiBanId): int {
+            $pa = ((int) $a['MaND'] === $moiBanId) ? 0 : 1;
+            $pb = ((int) $b['MaND'] === $moiBanId) ? 0 : 1;
+            return $pa <=> $pb;
+        });
+    }
     ?>
 
     <!-- ==========================================================================
@@ -1413,8 +1463,13 @@ $tatCaTuong = LoLChampions::DANH_SACH;
                   </div>
                 </div>
 
-                <!-- BẢNG ĐIỀU KHIỂN THÁCH ĐẤU PIN (GỌN GÀNG, HIỆN KHI CHỌN CHẾ ĐỘ PIN) -->
-                <div class="pin-challenge-drawer" id="pinChallengePanel" style="display: none;">
+                <!-- BẢNG ĐIỀU KHIỂN THÁCH ĐẤU PIN 2.0 (GỌN GÀNG, HIỆN KHI CHỌN CHẾ ĐỘ PIN) -->
+                <div class="pin-challenge-drawer" id="pinChallengePanel" style="display: none;"
+                     data-active-pin="<?= e($phongPinDangCho['MaPin'] ?? '') ?>"
+                     data-active-mon-ten="<?= e($phongPinDangCho['TenMon'] ?? '') ?>"
+                     data-active-kt-ten="<?= e($phongPinDangCho['TenLoaiKT'] ?? '') ?>"
+                     data-active-remain="<?= (int) ($phongPinDangCho['ConLaiGiay'] ?? 0) ?>"
+                     data-moi-ban="<?= (int) $moiBanId ?>">
                   <div class="pin-drawer-tabs">
                     <button type="button" class="btn-pin-tab active" id="btnPinTabCreate">⚔️ TẠO PHÒNG MỚI</button>
                     <button type="button" class="btn-pin-tab" id="btnPinTabJoin">🔑 NHẬP MÃ PIN</button>
@@ -1422,33 +1477,81 @@ $tatCaTuong = LoLChampions::DANH_SACH;
                   <!-- Tab Tạo Phòng -->
                   <div class="pin-tab-pane active" id="pinTabPaneCreate">
                     <div class="pin-create-initial" id="pinCreateInitial">
-                      <p class="pin-hint">Tạo phòng riêng cho môn đã chọn. Gửi mã PIN hoặc Link cho bạn bè để bắt đầu trận đấu!</p>
+                      <p class="pin-hint">Tạo phòng riêng 6 số theo môn &amp; kỳ thi đã chọn. Bạn bè vào phòng là chiến ngay — hoặc bấm mời trực tiếp danh sách bạn bè bên dưới!</p>
                       <button type="button" class="btn-pin-action" id="btnActionCreateRoom">⚡ KHỞI TẠO PHÒNG NGAY</button>
+                      <div class="pin-error-notice" id="pinCreateErrorNotice" style="display: none;"></div>
                     </div>
                     <div class="pin-create-active" id="pinCreateActive" style="display: none;">
+                      <div class="pin-active-topbar">
+                        <span class="pin-match-badge" id="pinActiveMatchInfo">📚 Đang mở phòng</span>
+                        <span class="pin-countdown-badge" id="pinCountdownTimer" title="Thời gian hiệu lực còn lại của mã PIN">⏱ 10:00</span>
+                      </div>
                       <div class="pin-code-showcase">
                         <span class="pin-label">MÃ PIN CỦA BẠN:</span>
                         <span class="pin-number" id="displayPinCode">------</span>
                         <div class="pin-copy-btns">
                           <button type="button" class="btn-copy-chip" id="btnCopyPinCode" title="Sao chép 6 số PIN">📋 Sao chép PIN</button>
                           <button type="button" class="btn-copy-chip" id="btnCopyPinLink" title="Sao chép liên kết vào phòng">🔗 Sao chép Link</button>
+                          <button type="button" class="btn-copy-chip" id="btnRefreshPinRoom" title="Tạo mã PIN mới">🔄 Đổi mã</button>
                         </div>
                       </div>
-                      <div class="pin-wait-status">
-                        <span class="pin-spin-ring"></span>
-                        <span id="pinWaitMsg">Đang chờ bạn bè kết nối vào phòng...</span>
+                      <div class="pin-wait-footer">
+                        <div class="pin-wait-status">
+                          <span class="pin-spin-ring"></span>
+                          <span id="pinWaitMsg">Đang chờ bạn bè kết nối vào phòng...</span>
+                        </div>
+                        <button type="button" class="btn-cancel-pin-room" id="btnCancelPinRoom">✕ Hủy phòng</button>
                       </div>
-                      <button type="button" class="btn-cancel-pin-room" id="btnCancelPinRoom">✕ HỦY PHÒNG</button>
+
+                      <!-- Mời Bạn Bè Trực Tiếp 1 Chạm -->
+                      <?php if ($maND !== null): ?>
+                        <div class="pin-friend-invite-box" id="pinFriendInviteSection">
+                          <div class="pin-invite-header">
+                            <span>🤝 Mời bạn bè trực tiếp (1 chạm)</span>
+                            <a href="<?= e(BASE_URL) ?>/client/banbe.php" class="pin-invite-manage-link">Quản lý bạn bè &rsaquo;</a>
+                          </div>
+                          <?php if ($dsBanBePin): ?>
+                            <div class="pin-invite-list">
+                              <?php foreach ($dsBanBePin as $bb):
+                                $isHighlighted = ((int) $bb['MaND'] === $moiBanId);
+                              ?>
+                                <div class="pin-invite-item<?= $isHighlighted ? ' is-target' : '' ?>">
+                                  <div class="pin-invite-user">
+                                    <?php if (!empty($bb['AnhDaiDien'])): ?>
+                                      <img src="<?= e(BASE_URL . '/' . ltrim((string) $bb['AnhDaiDien'], '/')) ?>" alt="" class="pin-invite-av">
+                                    <?php else: ?>
+                                      <span class="pin-invite-av pin-invite-av-txt"><?= e(mb_strtoupper(mb_substr((string) $bb['HoTen'], 0, 1))) ?></span>
+                                    <?php endif; ?>
+                                    <div>
+                                      <div class="pin-invite-name"><?= e($bb['HoTen']) ?></div>
+                                      <div class="pin-invite-elo">⚡ Elo <?= number_format((int) $bb['EloCao']) ?></div>
+                                    </div>
+                                  </div>
+                                  <button type="button" class="btn-invite-friend" data-invite-friend-id="<?= (int) $bb['MaND'] ?>">
+                                    📨 Thách đấu
+                                  </button>
+                                </div>
+                              <?php endforeach; ?>
+                            </div>
+                          <?php else: ?>
+                            <div class="pin-invite-empty">
+                              Bạn chưa có bạn bè nào. Hãy <a href="<?= e(BASE_URL) ?>/client/congdong.php">kết bạn ở Cộng đồng</a> hoặc <a href="<?= e(BASE_URL) ?>/client/banbe.php">tìm bạn bè</a> để thách đấu nhanh!
+                            </div>
+                          <?php endif; ?>
+                        </div>
+                      <?php endif; ?>
                     </div>
                   </div>
                   <!-- Tab Nhập PIN -->
                   <div class="pin-tab-pane" id="pinTabPaneJoin" style="display: none;">
                     <div class="pin-join-box">
-                      <p class="pin-hint">Nhập mã PIN 6 số do bạn bè gửi để tham gia trận đấu ngay lập tức:</p>
+                      <p class="pin-hint">Nhập mã PIN 6 số hoặc dán link phòng bạn bè gửi (không cần chọn môn trước):</p>
                       <div class="pin-input-group">
-                        <input type="text" id="inputPinCode" class="input-pin-digits" maxlength="6" placeholder="VD: 123456" autocomplete="off">
-                        <button type="button" class="btn-pin-action" id="btnActionJoinRoom">VÀO PHÒNG CHIẾN ⚔️</button>
+                        <input type="text" id="inputPinCode" class="input-pin-digits" maxlength="120" placeholder="VD: 123456" autocomplete="off">
+                        <button type="button" class="btn-pin-action" id="btnActionJoinRoom">CHẤP NHẬN THÁCH ĐẤU ⚔️</button>
                       </div>
+                      <!-- Live Room Preview Card -->
+                      <div class="pin-room-preview" id="pinRoomPreviewCard" style="display: none;"></div>
                       <div class="pin-error-notice" id="pinJoinErrorNotice" style="display: none;"></div>
                     </div>
                   </div>

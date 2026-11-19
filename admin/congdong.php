@@ -3,8 +3,6 @@
 // Hai tab: ?loai=bai (bài đăng), ?loai=bl (bình luận). Chỉ ẩn/hiện, không xóa cứng; mọi lần ẩn/hiện đều bắt buộc lý do và ghi nhật ký.
 // A-33: bài sinh viên đã tự xóa ("Đã xóa") không được hiện lại. Admin chỉ chuyển qua lại Hiển thị <-> Bị ẩn.
 require_once __DIR__ . '/../core/bootstrap.php';
-require_once __DIR__ . '/../core/CongDongHelper.php';
-require_once __DIR__ . '/../core/ThongBaoHelper.php';
 Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');   // A-04
 
 $pdo  = Database::pdo();

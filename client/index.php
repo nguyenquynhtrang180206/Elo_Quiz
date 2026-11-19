@@ -3,8 +3,6 @@
 // Đăng nhập rồi: lời chào, nút Tìm trận, tóm tắt thành tích, trận gần đây, BXH nổi bật, Tin tức & Sự kiện.
 // Khách chưa đăng nhập vẫn xem được BXH nổi bật và Tin tức & Sự kiện (C-12).
 require_once __DIR__ . '/../core/bootstrap.php';
-require_once __DIR__ . '/../core/GhepDoi.php';
-require_once __DIR__ . '/../core/CongDongHelper.php';
 
 $pdo = Database::pdo();
 $maND = Auth::clientId();

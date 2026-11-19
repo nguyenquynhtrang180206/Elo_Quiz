@@ -9,42 +9,16 @@ CREATE DATABASE IF NOT EXISTS elo_quiz
   CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE elo_quiz;
 
--- Tắt kiểm tra khóa ngoại để dọn dẹp sạch sẽ khi chạy lại file
+-- =====================================================================
+-- BẢO VỆ DỮ LIỆU: Bỏ lệnh DROP TABLE để không làm mất bài viết và người dùng cũ
+-- =====================================================================
 SET FOREIGN_KEY_CHECKS = 0;
-DROP TABLE IF EXISTS
-  LICHSUDANGNHAP,
-  GIOIHANDANGNHAP,
-  PHATAFK,
-  THONGTHAOTUONG,
-  PHONGTHACHDAU,
-  THONGBAO_ADMIN_DADOC,
-  THONGBAO,
-  LUOTTHICH_BL,
-  LUOTTHICH,
-  BINHLUAN,
-  BAIDANG,
-  LICHSUELO,
-  CHITIETTRALOI,
-  ELOMONHOC,
-  CAUHOITRANDAU,
-  NGUOICHOITRANDAU,
-  TRANDAU,
-  HANGDOIGHEPDOI,
-  DAPAN,
-  CAUHOI,
-  BANBE,
-  NHATKYQUANTRI,
-  CAUHINH,
-  MONHOC,
-  LOAIKYTHI,
-  ADMIN,
-  NGUOIDUNG;
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- ---------------------------------------------------------------------
 -- 1. BẢNG NGUOIDUNG (Tài khoản người chơi & thông tin hồ sơ)
 -- ---------------------------------------------------------------------
-CREATE TABLE NGUOIDUNG (
+CREATE TABLE IF NOT EXISTS NGUOIDUNG (
   MaND              INT UNSIGNED NOT NULL AUTO_INCREMENT,
   HoTen             VARCHAR(100) NOT NULL,
   Email             VARCHAR(150) NOT NULL,
@@ -69,7 +43,7 @@ CREATE TABLE NGUOIDUNG (
 -- ---------------------------------------------------------------------
 -- 2. BẢNG ADMIN (Tài khoản quản trị viên hệ thống)
 -- ---------------------------------------------------------------------
-CREATE TABLE ADMIN (
+CREATE TABLE IF NOT EXISTS ADMIN (
   MaAdmin       INT UNSIGNED NOT NULL AUTO_INCREMENT,
   TenDangNhap   VARCHAR(50)  NOT NULL,
   MatKhau       VARCHAR(255) NOT NULL COMMENT 'Lưu dạng băm',
@@ -86,7 +60,7 @@ CREATE TABLE ADMIN (
 -- ---------------------------------------------------------------------
 -- 3. BẢNG MONHOC (Môn học thi đấu & đề xuất môn học)
 -- ---------------------------------------------------------------------
-CREATE TABLE MONHOC (
+CREATE TABLE IF NOT EXISTS MONHOC (
   MaMon           INT UNSIGNED NOT NULL AUTO_INCREMENT,
   TenMon          VARCHAR(150) NOT NULL,
   MoTa            TEXT NULL,
@@ -101,7 +75,7 @@ CREATE TABLE MONHOC (
 -- ---------------------------------------------------------------------
 -- 4. BẢNG LOAIKYTHI (Giữa kỳ, Cuối kỳ, Cả 2)
 -- ---------------------------------------------------------------------
-CREATE TABLE LOAIKYTHI (
+CREATE TABLE IF NOT EXISTS LOAIKYTHI (
   MaLoaiKT   INT UNSIGNED NOT NULL AUTO_INCREMENT,
   TenLoaiKT  VARCHAR(50) NOT NULL,
   MoTa       TEXT NULL,
@@ -111,7 +85,7 @@ CREATE TABLE LOAIKYTHI (
 -- ---------------------------------------------------------------------
 -- 5. BẢNG CAUHOI (Ngân hàng câu hỏi trắc nghiệm)
 -- ---------------------------------------------------------------------
-CREATE TABLE CAUHOI (
+CREATE TABLE IF NOT EXISTS CAUHOI (
   MaCauHoi   INT UNSIGNED NOT NULL AUTO_INCREMENT,
   MaMon      INT UNSIGNED NOT NULL,
   MaLoaiKT   INT UNSIGNED NULL COMMENT 'NULL = dùng cho cả giữa kỳ và cuối kỳ',
@@ -128,7 +102,7 @@ CREATE TABLE CAUHOI (
 -- ---------------------------------------------------------------------
 -- 6. BẢNG DAPAN (Đáp án của từng câu hỏi)
 -- ---------------------------------------------------------------------
-CREATE TABLE DAPAN (
+CREATE TABLE IF NOT EXISTS DAPAN (
   MaDapAn        INT UNSIGNED NOT NULL AUTO_INCREMENT,
   MaCauHoi       INT UNSIGNED NOT NULL,
   NoiDungDapAn   TEXT NOT NULL,
@@ -145,7 +119,7 @@ CREATE TABLE DAPAN (
 -- ---------------------------------------------------------------------
 -- 7. BẢNG HANGDOIGHEPDOI (Hàng đợi tìm trận trực tuyến)
 -- ---------------------------------------------------------------------
-CREATE TABLE HANGDOIGHEPDOI (
+CREATE TABLE IF NOT EXISTS HANGDOIGHEPDOI (
   MaHangDoi          INT UNSIGNED NOT NULL AUTO_INCREMENT,
   MaND               INT UNSIGNED NOT NULL,
   MaMon              INT UNSIGNED NOT NULL,
@@ -163,7 +137,7 @@ CREATE TABLE HANGDOIGHEPDOI (
 -- ---------------------------------------------------------------------
 -- 8. BẢNG TRANDAU (Trận đấu 1 vs 1)
 -- ---------------------------------------------------------------------
-CREATE TABLE TRANDAU (
+CREATE TABLE IF NOT EXISTS TRANDAU (
   MaTran           INT UNSIGNED NOT NULL AUTO_INCREMENT,
   MaMon            INT UNSIGNED NOT NULL,
   MaLoaiKT         INT UNSIGNED NOT NULL,
@@ -185,7 +159,7 @@ CREATE TABLE TRANDAU (
 -- ---------------------------------------------------------------------
 -- 9. BẢNG NGUOICHOITRANDAU (Hai người chơi trong mỗi trận đấu)
 -- ---------------------------------------------------------------------
-CREATE TABLE NGUOICHOITRANDAU (
+CREATE TABLE IF NOT EXISTS NGUOICHOITRANDAU (
   MaTran            INT UNSIGNED NOT NULL,
   MaND              INT UNSIGNED NOT NULL,
   DiemSo            INT NOT NULL DEFAULT 0,
@@ -203,7 +177,7 @@ CREATE TABLE NGUOICHOITRANDAU (
 -- ---------------------------------------------------------------------
 -- 10. BẢNG CAUHOITRANDAU (Bộ câu hỏi bốc ngẫu nhiên cho trận đấu)
 -- ---------------------------------------------------------------------
-CREATE TABLE CAUHOITRANDAU (
+CREATE TABLE IF NOT EXISTS CAUHOITRANDAU (
   MaTran           INT UNSIGNED NOT NULL,
   MaCauHoi         INT UNSIGNED NOT NULL,
   ThuTu            TINYINT UNSIGNED NOT NULL,
@@ -220,7 +194,7 @@ CREATE TABLE CAUHOITRANDAU (
 -- ---------------------------------------------------------------------
 -- 11. BẢNG ELOMONHOC (Bảng điểm Elo theo từng môn của người chơi)
 -- ---------------------------------------------------------------------
-CREATE TABLE ELOMONHOC (
+CREATE TABLE IF NOT EXISTS ELOMONHOC (
   MaND      INT UNSIGNED NOT NULL,
   MaMon     INT UNSIGNED NOT NULL,
   DiemElo   INT NOT NULL DEFAULT 1000,
@@ -238,7 +212,7 @@ CREATE TABLE ELOMONHOC (
 -- ---------------------------------------------------------------------
 -- 12. BẢNG CHITIETTRALOI (Chi tiết câu trả lời từng câu trong trận)
 -- ---------------------------------------------------------------------
-CREATE TABLE CHITIETTRALOI (
+CREATE TABLE IF NOT EXISTS CHITIETTRALOI (
   MaTran          INT UNSIGNED NOT NULL,
   MaND            INT UNSIGNED NOT NULL,
   MaCauHoi        INT UNSIGNED NOT NULL,
@@ -261,7 +235,7 @@ CREATE TABLE CHITIETTRALOI (
 -- ---------------------------------------------------------------------
 -- 13. BẢNG LICHSUELO (Lịch sử biến động điểm Elo sau từng trận)
 -- ---------------------------------------------------------------------
-CREATE TABLE LICHSUELO (
+CREATE TABLE IF NOT EXISTS LICHSUELO (
   MaLichSu   INT UNSIGNED NOT NULL AUTO_INCREMENT,
   MaND       INT UNSIGNED NOT NULL,
   MaMon      INT UNSIGNED NOT NULL,
@@ -282,7 +256,7 @@ CREATE TABLE LICHSUELO (
 -- ---------------------------------------------------------------------
 -- 14. BẢNG BAIDANG (Bài viết diễn đàn cộng đồng)
 -- ---------------------------------------------------------------------
-CREATE TABLE BAIDANG (
+CREATE TABLE IF NOT EXISTS BAIDANG (
   MaBaiDang  INT UNSIGNED NOT NULL AUTO_INCREMENT,
   MaND       INT UNSIGNED NOT NULL,
   MaMon      INT UNSIGNED NULL,
@@ -303,7 +277,7 @@ CREATE TABLE BAIDANG (
 -- ---------------------------------------------------------------------
 -- 15. BẢNG BINHLUAN (Bình luận & phản hồi đa cấp bài viết)
 -- ---------------------------------------------------------------------
-CREATE TABLE BINHLUAN (
+CREATE TABLE IF NOT EXISTS BINHLUAN (
   MaBinhLuan     INT UNSIGNED NOT NULL AUTO_INCREMENT,
   MaBaiDang      INT UNSIGNED NOT NULL,
   MaND           INT UNSIGNED NOT NULL,
@@ -323,7 +297,7 @@ CREATE TABLE BINHLUAN (
 -- ---------------------------------------------------------------------
 -- 16. BẢNG LUOTTHICH (Lượt thích bài đăng)
 -- ---------------------------------------------------------------------
-CREATE TABLE LUOTTHICH (
+CREATE TABLE IF NOT EXISTS LUOTTHICH (
   MaBaiDang  INT UNSIGNED NOT NULL,
   MaND       INT UNSIGNED NOT NULL,
   NgayThich  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -336,7 +310,7 @@ CREATE TABLE LUOTTHICH (
 -- ---------------------------------------------------------------------
 -- 17. BẢNG LUOTTHICH_BL (Lượt thích bình luận)
 -- ---------------------------------------------------------------------
-CREATE TABLE LUOTTHICH_BL (
+CREATE TABLE IF NOT EXISTS LUOTTHICH_BL (
   MaBinhLuan INT UNSIGNED NOT NULL,
   MaND       INT UNSIGNED NOT NULL,
   NgayThich  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -349,7 +323,7 @@ CREATE TABLE LUOTTHICH_BL (
 -- ---------------------------------------------------------------------
 -- 18. BẢNG THONGBAO (Hệ thống thông báo người dùng)
 -- ---------------------------------------------------------------------
-CREATE TABLE THONGBAO (
+CREATE TABLE IF NOT EXISTS THONGBAO (
   MaTB        INT UNSIGNED NOT NULL AUTO_INCREMENT,
   MaND        INT UNSIGNED NOT NULL COMMENT 'Người nhận thông báo',
   MaNguoiGui  INT UNSIGNED NOT NULL COMMENT 'Người gây ra thông báo',
@@ -372,7 +346,7 @@ CREATE TABLE THONGBAO (
 -- ---------------------------------------------------------------------
 -- 19. BẢNG THONGBAO_ADMIN_DADOC (Đánh dấu thông báo Admin đã đọc)
 -- ---------------------------------------------------------------------
-CREATE TABLE THONGBAO_ADMIN_DADOC (
+CREATE TABLE IF NOT EXISTS THONGBAO_ADMIN_DADOC (
   MaAdmin    INT UNSIGNED NOT NULL,
   Loai       TINYINT UNSIGNED NOT NULL COMMENT '3 = đề xuất môn học',
   MaDoiTuong INT UNSIGNED NOT NULL COMMENT 'ID đối tượng liên quan (MaMon)',
@@ -384,7 +358,7 @@ CREATE TABLE THONGBAO_ADMIN_DADOC (
 -- ---------------------------------------------------------------------
 -- 20. BẢNG BANBE (Kết bạn giữa các người chơi)
 -- ---------------------------------------------------------------------
-CREATE TABLE BANBE (
+CREATE TABLE IF NOT EXISTS BANBE (
   MaNguoiGui    INT UNSIGNED NOT NULL,
   MaNguoiNhan   INT UNSIGNED NOT NULL,
   NgayGui       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -402,7 +376,7 @@ CREATE TABLE BANBE (
 -- ---------------------------------------------------------------------
 -- 21. BẢNG NHATKYQUANTRI (Nhật ký hành vi quản trị viên & bảo mật)
 -- ---------------------------------------------------------------------
-CREATE TABLE NHATKYQUANTRI (
+CREATE TABLE IF NOT EXISTS NHATKYQUANTRI (
   MaNhatKy   INT UNSIGNED NOT NULL AUTO_INCREMENT,
   MaAdmin    INT UNSIGNED NOT NULL,
   HanhDong   VARCHAR(100) NOT NULL,
@@ -421,7 +395,7 @@ CREATE TABLE NHATKYQUANTRI (
 -- ---------------------------------------------------------------------
 -- 22. BẢNG CAUHINH (Cấu hình tham số hệ thống)
 -- ---------------------------------------------------------------------
-CREATE TABLE CAUHINH (
+CREATE TABLE IF NOT EXISTS CAUHINH (
   MaCauHinh   INT UNSIGNED NOT NULL AUTO_INCREMENT,
   TenCauHinh  VARCHAR(60)  NOT NULL,
   GiaTri      VARCHAR(100) NOT NULL,
@@ -433,7 +407,7 @@ CREATE TABLE CAUHINH (
 -- ---------------------------------------------------------------------
 -- 23. BẢNG PHONGTHACHDAU (Phòng thi đấu bạn bè 1v1 bằng mã PIN 6 số)
 -- ---------------------------------------------------------------------
-CREATE TABLE PHONGTHACHDAU (
+CREATE TABLE IF NOT EXISTS PHONGTHACHDAU (
   MaPhong      INT UNSIGNED NOT NULL AUTO_INCREMENT,
   MaPin        VARCHAR(10)  NOT NULL,
   ChuPhongND   INT UNSIGNED NOT NULL,
@@ -457,7 +431,7 @@ CREATE TABLE PHONGTHACHDAU (
 -- ---------------------------------------------------------------------
 -- 24. BẢNG THONGTHAOTUONG (Cấp độ & Điểm EXP thông thạo tướng / linh vật)
 -- ---------------------------------------------------------------------
-CREATE TABLE THONGTHAOTUONG (
+CREATE TABLE IF NOT EXISTS THONGTHAOTUONG (
   MaND         INT UNSIGNED NOT NULL,
   TuongId      VARCHAR(40)  NOT NULL,
   CapDo        TINYINT UNSIGNED NOT NULL DEFAULT 1,
@@ -472,7 +446,7 @@ CREATE TABLE THONGTHAOTUONG (
 -- ---------------------------------------------------------------------
 -- 25. BẢNG PHATAFK (Quản lý án phạt cấm tìm trận khi bỏ hàng đợi / AFK)
 -- ---------------------------------------------------------------------
-CREATE TABLE PHATAFK (
+CREATE TABLE IF NOT EXISTS PHATAFK (
   MaPhat    INT UNSIGNED NOT NULL AUTO_INCREMENT,
   MaND      INT UNSIGNED NOT NULL,
   LyDo      VARCHAR(255) NOT NULL,
@@ -488,7 +462,7 @@ CREATE TABLE PHATAFK (
 -- ---------------------------------------------------------------------
 -- 26. BẢNG GIOIHANDANGNHAP (Chống Brute-force mật khẩu theo IP + định danh)
 -- ---------------------------------------------------------------------
-CREATE TABLE GIOIHANDANGNHAP (
+CREATE TABLE IF NOT EXISTS GIOIHANDANGNHAP (
   Khoa      CHAR(64)     NOT NULL COMMENT 'SHA256 của action|IP|identifier',
   HanhDong  VARCHAR(30)  NOT NULL,
   DinhDanh  VARCHAR(150) NOT NULL,
@@ -502,7 +476,7 @@ CREATE TABLE GIOIHANDANGNHAP (
 -- ---------------------------------------------------------------------
 -- 27. BẢNG LICHSUDANGNHAP (Lịch sử đăng nhập & cảnh báo bảo mật)
 -- ---------------------------------------------------------------------
-CREATE TABLE LICHSUDANGNHAP (
+CREATE TABLE IF NOT EXISTS LICHSUDANGNHAP (
   MaLS        BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   HanhDong    VARCHAR(30)  NOT NULL,
   DinhDanh    VARCHAR(150) NOT NULL,
@@ -569,8 +543,10 @@ INSERT INTO MONHOC (MaMon, TenMon, MoTa, TrangThai) VALUES
   (2, 'Phân tích nghiệp vụ phần mềm', 'Môn PTNVPM: use case, yêu cầu, mô hình hóa', 'Đang mở'),
   (3, 'Lập trình PHP', 'PHP, PDO, session, bảo mật web cơ bản', 'Đang mở');
 
+-- Tài khoản Quản trị viên (đã có ở trên, bỏ qua nếu trùng)
 INSERT INTO ADMIN (TenDangNhap, MatKhau, HoTen, TrangThai) VALUES
-  ('admin', '$2y$10$TeACaYhx5feO6rATfKBvZOxNiguhrOek2baislMlQTWetyVg9dia.', 'Quản trị viên', 'Hoạt động');
+  ('admin', '$2y$10$TeACaYhx5feO6rATfKBvZOxNiguhrOek2baislMlQTWetyVg9dia.', 'Quản trị viên', 'Hoạt động')
+ON DUPLICATE KEY UPDATE HoTen = VALUES(HoTen);
 
 INSERT INTO NGUOIDUNG (HoTen, Email, MatKhau, Lop, Khoa, TrangThai, TrangThaiKhaoSat) VALUES
   ('Nguyễn Văn An', 'an@test.com', '$2y$10$5MOB9RsdS2KQ7u7XSozfRegxPg6munieu4rdL6h9RQKMYgbtH0RTy', 'CNTT01', 'Công nghệ thông tin', 'Hoạt động', 'Hoàn tất'),

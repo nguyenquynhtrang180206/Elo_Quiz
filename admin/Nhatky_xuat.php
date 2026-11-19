@@ -21,8 +21,6 @@
 //             (cùng cách với admin/thongke_xuat.php), ví dụ anh_nhip_d7.
 //   buoc=xemtruoc: không xuất file mà trả JSON để dựng khung "Xem trước" (số liệu, biểu đồ và vài dòng đầu của từng mốc).
 require_once __DIR__ . '/../core/bootstrap.php';
-require_once __DIR__ . '/../core/XlsxWriter.php';
-require_once __DIR__ . '/../core/PdfWriter.php';
 Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');   // A-04
 
 function loi_xuat(string $thongBao, int $ma = 400): never

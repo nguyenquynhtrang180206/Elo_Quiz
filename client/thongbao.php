@@ -124,6 +124,7 @@ require __DIR__ . '/layout/header.php';
         <?php foreach ($danhSachTB as $item): 
           $chuaDoc = (int) $item['DaDoc'] === 0;
           $iconLoai = ['rep_bl' => '💬', 'loi_moi_kb' => '👋', 'chap_nhan_kb' => '🤝',
+                       'thach_dau' => '⚔️',
                        'an_bai' => '🚫', 'an_bl' => '🚫', 'hien_bai' => '✅', 'hien_bl' => '✅'][$item['Loai']] ?? '📝';
           // Thông báo kiểm duyệt do quản trị viên gửi (MaNguoiGui = 0) nên không có tên người dùng
           if (in_array($item['Loai'], ThongBaoHelper::LOAI_QUAN_TRI, true)) { $item['TenNguoiGui'] = ThongBaoHelper::TEN_QUAN_TRI; }

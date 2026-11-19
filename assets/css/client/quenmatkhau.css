@@ -1,0 +1,151 @@
+/* =====================================================================
+   TRANG QUÊN MẬT KHẨU (client/quenmatkhau.php)
+   Thiết kế tinh gọn, chuẩn mực, đồng bộ với Đăng nhập & Đăng ký
+   ===================================================================== */
+
+.container.khung-quenmk {
+  max-width: 480px;
+}
+
+.quenmk-mo-ta {
+  color: var(--mau-phu);
+  margin-top: -6px;
+  margin-bottom: 14px;
+  font-size: 14px;
+}
+
+/* Stepper tiến trình tối giản */
+.quenmk-stepper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 6px 0 16px 0;
+  position: relative;
+  padding: 0 6px;
+}
+
+.stepper-track {
+  position: absolute;
+  top: 13px;
+  left: 28px;
+  right: 28px;
+  height: 2px;
+  background: rgba(138, 245, 255, 0.15);
+  z-index: 1;
+}
+
+.stepper-bar {
+  height: 100%;
+  background: var(--gradient-neon);
+  box-shadow: var(--glow-cyan);
+  transition: width 0.3s ease;
+}
+
+.step-item {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
+.step-num {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #08112b;
+  border: 1.5px solid rgba(138, 245, 255, 0.3);
+  color: #7f93bd;
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.25s ease;
+}
+
+.step-item.active .step-num {
+  background: var(--cyan);
+  border-color: #fff;
+  color: #050817;
+  box-shadow: 0 0 10px var(--cyan);
+}
+
+.step-item.done .step-num {
+  background: #10b981;
+  border-color: #34d399;
+  color: #fff;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
+}
+
+.step-label {
+  font-size: 11.5px;
+  color: #7f93bd;
+  font-weight: 600;
+}
+
+.step-item.active .step-label {
+  color: var(--light-cyan);
+}
+
+.step-item.done .step-label {
+  color: #34d399;
+}
+
+/* Hộp thông báo gửi OTP siêu gọn (1 hộp duy nhất) */
+.thongbao-email-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(8, 123, 255, 0.12);
+  border: 1px solid rgba(0, 217, 255, 0.35);
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin-bottom: 14px;
+  font-size: 13px;
+  color: #cbd5e1;
+  line-height: 1.45;
+}
+
+.thongbao-email-box strong {
+  color: var(--cyan);
+}
+
+.thongbao-email-box .email-spam-hint {
+  color: #FDE047;
+}
+
+.email-icon-pulse {
+  font-size: 20px;
+  line-height: 1;
+  flex-shrink: 0;
+  animation: pulseMail 2s infinite ease-in-out;
+}
+
+@keyframes pulseMail {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+}
+
+/* Hàng gửi lại mã OTP */
+.hang-gui-lai {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 6px 0 14px;
+}
+
+.link-gui-lai {
+  font-size: 12.5px;
+  color: var(--cyan);
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.link-gui-lai:hover {
+  color: #FDE047;
+  text-decoration: underline;
+  text-shadow: 0 0 8px rgba(0, 217, 255, 0.6);
+}

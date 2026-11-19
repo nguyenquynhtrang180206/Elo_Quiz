@@ -3,7 +3,6 @@
 // Ba tab: ?v=tra (tra cứu Elo), ?v=bxh (bảng xếp hạng, xuất Excel), ?v=bd (biến động Elo bất thường).
 // A-31: trang này chỉ xem; không có chức năng điều chỉnh Elo thủ công, Elo chỉ đổi do kết quả trận.
 require_once __DIR__ . '/../core/bootstrap.php';
-require_once __DIR__ . '/../core/XlsxWriter.php';
 Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');   // A-04
 
 $pdo = Database::pdo();

@@ -2,14 +2,12 @@
 // Danh sách và tra cứu trận đấu, danh sách trận bất thường (UC14: A-23, A-25).
 // Đặt tại: elo_quiz/admin/trandau.php. Chi tiết và hủy trận: admin/trandau_chitiet.php
 require_once __DIR__ . '/../core/bootstrap.php';
-require_once __DIR__ . '/../core/DotBien.php';
 Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');   // A-04
 
 $pdo = Database::pdo();
 
-// Cột ThoiGianTao (xem sql/trandau_thoigiantao.sql) giúp phát hiện trận "Đã ghép" bị treo.
-// Chưa chạy file SQL đó thì trang vẫn chạy, chỉ không đo được thời gian chờ của trận "Đã ghép".
-$coCotTao = (bool) $pdo->query("SHOW COLUMNS FROM TRANDAU LIKE 'ThoiGianTao'")->fetch();
+// Cột ThoiGianTao đã được DbSchema::damBao bảo đảm tồn tại.
+$coCotTao = true;
 
 // ---- Bộ lọc: mã trận / người chơi, môn, trạng thái, chỉ trận bất thường ----
 $q   = trim((string) ($_GET['q'] ?? ''));

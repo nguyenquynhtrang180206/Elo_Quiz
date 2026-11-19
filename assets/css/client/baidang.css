@@ -196,3 +196,70 @@ textarea { min-height:90px; resize:vertical; font-family:inherit; }
   vertical-align: -1.5px;
   margin-right: 3px;
 }
+
+/* Widget Kết bạn & Thách đấu đồng bộ từ Cộng đồng */
+.cd-friend-widget {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin: 0 4px;
+  vertical-align: middle;
+  flex-wrap: wrap;
+}
+.cd-fbtn, .cd-fbadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 700;
+  line-height: 1.45;
+  white-space: nowrap;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+.cd-fbtn { cursor: pointer; }
+.cd-fbtn:disabled { opacity: 0.6; cursor: wait; }
+.cd-fbtn.is-add {
+  background: rgba(0, 217, 255, 0.12);
+  color: #38BDF8;
+  border: 1px solid rgba(56, 189, 248, 0.45);
+}
+.cd-fbtn.is-add:hover {
+  background: rgba(0, 217, 255, 0.25);
+  color: #FFFFFF;
+  border-color: #00D9FF;
+  box-shadow: 0 0 10px rgba(0, 217, 255, 0.4);
+}
+.cd-fbtn.is-pending {
+  background: rgba(251, 191, 36, 0.12);
+  color: #FDE047;
+  border: 1px solid rgba(251, 191, 36, 0.4);
+}
+.cd-fbtn.is-pending:hover {
+  background: rgba(239, 68, 68, 0.16);
+  color: #FCA5A5;
+  border-color: rgba(239, 68, 68, 0.5);
+}
+.cd-fbtn.is-accept {
+  background: linear-gradient(135deg, #10B981, #059669);
+  color: #FFFFFF;
+  border: 1px solid rgba(52, 211, 153, 0.7);
+}
+.cd-fbadge.is-friend {
+  background: rgba(16, 185, 129, 0.14);
+  color: #34D399;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+.cd-fbtn.is-challenge {
+  background: rgba(245, 158, 11, 0.16);
+  color: #FDE047;
+  border: 1px solid rgba(245, 158, 11, 0.48);
+}
+.cd-fbtn.is-challenge:hover {
+  background: linear-gradient(135deg, #F59E0B, #D97706);
+  color: #030712;
+  border-color: #FDE047;
+}

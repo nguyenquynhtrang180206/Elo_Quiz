@@ -7,7 +7,7 @@ if (Auth::clientId() !== null) {
 }
 
 $loi   = [];
-$email = '';
+$email = strtolower(trim((string) ($_GET['email'] ?? '')));
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_check();
@@ -99,7 +99,10 @@ require __DIR__ . '/layout/header.php';
       <label for="email">Email</label>
       <input type="email" id="email" name="email" maxlength="150" value="<?= e($email) ?>" required>
 
-      <label for="mat_khau">Mật khẩu</label>
+      <div class="hang-mat-khau-header">
+        <label for="mat_khau">Mật khẩu</label>
+        <a href="<?= e(BASE_URL) ?>/client/quenmatkhau.php" class="link-quen-mk" tabindex="3">Quên mật khẩu?</a>
+      </div>
       <div class="pw-field-wrap">
         <input type="password" id="mat_khau" name="mat_khau" required placeholder="Nhập mật khẩu của bạn">
         <button type="button" class="btn-toggle-pw" aria-label="Hiện/ẩn mật khẩu" tabindex="-1">
@@ -112,8 +115,8 @@ require __DIR__ . '/layout/header.php';
     <script src="<?= e(BASE_URL) ?>/assets/js/pw_helper.js"></script>
 
     <p>Chưa có tài khoản? <a href="<?= e(BASE_URL) ?>/client/dangky.php">Đăng ký</a></p>
+    <p>Quên mật khẩu? <a href="<?= e(BASE_URL) ?>/client/quenmatkhau.php">Khôi phục mật khẩu</a></p>
     <p>Bạn là quản trị viên? <a href="<?= e(BASE_URL) ?>/admin/dangnhap.php">Đăng nhập quản trị</a></p>
-    <!-- TODO (C-06): thêm liên kết "Quên mật khẩu" khi làm xong chức năng đặt lại mật khẩu -->
   </div>
 </div>
 <?php require __DIR__ . '/layout/footer.php'; ?>

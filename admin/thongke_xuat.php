@@ -12,9 +12,6 @@
 //   ca   : cả hai nhóm trong cùng một file, nhóm theo mốc ngày trước, nhóm theo loại sau (PDF: trang ngang rồi trang dọc).
 // Ảnh biểu đồ do trình duyệt chụp từ chính biểu đồ trong phần xem trước (JPEG, nền trắng) nên file xuất có màu giống màn hình.
 require_once __DIR__ . '/../core/bootstrap.php';
-require_once __DIR__ . '/../core/ThongKe.php';
-require_once __DIR__ . '/../core/XlsxWriter.php';
-require_once __DIR__ . '/../core/PdfWriter.php';
 Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');   // A-04
 
 function loi_xuat(string $thongBao, int $ma = 400): never

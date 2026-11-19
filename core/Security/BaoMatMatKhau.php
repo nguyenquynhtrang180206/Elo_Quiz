@@ -175,6 +175,125 @@ class BaoMatMatKhau
 
         return array_unique($loi);
     }
+
+    /**
+     * Tính khoảng cách thời gian thân thiện (tiếng Việt).
+     */
+    public static function tinhKhoangCachThoiGian(string|int $time): string
+    {
+        $timestamp = is_numeric($time) ? (int) $time : strtotime($time);
+        if (!$timestamp) return 'gần đây';
+        $diff = max(0, time() - $timestamp);
+        if ($diff < 60) return 'vài giây';
+        if ($diff < 3600) return floor($diff / 60) . ' phút';
+        if ($diff < 86400) return floor($diff / 3600) . ' giờ';
+        if ($diff < 2592000) return floor($diff / 86400) . ' ngày';
+        if ($diff < 31536000) {
+            $thang = (int) floor($diff / 2592000);
+            return $thang . ' tháng';
+        }
+        $nam = (int) floor($diff / 31536000);
+        return $nam . ' năm';
+    }
+
+    /**
+     * Kiểm tra mật khẩu mới với mật khẩu hiện tại và 3 mật khẩu gần nhất.
+     * Áp dụng tiêu chuẩn NIST SP 800-63B & OWASP ASVS:
+     * - Chặn mật khẩu hiện tại (kèm thông tin thời gian và gợi ý đăng nhập).
+     * - Chặn 3 mật khẩu gần nhất trong lịch sử.
+     * - Cho phép các mật khẩu cũ hơn 3 lần đổi (tránh gây ức chế cho người dùng).
+     *
+     * @return array|null Trả về mảng thông tin cảnh báo nếu trùng, hoặc null nếu hợp lệ.
+     */
+    public static function kiemTraLichSu(PDO $pdo, int $maND, string $matKhauMoi, ?array $nd = null): ?array
+    {
+        if ($nd === null) {
+            $st = $pdo->prepare('SELECT MatKhau, NgayDoiMatKhau, NgayTao FROM nguoidung WHERE MaND = ?');
+            $st->execute([$maND]);
+            $nd = $st->fetch(PDO::FETCH_ASSOC);
+        }
+
+        if (!$nd || empty($nd['MatKhau'])) {
+            return null;
+        }
+
+        // 1. Kiểm tra trùng mật khẩu hiện tại
+        if (self::verify($matKhauMoi, $nd['MatKhau'])) {
+            $thoiDiem = $nd['NgayDoiMatKhau'] ?: ($nd['NgayTao'] ?: date('Y-m-d H:i:s'));
+            $khoangCach = self::tinhKhoangCachThoiGian($thoiDiem);
+            $ngayStr = date('d/m/Y', strtotime($thoiDiem));
+
+            return [
+                'loai'          => 'hien_tai',
+                'ngay'          => $ngayStr,
+                'khoangCach'    => $khoangCach,
+                'thongBao'      => "Mật khẩu mới không được trùng với mật khẩu bạn đang sử dụng (được đặt từ ngày {$ngayStr} - cách đây {$khoangCach}). Có vẻ bạn vẫn nhớ mật khẩu này? Bạn có thể đăng nhập ngay.",
+                'coTheDangNhap' => true,
+            ];
+        }
+
+        // 2. Kiểm tra trùng 3 mật khẩu gần nhất trong lịch sử (NIST recommendation)
+        try {
+            $st = $pdo->prepare('SELECT MatKhauHash, NgayTao FROM lichsu_matkhau WHERE MaND = ? ORDER BY NgayTao DESC, MaLS DESC LIMIT 3');
+            $st->execute([$maND]);
+            $lichSu = $st->fetchAll(PDO::FETCH_ASSOC);
+
+            foreach ($lichSu as $ls) {
+                if (self::verify($matKhauMoi, $ls['MatKhauHash'])) {
+                    $khoangCach = self::tinhKhoangCachThoiGian($ls['NgayTao']);
+                    $ngayStr = date('d/m/Y', strtotime($ls['NgayTao']));
+
+                    return [
+                        'loai'          => 'lich_su',
+                        'ngay'          => $ngayStr,
+                        'khoangCach'    => $khoangCach,
+                        'thongBao'      => "Mật khẩu này bạn đã từng sử dụng gần đây (ngày {$ngayStr} - cách đây {$khoangCach}). Vì an toàn bảo mật, vui lòng không sử dụng lại 3 mật khẩu gần nhất.",
+                        'coTheDangNhap' => false,
+                    ];
+                }
+            }
+        } catch (Throwable) {
+            // Bỏ qua lỗi nếu bảng chưa sẵn sàng
+        }
+
+        return null;
+    }
+
+    /**
+     * Ghi nhận đổi mật khẩu an toàn:
+     * - Lưu hash mật khẩu cũ vào bảng lịch sử (giữ tối đa 5 bản ghi gần nhất).
+     * - Cập nhật mật khẩu mới và thời điểm đổi trong bảng nguoidung.
+     */
+    public static function ghiNhanDoiMatKhau(PDO $pdo, int $maND, string $hashMoi): void
+    {
+        try {
+            $st = $pdo->prepare('SELECT MatKhau, NgayDoiMatKhau, NgayTao FROM nguoidung WHERE MaND = ?');
+            $st->execute([$maND]);
+            $cur = $st->fetch(PDO::FETCH_ASSOC);
+
+            if ($cur && !empty($cur['MatKhau'])) {
+                $ngayCu = $cur['NgayDoiMatKhau'] ?: ($cur['NgayTao'] ?: date('Y-m-d H:i:s'));
+                $ins = $pdo->prepare('INSERT INTO lichsu_matkhau (MaND, MatKhauHash, NgayTao) VALUES (?, ?, ?)');
+                $ins->execute([$maND, $cur['MatKhau'], $ngayCu]);
+
+                // Giữ tối đa 5 bản ghi gần nhất trong lịch sử
+                $del = $pdo->prepare('
+                    DELETE FROM lichsu_matkhau 
+                    WHERE MaND = ? AND MaLS NOT IN (
+                        SELECT MaLS FROM (
+                            SELECT MaLS FROM lichsu_matkhau WHERE MaND = ? ORDER BY NgayTao DESC, MaLS DESC LIMIT 5
+                        ) t
+                    )
+                ');
+                $del->execute([$maND, $maND]);
+            }
+        } catch (Throwable) {
+            // Bỏ qua lỗi lưu lịch sử nếu có sự cố
+        }
+
+        $up = $pdo->prepare('UPDATE nguoidung SET MatKhau = ?, NgayDoiMatKhau = NOW() WHERE MaND = ?');
+        $up->execute([$hashMoi, $maND]);
+    }
 }
 
 // Tương thích ngược: Định danh PasswordSecurity trỏ tới BaoMatMatKhau

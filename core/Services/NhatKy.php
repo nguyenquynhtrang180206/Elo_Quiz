@@ -59,32 +59,7 @@ class NhatKy
 
     public static function damBaoCot(?PDO $pdo = null): bool
     {
-        static $coCot = null;
-        if ($coCot !== null) {
-            return $coCot;
-        }
-        $pdo = $pdo ?? Database::pdo();
-        try {
-            $co = $pdo->query("SHOW COLUMNS FROM NHATKYQUANTRI LIKE 'TrangThai'")->fetch();
-            if (!$co) {
-                $pdo->exec("
-                    ALTER TABLE NHATKYQUANTRI
-                      ADD COLUMN DiaChiIP  VARCHAR(45) NULL AFTER MoTa,
-                      ADD COLUMN TrangThai ENUM('Thành công','Thất bại') NOT NULL DEFAULT 'Thành công' AFTER DiaChiIP,
-                      ADD KEY idx_nhatky_tt (TrangThai, ThoiGian)
-                ");
-                $coCot = true;
-            } else {
-                $coCot = true;
-            }
-        } catch (Throwable $e) {
-            try {
-                $coCot = (bool) $pdo->query("SHOW COLUMNS FROM NHATKYQUANTRI LIKE 'TrangThai'")->fetch();
-            } catch (Throwable $ex) {
-                $coCot = false;
-            }
-        }
-        return $coCot;
+        return true;
     }
 
     public static function coCotTrangThai(?PDO $pdo = null): bool

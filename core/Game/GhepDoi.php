@@ -5,7 +5,6 @@
 // Tìm đối thủ trước, rồi khóa dòng chờ của cả hai theo thứ tự mã tăng dần và kiểm tra lại cả hai còn đó.
 // Hai người gọi cùng lúc thì chỉ một bên tạo được trận, bên kia thấy dòng đã bị xóa và bỏ qua,
 // nên một người không thể vào hai trận. Không cần SKIP LOCKED, chạy được trên MariaDB.
-require_once __DIR__ . '/DotBien.php';
 
 class GhepDoi
 {
@@ -244,7 +243,10 @@ class GhepDoi
     // Hủy trận chưa kết thúc, không đổi Elo. $lyDo phải là một giá trị của LyDoKetThuc.
     public static function huyTran(PDO $pdo, int $maTran, string $lyDo): bool
     {
-        $pdo->beginTransaction();
+        $ownTx = !$pdo->inTransaction();
+        if ($ownTx) {
+            $pdo->beginTransaction();
+        }
         try {
             $st = $pdo->prepare('SELECT TrangThai FROM TRANDAU WHERE MaTran = ? FOR UPDATE');
             $st->execute([$maTran]);
@@ -254,10 +256,12 @@ class GhepDoi
                     ->execute([$lyDo, $maTran]);
                 $ok = true;
             }
-            $pdo->commit();
+            if ($ownTx) {
+                $pdo->commit();
+            }
             return $ok;
         } catch (Throwable $ex) {
-            if ($pdo->inTransaction()) {
+            if ($ownTx && $pdo->inTransaction()) {
                 $pdo->rollBack();
             }
             throw $ex;
@@ -404,7 +408,7 @@ class GhepDoi
             $st = $pdo->prepare("SELECT t.MaTran FROM NGUOICHOITRANDAU n JOIN TRANDAU t ON t.MaTran = n.MaTran WHERE n.MaND = ? AND t.TrangThai IN ('Đã ghép', 'Đang diễn ra')");
             $st->execute([$nd]);
             foreach ($st->fetchAll(PDO::FETCH_COLUMN) as $tranCu) {
-                self::huyTran($pdo, (int) $tranCu, 'Hủy do ghép trận mới');
+                self::huyTran($pdo, (int) $tranCu, 'Hủy do không vào phòng');
             }
         }
 

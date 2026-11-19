@@ -82,7 +82,6 @@ $tieuDe = 'Đăng ký';
 $cssTrang = 'dangky';
 require __DIR__ . '/layout/header.php';
 ?>
-<link rel="stylesheet" href="<?= e(BASE_URL) ?>/assets/css/pw_security.css">
 <div class="container khung-register">
   <div class="card">
     <h2>Đăng ký tài khoản</h2>
@@ -134,7 +133,7 @@ require __DIR__ . '/layout/header.php';
     </form>
     <script src="<?= e(BASE_URL) ?>/assets/js/pw_helper.js"></script>
 
-    <p>Đã có tài khoản? <a href="<?= e(BASE_URL) ?>/client/dangnhap.php">Đăng nhập</a></p>
+    <p>Đã có tài khoản? <a href="<?= e(BASE_URL) ?>/client/dangnhap.php">Đăng nhập</a> &bull; <a href="<?= e(BASE_URL) ?>/client/quenmatkhau.php" style="color:#00D9FF;">Quên mật khẩu?</a></p>
   </div>
 </div>
 <?php require __DIR__ . '/layout/footer.php'; ?>

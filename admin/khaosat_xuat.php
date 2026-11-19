@@ -3,9 +3,6 @@
 // Được gọi (POST, có CSRF) từ hộp thoại "Xuất" ở admin/khaosat.php.
 // Nhận các trường: truong[], cot[], tu, den, dianhdang, kemBieuDo, và ảnh biểu đồ JPEG base64.
 require_once __DIR__ . '/../core/bootstrap.php';
-require_once __DIR__ . '/../core/KhaoSatThongKe.php';
-require_once __DIR__ . '/../core/XlsxWriter.php';
-require_once __DIR__ . '/../core/PdfWriter.php';
 Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');   // A-04
 
 function loi_xuat(string $thongBao, int $ma = 400): never
