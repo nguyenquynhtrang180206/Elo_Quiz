@@ -76,11 +76,12 @@
 
 /* Tiêu đề Luxury 3D QUIZUP ARENA */
 .hero-tieu-de {
-  margin:0; line-height:1.02; font-weight:900; text-transform:uppercase;
+  margin:0; line-height:1.25; font-weight:900; text-transform:uppercase;
   letter-spacing:.03em;
 }
 .hero-tieu-de .dong-1 {
   display:block; font-size:clamp(28px, 4vw, 46px);
+  line-height:1.32; padding:3px 0;
   background:linear-gradient(180deg, #FFFFFF 0%, #FFF8E7 60%, #E2C979 100%);
   -webkit-background-clip:text; background-clip:text; color:transparent;
   filter:drop-shadow(0 3px 6px rgba(0,0,0,.9));
@@ -88,6 +89,7 @@
 }
 .hero-tieu-de .dong-2 {
   display:inline-block; font-size:clamp(34px, 5vw, 58px); margin-top:2px;
+  line-height:1.32; padding:4px 0;
   background:linear-gradient(180deg, #FFFDF5 0%, #F5DE91 32%, #D4AF37 68%, #8E6E0E 100%);
   -webkit-background-clip:text; background-clip:text; color:transparent;
   filter:drop-shadow(0 4px 10px rgba(0,0,0,.9)) drop-shadow(0 0 20px rgba(212,175,55,.45));
@@ -183,7 +185,7 @@
   perspective:1100px;
 }
 .hero-san-khau {
-  position:relative; width:100%; max-width:480px; min-height:420px;
+  position:relative; width:100%; max-width:480px; min-height:460px; padding-top:34px;
   display:flex; align-items:flex-end; justify-content:center;
   transform:rotateX(var(--rx)) rotateY(var(--ry));
   transform-style:preserve-3d;
@@ -312,7 +314,7 @@
   position:absolute; bottom:10px; left:50%; transform:translateX(-50%);
   width:calc(100% - 20px);
   padding:6px 12px; border-radius:10px;
-  text-align:center; font-size:12px; font-weight:800;
+  text-align:center; font-size:12px; font-weight:800; line-height:1.4;
   color:#FFF8E7; background:rgba(6, 14, 36, 0.88);
   border:1px solid rgba(212, 175, 55, 0.55);
   box-shadow:0 6px 18px rgba(0,0,0,0.8), 0 0 12px rgba(212, 175, 55, 0.35);
@@ -351,20 +353,20 @@
   100% { transform:translateZ(30px) scale(1) rotate(0deg); }
 }
 
-/* Bong bóng hội thoại tương tác của Faker */
+/* Bong bóng hội thoại tương tác của Faker (nằm gọn phía trên khung thẻ, không đè HUD) */
 .faker-speech-bubble {
-  position:absolute; top:2%; left:-8%; z-index:8;
-  max-width:260px; display:flex; align-items:center; gap:8px;
-  padding:10px 14px; border-radius:14px;
+  position:absolute; top:-4px; left:50%; right:auto; z-index:8;
+  max-width:260px; width:max-content; display:flex; align-items:center; gap:8px;
+  padding:9px 14px; border-radius:14px;
   background:rgba(6,16,42,.94); border:1.5px solid var(--cyan);
   box-shadow:0 10px 30px rgba(0,0,0,.85), 0 0 20px rgba(0,217,255,.45);
   backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
-  transform:translateZ(75px) translateY(12px) scale(0.9);
+  transform:translateZ(75px) translateX(-50%) translateY(6px) scale(0.95);
   opacity:0; pointer-events:none;
   transition:opacity .35s cubic-bezier(0.16, 1, 0.3, 1), transform .35s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .faker-speech-bubble.dang-hien {
-  opacity:1; transform:translateZ(75px) translateY(0) scale(1);
+  opacity:1; transform:translateZ(75px) translateX(-50%) translateY(0) scale(1);
   pointer-events:auto;
 }
 .faker-speech-bubble .bubble-icon {
@@ -376,7 +378,7 @@
   color:#FFF8E7; text-shadow:0 1px 3px rgba(0,0,0,.8);
 }
 .faker-speech-bubble .bubble-tail {
-  position:absolute; bottom:-8px; right:28px;
+  position:absolute; bottom:-8px; left:50%; right:auto; transform:translateX(-50%);
   width:0; height:0;
   border-left:8px solid transparent; border-right:8px solid transparent;
   border-top:8px solid var(--cyan);
@@ -430,9 +432,9 @@
   transform:translateZ(65px);
   animation:hud-bay 4.5s ease-in-out infinite;
 }
-.hud-1 { top:14%; left:-6%; border-color:#00F5A0; box-shadow:0 0 16px rgba(0,245,160,.4); }
-.hud-2 { top:8%; right:-4%; border-color:#FFD147; color:#FFE27A; box-shadow:0 0 16px rgba(255,209,71,.45); animation-delay:-1.5s; }
-.hud-3 { bottom:12%; left:-2%; border-color:var(--cyan); color:#E0F2FE; box-shadow:0 0 16px rgba(0,217,255,.45); animation-delay:-2.8s; }
+.hud-1 { top:22%; left:-10%; border-color:#00F5A0; box-shadow:0 0 16px rgba(0,245,160,.4); }
+.hud-2 { top:18%; right:-8%; border-color:#FFD147; color:#FFE27A; box-shadow:0 0 16px rgba(255,209,71,.45); animation-delay:-1.5s; }
+.hud-3 { bottom:22%; left:-10%; border-color:var(--cyan); color:#E0F2FE; box-shadow:0 0 16px rgba(0,217,255,.45); animation-delay:-2.8s; }
 @keyframes hud-bay {
   0%, 100% { transform:translateZ(65px) translateY(0); }
   50% { transform:translateZ(65px) translateY(-6px); }
@@ -671,36 +673,38 @@
   filter:blur(14px); animation:godray-pulse 4s ease-in-out infinite alternate;
 }
 .deck-cards-row {
-  display:flex; align-items:center; justify-content:center;
-  gap:10px; width:100%; position:relative; z-index:1;
+  display:grid; grid-template-columns:repeat(3, minmax(0, 1fr));
+  align-items:stretch; gap:10px;
+  width:100%; min-height:215px; position:relative; z-index:2;
+  padding:8px 2px 4px; box-sizing:border-box;
 }
 
-/* Thẻ bài phong cách Trading Card Game */
+/* Thẻ bài phong cách Trading Card Game (3 khung cố định tách biệt, không xoay đè nhau) */
 .tc-card {
-  flex:0 0 31.5%; max-width:145px; border-radius:14px;
+  width:100%; max-width:none; min-width:0; box-sizing:border-box; border-radius:14px;
   padding:10px 8px 9px;
   display:flex; flex-direction:column; align-items:center; text-align:center;
   position:relative; overflow:hidden;
   background:linear-gradient(165deg, rgba(16,28,62,.95) 0%, rgba(8,16,38,.98) 100%);
   border:1.5px solid;
-  transition:transform .35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow .35s ease, z-index .2s;
+  transition:transform .3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow .3s ease, z-index .2s;
   cursor:pointer; user-select:none;
 }
 
-/* Xếp rẻ quạt 3D */
+/* Bố cục 3 khung cố định không chồng lấn */
 .card-pos-left {
-  transform:rotate(-7deg) translateY(8px) translateX(4px); z-index:2;
+  transform:none; z-index:2;
 }
 .card-pos-center {
-  transform:scale(1.08) translateY(-4px); z-index:5;
+  transform:translateY(-4px); z-index:5;
 }
 .card-pos-right {
-  transform:rotate(7deg) translateY(8px) translateX(-4px); z-index:2;
+  transform:none; z-index:2;
 }
 
-/* Hover nổi bật thẻ bài */
+/* Hover nổi bật thẻ bài mà không che thẻ bên cạnh */
 .tc-card:hover {
-  transform:rotate(0deg) translateY(-14px) scale(1.14) !important;
+  transform:translateY(-6px) !important;
   z-index:12 !important;
 }
 
@@ -800,6 +804,7 @@
 
 .tc-player-name {
   width:100%; font-size:12px; font-weight:800; color:#fff;
+  line-height:1.4; padding:1px 0;
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
   margin-bottom:3px; position:relative; z-index:2;
 }
@@ -822,7 +827,7 @@
 
 .tc-action-btn {
   display:inline-flex; align-items:center; justify-content:center; gap:4px;
-  width:100%; padding:4px 6px; border-radius:7px;
+  width:100%; padding:4px 6px; border-radius:7px; margin-top:auto;
   font-size:10.5px; font-weight:900; text-decoration:none !important;
   transition:all .2s ease; position:relative; z-index:2;
 }
@@ -881,6 +886,8 @@ tr.la-toi { font-weight:700; background:rgba(8,123,255,.22); }
   .hero-san-khau { 
     max-width: 100%; 
     min-height: auto; 
+    padding-top: 42px;
+    padding-bottom: 10px;
     margin: 0 auto; 
     transform: none !important; /* Tắt 3D nghiêng để không bị lỗi mất ảnh */
   }
@@ -889,11 +896,11 @@ tr.la-toi { font-weight:700; background:rgba(8,123,255,.22); }
     margin: 0 auto; 
     transform: none !important; /* Bỏ translateZ */
   }
-  /* Sửa bong bóng thoại không bị tràn */
+  /* Sửa bong bóng thoại không bị tràn và không đè HUD */
   .faker-speech-bubble {
     left: 50%; 
-    top: -20px; 
-    transform: translateX(-50%) translateY(0) scale(1);
+    top: -4px; 
+    transform: translateX(-50%) translateY(6px) scale(0.95);
     max-width: 90%; 
   }
   .faker-speech-bubble.dang-hien {
@@ -901,8 +908,8 @@ tr.la-toi { font-weight:700; background:rgba(8,123,255,.22); }
   }
   
   .hud-badge { font-size: 10px; padding: 4px 8px; }
-  .hud-1 { top: 0; left: -10px; }
-  .hud-2 { top: 10px; right: -10px; }
+  .hud-1 { top: 24%; left: -4px; }
+  .hud-2 { top: 40%; right: -4px; }
   .hud-3 { display: none; } /* Ẩn bớt 1 badge cho đỡ rối */
 
   .hero-vong-cung, .hero-phu { margin-left: auto; margin-right: auto; }
@@ -913,9 +920,9 @@ tr.la-toi { font-weight:700; background:rgba(8,123,255,.22); }
 /* ĐIỆN THOẠI: XẾP DỌC THẺ BÀI TOP 3 TỪ TRÊN XUỐNG (<= 768px) */
 @media (max-width: 768px) {
   .deck-cards-row {
-    flex-direction: column; /* Chuyển từ hàng ngang thành cột dọc */
-    gap: 20px; /* Khoảng cách giữa các thẻ */
-    padding: 15px 0;
+    grid-template-columns: 1fr; /* Chuyển từ 3 cột thành 1 cột dọc */
+    gap: 14px;
+    padding: 12px 0;
   }
   
   /* Hủy bỏ hiệu ứng xoay 3D và đưa thẻ về kích thước chuẩn */

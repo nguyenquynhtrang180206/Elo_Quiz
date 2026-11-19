@@ -51,7 +51,7 @@ body.admin-moi {
   color:#fff; font-size:13px; font-weight:500; border:1px solid transparent; border-left-width:1px; background:transparent;
   white-space:nowrap; transition:background .15s, border-color .15s;
 }
-.admin-moi .menu-chinh a span, .admin-moi .menu-phu a span { overflow:hidden; text-overflow:ellipsis; }
+.admin-moi .menu-chinh a span, .admin-moi .menu-phu a span { line-height:1.4; padding:1px 0; overflow:hidden; text-overflow:ellipsis; }
 .admin-moi .menu-chinh a:hover, .admin-moi .menu-phu a:hover { background:rgba(255,255,255,.1); color:#fff; border-color:transparent; }
 .admin-moi .menu-chinh a.dang-chon, .admin-moi .menu-phu a.dang-chon {
   background:linear-gradient(135deg,#2f6bff,#1f55e6); border-color:rgba(160,200,255,.55); color:#fff; font-weight:700;
@@ -85,7 +85,7 @@ body.admin-moi {
 .admin-moi .tt-chuong em[hidden] { display:none; }
 .admin-moi .tt-vach { width:1px; height:30px; background:rgba(255,255,255,.28); }
 .admin-moi .tt-admin { display:flex; align-items:center; gap:10px; color:#fff; font-size:16px; white-space:nowrap; }
-.admin-moi .tt-admin b { font-weight:700; max-width:160px; overflow:hidden; text-overflow:ellipsis; }
+.admin-moi .tt-admin b { font-weight:700; max-width:160px; line-height:1.4; padding:1px 0; overflow:hidden; text-overflow:ellipsis; }
 .admin-moi .tt-ava {
   width:44px; height:44px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:18px; color:#fff;
   background:linear-gradient(135deg,#4f8bff,#8b5cf6); border:2px solid #fff; box-shadow:0 2px 8px rgba(0,0,0,.25);
@@ -109,9 +109,9 @@ body.admin-moi {
 .admin-moi .adm-tb-muc.da-doc { opacity:.65; }
 .admin-moi .adm-tb-muc.da-doc .adm-tb-ten { font-weight:500; }
 .admin-moi .adm-tb-ava { flex:none; width:26px; height:26px; border-radius:50%; background:#2f6bff; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:12px; }
-.admin-moi .adm-tb-nd { flex:1; min-width:0; font-size:12.5px; line-height:1.25; }
+.admin-moi .adm-tb-nd { flex:1; min-width:0; font-size:12.5px; line-height:1.38; }
 .admin-moi .adm-tb-ten { font-weight:700; }
-.admin-moi .adm-tb-trich { display:block; color:#5b6b8c; font-size:11.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.admin-moi .adm-tb-trich { display:block; color:#5b6b8c; font-size:11.5px; line-height:1.4; padding:1px 0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .admin-moi .adm-tb-tg { display:block; font-size:10.5px; color:#8a97b5; }
 .admin-moi .adm-tb-cham { flex:none; width:8px; height:8px; border-radius:50%; background:#2f6bff; }
 .admin-moi .adm-tb-nhan { flex:none; font-size:10.5px; color:#8a97b5; white-space:nowrap; }

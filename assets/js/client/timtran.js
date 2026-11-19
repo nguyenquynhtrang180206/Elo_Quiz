@@ -149,23 +149,26 @@
     });
   });
 
-  // --- Exam Quiz Multiple-Choice Cards (Giữa kì, Cuối kì, Cả 2) ---
-  var examQuizCards = document.querySelectorAll('.exam-quiz-card');
-  examQuizCards.forEach(function (card) {
-    card.addEventListener('click', function (e) {
-      if (card.classList.contains('is-disabled')) return;
-      examQuizCards.forEach(function (c) { c.classList.remove('is-selected'); });
-      card.classList.add('is-selected');
-      var radio = card.querySelector('input[type="radio"]');
-      if (radio) {
-        radio.checked = true;
-      }
-      playPickSound();
+  // --- Exam Quiz Multiple-Choice Cards (Giữa kỳ, Cuối kỳ, Cả 2) ---
+  function ganSuKienExamQuizCards() {
+    var examQuizCards = document.querySelectorAll('.exam-quiz-card');
+    examQuizCards.forEach(function (card) {
+      card.onclick = function (e) {
+        if (card.classList.contains('is-disabled')) return;
+        examQuizCards.forEach(function (c) { c.classList.remove('is-selected'); });
+        card.classList.add('is-selected');
+        var radio = card.querySelector('input[type="radio"]');
+        if (radio) {
+          radio.checked = true;
+        }
+        playPickSound();
+      };
     });
-  });
+  }
+  ganSuKienExamQuizCards();
 
   // --- Cyber Propose Subject Modal Logic ---
-  function openProposeModal() {
+  function openProposeModal(prefillName) {
     var modal = document.getElementById('cyberProposeModal');
     if (!modal) return;
     modal.classList.add('is-open');
@@ -175,6 +178,9 @@
     setTimeout(function () {
       var input = document.getElementById('modal_ten_mon');
       if (input) {
+        if (typeof prefillName === 'string' && prefillName.trim() !== '') {
+          input.value = prefillName.trim();
+        }
         input.focus();
         input.select();
       }
@@ -236,9 +242,297 @@
     }
   });
 
-  // --- Auto-submit when selecting subject (with intercept for __propose__) ---
+  // --- Custom Searchable Subject Picker (#vipMonPicker: hiện 5 môn mặc định + Tìm kiếm + Xem thêm + Đề xuất) ---
   var chonMon = document.getElementById('mon');
-  if (chonMon) {
+  var vipMonPicker = document.getElementById('vipMonPicker');
+  var vipMonTrigger = document.getElementById('vipMonTrigger');
+  var vipMonTriggerText = document.getElementById('vipMonTriggerText');
+  var vipMonDropdown = document.getElementById('vipMonDropdown');
+  var vipMonSearch = document.getElementById('vipMonSearch');
+  var vipMonSearchClear = document.getElementById('vipMonSearchClear');
+  var vipMonList = document.getElementById('vipMonList');
+  var vipMonEmpty = document.getElementById('vipMonEmpty');
+  var btnVipMonMore = document.getElementById('btnVipMonMore');
+  var btnDropdownProposeMon = document.getElementById('btnDropdownProposeMon');
+  var btnEmptyProposeMon = document.getElementById('btnEmptyProposeMon');
+
+  function boDauTiengViet(str) {
+    return String(str || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/đ/g, 'd')
+      .replace(/Đ/g, 'D')
+      .toLowerCase();
+  }
+
+  var vipMonExpanded = false;
+
+  function capNhatHienThiMon() {
+    if (!vipMonList) return;
+    var items = vipMonList.querySelectorAll('.vip-mon-item');
+    var qRaw = vipMonSearch ? vipMonSearch.value.trim() : '';
+    var qNorm = boDauTiengViet(qRaw);
+    var visibleCount = 0;
+
+    if (vipMonSearchClear) {
+      vipMonSearchClear.hidden = (qRaw === '');
+    }
+
+    items.forEach(function (item) {
+      var opt = item.querySelector('.vip-mon-option');
+      var ten = opt ? (opt.getAttribute('data-ten') || opt.textContent) : '';
+      var isExtra = item.hasAttribute('data-extra');
+      if (qNorm !== '') {
+        var matched = boDauTiengViet(ten).indexOf(qNorm) !== -1;
+        item.hidden = !matched;
+        if (matched) visibleCount++;
+      } else {
+        var show = !isExtra || vipMonExpanded;
+        item.hidden = !show;
+        if (show) visibleCount++;
+      }
+    });
+
+    if (vipMonEmpty) {
+      vipMonEmpty.hidden = !(qNorm !== '' && visibleCount === 0);
+    }
+
+    if (btnVipMonMore) {
+      var moreCount = btnVipMonMore.getAttribute('data-more-count') || '0';
+      btnVipMonMore.hidden = (qNorm !== '');
+      btnVipMonMore.classList.toggle('is-expanded', vipMonExpanded);
+      var moreText = btnVipMonMore.querySelector('.more-text');
+      if (moreText) {
+        moreText.textContent = vipMonExpanded ? 'Thu gọn danh sách' : 'Xem thêm +' + moreCount + ' môn khác';
+      }
+    }
+  }
+
+  function layCheDoLobbyHienTai() {
+    var botCard = document.getElementById('modeCardBot');
+    var pinCard = document.getElementById('modeCardPin');
+    if (botCard && botCard.classList.contains('active')) return 'bot';
+    if (pinCard && pinCard.classList.contains('active')) return 'pin';
+    return 'pvp';
+  }
+
+  function chonMonHocSmooth(monId, monTen) {
+    if (!monId) return;
+    if (chonMon) chonMon.value = monId;
+    if (vipMonTriggerText && monTen) {
+      vipMonTriggerText.textContent = monTen;
+      vipMonTriggerText.classList.remove('is-placeholder');
+    }
+
+    // Cập nhật trạng thái active trong dropdown môn
+    if (vipMonList) {
+      var allOpts = vipMonList.querySelectorAll('.vip-mon-option');
+      allOpts.forEach(function (o) {
+        var isThis = (o.getAttribute('data-id') === String(monId));
+        o.classList.toggle('is-selected', isThis);
+        o.setAttribute('aria-selected', isThis ? 'true' : 'false');
+        var tag = o.querySelector('.vip-mon-opt-tag');
+        if (isThis && !tag) {
+          var newTag = document.createElement('span');
+          newTag.className = 'vip-mon-opt-tag';
+          newTag.textContent = '✓ Đang chọn';
+          o.appendChild(newTag);
+        } else if (!isThis && tag) {
+          tag.remove();
+        }
+      });
+    }
+
+    // Cập nhật trạng thái active trên các nút chọn nhanh
+    var qTags = document.querySelectorAll('.quick-mon-tag');
+    qTags.forEach(function (tag) {
+      tag.classList.toggle('is-active', tag.getAttribute('data-mon-id') === String(monId));
+    });
+
+    moHopChonMon(false);
+    try { playPickSound(); } catch (err) {}
+
+    var step2Container = document.getElementById('deckStep2Container');
+    if (step2Container) {
+      step2Container.classList.add('is-loading');
+    }
+
+    var targetUrl = window.location.pathname + '?mon=' + encodeURIComponent(monId);
+
+    // Cập nhật giao diện mượt mà không tải lại toàn trang (Không giật nháy)
+    fetch(targetUrl, {
+      headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(function (res) {
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.text();
+    })
+    .then(function (html) {
+      var parser = new DOMParser();
+      var doc = parser.parseFromString(html, 'text/html');
+
+      // 1. Trạng thái Bước 1
+      var newStep1Status = doc.getElementById('step1HeaderStatus');
+      var curStep1Status = document.getElementById('step1HeaderStatus');
+      if (curStep1Status) {
+        if (newStep1Status && newStep1Status.innerHTML.trim() !== '') {
+          curStep1Status.innerHTML = newStep1Status.innerHTML;
+          curStep1Status.style.display = '';
+        } else {
+          curStep1Status.style.display = 'none';
+        }
+      }
+
+      // 2. Trạng thái Bước 2
+      var newStep2Status = doc.getElementById('step2HeaderStatus');
+      var curStep2Status = document.getElementById('step2HeaderStatus');
+      if (curStep2Status) {
+        if (newStep2Status && newStep2Status.innerHTML.trim() !== '') {
+          curStep2Status.innerHTML = newStep2Status.innerHTML;
+          curStep2Status.style.display = '';
+        } else {
+          curStep2Status.style.display = 'none';
+        }
+      }
+
+      // 3. Khung nội dung Bước 2 (Giữa kỳ, Cuối kỳ, Cả 2)
+      var newStep2Container = doc.getElementById('deckStep2Container');
+      var curStep2Container = document.getElementById('deckStep2Container');
+      if (newStep2Container && curStep2Container) {
+        curStep2Container.innerHTML = newStep2Container.innerHTML;
+      }
+
+      // 4. Khối nút bấm CTA chính
+      var newCtaBlock = doc.getElementById('deckCtaBlock');
+      var curCtaBlock = document.getElementById('deckCtaBlock');
+      if (newCtaBlock && curCtaBlock) {
+        curCtaBlock.innerHTML = newCtaBlock.innerHTML;
+      }
+
+      // 5. Gắn lại sự kiện chọn thẻ kỳ thi trắc nghiệm
+      if (typeof ganSuKienExamQuizCards === 'function') {
+        ganSuKienExamQuizCards();
+      }
+
+      // 6. Gắn lại nút CTA tìm trận
+      btnSubmitQuickMatch = document.getElementById('btnSubmitQuickMatch');
+      ctaBtnText = document.getElementById('ctaBtnText');
+      ctaBtnIcon = document.getElementById('ctaBtnIcon');
+      if (btnSubmitQuickMatch) {
+        btnSubmitQuickMatch.addEventListener('click', function () {
+          try { playLaunchQueueSound(); } catch (err) {}
+        });
+      }
+
+      // 7. Đồng bộ lại chế độ chơi (PvP / Bot / PIN) cho nút CTA mới
+      var currentMode = layCheDoLobbyHienTai();
+      if (typeof setLobbyMode === 'function') {
+        setLobbyMode(currentMode);
+      }
+
+      if (curStep2Container) {
+        curStep2Container.classList.remove('is-loading');
+      }
+
+      try {
+        window.history.pushState({ mon: monId }, '', targetUrl);
+      } catch (e) {}
+    })
+    .catch(function (err) {
+      console.warn('AJAX tải môn học mềm không thành công, tải lại trang:', err);
+      if (step2Container) step2Container.classList.remove('is-loading');
+      if (chonMon && chonMon.form) {
+        chonMon.form.submit();
+      }
+    });
+  }
+
+  function moHopChonMon(mo) {
+    if (!vipMonPicker || !vipMonDropdown || !vipMonTrigger) return;
+    vipMonDropdown.hidden = !mo;
+    vipMonPicker.classList.toggle('is-open', mo);
+    var parentGroup = vipMonPicker.closest('.deck-form-group');
+    if (parentGroup) parentGroup.classList.toggle('is-picker-open', mo);
+    vipMonTrigger.setAttribute('aria-expanded', mo ? 'true' : 'false');
+    if (mo) {
+      vipMonExpanded = false;
+      if (vipMonSearch) vipMonSearch.value = '';
+      capNhatHienThiMon();
+      if (vipMonSearch) {
+        setTimeout(function () { vipMonSearch.focus(); }, 30);
+      }
+    }
+  }
+
+  if (vipMonPicker && vipMonTrigger && vipMonDropdown) {
+    vipMonTrigger.addEventListener('click', function (e) {
+      e.preventDefault();
+      moHopChonMon(vipMonDropdown.hidden);
+    });
+
+    if (vipMonSearch) {
+      vipMonSearch.addEventListener('input', capNhatHienThiMon);
+      vipMonSearch.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+        }
+      });
+    }
+
+    if (vipMonSearchClear) {
+      vipMonSearchClear.addEventListener('click', function () {
+        if (vipMonSearch) {
+          vipMonSearch.value = '';
+          capNhatHienThiMon();
+          vipMonSearch.focus();
+        }
+      });
+    }
+
+    if (btnVipMonMore) {
+      btnVipMonMore.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        vipMonExpanded = !vipMonExpanded;
+        capNhatHienThiMon();
+      });
+    }
+
+    if (vipMonList) {
+      vipMonList.addEventListener('click', function (e) {
+        var opt = e.target.closest('.vip-mon-option');
+        if (!opt || !chonMon) return;
+        var monId = opt.getAttribute('data-id') || '';
+        var monTen = opt.getAttribute('data-ten') || opt.textContent;
+        chonMonHocSmooth(monId, monTen);
+      });
+    }
+
+    [btnDropdownProposeMon, btnEmptyProposeMon].forEach(function (btn) {
+      if (!btn) return;
+      btn.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var kw = vipMonSearch ? vipMonSearch.value.trim() : '';
+        moHopChonMon(false);
+        openProposeModal(kw);
+      });
+    });
+
+    document.addEventListener('click', function (e) {
+      if (!vipMonDropdown.hidden && !vipMonPicker.contains(e.target)) {
+        moHopChonMon(false);
+      }
+    });
+
+    vipMonPicker.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && !vipMonDropdown.hidden) {
+        e.preventDefault();
+        moHopChonMon(false);
+        vipMonTrigger.focus();
+      }
+    });
+  } else if (chonMon && chonMon.tagName === 'SELECT') {
     var previousMonVal = chonMon.value;
     chonMon.addEventListener('change', function () {
       if (chonMon.value === '__propose__') {
@@ -248,7 +542,8 @@
       }
       if (chonMon.value) {
         previousMonVal = chonMon.value;
-        chonMon.form.submit();
+        var monTen = (chonMon.options && chonMon.selectedIndex >= 0) ? chonMon.options[chonMon.selectedIndex].text : '';
+        chonMonHocSmooth(chonMon.value, monTen);
       }
     });
   }
@@ -258,12 +553,19 @@
   quickTags.forEach(function (tag) {
     tag.addEventListener('click', function () {
       var monId = tag.getAttribute('data-mon-id');
-      if (chonMon && monId) {
-        chonMon.value = monId;
-        playPickSound();
-        chonMon.form.submit();
+      var monTen = tag.textContent.trim();
+      if (monId) {
+        chonMonHocSmooth(monId, monTen);
       }
     });
+  });
+
+  window.addEventListener('popstate', function () {
+    var params = new URLSearchParams(window.location.search);
+    var m = params.get('mon');
+    if (m && chonMon && m !== chonMon.value) {
+      window.location.reload();
+    }
   });
 
   function playMatchFoundSound() {
@@ -555,7 +857,10 @@
         pinCreateErrorNotice.textContent = '⚠️ Vui lòng chọn Môn học ở Bước 01 trước khi tạo phòng PIN!';
         pinCreateErrorNotice.style.display = 'block';
       }
-      if (selMon) {
+      if (vipMonTrigger) {
+        vipMonTrigger.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        moHopChonMon(true);
+      } else if (selMon) {
         selMon.focus();
         selMon.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }

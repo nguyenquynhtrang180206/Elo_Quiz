@@ -289,7 +289,7 @@ require __DIR__ . '/layout/header.php';
         </div>
 
         <!-- KHUNG TRANH HOLOGRAPHIC LINH VẬT THI CỬ (Sang trọng, viền neon, góc dát vàng) -->
-        <div class="hero-pet-card" id="faker-character" title="Chạm để đổi linh vật &amp; lời thoại hài hước!">
+        <div class="hero-pet-card" id="faker-character">
           <div class="pet-card-glass">
             <!-- 4 góc dát vàng phong cách Cyber Esports -->
             <span class="pet-corner tl" aria-hidden="true"></span>
@@ -475,7 +475,7 @@ require __DIR__ . '/layout/header.php';
       ];
     ?>
 
-    <div class="challenger-deck-stage" id="deck-stage" title="Click vào Thẻ Bài để khiêu chiến!">
+    <div class="challenger-deck-stage" id="deck-stage">
       <!-- Tia sáng hào quang huyền ảo phía sau bộ thẻ -->
       <div class="deck-aurora" aria-hidden="true"></div>
 

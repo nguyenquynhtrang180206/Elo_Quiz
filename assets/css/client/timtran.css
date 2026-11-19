@@ -143,7 +143,8 @@ body.trang-timtran main.container {
   font-weight: 900;
   letter-spacing: 0.04em;
   margin: 0 0 4px 0;
-  line-height: 1.25;
+  line-height: 1.38;
+  padding: 2px 0;
   background: linear-gradient(135deg, #FFFFFF 0%, #FFF8E7 35%, #D4AF37 70%, #00D9FF 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -270,7 +271,8 @@ body.trang-timtran main.container {
   font-weight: 900;
   letter-spacing: 0.03em;
   text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
-  line-height: 1.15;
+  line-height: 1.38;
+  padding: 2px 0;
 }
 
 .champ-radar-badge {
@@ -325,6 +327,8 @@ body.trang-timtran main.container {
 .mini-val {
   font-size: 0.98rem;
   font-weight: 800;
+  line-height: 1.38;
+  padding: 1px 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -644,6 +648,8 @@ body.trang-timtran main.container {
 
 .tip-subtle-icon { font-size: 0.85rem; }
 .tip-subtle-text {
+  line-height: 1.4;
+  padding: 1px 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -817,16 +823,17 @@ body.trang-timtran main.container {
   gap: 8px;
 }
 
-/* Fixed Header Block */
+/* Header Block (Chống cắt dấu tiếng Việt) */
 .champ-header-block {
-  height: 48px;
-  min-height: 48px;
-  max-height: 48px;
+  min-height: 52px;
+  height: auto;
+  max-height: none;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  gap: 3px;
   width: 100%;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .champ-header-meta {
@@ -834,7 +841,6 @@ body.trang-timtran main.container {
   align-items: center;
   justify-content: space-between;
   gap: 6px;
-  height: 22px;
   min-height: 22px;
   width: 100%;
 }
@@ -848,7 +854,7 @@ body.trang-timtran main.container {
   border-radius: 9999px;
   white-space: nowrap;
   flex-shrink: 0;
-  line-height: 1.3;
+  line-height: 1.35;
 }
 
 .champ-faction-tag.is-plant {
@@ -875,7 +881,7 @@ body.trang-timtran main.container {
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 58%;
-  line-height: 1.3;
+  line-height: 1.4;
 }
 
 .champ-name {
@@ -887,15 +893,17 @@ body.trang-timtran main.container {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  line-height: 1.25;
-  height: 22px;
+  line-height: 1.4;
+  min-height: 24px;
+  height: auto;
+  padding: 1px 0;
 }
 
-/* Fixed Buff Showcase Block */
+/* Fixed Buff Showcase Block (Chống cắt dấu tiếng Việt) */
 .champ-buff-showcase {
-  height: 62px;
-  min-height: 62px;
-  max-height: 62px;
+  min-height: 64px;
+  height: auto;
+  max-height: none;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -912,8 +920,10 @@ body.trang-timtran main.container {
   display: flex;
   align-items: center;
   gap: 6px;
-  height: 22px;
-  min-height: 22px;
+  min-height: 24px;
+  height: auto;
+  line-height: 1.4;
+  padding: 1px 0;
   width: 100%;
   overflow: hidden;
 }
@@ -1112,7 +1122,8 @@ body.trang-timtran main.container {
   font-size: 1.5rem;
   font-weight: 900;
   letter-spacing: 0.02em;
-  line-height: 1.25;
+  line-height: 1.38;
+  padding: 2px 0;
   margin: 0;
   background: linear-gradient(135deg, #FFFFFF 0%, #FFF8E7 35%, #F3DE8A 70%, #EAB308 100%);
   -webkit-background-clip: text;
@@ -1123,7 +1134,7 @@ body.trang-timtran main.container {
   color: #94A3B8;
   font-size: 0.88rem;
   font-weight: 500;
-  line-height: 1.35;
+  line-height: 1.4;
   margin: 3px 0 0 0;
 }
 
@@ -1143,6 +1154,7 @@ body.trang-timtran main.container {
 .deck-group-header {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
 }
 
@@ -1251,10 +1263,394 @@ body.trang-timtran main.container {
   transform: translateY(-50%) rotate(180deg);
 }
 
+/* Custom Searchable Subject Picker (Hiện 5 môn + Tìm nhanh + Xem thêm + Đề xuất) */
+.deck-form-group.is-picker-open,
+.deck-form-group:has(.vip-mon-picker.is-open) {
+  position: relative;
+  z-index: 150;
+}
+
+.vip-mon-picker {
+  position: relative;
+  z-index: 45;
+  display: block;
+}
+
+.vip-mon-picker.is-open {
+  z-index: 160;
+}
+
+.vip-mon-picker:focus-within:not(.is-open) .select-chevron-svg {
+  transform: translateY(-50%);
+}
+
+.vip-mon-picker.is-open .select-chevron-svg {
+  transform: translateY(-50%) rotate(180deg);
+}
+
+.vip-mon-trigger {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  text-align: left;
+  width: 100%;
+  font-family: inherit;
+}
+
+.vip-mon-picker.is-open .vip-mon-trigger {
+  border-color: #38BDF8;
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.3), inset 0 2px 8px rgba(0, 0, 0, 0.6);
+}
+
+.vip-mon-trigger-text {
+  display: block;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.4;
+  padding: 1px 0;
+  color: #FFFFFF;
+  font-weight: 700;
+  font-size: 1.02rem;
+  letter-spacing: 0.01em;
+}
+
+.vip-mon-trigger-text.is-placeholder {
+  color: #94A3B8;
+  font-weight: 600;
+}
+
+.vip-mon-dropdown[hidden],
+.vip-mon-item[hidden],
+.vip-mon-empty[hidden],
+.vip-mon-more-btn[hidden],
+.vip-mon-search-clear[hidden] {
+  display: none !important;
+}
+
+.vip-mon-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  z-index: 165;
+  background: rgba(6, 14, 38, 0.98);
+  border: 1.5px solid rgba(56, 189, 248, 0.65);
+  border-radius: 14px;
+  padding: 10px;
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.88), 0 0 24px rgba(0, 217, 255, 0.22);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.vip-mon-search-box {
+  position: relative;
+  display: flex !important;
+  align-items: center !important;
+  width: 100% !important;
+  height: 42px !important;
+  padding: 0 12px 0 14px !important;
+  border-radius: 10px !important;
+  border: 1.5px solid rgba(56, 189, 248, 0.45) !important;
+  background: rgba(11, 23, 56, 0.98) !important;
+  box-sizing: border-box !important;
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s !important;
+}
+
+.vip-mon-search-box:focus-within {
+  border-color: #38BDF8 !important;
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.25), 0 0 12px rgba(56, 189, 248, 0.2) !important;
+  background: rgba(14, 30, 72, 0.98) !important;
+}
+
+.vip-mon-search-icon {
+  position: static !important;
+  transform: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  pointer-events: none !important;
+  flex-shrink: 0 !important;
+  width: 18px !important;
+  height: 18px !important;
+  margin-right: 10px !important;
+  color: #38BDF8 !important;
+}
+
+.vip-mon-search-icon svg {
+  display: block;
+  width: 16px;
+  height: 16px;
+}
+
+.vip-mon-search-box input.vip-mon-search-input,
+input.vip-mon-search-input[type="text"],
+input.vip-mon-search-input[type="search"],
+input.vip-mon-search-input,
+#vipMonSearch {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  width: auto !important;
+  height: 100% !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: none !important;
+  background: transparent !important;
+  color: #F8FAFC !important;
+  font-family: inherit !important;
+  font-size: 0.92rem !important;
+  font-weight: 600 !important;
+  line-height: 1.4 !important;
+  box-sizing: border-box !important;
+  outline: none !important;
+  box-shadow: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  appearance: none !important;
+}
+
+.vip-mon-search-box input.vip-mon-search-input::placeholder,
+input.vip-mon-search-input::placeholder,
+#vipMonSearch::placeholder {
+  color: #94A3B8 !important;
+  opacity: 0.85 !important;
+  font-weight: 500 !important;
+}
+
+.vip-mon-search-box input.vip-mon-search-input:focus,
+input.vip-mon-search-input:focus,
+#vipMonSearch:focus {
+  border: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  outline: none !important;
+}
+
+.vip-mon-search-clear {
+  position: static !important;
+  transform: none !important;
+  flex-shrink: 0 !important;
+  margin-left: 8px !important;
+  width: 22px !important;
+  height: 22px !important;
+  border-radius: 50% !important;
+  border: none !important;
+  background: rgba(148, 163, 184, 0.22) !important;
+  color: #F1F5F9 !important;
+  font-size: 15px !important;
+  line-height: 1 !important;
+  cursor: pointer !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: background 0.16s, color 0.16s, transform 0.16s !important;
+}
+
+.vip-mon-search-clear:hover {
+  background: rgba(239, 68, 68, 0.6) !important;
+  color: #FFFFFF !important;
+  transform: scale(1.1) !important;
+}
+
+.vip-mon-list {
+  list-style: none;
+  margin: 0;
+  padding: 0 2px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 250px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(56, 189, 248, 0.45) rgba(8, 20, 56, 0.6);
+}
+
+.vip-mon-list::-webkit-scrollbar {
+  width: 6px;
+}
+.vip-mon-list::-webkit-scrollbar-track {
+  background: rgba(8, 20, 56, 0.6);
+  border-radius: 4px;
+}
+.vip-mon-list::-webkit-scrollbar-thumb {
+  background: rgba(56, 189, 248, 0.45);
+  border-radius: 4px;
+}
+.vip-mon-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(56, 189, 248, 0.8);
+}
+
+.vip-mon-option {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 9px;
+  border: 1px solid transparent;
+  background: rgba(15, 29, 68, 0.45);
+  color: #E2E8F0;
+  font-family: inherit;
+  font-size: 0.92rem;
+  font-weight: 600;
+  line-height: 1.4;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.16s, border-color 0.16s, color 0.16s;
+}
+
+.vip-mon-option:hover {
+  background: rgba(56, 189, 248, 0.16);
+  border-color: rgba(56, 189, 248, 0.4);
+  color: #FFFFFF;
+}
+
+.vip-mon-option.is-selected {
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.22), rgba(245, 158, 11, 0.16));
+  border-color: rgba(253, 224, 71, 0.6);
+  color: #FFFBEB;
+  font-weight: 800;
+}
+
+.vip-mon-opt-name {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.vip-mon-opt-tag {
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #34D399;
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(52, 211, 153, 0.4);
+  padding: 2px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.vip-mon-empty {
+  padding: 12px 10px;
+  text-align: center;
+  border: 1px dashed rgba(148, 163, 184, 0.3);
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.55);
+}
+
+.vip-mon-empty-text {
+  margin: 0 0 8px;
+  font-size: 0.84rem;
+  color: #94A3B8;
+  line-height: 1.4;
+}
+
+.vip-mon-empty-propose {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(253, 224, 71, 0.55);
+  background: rgba(245, 158, 11, 0.16);
+  color: #FDE047;
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.vip-mon-empty-propose:hover {
+  background: rgba(245, 158, 11, 0.28);
+  color: #FFFFFF;
+}
+
+.vip-mon-more-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border-radius: 9px;
+  border: 1px dashed rgba(56, 189, 248, 0.45);
+  background: rgba(14, 165, 233, 0.1);
+  color: #7DD3FC;
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.vip-mon-more-btn:hover {
+  background: rgba(14, 165, 233, 0.22);
+  border-color: #38BDF8;
+  color: #FFFFFF;
+}
+
+.vip-mon-more-btn .more-arrow {
+  display: inline-block;
+  font-size: 0.72rem;
+  transition: transform 0.2s ease;
+}
+
+.vip-mon-more-btn.is-expanded .more-arrow {
+  transform: rotate(180deg);
+}
+
+.vip-mon-dropdown-footer {
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.vip-mon-propose-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 9px;
+  border: 1px solid rgba(253, 224, 71, 0.45);
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.14), rgba(0, 217, 255, 0.08));
+  color: #FDE047;
+  font-family: inherit;
+  font-size: 0.84rem;
+  font-weight: 800;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.vip-mon-propose-btn:hover {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.26), rgba(0, 217, 255, 0.16));
+  border-color: #FDE047;
+  color: #FFFBEB;
+}
+
 /* ==========================================================================
    HẠNG MỤC KỲ THI - XẾP NGANG & CHỌN KIỂU TRẮC NGHIỆM
-   (GIỮA KÌ, CUỐI KÌ, CẢ 2)
+   (GIỮA KỲ, CUỐI KỲ, CẢ 2)
    ========================================================================== */
+#deckStep2Container {
+  transition: opacity 0.18s ease;
+}
+
+#deckStep2Container.is-loading {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
 .exam-quiz-options {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -1276,16 +1672,15 @@ body.trang-timtran main.container {
   padding: 12px 14px;
   border-radius: 12px;
   background: var(--btn-neutral-bg);
-  border: var(--btn-neutral-border);
+  border: 1.5px solid rgba(255, 255, 255, 0.14);
   cursor: pointer;
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
   user-select: none;
 }
 
 .exam-quiz-card:hover:not(.is-disabled) {
   background: var(--btn-neutral-hover-bg);
-  border-color: var(--btn-neutral-hover-border);
-  transform: translateY(-1px);
+  border-color: rgba(56, 189, 248, 0.45);
 }
 
 .exam-quiz-card.is-selected {
@@ -1446,7 +1841,8 @@ body.trang-timtran main.container {
 
 .mode-cards-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: stretch;
   gap: 10px;
   width: 100%;
 }
@@ -1462,8 +1858,12 @@ body.trang-timtran main.container {
   position: relative;
   display: flex;
   align-items: flex-start;
-  gap: 10px;
-  padding: 10px 12px;
+  justify-content: flex-start;
+  gap: 8px;
+  height: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 12px 13px;
   border-radius: 12px;
   background: rgba(8, 16, 36, 0.7);
   border: 1.5px solid rgba(255, 255, 255, 0.12);
@@ -1521,6 +1921,12 @@ body.trang-timtran main.container {
   border: 1px solid rgba(16, 185, 129, 0.35);
   border-radius: 12px;
   box-shadow: inset 0 0 16px rgba(16, 185, 129, 0.06);
+  animation: pinDrawerFadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes pinDrawerFadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .pin-drawer-tabs {
@@ -1951,45 +2357,69 @@ body.trang-timtran main.container {
   box-shadow: 0 0 8px rgba(56, 189, 248, 0.8);
 }
 
+#modeCardPin.active .mode-card-radio-indicator {
+  border-color: #10B981;
+}
+
+#modeCardPin.active .mode-radio-dot {
+  background: #10B981;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.8);
+}
+
 /* NỘI DUNG THẺ */
 .mode-card-content {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 .mode-card-header {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  align-items: flex-start;
+  gap: 7px;
+  width: 100%;
+  min-width: 0;
 }
 
 .mode-card-icon {
-  font-size: 1.25rem;
-  line-height: 1;
+  font-size: 16px;
+  line-height: 1.35;
   flex-shrink: 0;
+  margin-top: 1px;
 }
 
 .mode-card-title-wrap {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
 }
 
 .mode-card-title {
-  font-size: 0.95rem;
+  font-size: 0.86rem;
   font-weight: 800;
   color: #FFFFFF;
   letter-spacing: 0.01em;
+  line-height: 1.35;
+  word-break: break-word;
 }
 
 .mode-card-badge {
-  font-size: 0.65rem;
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  font-size: 0.64rem;
   font-weight: 800;
   padding: 2px 7px;
   border-radius: 6px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
+  line-height: 1.35;
+  white-space: nowrap;
 }
 
 .mode-card-badge.rank {
@@ -2005,10 +2435,12 @@ body.trang-timtran main.container {
 }
 
 .mode-card-desc {
-  margin: 4px 0 0 0;
+  margin: 8px 0 0 0;
+  padding-left: 0;
+  width: 100%;
   font-size: 0.76rem;
   color: #94A3B8;
-  line-height: 1.35;
+  line-height: 1.45;
 }
 
 .mode-selection-card.active .mode-card-desc {
@@ -2189,7 +2621,8 @@ body.trang-timtran main.container {
   font-weight: 900;
   letter-spacing: 0.02em;
   margin: 0;
-  line-height: 1.2;
+  line-height: 1.38;
+  padding: 2px 0;
 }
 
 .stage-champ-title {
@@ -2615,6 +3048,8 @@ body.trang-timtran main.container {
   font-size: 1.35rem;
   font-weight: 900;
   letter-spacing: 0.8px;
+  line-height: 1.38;
+  padding: 2px 0;
   margin: 0 0 6px;
   background: linear-gradient(135deg, #FFFFFF 0%, #FFF0A3 40%, #F59E0B 100%);
   -webkit-background-clip: text;
@@ -2885,6 +3320,8 @@ body.trang-timtran main.container {
   font-size: 2rem;
   font-weight: 900;
   letter-spacing: 0.05em;
+  line-height: 1.35;
+  padding: 3px 0;
   margin: 0 0 8px 0;
   background: linear-gradient(135deg, #FFFFFF 0%, #F3DE8A 50%, #D4AF37 100%);
   -webkit-background-clip: text;
@@ -4106,7 +4543,8 @@ body.trang-timtran main.container {
   display: flex;
   align-items: center;
   gap: 4px;
-  line-height: 1.25;
+  line-height: 1.4;
+  padding: 1px 0;
 }
 .ef-tag {
   font-size: 0.64rem;
@@ -4437,6 +4875,8 @@ body.trang-timtran main.container {
   display: block;
   font-size: 0.86rem;
   font-weight: 800;
+  line-height: 1.4;
+  padding: 1px 0;
   color: #FFFFFF;
   white-space: nowrap;
   overflow: hidden;
@@ -4678,6 +5118,8 @@ body.trang-timtran main.container {
   margin: 0 0 4px;
   font-size: 1.25rem;
   font-weight: 900;
+  line-height: 1.38;
+  padding: 1px 0;
   color: #FFFFFF;
   white-space: nowrap;
   overflow: hidden;
@@ -4705,7 +5147,8 @@ body.trang-timtran main.container {
   font-size: 0.72rem;
   color: #94A3B8;
   font-style: italic;
-  line-height: 1.35;
+  line-height: 1.42;
+  padding: 1px 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

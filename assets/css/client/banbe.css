@@ -8,6 +8,7 @@
 .container > h2 {
   display:block; width:fit-content; margin:8px 0 22px max(0px, calc((100% - 860px) / 2));
   font-size:clamp(26px, 4vw, 34px); font-weight:800; letter-spacing:.01em;
+  line-height:1.35; padding:2px 0;
   background:linear-gradient(90deg, var(--light-cyan), #fff 45%, var(--magenta));
   -webkit-background-clip:text; background-clip:text; color:transparent;
   text-shadow:none; filter:drop-shadow(0 0 14px rgba(0,217,255,.35));
@@ -66,7 +67,7 @@
 .nguoi > div { min-width:0; }
 .nguoi b { font-size:15px; font-weight:600; overflow-wrap:anywhere; }
 .nguoi .ghichu { margin-top:2px; font-size:12.5px; line-height:1.4; }
-.nguoi .ghichu b { color:var(--cyan); font-family:'Rajdhani', 'Be Vietnam Pro', sans-serif; font-size:15px; }
+.nguoi .ghichu b { color:var(--cyan); font-family:'Be Vietnam Pro', sans-serif; font-size:15px; line-height:1.4; padding:1px 0; }
 
 .avatar-nho {
   width:46px; height:46px; flex:0 0 46px; border:2px solid #0a1430;

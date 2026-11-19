@@ -21,7 +21,7 @@
   background:linear-gradient(135deg,#3b7bff,#1b4be0); box-shadow:0 8px 20px rgba(30,80,230,.4);
 }
 .ch-dau-chu { flex:1; min-width:220px; }
-.ch-dau-chu h2 { font-size:24px; line-height:1.2; }
+.ch-dau-chu h2 { font-size:24px; line-height:1.35; padding:1px 0; }
 .ch-dau-chu p { font-size:13px; color:var(--ch-phu); margin-top:2px; }
 .ch-dau-nut { display:flex; gap:8px; flex-wrap:wrap; }
 
@@ -220,7 +220,7 @@ body.ch-khoa-cuon { overflow:hidden; }
   display:inline-flex; align-items:center; justify-content:space-between; gap:10px; min-width:170px; max-width:260px; height:42px; padding:0 14px;
   border-radius:12px; border:1px solid #cdd6f0; background:#fff; color:var(--ch-chu); font:500 14px/1 inherit; font-family:inherit; cursor:pointer;
 }
-.ch-chon-mon-ten { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.ch-chon-mon-ten { line-height:1.4; padding:1px 0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .ch-chon-mon-nut:focus-visible { outline:none; border-color:#5b8cff; box-shadow:0 0 0 3px rgba(91,140,255,.25); }
 .ch-chon-mon-hop {
   position:absolute; left:0; top:calc(100% + 6px); z-index:40; width:300px; max-width:90vw; padding:10px; border-radius:14px;
@@ -290,7 +290,7 @@ body.ch-khoa-cuon { overflow:hidden; }
 }
 .ch-trang a.ch-bando-mon:hover { background:rgba(31,85,214,.07); color:var(--ch-chu); }
 .ch-trang a.ch-bando-mon.dang-loc { background:rgba(31,85,214,.12); box-shadow:inset 0 0 0 1px rgba(31,85,214,.35); }
-.ch-ten-mon { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.ch-ten-mon { line-height:1.4; padding:1px 0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .ch-o { position:relative; display:block; height:40px; border-radius:10px; }
 .ch-trang .ch-o-xem {
   position:absolute; inset:0; display:flex; align-items:center; justify-content:center; border-radius:10px;
@@ -320,7 +320,7 @@ body.ch-khoa-cuon { overflow:hidden; }
 .ch-lech-ds { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:10px; }
 .ch-lech-muc { display:flex; align-items:center; gap:12px; padding:10px 14px; border:1px solid #e2e7f6; border-radius:14px; background:#fafbff; }
 .ch-lech-giua { flex:1; min-width:0; }
-.ch-trang a.ch-lech-nd { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--ch-chu); font-size:13.5px; font-weight:700; text-decoration:none; }
+.ch-trang a.ch-lech-nd { display:block; line-height:1.4; padding:1px 0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--ch-chu); font-size:13.5px; font-weight:700; text-decoration:none; }
 .ch-trang a.ch-lech-nd:hover { color:var(--ch-xanh); }
 .ch-lech-giua small { display:block; margin-top:3px; color:var(--ch-phu); font-size:12px; }
 .ch-lech-giua small b, .ch-ty-chu b { font-weight:800; }

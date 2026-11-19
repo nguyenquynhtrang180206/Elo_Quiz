@@ -477,9 +477,12 @@ require __DIR__ . '/layout/header.php';
           <div class="mastery-titles">
             <span class="mastery-subtitle">TIẾN HÓA & THÔNG THẠO ĐẤU THẦN</span>
             <h3 class="mastery-champ-name"><?= e($tuongToi['ten']) ?> &middot; <?= e($thongThaoToi['danhHieuCap']) ?></h3>
+            <span class="mastery-rule-hint" style="font-size: 0.78rem; font-weight: 600; color: <?= $isWin ? '#34D399' : '#94A3B8' ?>; display: block; margin-top: 3px;">
+              <?= $isWin ? '⚡ Thắng trận vinh quang: +160 EXP nâng cấp Đấu Thần!' : '⚡ Chỉ khi chiến thắng mới được cộng EXP để nâng cấp/lên hạng' ?>
+            </span>
           </div>
-          <div class="mastery-exp-badge">
-            +<?= $isWin ? 160 : ($toi['KetQua'] === 'Hòa' ? 100 : 60) ?> EXP
+          <div class="mastery-exp-badge <?= $isWin ? 'is-win' : 'is-not-win' ?>">
+            <?= $isWin ? '+160 EXP' : '+0 EXP' ?>
           </div>
         </div>
 

@@ -438,25 +438,7 @@ if (isset($_GET['ajax_check'])) {
         exit;
     }
 
-    // Tùy chọn tìm trận lưu bền vững trong NGUOIDUNG (session chỉ là bộ nhớ đệm)
-if ($maND !== null && !isset($_SESSION['tuy_chon_nap'])) {
-    $stTC = $pdo->prepare('SELECT TuongChon, ChoPhepBot FROM NGUOIDUNG WHERE MaND = ?');
-    $stTC->execute([$maND]);
-    if ($tc = $stTC->fetch()) {
-        $_SESSION['tuong_chon']   = (string) $tc['TuongChon'];
-        $_SESSION['cho_phep_bot'] = (bool) $tc['ChoPhepBot'];
-    }
-    $_SESSION['tuy_chon_nap'] = true;
-}
-function luuTuyChonTimTran(PDO $pdo, ?int $maND): void
-{
-    if ($maND === null) {
-        return;
-    }
-    $pdo->prepare('UPDATE NGUOIDUNG SET TuongChon = ?, ChoPhepBot = ? WHERE MaND = ?')
-        ->execute([(string) ($_SESSION['tuong_chon'] ?? 'sunflower'), !empty($_SESSION['cho_phep_bot']) ? 1 : 0, $maND]);
-}
-$choPhepBot = isset($_SESSION['cho_phep_bot']) ? (bool) $_SESSION['cho_phep_bot'] : true;
+    $choPhepBot = isset($_SESSION['cho_phep_bot']) ? (bool) $_SESSION['cho_phep_bot'] : true;
 
     // 3. Nếu là PvP thuần túy (không ghép bot) và đã đủ thời gian chờ tối đa:
     if (!$choPhepBot && (int) $daCho >= $choToiDa) {
@@ -1192,9 +1174,9 @@ $tatCaTuong = LoLChampions::DANH_SACH;
         foreach ($rawKT as $k) {
             $ten = $k['TenLoaiKT'];
             if (mb_stripos($ten, 'giữa') !== false) {
-                $ten = 'Giữa kì';
+                $ten = 'Giữa kỳ';
             } elseif (mb_stripos($ten, 'cuối') !== false) {
-                $ten = 'Cuối kì';
+                $ten = 'Cuối kỳ';
             } elseif (mb_stripos($ten, 'cả') !== false) {
                 $ten = 'Cả 2';
             }
@@ -1285,34 +1267,92 @@ $tatCaTuong = LoLChampions::DANH_SACH;
               <div class="deck-form-group">
                 <div class="deck-group-header">
                   <span class="step-num-badge">BƯỚC 01</span>
-                  <label for="mon" class="deck-group-title">CHỌN MÔN THI ĐẤU</label>
-                  <?php if ($monChon): ?><span class="deck-group-status">✓ Đã chọn môn</span><?php endif; ?>
+                  <label for="vipMonTrigger" class="deck-group-title">CHỌN MÔN THI ĐẤU</label>
+                  <span class="deck-group-status" id="step1HeaderStatus" style="<?= $monChon ? '' : 'display: none;' ?>">✓ Đã chọn môn</span>
                 </div>
+                <?php
+                  $soMonHienMacDinh = 5;
+                  $soMonAn = 0;
+                  foreach ($dsMon as $idx => $mCheck) {
+                      if ($idx >= $soMonHienMacDinh && (int) $mCheck['MaMon'] !== $mon) {
+                          $soMonAn++;
+                      }
+                  }
+                ?>
                 <form method="get" action="" class="form-arena-select" id="formChonMon">
-                  <div class="vip-select-wrapper">
-                    <span class="select-icon-svg">
-                      <svg viewBox="0 0 24 24" width="24" height="24" fill="none">
-                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" stroke="#00D9FF" stroke-width="2.2" stroke-linecap="round"/>
-                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" fill="rgba(0, 217, 255, 0.16)" stroke="#00D9FF" stroke-width="2.2"/>
-                        <path d="M9 7h7M9 11h5" stroke="#F3DE8A" stroke-width="2" stroke-linecap="round"/>
-                        <circle cx="16" cy="11" r="1.5" fill="#FDE047"/>
-                      </svg>
-                    </span>
-                    <select name="mon" id="mon" class="cosmic-select vip-select">
-                      <option value="">-- Bấm để chọn môn học thi đấu --</option>
-                      <?php foreach ($dsMon as $m): ?>
-                        <option value="<?= (int) $m['MaMon'] ?>" <?= (int) $m['MaMon'] === $mon ? 'selected' : '' ?>><?= e($m['TenMon']) ?></option>
-                      <?php endforeach; ?>
-                      <option disabled class="opt-separator">────────────────────────</option>
-                      <option value="__propose__" class="opt-propose-new">➕ Không có môn bạn cần? Đề xuất môn mới...</option>
-                    </select>
-                    <span class="select-chevron-svg">
-                      <svg viewBox="0 0 20 20" width="18" height="18" fill="none">
-                        <path d="M5 7.5L10 12.5L15 7.5" stroke="#00D9FF" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
-                      </svg>
-                    </span>
+                  <div class="vip-select-wrapper vip-mon-picker" id="vipMonPicker">
+                    <input type="hidden" name="mon" id="mon" value="<?= $monChon ? (int) $monChon['MaMon'] : '' ?>">
+                    <button type="button" id="vipMonTrigger" class="cosmic-select vip-select vip-mon-trigger" aria-haspopup="listbox" aria-expanded="false">
+                      <span class="select-icon-svg" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" width="24" height="24" fill="none">
+                          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" stroke="#00D9FF" stroke-width="2.2" stroke-linecap="round"/>
+                          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" fill="rgba(0, 217, 255, 0.16)" stroke="#00D9FF" stroke-width="2.2"/>
+                          <path d="M9 7h7M9 11h5" stroke="#F3DE8A" stroke-width="2" stroke-linecap="round"/>
+                          <circle cx="16" cy="11" r="1.5" fill="#FDE047"/>
+                        </svg>
+                      </span>
+                      <span class="vip-mon-trigger-text<?= $monChon ? '' : ' is-placeholder' ?>" id="vipMonTriggerText">
+                        <?= $monChon ? e($monChon['TenMon']) : 'Bấm để chọn môn học thi đấu' ?>
+                      </span>
+                      <span class="select-chevron-svg" aria-hidden="true">
+                        <svg viewBox="0 0 20 20" width="18" height="18" fill="none">
+                          <path d="M5 7.5L10 12.5L15 7.5" stroke="#00D9FF" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                      </span>
+                    </button>
+
+                    <div class="vip-mon-dropdown" id="vipMonDropdown" hidden>
+                      <div class="vip-mon-search-box" style="display: flex !important; align-items: center !important; position: relative !important; width: 100% !important; height: 42px !important; padding: 0 12px 0 14px !important; border-radius: 10px !important; border: 1.5px solid rgba(56, 189, 248, 0.45) !important; background: rgba(11, 23, 56, 0.98) !important; box-sizing: border-box !important;">
+                        <span class="vip-mon-search-icon" aria-hidden="true" style="display: flex !important; align-items: center !important; justify-content: center !important; flex-shrink: 0 !important; width: 18px !important; height: 18px !important; margin-right: 10px !important; color: #38BDF8 !important; pointer-events: none !important;">
+                          <svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="#38BDF8" stroke-width="2" stroke-linecap="round">
+                            <circle cx="8.5" cy="8.5" r="5.5"/>
+                            <path d="M13 13l4 4"/>
+                          </svg>
+                        </span>
+                        <input type="text" id="vipMonSearch" class="vip-mon-search-input" placeholder="Tìm nhanh môn học (có dấu hoặc không dấu)..." autocomplete="off" inputmode="search" aria-label="Tìm nhanh môn học" style="flex: 1 1 auto !important; min-width: 0 !important; width: 100% !important; height: 100% !important; padding: 0 !important; margin: 0 !important; border: none !important; background: transparent !important; color: #F8FAFC !important; font-family: inherit !important; font-size: 0.92rem !important; font-weight: 600 !important; line-height: 1.4 !important; outline: none !important; box-shadow: none !important; -webkit-appearance: none !important;">
+                        <button type="button" id="vipMonSearchClear" class="vip-mon-search-clear" aria-label="Xóa từ khóa" hidden style="flex-shrink: 0 !important; margin-left: 8px !important; width: 22px !important; height: 22px !important; border-radius: 50% !important; border: none !important; background: rgba(148, 163, 184, 0.22) !important; color: #F1F5F9 !important; font-size: 15px !important; line-height: 1 !important; cursor: pointer !important; display: inline-flex !important; align-items: center !important; justify-content: center !important;">&times;</button>
+                      </div>
+
+                      <ul class="vip-mon-list" id="vipMonList" role="listbox" aria-label="Danh sách môn thi đấu">
+                        <?php foreach ($dsMon as $idx => $m):
+                          $laChon = ((int) $m['MaMon'] === $mon);
+                          $laThem = ($idx >= $soMonHienMacDinh && !$laChon);
+                        ?>
+                          <li class="vip-mon-item<?= $laThem ? ' is-extra' : '' ?>"<?= $laThem ? ' data-extra="1" hidden' : '' ?>>
+                            <button type="button"
+                                    class="vip-mon-option<?= $laChon ? ' is-selected' : '' ?>"
+                                    role="option"
+                                    aria-selected="<?= $laChon ? 'true' : 'false' ?>"
+                                    data-id="<?= (int) $m['MaMon'] ?>"
+                                    data-ten="<?= e($m['TenMon']) ?>">
+                              <span class="vip-mon-opt-name"><?= e($m['TenMon']) ?></span>
+                              <?php if ($laChon): ?>
+                                <span class="vip-mon-opt-tag">✓ Đang chọn</span>
+                              <?php endif; ?>
+                            </button>
+                          </li>
+                        <?php endforeach; ?>
+                      </ul>
+
+                      <div class="vip-mon-empty" id="vipMonEmpty" hidden>
+                        <p class="vip-mon-empty-text">Không tìm thấy môn học nào khớp từ khóa.</p>
+                        <button type="button" class="vip-mon-empty-propose" id="btnEmptyProposeMon">➕ Đề xuất mở môn này ngay</button>
+                      </div>
+
+                      <?php if ($soMonAn > 0): ?>
+                        <button type="button" class="vip-mon-more-btn" id="btnVipMonMore" data-more-count="<?= $soMonAn ?>">
+                          <span class="more-text">Xem thêm +<?= $soMonAn ?> môn khác</span>
+                          <span class="more-arrow" aria-hidden="true">▼</span>
+                        </button>
+                      <?php endif; ?>
+
+                      <div class="vip-mon-dropdown-footer">
+                        <button type="button" class="vip-mon-propose-btn" id="btnDropdownProposeMon">
+                          <span>➕ Không có môn bạn cần? Đề xuất môn mới...</span>
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                  <noscript><p><button type="submit" class="btn btn-phu">Xác nhận môn</button></p></noscript>
                 </form>
 
                 <!-- Thanh Pill Gợi Ý Đề Xuất Môn Siêu Nổi Bật Chuẩn Cyber Gaming -->
@@ -1342,63 +1382,65 @@ $tatCaTuong = LoLChampions::DANH_SACH;
                 <?php endif; ?>
               </div>
 
-              <!-- Bước 2: Chọn hạng mục kỳ thi (Xếp ngang: Giữa kì, Cuối kì, Cả 2 theo kiểu tích trắc nghiệm) -->
-              <div class="deck-form-group">
+              <!-- Bước 2: Chọn hạng mục kỳ thi (Xếp ngang: Giữa kỳ, Cuối kỳ, Cả 2 theo kiểu tích trắc nghiệm) -->
+              <div class="deck-form-group" id="deckStep2Group">
                 <div class="deck-group-header">
                   <span class="step-num-badge">BƯỚC 02</span>
                   <label class="deck-group-title">HẠNG MỤC KỲ THI</label>
-                  <?php if ($monChon): ?><span class="deck-group-status ready">✓ Sẵn sàng: Trận <?= (int) $soCau ?> câu &middot; <?= (int) $thoiGianMoiCau ?>s/câu &middot; Hạn chờ <?= (int) $choToiDa ?>s</span><?php endif; ?>
+                  <span class="deck-group-status ready" id="step2HeaderStatus" style="<?= $monChon ? '' : 'display: none;' ?>"><?= $monChon ? '✓ Sẵn sàng: Trận ' . (int) $soCau . ' câu &middot; ' . (int) $thoiGianMoiCau . 's/câu &middot; Hạn chờ ' . (int) $choToiDa . 's' : '' ?></span>
                 </div>
-                <?php if ($monChon): ?>
-                  <form method="post" action="" class="form-arena-queue" id="formVaoHang">
-                    <?= csrf_field() ?>
-                    <input type="hidden" name="hanh_dong" value="vao">
-                    <input type="hidden" name="mon" value="<?= (int) $monChon['MaMon'] ?>">
-                    <input type="hidden" name="tuong_id" value="<?= e($tuongChonId) ?>">
+                <div id="deckStep2Container">
+                  <?php if ($monChon): ?>
+                    <form method="post" action="" class="form-arena-queue" id="formVaoHang">
+                      <?= csrf_field() ?>
+                      <input type="hidden" name="hanh_dong" value="vao">
+                      <input type="hidden" name="mon" value="<?= (int) $monChon['MaMon'] ?>">
+                      <input type="hidden" name="tuong_id" value="<?= e($tuongChonId) ?>">
 
-                    <?php 
-                      // Mặc định chọn mục đầu tiên đủ câu hỏi
-                      $firstEligible = null;
-                      foreach ($dsKT as $k) {
-                          if ($k['SoCau'] >= $soCau && $firstEligible === null) {
-                              $firstEligible = (int) $k['MaLoaiKT'];
-                          }
-                      }
-                      if ($firstEligible === null && !empty($dsKT)) {
-                          $firstEligible = (int) $dsKT[0]['MaLoaiKT'];
-                      }
-                    ?>
-                    <div class="exam-quiz-options">
-                      <?php foreach ($dsKT as $k): ?>
-                        <?php 
-                          $duCau = ($k['SoCau'] >= $soCau);
-                          $isDefChecked = ((int)$k['MaLoaiKT'] === $firstEligible);
-                        ?>
-                        <label class="exam-quiz-card <?= $isDefChecked ? 'is-selected' : '' ?> <?= !$duCau ? 'is-disabled' : '' ?>">
-                          <input type="radio" name="loaikt" value="<?= (int) $k['MaLoaiKT'] ?>" <?= $isDefChecked ? 'checked' : '' ?> <?= !$duCau ? 'disabled' : '' ?> class="quiz-radio-input" style="display:none;">
-                          <span class="quiz-radio-indicator" aria-hidden="true">
-                            <span class="quiz-radio-dot"></span>
-                          </span>
-                          <div class="quiz-opt-info">
-                            <span class="quiz-opt-title"><?= e($k['TenHienThi'] ?? $k['TenLoaiKT']) ?></span>
-                            <span class="quiz-opt-sub <?= $duCau ? 'ready' : 'lack' ?>">
-                              <?= (int) $k['SoCau'] ?> câu<?= $duCau ? ' khả dụng' : ' (Chưa đủ ' . $soCau . ')' ?>
+                      <?php 
+                        // Mặc định chọn mục đầu tiên đủ câu hỏi
+                        $firstEligible = null;
+                        foreach ($dsKT as $k) {
+                            if ($k['SoCau'] >= $soCau && $firstEligible === null) {
+                                $firstEligible = (int) $k['MaLoaiKT'];
+                            }
+                        }
+                        if ($firstEligible === null && !empty($dsKT)) {
+                            $firstEligible = (int) $dsKT[0]['MaLoaiKT'];
+                        }
+                      ?>
+                      <div class="exam-quiz-options">
+                        <?php foreach ($dsKT as $k): ?>
+                          <?php 
+                            $duCau = ($k['SoCau'] >= $soCau);
+                            $isDefChecked = ((int)$k['MaLoaiKT'] === $firstEligible);
+                          ?>
+                          <label class="exam-quiz-card <?= $isDefChecked ? 'is-selected' : '' ?> <?= !$duCau ? 'is-disabled' : '' ?>">
+                            <input type="radio" name="loaikt" value="<?= (int) $k['MaLoaiKT'] ?>" <?= $isDefChecked ? 'checked' : '' ?> <?= !$duCau ? 'disabled' : '' ?> class="quiz-radio-input" style="display:none;">
+                            <span class="quiz-radio-indicator" aria-hidden="true">
+                              <span class="quiz-radio-dot"></span>
                             </span>
-                          </div>
-                        </label>
-                      <?php endforeach; ?>
-                    </div>
+                            <div class="quiz-opt-info">
+                              <span class="quiz-opt-title"><?= e($k['TenHienThi'] ?? $k['TenLoaiKT']) ?></span>
+                              <span class="quiz-opt-sub <?= $duCau ? 'ready' : 'lack' ?>">
+                                <?= (int) $k['SoCau'] ?> câu<?= $duCau ? ' khả dụng' : ' (Chưa đủ ' . $soCau . ')' ?>
+                              </span>
+                            </div>
+                          </label>
+                        <?php endforeach; ?>
+                      </div>
 
-                    <?php $coThe = array_filter($dsKT, fn($k) => $k['SoCau'] >= $soCau); ?>
-                    <?php if (!$coThe): ?>
-                      <div class="alert-box-warning">⚠️ Môn này chưa đủ <?= $soCau ?> câu hỏi để thi đấu.</div>
-                    <?php endif; ?>
-                  </form>
-                <?php else: ?>
-                  <div class="control-disabled-notice">
-                    <span class="lock-icon">🔒</span> Vui lòng chọn môn học ở Bước 1 để mở khóa hạng mục kỳ thi
-                  </div>
-                <?php endif; ?>
+                      <?php $coThe = array_filter($dsKT, fn($k) => $k['SoCau'] >= $soCau); ?>
+                      <?php if (!$coThe): ?>
+                        <div class="alert-box-warning">⚠️ Môn này chưa đủ <?= $soCau ?> câu hỏi để thi đấu.</div>
+                      <?php endif; ?>
+                    </form>
+                  <?php else: ?>
+                    <div class="control-disabled-notice">
+                      <span class="lock-icon">🔒</span> Vui lòng chọn môn học ở Bước 1 để mở khóa hạng mục kỳ thi
+                    </div>
+                  <?php endif; ?>
+                </div>
               </div>
             </div>
 
@@ -1412,7 +1454,7 @@ $tatCaTuong = LoLChampions::DANH_SACH;
 
                 <div class="mode-cards-grid">
                   <!-- THẺ 1: ĐẤU HẠNG PVP (NGƯỜI THẬT) -->
-                  <div class="mode-selection-card active" id="modeCardPvp" data-mode="pvp" role="button" tabindex="0" title="Bấm để chọn Đấu Hạng Người Thật">
+                  <div class="mode-selection-card active" id="modeCardPvp" data-mode="pvp" role="button" tabindex="0">
                     <div class="mode-card-radio-indicator">
                       <span class="mode-radio-dot"></span>
                     </div>
@@ -1429,7 +1471,7 @@ $tatCaTuong = LoLChampions::DANH_SACH;
                   </div>
 
                   <!-- THẺ 2: LUYỆN TẬP VỚI MÁY (SOLO BOT) -->
-                  <div class="mode-selection-card" id="modeCardBot" data-mode="bot" role="button" tabindex="0" title="Bấm để chọn Luyện Tập Với Máy">
+                  <div class="mode-selection-card" id="modeCardBot" data-mode="bot" role="button" tabindex="0">
                     <div class="mode-card-radio-indicator">
                       <span class="mode-radio-dot"></span>
                     </div>
@@ -1446,7 +1488,7 @@ $tatCaTuong = LoLChampions::DANH_SACH;
                   </div>
 
                   <!-- THẺ 3: PHÒNG THÁCH ĐẤU BẠN BÈ (MÃ PIN) -->
-                  <div class="mode-selection-card" id="modeCardPin" data-mode="pin" role="button" tabindex="0" title="Bấm để tạo phòng hoặc nhập mã PIN thách đấu bạn bè 1v1">
+                  <div class="mode-selection-card" id="modeCardPin" data-mode="pin" role="button" tabindex="0">
                     <div class="mode-card-radio-indicator">
                       <span class="mode-radio-dot"></span>
                     </div>
@@ -1563,7 +1605,7 @@ $tatCaTuong = LoLChampions::DANH_SACH;
               </div>
 
             <!-- NÚT BẤM HÀNH ĐỘNG DUY NHẤT: BẮT ĐẦU TÌM ĐỐI THỦ HOẶC VÀO ĐẤU MÁY (1 NÚT TO BẢN, RÕ RÀNG) -->
-            <div class="deck-cta-block">
+            <div class="deck-cta-block" id="deckCtaBlock">
               <?php if ($monChon): ?>
                 <?php if ($maND === null): ?>
                   <a class="btn-quick-match vip-pro-btn" href="<?= e(BASE_URL) ?>/client/dangnhap.php">
@@ -1630,7 +1672,7 @@ $tatCaTuong = LoLChampions::DANH_SACH;
                 <div class="stage-champ-role"><?= e($tuongHienTai['vaiTro']) ?> &middot; <?= e($tuongHienTai['monHoc']) ?></div>
 
                 <!-- Cây Thông Thạo & EXP Tiến Hóa -->
-                <div class="stage-champ-mastery-box">
+                <div class="stage-champ-mastery-box" title="Quy tắc EXP: Chỉ khi CHIẾN THẮNG mới nhận được +160 EXP để nâng cấp/tiến hóa Đấu Thần. Thua hoặc Hòa nhận +0 EXP.">
                   <div class="sc-mastery-top">
                     <span class="sc-mastery-pill <?= e($thongThaoHienTai['cssClass']) ?>">
                       <?= $thongThaoHienTai['iconCap'] ?> Cấp <?= $thongThaoHienTai['capDo'] ?> &middot; <?= e($thongThaoHienTai['danhHieuCap']) ?>
@@ -1639,6 +1681,10 @@ $tatCaTuong = LoLChampions::DANH_SACH;
                   </div>
                   <div class="sc-exp-track">
                     <div class="sc-exp-fill <?= e($thongThaoHienTai['cssClass']) ?>" style="width: <?= (int) $thongThaoHienTai['phanTram'] ?>%;"></div>
+                  </div>
+                  <div class="sc-exp-rule-hint" style="font-size: 0.68rem; color: #94A3B8; margin-top: 4px; display: flex; align-items: center; justify-content: space-between;">
+                    <span>⚡ Nâng cấp: <strong>Chỉ thắng mới cộng EXP</strong> (+160 EXP)</span>
+                    <span>Thắng: <?= (int) $thongThaoHienTai['soTranThang'] ?>/<?= (int) $thongThaoHienTai['soTranDau'] ?></span>
                   </div>
                 </div>
               </div>

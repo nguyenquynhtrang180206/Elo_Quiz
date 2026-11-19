@@ -10,7 +10,7 @@
   background:linear-gradient(180deg, rgba(228,233,248,.96), rgba(211,219,241,.95));
   border:1px solid rgba(255,255,255,.45); box-shadow:0 24px 60px rgba(0,0,0,.35);
 }
-.cf-trang h2 { margin:0; font-size:26px; line-height:1.2; color:var(--cf-chu); text-shadow:none; }
+.cf-trang h2 { margin:0; font-size:26px; line-height:1.35; padding:1px 0; color:var(--cf-chu); text-shadow:none; }
 .cf-trang p  { margin:0; color:inherit; }
 .cf-trang a  { text-shadow:none; }
 .cf-quaylai  { display:inline-block; margin-bottom:2px; color:var(--cf-phu); font-size:14px; text-decoration:none; }

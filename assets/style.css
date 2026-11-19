@@ -42,7 +42,7 @@ body {
 }
 a { color:var(--light-cyan); text-decoration:none; transition:color .2s, text-shadow .2s; }
 a:hover { color:#fff; text-shadow:0 0 10px var(--cyan); text-decoration:none; }
-h1,h2,h3,h4 { line-height:1.25; text-shadow:0 0 22px rgba(0,217,255,.25); }
+h1,h2,h3,h4 { line-height:1.35; text-shadow:0 0 22px rgba(0,217,255,.25); }
 ::selection { background:rgba(139,53,255,.55); color:#fff; }
 :focus-visible { outline:2px solid var(--cyan); outline-offset:2px; }
 
@@ -903,3 +903,12 @@ label { display:block; margin:10px 0 4px; font-weight:600; color:var(--light-cya
 .qt-lydo { min-width:240px; flex:1 1 240px; }
 
 .btn-do { border-color:rgba(255,100,120,.6); color:#ff9aa8; }
+
+/* VIP Subject Picker Flex Search Input Reset */
+.vip-mon-search-box input,
+.vip-mon-search-input {
+  width: auto !important;
+  padding: 0 !important;
+  border: none !important;
+  background: transparent !important;
+}

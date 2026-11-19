@@ -149,7 +149,8 @@ class ThiDau
                     continue;
                 }
                 $laThang = ($r['KetQua'] === 'Thắng');
-                $exp = $laThang ? 160 : ($r['KetQua'] === 'Hòa' ? 100 : 60);
+                // Quy tắc nâng cấp: Chỉ khi chiến thắng mới được cộng EXP để lên hạng Đấu Thần (Thua hoặc Hòa: +0 EXP)
+                $exp = $laThang ? 160 : 0;
                 $stT = $pdo->prepare('SELECT TuongChon FROM NGUOIDUNG WHERE MaND = ?');
                 $stT->execute([$nd]);
                 $tuongId = (string) ($stT->fetchColumn() ?: 'sunflower');   // tướng xuất chiến lưu trong CSDL
@@ -283,8 +284,9 @@ class ThiDau
                 $st->execute([(int) $dong['MaCauHoi']]);
                 $noiDung = (string) $st->fetchColumn();
                 // Chỉ lấy mã và nội dung đáp án, không lấy LaDapAnDung
-                $st = $pdo->prepare('SELECT MaDapAn, NoiDungDapAn FROM DAPAN WHERE MaCauHoi = ? ORDER BY MaDapAn');
-                $st->execute([(int) $dong['MaCauHoi']]);
+                // Trộn ngẫu nhiên đáp án A, B, C, D công bằng & đồng bộ cho cả hai đấu thủ theo mã trận
+                $st = $pdo->prepare("SELECT MaDapAn, NoiDungDapAn FROM DAPAN WHERE MaCauHoi = ? ORDER BY MD5(CONCAT(?, '_', MaDapAn))");
+                $st->execute([(int) $dong['MaCauHoi'], $maTran]);
                 $dapAn = [];
                 foreach ($st->fetchAll() as $d) {
                     $dapAn[] = ['id' => (int) $d['MaDapAn'], 'noiDung' => $d['NoiDungDapAn']];

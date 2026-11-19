@@ -181,7 +181,7 @@
   font: inherit; font-size: 14px; text-align: left; cursor: pointer; box-shadow: none; text-shadow: none;
 }
 .cdm-dd.mo .cdm-dd-nut, .cdm-dd-nut:focus-visible { border-color: #9bbcff; outline: 2px solid #dbe7ff; }
-.cdm-dd-chu { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cdm-dd-chu { flex: 1; min-width: 0; line-height: 1.4; padding: 1px 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cdm-dd-nut svg { flex: none; color: var(--phu); transition: transform .15s; }
 .cdm-dd.mo .cdm-dd-nut svg { transform: rotate(180deg); }
 .cdm-dd-bang {

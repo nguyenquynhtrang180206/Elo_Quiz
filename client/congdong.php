@@ -725,7 +725,7 @@ require __DIR__ . '/layout/header.php';
       <span class="pet-corner br" aria-hidden="true"></span>
 
       <!-- Thanh tiêu đề thu gọn: click vào để mở rộng / thu gọn form -->
-      <div class="cd-write-header" id="cd-write-toggle" role="button" tabindex="0" aria-expanded="<?= $moFormSan ? 'true' : 'false' ?>" title="Bấm để mở rộng hoặc thu gọn form viết bài">
+      <div class="cd-write-header" id="cd-write-toggle" role="button" tabindex="0" aria-expanded="<?= $moFormSan ? 'true' : 'false' ?>">
         <div class="cd-write-header-left">
           <span class="cd-write-icon" aria-hidden="true">
             <svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="#FDE047" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2.5l3.5 3.5-10 10H4v-3.5l10-10z"/><path d="M11.5 5l3.5 3.5"/></svg>
