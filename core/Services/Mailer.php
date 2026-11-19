@@ -12,9 +12,45 @@ class Mailer
      */
     public static function guiOtpQuenMatKhau(string $toEmail, string $hoTen, string $otp): array
     {
-        $tieuDe = "[QuizUp Arena] Mã xác thực OTP khôi phục mật khẩu: {$otp}";
+        return self::guiOtpEmail(
+            $toEmail,
+            $hoTen,
+            $otp,
+            "[QuizUp Arena] Mã xác thực OTP khôi phục mật khẩu: {$otp}",
+            'Xác thực khôi phục mật khẩu 🔐',
+            'Hệ thống vừa nhận được yêu cầu đặt lại mật khẩu cho tài khoản gắn với email này. Dưới đây là mã bảo mật OTP 6 chữ số của bạn:',
+            'Nếu bạn không thực hiện yêu cầu này, vui lòng bỏ qua email. Mật khẩu hiện tại của bạn vẫn được giữ an toàn.'
+        );
+    }
 
-        // Template HTML Email phong cách Esports Đẳng Cấp
+    /**
+     * Gửi mã OTP xác thực đăng ký tài khoản mới đến email người dùng
+     */
+    public static function guiOtpDangKy(string $toEmail, string $hoTen, string $otp): array
+    {
+        return self::guiOtpEmail(
+            $toEmail,
+            $hoTen,
+            $otp,
+            "[QuizUp Arena] Mã xác thực OTP đăng ký tài khoản: {$otp}",
+            'Xác thực đăng ký tài khoản ✨',
+            'Cảm ơn bạn đã đăng ký tham gia Đấu Trường Tri Thức! Dưới đây là mã bảo mật OTP 6 chữ số để kích hoạt tài khoản của bạn:',
+            'Nếu bạn không thực hiện đăng ký tài khoản bằng email này, vui lòng bỏ qua thư này.'
+        );
+    }
+
+    /**
+     * Dùng chung template Esports để gửi Email chứa mã OTP 6 số
+     */
+    private static function guiOtpEmail(
+        string $toEmail,
+        string $hoTen,
+        string $otp,
+        string $tieuDe,
+        string $tieuDeHop,
+        string $moTa,
+        string $loiNhacCuoi
+    ): array {
         $noiDungHtml = '
 <!DOCTYPE html>
 <html lang="vi">
@@ -42,13 +78,13 @@ class Mailer
           <tr>
             <td style="padding:28px 28px 24px;">
               <h2 style="margin:0 0 12px; font-size:18px; color:#FFFFFF; font-weight:700;">
-                Xác thực khôi phục mật khẩu 🔐
+                ' . htmlspecialchars($tieuDeHop, ENT_QUOTES, 'UTF-8') . '
               </h2>
               <p style="margin:0 0 14px; font-size:14.5px; line-height:1.6; color:#CBD5E1;">
                 Xin chào <strong style="color:#FFFFFF;">' . htmlspecialchars($hoTen, ENT_QUOTES, 'UTF-8') . '</strong>,
               </p>
               <p style="margin:0 0 20px; font-size:14.5px; line-height:1.6; color:#94A3B8;">
-                Hệ thống vừa nhận được yêu cầu đặt lại mật khẩu cho tài khoản gắn với email này. Dưới đây là mã bảo mật OTP 6 chữ số của bạn:
+                ' . htmlspecialchars($moTa, ENT_QUOTES, 'UTF-8') . '
               </p>
               
               <!-- Khung hiển thị OTP -->
@@ -68,7 +104,7 @@ class Mailer
                 ⚠️ <strong>Lưu ý an toàn:</strong> Tuyệt đối không chia sẻ mã này cho bất kỳ ai, kể cả quản trị viên để bảo vệ tài khoản của bạn.
               </p>
               <p style="margin:0; font-size:13px; line-height:1.5; color:#64748B;">
-                Nếu bạn không thực hiện yêu cầu này, vui lòng bỏ qua email. Mật khẩu hiện tại của bạn vẫn được giữ an toàn.
+                ' . htmlspecialchars($loiNhacCuoi, ENT_QUOTES, 'UTF-8') . '
               </p>
             </td>
           </tr>
