@@ -40,6 +40,22 @@ class Mailer
     }
 
     /**
+     * Gửi mã OTP xác thực khôi phục mật khẩu Quản trị viên
+     */
+    public static function guiOtpQuenMatKhauAdmin(string $toEmail, string $hoTen, string $tenDangNhap, string $otp): array
+    {
+        return self::guiOtpEmail(
+            $toEmail,
+            $hoTen . ' (' . $tenDangNhap . ')',
+            $otp,
+            "[QuizUp Arena - Quản Trị] Mã xác thực OTP khôi phục mật khẩu Admin: {$otp}",
+            'Khôi phục mật khẩu Quản trị viên 🛡️',
+            "Hệ thống vừa nhận được yêu cầu đặt lại mật khẩu cho tài khoản Quản trị viên ({$tenDangNhap}). Dưới đây là mã bảo mật OTP 6 chữ số của bạn:",
+            'Nếu bạn không thực hiện yêu cầu này, vui lòng bỏ qua email. Mật khẩu quản trị hiện tại vẫn được giữ an toàn.'
+        );
+    }
+
+    /**
      * Dùng chung template Esports để gửi Email chứa mã OTP 6 số
      */
     private static function guiOtpEmail(

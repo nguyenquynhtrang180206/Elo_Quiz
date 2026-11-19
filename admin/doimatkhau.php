@@ -39,22 +39,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $loiManh = PasswordSecurity::kiemTraDoManh($moi, ['tenDangNhap' => $ad['TenDangNhap']]);
             if ($loiManh) {
                 $loi = array_merge($loi, $loiManh);
+            } else {
+                $canhBaoLichSu = PasswordSecurity::kiemTraLichSuAdmin($pdo, $maAdmin, $moi);
+                if ($canhBaoLichSu !== null) {
+                    $loi[] = $canhBaoLichSu['thongBao'];
+                }
             }
         }
     }
 
     if (!$loi) {
-        // Băm mật khẩu mới bằng chuẩn siêu bảo mật (Argon2id hoặc Bcrypt cost 12).
-        // Điều kiện MatKhau = giá trị vừa kiểm tra: nếu phiên khác vừa đổi mật khẩu thì không ghi đè nhầm.
-        $st = $pdo->prepare('UPDATE ADMIN SET MatKhau = ? WHERE MaAdmin = ? AND MatKhau = ?');
-        $st->execute([PasswordSecurity::hash($moi), $maAdmin, $bam]);
-        if ($st->rowCount() === 1) {
-            NhatKy::ghi('Đổi mật khẩu', 'ADMIN #' . $maAdmin);
-            Auth::regenerate();
-            $thanhCong = true;
-        } else {
-            $loi[] = 'Mật khẩu vừa được thay đổi ở nơi khác. Hãy thử lại.';
-        }
+        // Băm mật khẩu mới bằng chuẩn siêu bảo mật (Argon2id hoặc Bcrypt cost 12) & lưu lịch sử 5 mật khẩu gần nhất.
+        $hashMoi = PasswordSecurity::hash($moi);
+        PasswordSecurity::ghiNhanDoiMatKhauAdmin($pdo, $maAdmin, $hashMoi);
+        NhatKy::ghi('Đổi mật khẩu', 'ADMIN #' . $maAdmin);
+        Auth::regenerate();
+        $thanhCong = true;
     }
 }
 

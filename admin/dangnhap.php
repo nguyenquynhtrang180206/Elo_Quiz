@@ -8,7 +8,7 @@ if (Auth::adminId() !== null) {
 }
 
 $loi         = [];
-$tenDangNhap = '';
+$tenDangNhap = trim((string) ($_GET['ten_dang_nhap'] ?? ''));
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_check();
@@ -115,7 +115,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <label for="ten_dang_nhap">Tên đăng nhập</label>
       <input type="text" id="ten_dang_nhap" name="ten_dang_nhap" maxlength="50" value="<?= e($tenDangNhap) ?>" required autofocus>
 
-      <label for="mat_khau">Mật khẩu</label>
+      <div class="hang-mat-khau-header">
+        <label for="mat_khau">Mật khẩu</label>
+        <a href="<?= e(BASE_URL) ?>/admin/quenmatkhau.php" class="link-quen-mk" tabindex="3">Quên mật khẩu?</a>
+      </div>
       <div class="pw-field-wrap">
         <input type="password" id="mat_khau" name="mat_khau" required placeholder="Nhập mật khẩu quản trị">
         <button type="button" class="btn-toggle-pw" aria-label="Hiện/ẩn mật khẩu" tabindex="-1">

@@ -68,9 +68,9 @@ class NhatKy
     }
 
     public static function ghi(string $hanhDong, ?string $doiTuong = null, ?string $moTa = null,
-                               string $trangThai = 'Thành công'): void
+                               string $trangThai = 'Thành công', ?int $maAdminGhi = null): void
     {
-        $maAdmin = Auth::adminId();
+        $maAdmin = $maAdminGhi ?? Auth::adminId();
         if ($maAdmin === null) {
             throw new RuntimeException('Chỉ quản trị viên đã đăng nhập mới ghi được nhật ký.');
         }

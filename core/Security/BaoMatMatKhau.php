@@ -207,92 +207,165 @@ class BaoMatMatKhau
      */
     public static function kiemTraLichSu(PDO $pdo, int $maND, string $matKhauMoi, ?array $nd = null): ?array
     {
-        if ($nd === null) {
-            $st = $pdo->prepare('SELECT MatKhau, NgayDoiMatKhau, NgayTao FROM nguoidung WHERE MaND = ?');
-            $st->execute([$maND]);
-            $nd = $st->fetch(PDO::FETCH_ASSOC);
+        return self::kiemTraLichSuChung(
+            $pdo,
+            'nguoidung',
+            'MaND',
+            'lichsu_matkhau',
+            $maND,
+            $matKhauMoi,
+            $nd,
+            'mật khẩu bạn đang sử dụng',
+            'Mật khẩu này bạn đã từng sử dụng gần đây'
+        );
+    }
+
+    /**
+     * Kiểm tra mật khẩu mới của Quản trị viên với mật khẩu hiện tại và 3 mật khẩu gần nhất.
+     */
+    public static function kiemTraLichSuAdmin(PDO $pdo, int $maAdmin, string $matKhauMoi, ?array $ad = null): ?array
+    {
+        return self::kiemTraLichSuChung(
+            $pdo,
+            'ADMIN',
+            'MaAdmin',
+            'LICHSU_MATKHAU_ADMIN',
+            $maAdmin,
+            $matKhauMoi,
+            $ad,
+            'mật khẩu quản trị đang sử dụng',
+            'Mật khẩu quản trị này đã từng được sử dụng gần đây'
+        );
+    }
+
+    /**
+     * Logic dùng chung để kiểm tra mật khẩu hiện tại và 3 mật khẩu gần nhất trong lịch sử.
+     */
+    private static function kiemTraLichSuChung(
+        PDO $pdo,
+        string $bangTaiKhoan,
+        string $cotId,
+        string $bangLichSu,
+        int $id,
+        string $matKhauMoi,
+        ?array $dongHienTai,
+        string $nhanHienTai,
+        string $nhanLichSu
+    ): ?array {
+        if ($dongHienTai === null) {
+            $st = $pdo->prepare("SELECT MatKhau, NgayDoiMatKhau, NgayTao FROM {$bangTaiKhoan} WHERE {$cotId} = ?");
+            $st->execute([$id]);
+            $dongHienTai = $st->fetch(PDO::FETCH_ASSOC);
         }
 
-        if (!$nd || empty($nd['MatKhau'])) {
+        if (!$dongHienTai || empty($dongHienTai['MatKhau'])) {
             return null;
         }
 
         // 1. Kiểm tra trùng mật khẩu hiện tại
-        if (self::verify($matKhauMoi, $nd['MatKhau'])) {
-            $thoiDiem = $nd['NgayDoiMatKhau'] ?: ($nd['NgayTao'] ?: date('Y-m-d H:i:s'));
+        if (self::verify($matKhauMoi, $dongHienTai['MatKhau'])) {
+            $thoiDiem   = $dongHienTai['NgayDoiMatKhau'] ?: ($dongHienTai['NgayTao'] ?: date('Y-m-d H:i:s'));
             $khoangCach = self::tinhKhoangCachThoiGian($thoiDiem);
-            $ngayStr = date('d/m/Y', strtotime($thoiDiem));
+            $ngayStr    = date('d/m/Y', strtotime($thoiDiem));
 
             return [
                 'loai'          => 'hien_tai',
                 'ngay'          => $ngayStr,
                 'khoangCach'    => $khoangCach,
-                'thongBao'      => "Mật khẩu mới không được trùng với mật khẩu bạn đang sử dụng (được đặt từ ngày {$ngayStr} - cách đây {$khoangCach}). Có vẻ bạn vẫn nhớ mật khẩu này? Bạn có thể đăng nhập ngay.",
+                'thongBao'      => "Mật khẩu mới không được trùng với {$nhanHienTai} (được đặt từ ngày {$ngayStr} - cách đây {$khoangCach}). Có vẻ bạn vẫn nhớ mật khẩu này? Bạn có thể đăng nhập ngay.",
                 'coTheDangNhap' => true,
             ];
         }
 
         // 2. Kiểm tra trùng 3 mật khẩu gần nhất trong lịch sử (NIST recommendation)
         try {
-            $st = $pdo->prepare('SELECT MatKhauHash, NgayTao FROM lichsu_matkhau WHERE MaND = ? ORDER BY NgayTao DESC, MaLS DESC LIMIT 3');
-            $st->execute([$maND]);
+            $st = $pdo->prepare(
+                "SELECT MatKhauHash, NgayTao FROM {$bangLichSu} WHERE {$cotId} = ? ORDER BY NgayTao DESC, MaLS DESC LIMIT 3"
+            );
+            $st->execute([$id]);
             $lichSu = $st->fetchAll(PDO::FETCH_ASSOC);
 
             foreach ($lichSu as $ls) {
                 if (self::verify($matKhauMoi, $ls['MatKhauHash'])) {
                     $khoangCach = self::tinhKhoangCachThoiGian($ls['NgayTao']);
-                    $ngayStr = date('d/m/Y', strtotime($ls['NgayTao']));
+                    $ngayStr    = date('d/m/Y', strtotime($ls['NgayTao']));
 
                     return [
                         'loai'          => 'lich_su',
                         'ngay'          => $ngayStr,
                         'khoangCach'    => $khoangCach,
-                        'thongBao'      => "Mật khẩu này bạn đã từng sử dụng gần đây (ngày {$ngayStr} - cách đây {$khoangCach}). Vì an toàn bảo mật, vui lòng không sử dụng lại 3 mật khẩu gần nhất.",
+                        'thongBao'      => "{$nhanLichSu} (ngày {$ngayStr} - cách đây {$khoangCach}). Vì an toàn bảo mật, vui lòng không sử dụng lại 3 mật khẩu gần nhất.",
                         'coTheDangNhap' => false,
                     ];
                 }
             }
         } catch (Throwable) {
-            // Bỏ qua lỗi nếu bảng chưa sẵn sàng
+            // Bỏ qua lỗi nếu bảng lịch sử chưa sẵn sàng
         }
 
         return null;
     }
 
     /**
-     * Ghi nhận đổi mật khẩu an toàn:
-     * - Lưu hash mật khẩu cũ vào bảng lịch sử (giữ tối đa 5 bản ghi gần nhất).
-     * - Cập nhật mật khẩu mới và thời điểm đổi trong bảng nguoidung.
+     * Ghi nhận đổi mật khẩu an toàn cho sinh viên.
      */
     public static function ghiNhanDoiMatKhau(PDO $pdo, int $maND, string $hashMoi): void
     {
+        self::ghiNhanDoiMatKhauChung($pdo, 'nguoidung', 'MaND', 'lichsu_matkhau', $maND, $hashMoi);
+    }
+
+    /**
+     * Ghi nhận đổi/khôi phục mật khẩu an toàn cho quản trị viên (kèm cập nhật Email nếu có).
+     */
+    public static function ghiNhanDoiMatKhauAdmin(PDO $pdo, int $maAdmin, string $hashMoi, ?string $emailCapNhat = null): void
+    {
+        self::ghiNhanDoiMatKhauChung($pdo, 'ADMIN', 'MaAdmin', 'LICHSU_MATKHAU_ADMIN', $maAdmin, $hashMoi, $emailCapNhat);
+    }
+
+    /**
+     * Lưu hash mật khẩu cũ vào lịch sử (tối đa 5 bản ghi) và cập nhật mật khẩu mới.
+     */
+    private static function ghiNhanDoiMatKhauChung(
+        PDO $pdo,
+        string $bangTaiKhoan,
+        string $cotId,
+        string $bangLichSu,
+        int $id,
+        string $hashMoi,
+        ?string $emailCapNhat = null
+    ): void {
         try {
-            $st = $pdo->prepare('SELECT MatKhau, NgayDoiMatKhau, NgayTao FROM nguoidung WHERE MaND = ?');
-            $st->execute([$maND]);
+            $st = $pdo->prepare("SELECT MatKhau, NgayDoiMatKhau, NgayTao FROM {$bangTaiKhoan} WHERE {$cotId} = ?");
+            $st->execute([$id]);
             $cur = $st->fetch(PDO::FETCH_ASSOC);
 
             if ($cur && !empty($cur['MatKhau'])) {
                 $ngayCu = $cur['NgayDoiMatKhau'] ?: ($cur['NgayTao'] ?: date('Y-m-d H:i:s'));
-                $ins = $pdo->prepare('INSERT INTO lichsu_matkhau (MaND, MatKhauHash, NgayTao) VALUES (?, ?, ?)');
-                $ins->execute([$maND, $cur['MatKhau'], $ngayCu]);
+                $ins = $pdo->prepare("INSERT INTO {$bangLichSu} ({$cotId}, MatKhauHash, NgayTao) VALUES (?, ?, ?)");
+                $ins->execute([$id, $cur['MatKhau'], $ngayCu]);
 
                 // Giữ tối đa 5 bản ghi gần nhất trong lịch sử
-                $del = $pdo->prepare('
-                    DELETE FROM lichsu_matkhau 
-                    WHERE MaND = ? AND MaLS NOT IN (
-                        SELECT MaLS FROM (
-                            SELECT MaLS FROM lichsu_matkhau WHERE MaND = ? ORDER BY NgayTao DESC, MaLS DESC LIMIT 5
-                        ) t
-                    )
-                ');
-                $del->execute([$maND, $maND]);
+                $del = $pdo->prepare(
+                    "DELETE FROM {$bangLichSu}
+                      WHERE {$cotId} = ? AND MaLS NOT IN (
+                          SELECT MaLS FROM (
+                              SELECT MaLS FROM {$bangLichSu} WHERE {$cotId} = ? ORDER BY NgayTao DESC, MaLS DESC LIMIT 5
+                          ) t
+                      )"
+                );
+                $del->execute([$id, $id]);
             }
         } catch (Throwable) {
             // Bỏ qua lỗi lưu lịch sử nếu có sự cố
         }
 
-        $up = $pdo->prepare('UPDATE nguoidung SET MatKhau = ?, NgayDoiMatKhau = NOW() WHERE MaND = ?');
-        $up->execute([$hashMoi, $maND]);
+        if ($emailCapNhat !== null && $emailCapNhat !== '') {
+            $up = $pdo->prepare("UPDATE {$bangTaiKhoan} SET MatKhau = ?, NgayDoiMatKhau = NOW(), Email = ? WHERE {$cotId} = ?");
+            $up->execute([$hashMoi, $emailCapNhat, $id]);
+        } else {
+            $up = $pdo->prepare("UPDATE {$bangTaiKhoan} SET MatKhau = ?, NgayDoiMatKhau = NOW() WHERE {$cotId} = ?");
+            $up->execute([$hashMoi, $id]);
+        }
     }
 }
 

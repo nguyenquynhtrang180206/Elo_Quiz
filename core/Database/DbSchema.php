@@ -3,7 +3,7 @@
 // Chạy đúng 1 lần cho mỗi phiên bản (đánh dấu bằng CAUHINH.SCHEMA_VERSION), các request sau chỉ tốn 1 truy vấn nhẹ.
 class DbSchema
 {
-    public const PHIEN_BAN = '4';
+    public const PHIEN_BAN = '6';
     private static bool $daKiemTra = false;
 
     public static function damBao(PDO $pdo): void
@@ -29,17 +29,33 @@ class DbSchema
 
     private static function coCot(PDO $pdo, string $bang, string $cot): bool
     {
-        $st = $pdo->prepare(
-            'SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?'
-        );
-        $st->execute([$bang, $cot]);
-        return (bool) $st->fetchColumn();
+        try {
+            $st = $pdo->prepare(
+                'SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+                  WHERE TABLE_SCHEMA = DATABASE()
+                    AND LOWER(TABLE_NAME) = LOWER(?)
+                    AND LOWER(COLUMN_NAME) = LOWER(?)'
+            );
+            $st->execute([$bang, $cot]);
+            return (bool) $st->fetchColumn();
+        } catch (Throwable) {
+            return false;
+        }
     }
 
     private static function themCot(PDO $pdo, string $bang, string $cot, string $dinhNghia): void
     {
         if (!self::coCot($pdo, $bang, $cot)) {
-            $pdo->exec("ALTER TABLE `$bang` ADD COLUMN `$cot` $dinhNghia");
+            self::thucThiAnToan($pdo, "ALTER TABLE `$bang` ADD COLUMN `$cot` $dinhNghia");
+        }
+    }
+
+    private static function thucThiAnToan(PDO $pdo, string $sql): void
+    {
+        try {
+            $pdo->exec($sql);
+        } catch (Throwable $e) {
+            error_log('DbSchema DDL: ' . $e->getMessage());
         }
     }
 
@@ -58,9 +74,7 @@ class DbSchema
         // 3. Cột mở rộng bảng MONHOC (hỗ trợ sinh viên đề xuất môn)
         self::themCot($pdo, 'MONHOC', 'MaNguoiDeXuat', 'INT UNSIGNED NULL');
         self::themCot($pdo, 'MONHOC', 'NgayDeXuat', 'DATETIME NULL DEFAULT CURRENT_TIMESTAMP');
-        try {
-            $pdo->exec("ALTER TABLE MONHOC MODIFY TrangThai ENUM('Đang mở','Đã ẩn','Chờ duyệt') NOT NULL DEFAULT 'Đang mở'");
-        } catch (Throwable $e) { /* Bỏ qua nếu enum đã cập nhật */ }
+        self::thucThiAnToan($pdo, "ALTER TABLE MONHOC MODIFY TrangThai ENUM('Đang mở','Đã ẩn','Chờ duyệt') NOT NULL DEFAULT 'Đang mở'");
 
         // 4. Cột mở rộng bảng BAIDANG & BINHLUAN (phân loại bài đăng, ẩn bài/bình luận, phản hồi đa cấp)
         self::themCot($pdo, 'BAIDANG', 'LoaiBai', "ENUM('Thảo luận','Hỏi đáp','Chia sẻ mẹo','Tìm bạn ôn thi','Khác') NOT NULL DEFAULT 'Thảo luận'");
@@ -73,7 +87,7 @@ class DbSchema
         self::themCot($pdo, 'NHATKYQUANTRI', 'TrangThai', "ENUM('Thành công','Thất bại') NOT NULL DEFAULT 'Thành công'");
 
         // 6. Bảng PHONGTHACHDAU (Thách đấu bạn bè 1v1 bằng mã PIN)
-        $pdo->exec("CREATE TABLE IF NOT EXISTS PHONGTHACHDAU (
+        self::thucThiAnToan($pdo, "CREATE TABLE IF NOT EXISTS PHONGTHACHDAU (
             MaPhong      INT UNSIGNED NOT NULL AUTO_INCREMENT,
             MaPin        VARCHAR(10)  NOT NULL,
             ChuPhongND   INT UNSIGNED NOT NULL,
@@ -90,7 +104,7 @@ class DbSchema
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
         // 7. Bảng THONGTHAOTUONG (EXP / Cấp độ tướng xuất chiến)
-        $pdo->exec("CREATE TABLE IF NOT EXISTS THONGTHAOTUONG (
+        self::thucThiAnToan($pdo, "CREATE TABLE IF NOT EXISTS THONGTHAOTUONG (
             MaND        INT UNSIGNED NOT NULL,
             TuongId     VARCHAR(40)  NOT NULL,
             CapDo       TINYINT UNSIGNED NOT NULL DEFAULT 1,
@@ -103,7 +117,7 @@ class DbSchema
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
         // 8. Bảng PHATAFK (Quản lý án phạt cấm tìm trận AFK)
-        $pdo->exec("CREATE TABLE IF NOT EXISTS PHATAFK (
+        self::thucThiAnToan($pdo, "CREATE TABLE IF NOT EXISTS PHATAFK (
             MaPhat    INT UNSIGNED NOT NULL AUTO_INCREMENT,
             MaND      INT UNSIGNED NOT NULL,
             LyDo      VARCHAR(255) NOT NULL,
@@ -117,7 +131,7 @@ class DbSchema
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
         // 9. Bảng GIOIHANDANGNHAP (Chống dò mật khẩu Brute-force)
-        $pdo->exec("CREATE TABLE IF NOT EXISTS GIOIHANDANGNHAP (
+        self::thucThiAnToan($pdo, "CREATE TABLE IF NOT EXISTS GIOIHANDANGNHAP (
             Khoa      CHAR(64)     NOT NULL,
             HanhDong  VARCHAR(30)  NOT NULL,
             DinhDanh  VARCHAR(150) NOT NULL,
@@ -129,7 +143,7 @@ class DbSchema
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
         // 10. Bảng LICHSUDANGNHAP (Ghi nhận lịch sử đăng nhập)
-        $pdo->exec("CREATE TABLE IF NOT EXISTS LICHSUDANGNHAP (
+        self::thucThiAnToan($pdo, "CREATE TABLE IF NOT EXISTS LICHSUDANGNHAP (
             MaLS        BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
             HanhDong    VARCHAR(30)  NOT NULL,
             DinhDanh    VARCHAR(150) NOT NULL,
@@ -143,14 +157,14 @@ class DbSchema
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
         // 11. Bảng LUOTTHICH & LUOTTHICH_BL (Cộng đồng)
-        $pdo->exec("CREATE TABLE IF NOT EXISTS LUOTTHICH (
+        self::thucThiAnToan($pdo, "CREATE TABLE IF NOT EXISTS LUOTTHICH (
             MaBaiDang  INT UNSIGNED NOT NULL,
             MaND       INT UNSIGNED NOT NULL,
             NgayThich  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (MaBaiDang, MaND)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
-        $pdo->exec("CREATE TABLE IF NOT EXISTS LUOTTHICH_BL (
+        self::thucThiAnToan($pdo, "CREATE TABLE IF NOT EXISTS LUOTTHICH_BL (
             MaBinhLuan INT UNSIGNED NOT NULL,
             MaND       INT UNSIGNED NOT NULL,
             NgayThich  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -158,7 +172,7 @@ class DbSchema
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
         // 12. Bảng THONGBAO & THONGBAO_ADMIN_DADOC
-        $pdo->exec("CREATE TABLE IF NOT EXISTS THONGBAO (
+        self::thucThiAnToan($pdo, "CREATE TABLE IF NOT EXISTS THONGBAO (
             MaTB        INT UNSIGNED NOT NULL AUTO_INCREMENT,
             MaND        INT UNSIGNED NOT NULL,
             MaNguoiGui  INT UNSIGNED NOT NULL,
@@ -174,7 +188,7 @@ class DbSchema
             KEY idx_thongbao_user (MaND, DaDoc, NgayTao)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
-        $pdo->exec("CREATE TABLE IF NOT EXISTS THONGBAO_ADMIN_DADOC (
+        self::thucThiAnToan($pdo, "CREATE TABLE IF NOT EXISTS THONGBAO_ADMIN_DADOC (
             MaAdmin    INT UNSIGNED NOT NULL,
             Loai       TINYINT UNSIGNED NOT NULL,
             MaDoiTuong INT UNSIGNED NOT NULL,
@@ -183,7 +197,7 @@ class DbSchema
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
         // 13. Bảng LICHSU_MATKHAU (Lịch sử mật khẩu phục vụ kiểm tra chống tái sử dụng)
-        $pdo->exec("CREATE TABLE IF NOT EXISTS LICHSU_MATKHAU (
+        self::thucThiAnToan($pdo, "CREATE TABLE IF NOT EXISTS LICHSU_MATKHAU (
             MaLS        INT UNSIGNED NOT NULL AUTO_INCREMENT,
             MaND        INT UNSIGNED NOT NULL,
             MatKhauHash VARCHAR(255) NOT NULL,
@@ -194,10 +208,22 @@ class DbSchema
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci");
 
         // 14. Khởi tạo tài khoản Bot AI mặc định (nếu chưa có)
-        try {
-            $pdo->exec("INSERT INTO NGUOIDUNG (MaND, HoTen, Email, MatKhau, TrangThai)
-                VALUES (999999, 'Zombie Máy AI [Buckethead]', 'bot@quizup.arena', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Hoạt động')
-                ON DUPLICATE KEY UPDATE HoTen = VALUES(HoTen), TrangThai = 'Hoạt động'");
-        } catch (Throwable $e) { /* Bỏ qua nếu đã tồn tại */ }
+        self::thucThiAnToan($pdo, "INSERT INTO NGUOIDUNG (MaND, HoTen, Email, MatKhau, TrangThai)
+            VALUES (999999, 'Zombie Máy AI [Buckethead]', 'bot@quizup.arena', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Hoạt động')
+            ON DUPLICATE KEY UPDATE HoTen = VALUES(HoTen), TrangThai = 'Hoạt động'");
+
+        // 15. Bổ sung Email, NgayDoiMatKhau cho bảng ADMIN & bảng lịch sử mật khẩu quản trị
+        self::themCot($pdo, 'ADMIN', 'Email', 'VARCHAR(150) NULL DEFAULT NULL');
+        self::themCot($pdo, 'ADMIN', 'NgayDoiMatKhau', 'DATETIME NULL DEFAULT NULL');
+        self::thucThiAnToan($pdo, "UPDATE ADMIN SET Email = 'buithutrang149506@gmail.com' WHERE Email IS NULL OR Email = ''");
+
+        self::thucThiAnToan($pdo, "CREATE TABLE IF NOT EXISTS LICHSU_MATKHAU_ADMIN (
+            MaLS        INT UNSIGNED NOT NULL AUTO_INCREMENT,
+            MaAdmin     INT UNSIGNED NOT NULL,
+            MatKhauHash VARCHAR(255) NOT NULL,
+            NgayTao     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (MaLS),
+            KEY idx_lsmka_admin (MaAdmin)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci");
     }
 }

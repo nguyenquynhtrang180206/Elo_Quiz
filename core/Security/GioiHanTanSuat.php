@@ -5,6 +5,48 @@ class GioiHanTanSuat
 {
     private const SO_LAN_TOI_DA  = 5;
     private const THOI_GIAN_KHOA = 900; // 15 phút
+    private static bool $daTaoBang = false;
+
+    private static function damBaoBang(): void
+    {
+        if (self::$daTaoBang) {
+            return;
+        }
+        self::$daTaoBang = true;
+        try {
+            $pdo = Database::pdo();
+            $pdo->exec("CREATE TABLE IF NOT EXISTS GIOIHANDANGNHAP (
+                Khoa      CHAR(64)     NOT NULL,
+                HanhDong  VARCHAR(30)  NOT NULL,
+                DinhDanh  VARCHAR(150) NOT NULL,
+                DiaChiIP  VARCHAR(45)  NOT NULL,
+                SoLanSai  INT UNSIGNED NOT NULL DEFAULT 0,
+                LanCuoi   DATETIME     NOT NULL,
+                PRIMARY KEY (Khoa),
+                KEY idx_ghdn_lancuoi (LanCuoi)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+            $pdo->exec("CREATE TABLE IF NOT EXISTS LICHSUDANGNHAP (
+                MaLS        BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+                HanhDong    VARCHAR(30)  NOT NULL,
+                DinhDanh    VARCHAR(150) NOT NULL,
+                DiaChiIP    VARCHAR(45)  NOT NULL,
+                TrinhDuyet  VARCHAR(255) NULL,
+                KetQua      ENUM('Thành công','Thất bại','Bị khóa') NOT NULL,
+                ThoiGian    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (MaLS),
+                KEY idx_lsdn_dinhdanh (DinhDanh, ThoiGian),
+                KEY idx_lsdn_thoigian (ThoiGian)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+        } catch (Throwable $e) {
+            error_log('GioiHanTanSuat::damBaoBang: ' . $e->getMessage());
+        }
+    }
+
+    private static function laLoiThieuBang(PDOException $e): bool
+    {
+        return $e->getCode() === '42S02' || (int) ($e->errorInfo[1] ?? 0) === 1146;
+    }
 
     private static function layIP(): string
     {
@@ -38,7 +80,15 @@ class GioiHanTanSuat
 
     private static function datLai(string $key): void
     {
-        Database::pdo()->prepare('DELETE FROM GIOIHANDANGNHAP WHERE Khoa = ?')->execute([$key]);
+        try {
+            Database::pdo()->prepare('DELETE FROM GIOIHANDANGNHAP WHERE Khoa = ?')->execute([$key]);
+        } catch (PDOException $e) {
+            if (self::laLoiThieuBang($e)) {
+                self::damBaoBang();
+                return;
+            }
+            error_log('GioiHanTanSuat::datLai: ' . $e->getMessage());
+        }
     }
 
     /**
@@ -46,13 +96,28 @@ class GioiHanTanSuat
      */
     public static function kiemTra(string $action, string $identifier): array
     {
-        $key = self::taoKhoa($action, $identifier);
-        $st  = Database::pdo()->prepare(
-            'SELECT SoLanSai, TIMESTAMPDIFF(SECOND, LanCuoi, NOW()) AS DaQua FROM GIOIHANDANGNHAP WHERE Khoa = ?'
-        );
-        $st->execute([$key]);
-        $r = $st->fetch();
+        $key  = self::taoKhoa($action, $identifier);
         $tuDo = ['biKhoa' => false, 'thoiGianCon' => 0, 'soLanSai' => 0, 'conLai' => self::SO_LAN_TOI_DA];
+        $sql  = 'SELECT SoLanSai, TIMESTAMPDIFF(SECOND, LanCuoi, NOW()) AS DaQua FROM GIOIHANDANGNHAP WHERE Khoa = ?';
+
+        try {
+            $st = Database::pdo()->prepare($sql);
+            $st->execute([$key]);
+            $r = $st->fetch();
+        } catch (PDOException $e) {
+            if (!self::laLoiThieuBang($e)) {
+                error_log('GioiHanTanSuat::kiemTra: ' . $e->getMessage());
+                return $tuDo;
+            }
+            self::damBaoBang();
+            try {
+                $st = Database::pdo()->prepare($sql);
+                $st->execute([$key]);
+                $r = $st->fetch();
+            } catch (Throwable) {
+                return $tuDo;
+            }
+        }
 
         if (!$r) {
             return $tuDo;
@@ -74,18 +139,36 @@ class GioiHanTanSuat
     /** Ghi nhận 1 lần đăng nhập thất bại, trả về tổng số lần sai hiện tại. */
     public static function ghiNhanThatBai(string $action, string $identifier): int
     {
-        $pdo = Database::pdo();
-        $key = self::taoKhoa($action, $identifier);
-        $pdo->prepare(
-            'INSERT INTO GIOIHANDANGNHAP (Khoa, HanhDong, DinhDanh, DiaChiIP, SoLanSai, LanCuoi)
-             VALUES (?, ?, ?, ?, 1, NOW())
-             ON DUPLICATE KEY UPDATE SoLanSai = SoLanSai + 1, LanCuoi = NOW()'
-        )->execute([$key, $action, self::chuanHoa($identifier), self::layIP()]);
+        $pdo    = Database::pdo();
+        $key    = self::taoKhoa($action, $identifier);
+        $sql    = 'INSERT INTO GIOIHANDANGNHAP (Khoa, HanhDong, DinhDanh, DiaChiIP, SoLanSai, LanCuoi)
+                   VALUES (?, ?, ?, ?, 1, NOW())
+                   ON DUPLICATE KEY UPDATE SoLanSai = SoLanSai + 1, LanCuoi = NOW()';
+        $params = [$key, $action, self::chuanHoa($identifier), self::layIP()];
+
+        try {
+            $pdo->prepare($sql)->execute($params);
+        } catch (PDOException $e) {
+            if (!self::laLoiThieuBang($e)) {
+                error_log('GioiHanTanSuat::ghiNhanThatBai: ' . $e->getMessage());
+                return 1;
+            }
+            self::damBaoBang();
+            try {
+                $pdo->prepare($sql)->execute($params);
+            } catch (Throwable) {
+                return 1;
+            }
+        }
         self::ghiLichSu($action, $identifier, 'Thất bại');
 
-        $st = $pdo->prepare('SELECT SoLanSai FROM GIOIHANDANGNHAP WHERE Khoa = ?');
-        $st->execute([$key]);
-        return (int) $st->fetchColumn();
+        try {
+            $st = $pdo->prepare('SELECT SoLanSai FROM GIOIHANDANGNHAP WHERE Khoa = ?');
+            $st->execute([$key]);
+            return (int) $st->fetchColumn();
+        } catch (Throwable) {
+            return 1;
+        }
     }
 
     /** Đăng nhập thành công: xóa bộ đếm và ghi lịch sử. */
