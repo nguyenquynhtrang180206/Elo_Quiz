@@ -322,3 +322,77 @@
 .dash-hang3 .dash-nhanh { flex:1; grid-auto-rows:1fr; }
 .dash-hang3 .dash-nhanh .dash-nut { min-height:0; }
 @media (max-width:1050px) { .dash-hang3 { grid-template-columns:1fr; } }
+
+
+/* ===== Điện thoại: tinh chỉnh trang Tổng quan ===== */
+@media (max-width: 768px) {
+  .dash-hero-card { padding: 16px 14px 14px; border-radius: 14px; }
+  .dash-thanhtren-pro { gap: 12px; margin-bottom: 14px; padding-bottom: 12px; }
+  .dash-tieude-chinh h2 { font-size: 18px; }
+  .dash-tieude-chinh p { font-size: 12.5px; }
+  .dash-congcu-pro { width: 100%; }
+  .dash-bieudo { height: 240px; }
+  .dash-tron-hinh { width: 160px; height: 160px; }
+  .dash-khung-dau { flex-wrap: wrap; }
+
+  /* Hộp thông báo: căn theo màn hình, không bị tràn ra ngoài mép */
+  .adm-tb-hop {
+    position: fixed;
+    top: 68px;
+    left: 4vw;
+    right: 4vw;
+    width: auto;
+    max-height: calc(100vh - 90px);
+  }
+  .adm-tb-ds { max-height: 55vh; }
+}
+
+/* ===== Điện thoại (<= 720px): bổ sung cho khối 768px phía trên =====
+   Sidebar -> nút 3 gạch đã có sẵn ở style_admin.css + sidebar_toggle.js */
+@media (max-width: 720px) {
+  .dash { gap:14px; }
+  .dash-khung { padding:14px; }
+  .dash-hang3 > .dash-khung { padding:14px; }
+  .dash-hang3 { gap:14px; }
+  .dash-luoi { gap:14px; }
+
+  /* Hero: các chip công cụ xếp gọn */
+  .dash-congcu-pro { gap:8px; }
+  .dash-ngay-chip { flex:1 1 100%; justify-content:center; }
+  .dash-admin-chip { margin-left:auto; }
+
+  /* 4 thẻ KPI: 2 cột cho gọn (thay vì 1 cột dài) */
+  .dash-the { grid-template-columns:repeat(2, minmax(0,1fr)); gap:8px; }
+  .dash-so-pro { padding:10px 12px; }
+  .dash-nhan { font-size:11.5px; }
+  .dash-so-lon { font-size:22px; }
+  .dash-so-chan { flex-wrap:wrap; gap:2px 6px; }
+  .dash-so-ghi { font-size:10.5px; }
+  .dash-meta-strip { flex-wrap:wrap; gap:6px 10px; }
+  .dash-meta-strip .meta-dot { display:none; }
+
+  /* Biểu đồ */
+  .dash-bieudo, .dash-tron-hinh { max-width:100%; }
+  .dash-bieudo canvas, .dash-tron-hinh canvas { max-width:100%; }
+  .dash-loc { flex-wrap:wrap; }
+  .dash-tron { justify-content:center; }
+
+  /* Hoạt động / Top: không ép dãn đều chiều cao */
+  .dash-hang3 .dash-hoatdong li, .dash-hang3 .dash-top li { flex:none; }
+
+  /* Bảng "10 câu hỏi sai nhiều nhất" -> thẻ, không phải kéo ngang */
+  .dash-cuon { overflow-x:visible; }
+  .admin-noidung .dash table.dash-bang, .dash-bang tbody { display:block; }
+  .dash-bang tr { display:block; }
+  .dash-bang tr:first-child { display:none; }
+  .dash-bang tr + tr { margin-top:10px; padding:10px 12px; border:1px solid #e2e8f0; border-radius:12px; background:#f8fafc; }
+  .dash-bang td { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:5px 0; border-bottom:1px dashed #e2e8f0; text-align:right; font-size:13px; }
+  .dash-bang td:last-child { border-bottom:0; }
+  .dash-bang td::before { flex:none; max-width:45%; text-align:left; font-size:11px; font-weight:700; letter-spacing:.03em; text-transform:uppercase; color:#64748b; }
+  .dash-bang td:first-child { display:block; text-align:left; font-weight:600; }
+  .dash-bang td:first-child::before { content:none; }
+  .dash-bang td:nth-child(2)::before { content:"Môn"; }
+  .dash-bang td:nth-child(3)::before { content:"Lượt sai"; }
+  .dash-bang td:nth-child(4)::before { content:"Lượt trả lời"; }
+  .dash-bang td:nth-child(5)::before { content:"Tỷ lệ sai"; }
+}

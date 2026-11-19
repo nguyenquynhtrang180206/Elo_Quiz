@@ -208,6 +208,25 @@ body.trang-bxh .chan-trang { color: #94a3b8; }
   box-shadow: 0 0 16px rgba(0, 217, 255, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
+/* Lọc môn học: ô tìm, nút xem thêm */
+.bxh-chip[hidden], .bxh-mon-khong[hidden], .bxh-xem-them[hidden] { display: none !important; }
+.bxh-mon-tim { margin-bottom: 8px; }
+.bxh-mon-tim-o {
+  width: 100%; box-sizing: border-box; padding: 8px 12px; border-radius: 10px; font-size: 13px;
+  color: #FFF; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.14);
+  outline: none; transition: border-color 0.2s, box-shadow 0.2s;
+}
+.bxh-mon-tim-o::placeholder { color: #8fa3c7; }
+.bxh-mon-tim-o:focus { border-color: var(--cyan); box-shadow: 0 0 10px rgba(0, 217, 255, 0.3); }
+.bxh-mon-khong { padding: 8px 4px; font-size: 13px; color: #8fa3c7; text-align: center; }
+.bxh-xem-them {
+  display: block; width: 100%; margin-top: 8px; padding: 7px 10px; border-radius: 10px; cursor: pointer;
+  font: inherit; font-size: 13px; font-weight: 700; color: #7DD3FC;
+  background: rgba(0, 217, 255, 0.06); border: 1px dashed rgba(0, 217, 255, 0.4);
+  transition: all 0.2s;
+}
+.bxh-xem-them:hover { background: rgba(0, 217, 255, 0.14); color: #FFF; border-style: solid; }
+
 /* Thẻ Kêu Gọi Thi Đấu Dát Vàng Hoàng Gia */
 .bxh-moi {
   text-align: center;

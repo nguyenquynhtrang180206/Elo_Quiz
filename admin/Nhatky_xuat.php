@@ -7,7 +7,7 @@
 //   pham_vi : loc = đang lọc (q, ad, hd, nhom, tt, tu, den gửi kèm từ trang, dựng bằng NhatKy::dieuKien giống hệt trang danh sách),
 //             tatca = toàn bộ nhật ký (bỏ qua bộ lọc).
 //   noidung[]: ds = danh sách nhật ký (bảng), nhip = biểu đồ thao tác theo ngày, cocau = biểu đồ cơ cấu hành động.
-//   truong[]: các trường (cột) của danh sách: tg, hd, dt, mota, tt (xem $COT). Thứ tự cột trong file luôn theo $COT.
+//   truong[]: các trường (cột) của danh sách: tg, hd, dt, mota (xem $COT). Thứ tự cột trong file luôn theo $COT.
 //   moc[]   : mốc thời gian, tích được nhiều: d7 = 7 ngày gần nhất, d30 = 30 ngày gần nhất (tính đến hôm nay, vẫn trong phạm vi đã lọc),
 //             tatca = toàn bộ phạm vi.
 //   chia    : moc  = theo MỐC (Excel: mỗi mốc một sheet "Nhật ký - 7 ngày" gồm ô số liệu, hai biểu đồ, danh sách;
@@ -73,7 +73,6 @@ $COT = [
     'hd'    => ['Hành động',  2.8],
     'dt'    => ['Đối tượng',  2.6],
     'mota'  => ['Mô tả',      6.0],
-    'tt'    => ['Trạng thái', 1.9],
 ];
 // Mốc thời gian: khóa => [nhãn ngắn (tên sheet), nhãn đầy đủ, số ngày (0 = toàn bộ phạm vi)]
 $MOC = [
@@ -177,10 +176,8 @@ $khoangChu = static fn (array $g): string => $g['tu'] !== ''
 
 // Số liệu tổng quan của một mốc
 $thongKeMoc = static function (array $g) use ($pdo, $coTT): array {
-    $thatBaiSql = $coTT ? "COALESCE(SUM(n.TrangThai = 'Thất bại'), 0) AS thatbai" : "0 AS thatbai";
     $st = $pdo->prepare(
-        "SELECT COUNT(*) AS tong,
-                $thatBaiSql
+        "SELECT COUNT(*) AS tong
          FROM NHATKYQUANTRI n
          JOIN ADMIN a ON a.MaAdmin = n.MaAdmin
          {$g['w']}"
@@ -191,9 +188,8 @@ $thongKeMoc = static function (array $g) use ($pdo, $coTT): array {
 
 // Lấy các dòng của một mốc (đã định dạng sẵn để dùng chung cho xem trước, Excel và PDF)
 $layDong = static function (array $g, int $gioiHan) use ($pdo, $sx, $coTT): array {
-    $cotTT = $coTT ? "n.TrangThai" : "'Thành công' AS TrangThai";
     $st = $pdo->prepare(
-        "SELECT n.ThoiGian, n.HanhDong, n.DoiTuong, n.MoTa, $cotTT
+        "SELECT n.ThoiGian, n.HanhDong, n.DoiTuong, n.MoTa
          FROM NHATKYQUANTRI n
          JOIN ADMIN a ON a.MaAdmin = n.MaAdmin
          {$g['w']}
@@ -208,19 +204,16 @@ $layDong = static function (array $g, int $gioiHan) use ($pdo, $sx, $coTT): arra
             'hd'    => (string) $r['HanhDong'],
             'dt'    => (string) ($r['DoiTuong'] ?? ''),
             'mota'  => (string) ($r['MoTa'] ?? ''),
-            'tt'    => (string) $r['TrangThai'],
         ];
     }
     return $ra;
 };
 
-// Số liệu hai biểu đồ của một mốc: [theoNgay => [ngay, tong, loi]..., coCau => [nhan, so, mau]...]
+// Số liệu hai biểu đồ của một mốc: [theoNgay => [ngay, tong]..., coCau => [nhan, so, mau]...]
 $soLieuBieuDo = static function (array $g) use ($pdo, $coTT): array {
     // 1) Số thao tác theo từng ngày (ngày không có thao tác được điền 0 để các cột liền nhau)
-    $loiSql = $coTT ? "COALESCE(SUM(n.TrangThai = 'Thất bại'), 0) AS loi" : "0 AS loi";
     $st = $pdo->prepare(
-        "SELECT DATE(n.ThoiGian) AS ngay, COUNT(*) AS tong,
-                $loiSql
+        "SELECT DATE(n.ThoiGian) AS ngay, COUNT(*) AS tong
          FROM NHATKYQUANTRI n
          JOIN ADMIN a ON a.MaAdmin = n.MaAdmin
          {$g['w']}
@@ -229,14 +222,14 @@ $soLieuBieuDo = static function (array $g) use ($pdo, $coTT): array {
     );
     $st->execute($g['th']);
     $co = [];
-    foreach ($st->fetchAll() as $r) { $co[$r['ngay']] = ['tong' => (int) $r['tong'], 'loi' => (int) $r['loi']]; }
+    foreach ($st->fetchAll() as $r) { $co[$r['ngay']] = ['tong' => (int) $r['tong']]; }
     $theoNgay = [];
     if ($g['tu'] !== '' || $co) {
         $d    = new DateTime($g['tu'] !== '' ? $g['tu']  : (string) array_key_first($co));
         $cuoi = new DateTime($g['tu'] !== '' ? $g['den'] : (string) array_key_last($co));
         for ($i = 0; $i < 400 && $d <= $cuoi; $i++) {
             $k = $d->format('Y-m-d');
-            $theoNgay[] = ['ngay' => $k, 'tong' => $co[$k]['tong'] ?? 0, 'loi' => $co[$k]['loi'] ?? 0];
+            $theoNgay[] = ['ngay' => $k, 'tong' => $co[$k]['tong'] ?? 0];
             $d->modify('+1 day');
         }
     }
@@ -278,8 +271,6 @@ if ($buoc === 'xemtruoc') {
             'nhanDai'   => $thongTin[1],
             'khoang'    => $khoangChu($g),
             'tong'      => $t['tong'],
-            'thanhCong' => $t['tong'] - $t['thatbai'],
-            'thatBai'   => $t['thatbai'],
             'theoNgay'  => $bd['theoNgay'],
             'coCau'     => $bd['coCau'],
             'dong'      => $t['tong'] > 0 ? $layDong($g, $SO_DONG_XEM) : [],
@@ -321,7 +312,6 @@ foreach ($moc as $m) {
     $du[$m] = [
         'g'        => $g,
         'tong'     => $t['tong'],
-        'loi'      => $t['thatbai'],
         'dong'     => $coDs ? $layDong($g, $toiDa) : [],
         'bd'       => ($coNhip || $coCoCau) && $t['tong'] > 0 ? $soLieuBieuDo($g) : ['theoNgay' => [], 'coCau' => []],
         'anhNhip'  => $coNhip  ? anh_bieu_do('anh_nhip_'  . $m) : null,
@@ -356,13 +346,13 @@ try {
     // EXCEL: nhiều sheet
     // =================================================================================================
     if ($dinhDang === 'excel') {
-        // Bảng danh sách của một mốc: dòng tiêu đề + các dòng dữ liệu (ô trạng thái tô màu: 8 = nền đỏ nhạt, 10 = nền xanh nhạt)
+        // Bảng danh sách của một mốc: dòng tiêu đề + các dòng dữ liệu
         $hangDs = static function (array $d) use ($truong, $tieuDeCot): array {
             $h = [['kieu' => 6, 'o' => $tieuDeCot]];
             foreach ($d['dong'] as $r) {
                 $o = [];
                 foreach ($truong as $k) {
-                    $o[] = $k === 'tt' ? ['g' => $r[$k], 's' => $r[$k] === 'Thất bại' ? 8 : 10] : $r[$k];
+                    $o[] = $r[$k];
                 }
                 $h[] = ['kieu' => 7, 'o' => $o];
             }
@@ -379,8 +369,8 @@ try {
                     ['kieu' => 2,  'o' => ['Nhật ký quản trị - ' . $MOC[$m][1]]],
                     ['kieu' => 16, 'o' => [$luc . ' · ' . $khoangChu($d['g'])]],
                     ['kieu' => 16, 'o' => [$dongPhu]],
-                    ['kieu' => 3,  'o' => ['Tổng bản ghi', 'Thành công', 'Thất bại']],
-                    ['kieu' => 4,  'o' => [$d['tong'], $d['tong'] - $d['loi'], $d['loi']]],
+                    ['kieu' => 3,  'o' => ['Tổng bản ghi']],
+                    ['kieu' => 4,  'o' => [$d['tong']]],
                 ];
                 $anh = array_values(array_filter([anh_theo_cao($d['anhNhip'], 240), anh_theo_cao($d['anhCoCau'], 240)]));
                 if (count($anh) === 2) { $anh[1]['x'] = $anh[0]['rong'] + 16; }
@@ -416,9 +406,9 @@ try {
                     $h[] = $ghiChuTrong($khoangChu($d['g']));
                     if (!$d['bd']['theoNgay']) { $h[] = $ghiChuTrong('Không có thao tác nào trong mốc này.'); continue; }
                     if ($d['anhNhip']) { $h[] = ['anh' => [anh_theo_rong($d['anhNhip'], 720)]]; }
-                    $h[] = ['kieu' => 6, 'o' => ['Ngày', 'Tổng thao tác', 'Thành công', 'Thất bại']];
+                    $h[] = ['kieu' => 6, 'o' => ['Ngày', 'Tổng thao tác']];
                     foreach ($d['bd']['theoNgay'] as $r) {
-                        $h[] = ['kieu' => 0, 'o' => [$ngayVN($r['ngay']), $r['tong'], $r['tong'] - $r['loi'], $r['loi']]];
+                        $h[] = ['kieu' => 0, 'o' => [$ngayVN($r['ngay']), $r['tong']]];
                     }
                 }
                 $sheets[] = ['ten' => $NOI_DUNG['nhip'], 'rongToiThieu' => 14, 'dong' => $h];
@@ -449,21 +439,16 @@ try {
     // =================================================================================================
     $pdf = new PdfWriter(__DIR__ . '/../assets/fonts');
 
-    // Bảng danh sách của một mốc (ô trạng thái tô nền)
+    // Bảng danh sách của một mốc
     $veDs = static function (array $d) use ($pdf, $truong, $tieuDeCot, $COT): void {
-        $viTriTT = array_search('tt', $truong, true);
         $dongPdf = [];
-        $mauO    = [];
-        foreach ($d['dong'] as $i => $r) {
+        foreach ($d['dong'] as $r) {
             $o = [];
             foreach ($truong as $k) { $o[] = $r[$k]; }
             $dongPdf[] = $o;
-            if ($viTriTT !== false) {
-                $mauO[$i] = [$viTriTT => $r['tt'] === 'Thất bại' ? '#fde3e6' : '#dcf5ea'];   // tô nền ô trạng thái
-            }
         }
         $tyLe = array_map(static fn (string $k): float => $COT[$k][1], $truong);
-        $pdf->bang($tieuDeCot, $dongPdf, $tyLe, [], $mauO, $viTriTT !== false ? [$viTriTT] : []);
+        $pdf->bang($tieuDeCot, $dongPdf, $tyLe);
     };
 
     // ---- Nhóm 1: THEO MỐC - khổ A4 NGANG. Mỗi mốc một trang tóm tắt (tiêu đề + khoảng ngày, ô số liệu, hai biểu đồ cạnh nhau),
@@ -479,8 +464,6 @@ try {
             $pdf->khoang(8);
             $pdf->oSoLieu([
                 ['Tổng bản ghi', $so($d['tong']), ''],
-                ['Thành công',   $so($d['tong'] - $d['loi']), ''],
-                ['Thất bại',     $so($d['loi']), ''],
             ]);
             $anh = array_values(array_filter([$d['anhNhip']['jpeg'] ?? null, $d['anhCoCau']['jpeg'] ?? null]));
             if ($anh) { $pdf->anhHang($anh, 230); }
@@ -526,9 +509,9 @@ try {
                 if ($d['anhNhip']) { $pdf->anh($d['anhNhip']['jpeg']); }
                 $dongB = [];
                 foreach ($d['bd']['theoNgay'] as $r) {
-                    $dongB[] = [$ngayVN($r['ngay']), (string) $r['tong'], (string) ($r['tong'] - $r['loi']), (string) $r['loi']];
+                    $dongB[] = [$ngayVN($r['ngay']), (string) $r['tong']];
                 }
-                $pdf->bang(['Ngày', 'Tổng thao tác', 'Thành công', 'Thất bại'], $dongB, [2, 1.5, 1.5, 1.5], [], [], [1, 2, 3]);
+                $pdf->bang(['Ngày', 'Tổng thao tác'], $dongB, [2, 1.5], [], [], [1]);
             }
         }
         if ($coCoCau) {

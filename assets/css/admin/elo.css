@@ -1,60 +1,383 @@
-/* Trang Elo và xếp hạng (admin/elo.php) */
-.admin-noidung .form-loc input.o-tim { flex:1; min-width:220px; width:auto; }
-.admin-noidung .elo-tabs { display:flex; flex-wrap:wrap; gap:8px; margin:0 0 12px; }
-.admin-noidung .elo-tabs .btn { text-shadow:none; }
-.admin-noidung .elo-note {
-  margin:0 0 16px;
-  padding:12px 16px;
-  border:1px solid #dce7fa;
-  border-radius:12px;
-  background:#f3f7ff;
-  color:#52617d;
+/* Trang Elo và xếp hạng (admin/elo.php) - thẻ nền trắng giống trang Tổng quan, nền ngoài giữ nguyên */
+.admin-noidung .elo-arena {
+  --ea-chu:#0f172a; --ea-phu:#64748b; --ea-vien:#e2e8f0; --ea-nhat:#f1f5f9; --ea-nen:#f8fafc;
+  --ea-xanh:#2563eb; --ea-vang:#f59e0b; --ea-len:#059669; --ea-xuong:#dc2626;
+  color:var(--ea-chu);
 }
-.admin-noidung .elo-filter,
-.admin-noidung .elo-results {
-  background:#fff;
-  color:#26334d;
-  border-color:#e6ecf8;
-  box-shadow:0 4px 16px rgba(31,53,92,.08);
-}
-.admin-noidung .elo-filter { padding:14px 18px; }
-.admin-noidung .elo-filter input[type=text],
-.admin-noidung .elo-filter select {
-  background:#fff;
-  color:#26334d;
-  border-color:#cfd9f0;
-}
-.admin-noidung .elo-filter input::placeholder { color:#8a97b5; }
-.admin-noidung .elo-filter input:focus,
-.admin-noidung .elo-filter select:focus {
-  border-color:#245edb;
-  box-shadow:0 0 0 3px rgba(36,94,219,.15);
-}
-.admin-noidung .elo-filter select option { background:#fff; color:#26334d; }
-.admin-noidung .elo-results { overflow-x:auto; }
-.admin-noidung .elo-results table { min-width:760px; }
-.admin-noidung .elo-results th {
-  background:#f3f6fd;
-  color:#26334d;
-  border-bottom-color:#e6ecf8;
-}
-.admin-noidung .elo-results td { border-bottom-color:#eef2fb; }
-.admin-noidung .elo-results .nhan-phu,
-.admin-noidung .elo-results .phantrang { color:#68758e; }
-.admin-noidung .elo-results td a { color:#245edb; }
-.admin-noidung .elo-results td a:hover { color:#1746ad; text-shadow:none; }
-.admin-noidung .elo-results .mau-do { color:#c62852; }
-.admin-noidung .elo-results .mau-xanh { color:#087a61; }
-.admin-noidung .elo-results .phantrang a {
-  color:#245edb;
-  background:#f3f6fd;
-  border-color:#e6ecf8;
-}
-.admin-noidung .elo-results .phantrang a:hover { border-color:#245edb; box-shadow:none; }
+.admin-noidung .elo-arena a { text-decoration:none; text-shadow:none; }
+.admin-noidung .elo-arena * { box-sizing:border-box; }
 
-@media (max-width:720px) {
-  .admin-noidung .elo-filter { align-items:stretch; }
-  .admin-noidung .elo-filter select,
-  .admin-noidung .elo-filter .btn,
-  .admin-noidung .elo-filter .btn-phu { width:100%; text-align:center; }
+/* Tab dạng viên thuốc (nằm trên nền ngoài tối) */
+.admin-noidung .elo-arena .ea-tabs { display:flex; flex-wrap:wrap; gap:8px; margin:0 0 14px; }
+.admin-noidung .elo-arena .ea-tab {
+  padding:9px 18px; border-radius:999px; font-size:13px; font-weight:600; transition:.15s;
+  color:#a9b7de; background:rgba(14,30,92,.62); border:1px solid rgba(150,180,255,.18);
 }
+.admin-noidung .elo-arena .ea-tab:hover { color:#fff; border-color:rgba(150,180,255,.4); }
+.admin-noidung .elo-arena .ea-tab.dang-chon { background:#f5b82e; color:#3b2800; border-color:#f5b82e; box-shadow:0 0 20px rgba(245,184,46,.4); }
+.admin-noidung .elo-arena .ea-tab.canh-bao:not(.dang-chon) { color:#ff9fb0; }
+.admin-noidung .elo-arena .ea-dem {
+  display:inline-block; min-width:20px; padding:1px 6px; margin-left:4px; border-radius:99px;
+  background:#e5484d; color:#fff; font-size:11px; font-weight:800; text-align:center;
+}
+
+.admin-noidung .elo-arena .ea-note {
+  margin:0 0 16px; padding:11px 16px; border-radius:12px; font-size:13px; line-height:1.6;
+  border:1px solid rgba(245,184,46,.35); background:rgba(245,184,46,.09); color:#f6dc9a;
+}
+.admin-noidung .elo-arena .ea-note-link { margin-left:6px; font-weight:700; color:#ffb4c0; white-space:nowrap; }
+.admin-noidung .elo-arena .ea-note-link:hover { text-decoration:underline; }
+
+/* Khối nền trắng (giống .dash-khung của Tổng quan) */
+.admin-noidung .elo-arena .ea-khoi {
+  min-width:0; overflow:hidden; background:#ffffff; color:var(--ea-chu); border-radius:18px;
+  border:1px solid rgba(255,255,255,.95);
+  box-shadow:0 10px 30px -10px rgba(0,0,0,.35), 0 0 0 1px rgba(0,0,0,.04);
+}
+
+/* Hàng biểu đồ */
+.admin-noidung .elo-arena .ea-bieudo-luoi { display:grid; grid-template-columns:1.05fr 1.35fr 1.2fr; gap:18px; margin-bottom:18px; }
+.admin-noidung .elo-arena .ea-bieudo-khung { padding:20px 22px; }
+.admin-noidung .elo-arena .ea-khung-dau { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
+.admin-noidung .elo-arena .ea-khung-dau h3 {
+  display:flex; align-items:center; gap:8px; margin:0; font-size:15px; font-weight:700; color:var(--ea-chu); text-shadow:none;
+}
+.admin-noidung .elo-arena .ea-ico { color:var(--ea-xanh); flex-shrink:0; }
+.admin-noidung .elo-arena .ea-bieudo { position:relative; height:190px; }
+.admin-noidung .elo-arena .ea-phu { margin:12px 0 0; font-size:12.5px; color:var(--ea-phu); }
+.admin-noidung .elo-arena .ea-phu b { color:var(--ea-chu); }
+.admin-noidung .elo-arena .ea-ghichu-trong { padding:30px 0; text-align:center; color:var(--ea-phu); font-size:13px; }
+.admin-noidung .elo-arena .ea-tron { display:flex; align-items:center; gap:16px; flex-wrap:wrap; justify-content:center; }
+.admin-noidung .elo-arena .ea-tron-hinh { position:relative; width:160px; height:160px; flex-shrink:0; }
+.admin-noidung .elo-arena .ea-tron-giua { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; pointer-events:none; }
+.admin-noidung .elo-arena .ea-tron-giua strong { font-size:26px; font-weight:800; line-height:1.1; color:var(--ea-chu); }
+.admin-noidung .elo-arena .ea-tron-giua span { font-size:12px; font-weight:600; color:var(--ea-phu); }
+.admin-noidung .elo-arena .ea-chuthich { list-style:none; margin:0; padding:0; flex:1; min-width:130px; }
+.admin-noidung .elo-arena .ea-chuthich li { display:flex; align-items:center; gap:8px; padding:5px 0; font-size:13px; color:#1e293b; }
+.admin-noidung .elo-arena .ea-chuthich i { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+.admin-noidung .elo-arena .ea-chuthich span { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.admin-noidung .elo-arena .ea-chuthich b { color:var(--ea-chu); font-weight:700; }
+
+/* Bố cục 2 cột của tab Bảng xếp hạng */
+.admin-noidung .elo-arena .ea-luoi { display:grid; grid-template-columns:minmax(0,1fr) 340px; gap:18px; align-items:start; }
+.admin-noidung .elo-arena .ea-ben { display:flex; flex-direction:column; gap:18px; }
+
+/* Bộ lọc */
+.admin-noidung .elo-arena .ea-loc { display:flex; flex-wrap:wrap; gap:10px; align-items:center; padding:16px 18px; border-bottom:1px solid var(--ea-nhat); }
+.admin-noidung .elo-arena .ea-o,
+.admin-noidung .elo-arena input.ea-o,
+.admin-noidung .elo-arena select.ea-o {
+  width:auto !important; min-width:200px; height:38px; padding:0 14px !important; border-radius:9px !important; font-size:13px !important;
+  color:var(--ea-chu) !important; background:#ffffff !important; border:1px solid #cbd5e1 !important; box-shadow:none !important; outline:none;
+}
+.admin-noidung .elo-arena .ea-o-tim, .admin-noidung .elo-arena input.ea-o-tim { flex:1; min-width:220px; }
+.admin-noidung .elo-arena .ea-o::placeholder { color:#94a3b8 !important; }
+.admin-noidung .elo-arena .ea-o:focus { border-color:var(--ea-xanh) !important; box-shadow:0 0 0 3px rgba(37,99,235,.15) !important; }
+.admin-noidung .elo-arena select.ea-o option { background:#ffffff !important; color:var(--ea-chu) !important; }
+.admin-noidung .elo-arena .ea-nut {
+  display:inline-flex; align-items:center; height:38px; padding:0 16px; border-radius:9px; border:1px solid var(--ea-xanh);
+  font-size:13px; font-weight:600; color:#fff; background:var(--ea-xanh); cursor:pointer; box-shadow:none; text-shadow:none;
+}
+.admin-noidung .elo-arena .ea-nut:hover { filter:brightness(1.1); }
+.admin-noidung .elo-arena .ea-nut-o { background:#ffffff; color:#475569; border-color:#cbd5e1; }
+.admin-noidung .elo-arena .ea-nut-o:hover { background:var(--ea-nen); color:var(--ea-chu); filter:none; }
+.admin-noidung .elo-arena .ea-phai { margin-left:auto; }
+.admin-noidung .elo-arena .ea-ghichu { padding:10px 18px; font-size:12.5px; line-height:1.5; color:var(--ea-phu); border-bottom:1px solid var(--ea-nhat); }
+.admin-noidung .elo-arena .ea-trong { padding:36px 16px; text-align:center; color:var(--ea-phu); }
+
+/* Bảng dạng lưới (không dùng <table> để không dính style bảng chung) */
+.admin-noidung .elo-arena .ea-bang { overflow-x:auto; }
+.admin-noidung .elo-arena .ea-dong {
+  display:grid; align-items:center; gap:10px; min-width:640px; padding:11px 18px; font-size:13px;
+  color:var(--ea-chu); border-bottom:1px solid var(--ea-nhat);
+}
+.admin-noidung .elo-arena .ea-xh .ea-dong { grid-template-columns:54px minmax(180px,1fr) 130px 110px 100px; }
+.admin-noidung .elo-arena .ea-tra .ea-dong { grid-template-columns:minmax(180px,1.3fr) 1fr 130px 80px 150px 130px; min-width:820px; }
+.admin-noidung .elo-arena .ea-bd .ea-dong { grid-template-columns:minmax(180px,1.3fr) 1fr 190px 100px 90px 100px; min-width:820px; }
+.admin-noidung .elo-arena .ea-dau { background:var(--ea-nen); font-size:11px; font-weight:700; letter-spacing:.04em; color:var(--ea-phu); border-bottom:1px solid var(--ea-vien); }
+.admin-noidung .elo-arena .ea-bam { transition:background .12s; }
+.admin-noidung .elo-arena .ea-bam:hover { background:var(--ea-nen); }
+.admin-noidung .elo-arena .ea-bam.dang-chon { background:#fffbeb; box-shadow:inset 3px 0 0 var(--ea-vang); }
+
+.admin-noidung .elo-arena .ea-hang { font-size:15px; font-weight:800; color:#94a3b8; }
+.admin-noidung .elo-arena .ea-hang.top { font-size:18px; color:#d97706; }
+.admin-noidung .elo-arena .ea-nd { display:flex; align-items:center; gap:11px; min-width:0; }
+.admin-noidung .elo-arena .ea-ava { flex:none; display:grid; place-items:center; width:36px; height:36px; border-radius:50%; font-size:12px; font-weight:700; color:#fff; }
+.admin-noidung .elo-arena .ea-ava.lon { width:76px; height:76px; margin:0 auto 10px; font-size:24px; box-shadow:0 0 0 4px #fde68a, 0 8px 22px rgba(245,158,11,.35); }
+.admin-noidung .elo-arena .ea-ten { font-weight:600; color:var(--ea-chu); }
+.admin-noidung .elo-arena a.ea-ten:hover { color:var(--ea-xanh); }
+.admin-noidung .elo-arena .ea-mail { font-size:11.5px; color:var(--ea-phu); }
+.admin-noidung .elo-arena .ea-elo { font-size:16px; font-weight:800; color:var(--ea-chu); }
+.admin-noidung .elo-arena .ea-mui { color:#94a3b8; }
+.admin-noidung .elo-arena b.xanh { color:var(--ea-len); }
+.admin-noidung .elo-arena b.do { color:var(--ea-xuong); }
+
+/* Bậc rank (viên ngọc) */
+.admin-noidung .elo-arena .ea-bac { display:inline-flex; align-items:center; gap:8px; font-weight:700; font-size:12.5px; color:var(--ea-chu); }
+.admin-noidung .elo-arena .ea-bac.giua { justify-content:center; }
+.admin-noidung .elo-arena .ea-ngoc { flex:none; width:15px; height:15px; border-radius:3px; transform:rotate(45deg); }
+.admin-noidung .elo-arena .cao  { background:linear-gradient(135deg,#ff6b9d,#c13cff); }
+.admin-noidung .elo-arena .kc   { background:linear-gradient(135deg,#7be9ff,#2f8bff); }
+.admin-noidung .elo-arena .vang { background:linear-gradient(135deg,#ffe27a,#e08a00); }
+.admin-noidung .elo-arena .bac  { background:linear-gradient(135deg,#dfe6f5,#8a96b3); }
+.admin-noidung .elo-arena .dong { background:linear-gradient(135deg,#e0a070,#9a5a28); }
+
+/* Mũi tên tăng giảm, nhãn, thanh tiến độ */
+.admin-noidung .elo-arena .ea-dt { margin-left:7px; font-size:11.5px; font-weight:700; }
+.admin-noidung .elo-arena .len { color:var(--ea-len); }
+.admin-noidung .elo-arena .xuong { color:var(--ea-xuong); }
+.admin-noidung .elo-arena .ea-chip { display:inline-block; padding:3px 10px; border-radius:99px; font-weight:800; background:var(--ea-nhat); }
+.admin-noidung .elo-arena .ea-chip.len { background:#ecfdf5; }
+.admin-noidung .elo-arena .ea-chip.xuong { background:#fef2f2; }
+.admin-noidung .elo-arena .ea-nhan { display:inline-block; padding:3px 10px; border-radius:99px; font-size:11px; font-weight:600; }
+.admin-noidung .elo-arena .ea-nhan.ok { background:#ecfdf5; color:#047857; }
+.admin-noidung .elo-arena .ea-nhan.khoa { background:#fef2f2; color:#dc2626; }
+.admin-noidung .elo-arena .ea-tl { display:flex; align-items:center; gap:8px; }
+.admin-noidung .elo-arena .ea-thanh { flex:1; height:7px; min-width:40px; border-radius:5px; background:var(--ea-nhat); overflow:hidden; }
+.admin-noidung .elo-arena .ea-thanh i { display:block; height:100%; border-radius:5px; background:#10b981; }
+
+/* Panel chi tiết bên phải */
+.admin-noidung .elo-arena .ea-hoso { padding:22px 20px; text-align:center; background:linear-gradient(180deg,#fffbeb,#ffffff 55%); }
+.admin-noidung .elo-arena .ea-hoso-ten { font-size:17px; font-weight:700; color:var(--ea-chu); }
+.admin-noidung .elo-arena .ea-so-lon { margin:8px 0 2px; font-size:40px; font-weight:800; letter-spacing:-1.5px; line-height:1.1; color:#d97706; }
+.admin-noidung .elo-arena .ea-kv { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:14px; }
+.admin-noidung .elo-arena .ea-kv div { padding:8px; border-radius:10px; background:var(--ea-nen); border:1px solid var(--ea-nhat); }
+.admin-noidung .elo-arena .ea-kv b { display:block; font-size:16px; color:var(--ea-chu); }
+.admin-noidung .elo-arena .ea-kv small { font-size:10px; font-weight:600; color:var(--ea-phu); }
+.admin-noidung .elo-arena .ea-xuhuong { position:relative; height:110px; margin-top:14px; }
+.admin-noidung .elo-arena .ea-trai { margin-top:6px; text-align:left; }
+.admin-noidung .elo-arena .ea-cach { margin-top:12px; }
+.admin-noidung .elo-arena .ea-xem { display:inline-block; margin-top:14px; font-size:12.5px; font-weight:600; color:var(--ea-xanh); }
+.admin-noidung .elo-arena .ea-xem:hover { text-decoration:underline; }
+
+/* Phân trang: dùng style chung của admin (nền trắng), chỉ thêm lề trong thẻ */
+.admin-noidung .elo-arena .ea-pt { padding:0 18px 16px; }
+.admin-noidung .elo-arena .ea-pt .phantrang { margin-top:14px !important; }
+
+@media (max-width:1100px) {
+  .admin-noidung .elo-arena .ea-luoi { grid-template-columns:1fr; }
+  .admin-noidung .elo-arena .ea-bieudo-luoi { grid-template-columns:1fr; }
+}
+@media (max-width:720px) {
+  /* Tab: 1 hàng cuộn ngang, không xuống dòng lộn xộn */
+  .admin-noidung .elo-arena .ea-tabs { flex-wrap:nowrap; overflow-x:auto; gap:6px; padding-bottom:4px; margin-bottom:12px; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
+  .admin-noidung .elo-arena .ea-tabs::-webkit-scrollbar { display:none; }
+  .admin-noidung .elo-arena .ea-tab { flex:none; padding:8px 14px; font-size:12.5px; white-space:nowrap; }
+  .admin-noidung .elo-arena .ea-note { padding:10px 12px; font-size:12.5px; }
+  .admin-noidung .elo-arena .ea-note-link { display:block; margin:6px 0 0; white-space:normal; }
+
+  /* Biểu đồ */
+  .admin-noidung .elo-arena .ea-bieudo-luoi, .admin-noidung .elo-arena .ea-luoi, .admin-noidung .elo-arena .ea-ben { gap:14px; }
+  .admin-noidung .elo-arena .ea-bieudo-khung { padding:16px; }
+  .admin-noidung .elo-arena .ea-bieudo { height:200px; }
+  .admin-noidung .elo-arena .ea-tron { justify-content:flex-start; }
+
+  /* Bộ lọc: các ô xếp dọc, rộng hết dòng */
+  .admin-noidung .elo-arena .ea-loc { padding:14px; gap:8px; }
+  .admin-noidung .elo-arena .ea-o, .admin-noidung .elo-arena input.ea-o, .admin-noidung .elo-arena select.ea-o, .admin-noidung .elo-arena .ea-nut { width:100% !important; max-width:100% !important; flex:1 1 100%; justify-content:center; text-align:center; }
+  .admin-noidung .elo-arena .ea-o-tim, .admin-noidung .elo-arena input.ea-o-tim { min-width:0; flex:1 1 100%; }
+  .admin-noidung .elo-arena .ea-phai { margin-left:0; }
+  .admin-noidung .elo-arena .ea-ghichu { padding:10px 14px; }
+  .admin-noidung .elo-arena .ea-pt { padding:0 14px 14px; }
+
+  /* Bảng -> dạng thẻ, không phải kéo ngang; ẩn dòng tiêu đề cột */
+  .admin-noidung .elo-arena .ea-bang { overflow-x:visible; }
+  .admin-noidung .elo-arena .ea-dau { display:none; }
+  .admin-noidung .elo-arena .ea-xh .ea-dong,
+  .admin-noidung .elo-arena .ea-tra .ea-dong,
+  .admin-noidung .elo-arena .ea-bd .ea-dong { min-width:0; padding:12px 14px; }
+
+  /* Bảng xếp hạng: [hạng] [người dùng] [Elo] / [bậc] [trạng thái] */
+  .admin-noidung .elo-arena .ea-xh .ea-dong {
+    grid-template-columns:30px minmax(0,1fr) auto; grid-template-areas:"h n e" "h b t"; column-gap:10px; row-gap:6px;
+  }
+  .admin-noidung .elo-arena .ea-xh .ea-dong > :nth-child(1) { grid-area:h; align-self:start; text-align:center; padding-top:8px; }
+  .admin-noidung .elo-arena .ea-xh .ea-dong > :nth-child(2) { grid-area:n; }
+  .admin-noidung .elo-arena .ea-xh .ea-dong > :nth-child(3) { grid-area:b; }
+  .admin-noidung .elo-arena .ea-xh .ea-dong > :nth-child(4) { grid-area:e; text-align:right; white-space:nowrap; }
+  .admin-noidung .elo-arena .ea-xh .ea-dong > :nth-child(5) { grid-area:t; justify-self:end; }
+  .admin-noidung .elo-arena .ea-ten { overflow:hidden; text-overflow:ellipsis; }
+  .admin-noidung .elo-arena .ea-nd > div { min-width:0; }
+
+  /* Tra cứu Elo + Biến động: mỗi dòng là một thẻ 2 cột, có nhãn nhỏ phía trên từng giá trị */
+  .admin-noidung .elo-arena .ea-tra .ea-dong,
+  .admin-noidung .elo-arena .ea-bd .ea-dong { grid-template-columns:1fr 1fr; gap:10px 14px; }
+  .admin-noidung .elo-arena .ea-tra .ea-dong > :nth-child(1),
+  .admin-noidung .elo-arena .ea-bd .ea-dong > :nth-child(1) { grid-column:1 / -1; }
+  .admin-noidung .elo-arena .ea-tra .ea-dong > :nth-child(n+2),
+  .admin-noidung .elo-arena .ea-bd .ea-dong > :nth-child(n+2) { min-width:0; }
+  .admin-noidung .elo-arena .ea-tra .ea-dong > :nth-child(n+2)::before,
+  .admin-noidung .elo-arena .ea-bd .ea-dong > :nth-child(n+2)::before {
+    display:block; margin-bottom:2px; font-size:10.5px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--ea-phu);
+  }
+  .admin-noidung .elo-arena .ea-tra .ea-dong > :nth-child(2)::before { content:"Môn"; }
+  .admin-noidung .elo-arena .ea-tra .ea-dong > :nth-child(3)::before { content:"Bậc · Elo"; }
+  .admin-noidung .elo-arena .ea-tra .ea-dong > :nth-child(4)::before { content:"Số trận"; }
+  .admin-noidung .elo-arena .ea-tra .ea-dong > :nth-child(5)::before { content:"Thắng / Thua / Hòa"; }
+  .admin-noidung .elo-arena .ea-tra .ea-dong > :nth-child(6)::before { content:"Tỷ lệ thắng"; }
+  .admin-noidung .elo-arena .ea-tra .ea-dong > :nth-child(6) { grid-column:1 / -1; }
+  .admin-noidung .elo-arena .ea-tra .ea-dong > :nth-child(3) { display:flex; flex-wrap:wrap; align-items:center; gap:0 8px; }
+  .admin-noidung .elo-arena .ea-tra .ea-dong > :nth-child(3)::before { flex:0 0 100%; }
+  .admin-noidung .elo-arena .ea-bd .ea-dong > :nth-child(2)::before { content:"Môn"; }
+  .admin-noidung .elo-arena .ea-bd .ea-dong > :nth-child(3)::before { content:"Elo đầu kỳ → cuối kỳ"; }
+  .admin-noidung .elo-arena .ea-bd .ea-dong > :nth-child(4)::before { content:"Thay đổi"; }
+  .admin-noidung .elo-arena .ea-bd .ea-dong > :nth-child(5)::before { content:"Số trận trong kỳ"; }
+  .admin-noidung .elo-arena .ea-bd .ea-dong > :nth-child(6)::before { content:"Trạng thái"; }
+
+  /* Hồ sơ bên phải */
+  .admin-noidung .elo-arena .ea-hoso { padding:18px 14px; }
+  .admin-noidung .elo-arena .ea-so-lon { font-size:34px; }
+}
+@media (max-width:380px) {
+  .admin-noidung .elo-arena .ea-kv { gap:6px; }
+  .admin-noidung .elo-arena .ea-kv b { font-size:14px; }
+}
+
+/* ---------- Hộp thoại Xuất (Excel / PDF) ----------
+   Cùng giao diện hộp thoại Xuất của trang Người dùng / Tổng quan (modal-nen, modal xuat-hop, xuat-* trong thongke_xuat.css). */
+.xuat-hop.ex-xuat-hop { width:min(1040px, 100%); }
+.ex-xuat-hop .xuat-luoi { grid-template-columns:280px minmax(0, 1fr); align-items:stretch; }
+.ex-xuat-hop .xuat-phu { opacity:.65; font-size:13px; }
+.ex-xuat-hop .xuat-xemDau small { font-weight:400; font-size:13px; opacity:.75; margin-left:6px; }
+.ex-xuat-nut { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+.ex-xuat-nut .xuat-tatca { margin-top:0; }
+.ex-xuat-hop .xuat-xemCot { position:relative; min-height:360px; }
+.ex-xuat-hop .xuat-xem { position:absolute; inset:30px 0 0 0; max-height:none; }
+@media (max-width:760px) {
+  .ex-xuat-hop .xuat-luoi { grid-template-columns:1fr; }
+  .ex-xuat-hop .xuat-xemCot { position:static; min-height:0; }
+  .ex-xuat-hop .xuat-xem { position:static; max-height:56vh; }
+}
+.xuat-the .ex-xb-cuon { overflow-x:auto; border:1px solid #e2e7f6; border-radius:10px; }
+.xuat-the .ex-xb { display:table; width:100%; border-collapse:collapse; font-size:12.5px; color:#24324f; }
+.xuat-the .ex-xb th { padding:6px 9px; text-align:left; font-size:11.5px; font-weight:700; white-space:nowrap; background:#f3f6fd; color:#4a5679; border-bottom:1px solid #e2e7f6; letter-spacing:0; }
+.xuat-the .ex-xb td { padding:6px 9px; vertical-align:top; border-bottom:1px solid #eef1fa; background:transparent; color:#24324f; }
+.xuat-the .ex-xb tr:last-child td { border-bottom:0; }
+.xuat-the .ex-xb .ex-xb-nowrap { white-space:nowrap; }
+.xuat-the .ex-xb-tt { display:inline-block; padding:2px 9px; border-radius:999px; font-size:11.5px; font-weight:700; white-space:nowrap; }
+.xuat-the .ex-xb-ok  { background:#dcf5ea; color:#0b7f62; }
+.xuat-the .ex-xb-loi { background:#fde3e6; color:#c11f35; }
+.xuat-the .xuat-canhbao { margin:8px 0 0; padding:6px 10px; border-radius:8px; font-size:12.5px; background:#fff0d6; color:#a86400; }
+.ex-xuat-hop .xuat-ghichu { margin:8px 0 0; }
+
+/* ---------- Hộp thoại Xuất: nền trắng, chữ đen rõ ràng (ghi đè nền tối mặc định của .modal) ---------- */
+.modal-nen:has(.ex-xuat-hop) { background:rgba(8,20,70,.55); backdrop-filter:none; -webkit-backdrop-filter:none; }
+.xuat-hop.ex-xuat-hop { background:#fff; color:#12235e; border:1px solid #dfe6f6; border-radius:16px; box-shadow:0 24px 60px rgba(10,25,80,.35); }
+.ex-xuat-hop h3 { color:#12235e; text-shadow:none; font-size:20px; margin:0 0 12px; }
+.ex-xuat-hop fieldset { border:1px solid #dfe6f6; background:#fff; }
+.ex-xuat-hop legend { color:#12235e; font-weight:700; }
+.ex-xuat-hop .xuat-chon { color:#12235e; font-weight:500; }
+.ex-xuat-hop .xuat-phu { color:#6b7694; opacity:1; }
+.ex-xuat-hop input[type=checkbox], .ex-xuat-hop input[type=radio] { accent-color:#1e5cf0; }
+.ex-xuat-hop .xuat-xemDau { color:#12235e; font-weight:700; }
+.ex-xuat-hop .xuat-xemDau small { color:#6b7694; opacity:1; }
+.ex-xuat-hop .xuat-xemCot { background:#f6f8fd; border:1px solid #dfe6f6; border-radius:12px; padding:10px; }
+.ex-xuat-hop .xuat-xem { inset:42px 10px 10px 10px; }
+.ex-xuat-hop .xuat-ghichu { color:#44527a; opacity:1; }
+.ex-xuat-hop .xuat-the { background:#fff; border:1px solid #dfe6f6; color:#12235e; }
+.ex-xuat-hop .xuat-the .xuat-ghichu { color:#44527a; }
+.ex-xuat-hop .xuat-loi { background:#fde8ea; color:#b4232a; border:1px solid #f5c2c6; }
+.ex-xuat-hop .btn { background:#1e5cf0; color:#fff; border:0; box-shadow:none; text-shadow:none; }
+.ex-xuat-hop .btn:hover { background:#174ed0; color:#fff; box-shadow:none; filter:none; }
+.ex-xuat-hop .btn.btn-phu { background:#e3edff; color:#1e5cf0; }
+.ex-xuat-hop .btn.btn-phu:hover { background:#d3e3ff; color:#1e5cf0; }
+.ex-xuat-hop .btn:disabled { opacity:.6; cursor:default; }
+@media (max-width:760px) { .ex-xuat-hop .xuat-xem { inset:auto; } }
+
+/* ---------- Sơ đồ trong khung xem trước của hộp thoại Xuất ---------- */
+.ex-xuat-hop .ex-xb-bieudo { display:grid; grid-template-columns:minmax(0, 2fr) minmax(0, 1fr); gap:12px; margin:10px 0; }
+.ex-xuat-hop .ex-xb-bd { position:relative; height:230px; background:#fff; border:1px solid #e2e7f6; border-radius:10px; padding:8px; }
+.ex-xuat-hop .ex-xb-bieudo.ex-xb-mot { grid-template-columns:1fr; }
+@media (max-width:700px) { .ex-xuat-hop .ex-xb-bieudo { grid-template-columns:1fr; } }
+
+/* ---------- Hộp thoại Xuất: responsive (máy tính bảng → điện thoại) ---------- */
+.modal-nen:has(.ex-xuat-hop) { overflow-y:auto; -webkit-overflow-scrolling:touch; }
+.xuat-hop.ex-xuat-hop { box-sizing:border-box; max-height:92vh; max-height:92dvh; overflow-y:auto; overflow-x:hidden; }
+.ex-xuat-hop .xuat-luoi > * { min-width:0; }
+.ex-xuat-hop .hanh-dong { position:sticky; bottom:-22px; background:#fff; padding:12px 0 2px; margin-top:12px; border-top:1px solid #eef1fa; z-index:2; }
+
+/* Máy tính bảng / màn hình hẹp */
+@media (max-width:1000px) {
+  .ex-xuat-hop .xuat-luoi { grid-template-columns:240px minmax(0, 1fr); gap:12px; }
+  .ex-xuat-hop .ex-xb-bieudo { grid-template-columns:1fr; }
+  .ex-xuat-hop .ex-xb-bd { height:200px; }
+}
+
+/* Điện thoại lớn / máy tính bảng dọc: xếp 1 cột (chọn ở trên, xem trước ở dưới) */
+@media (max-width:760px) {
+  .modal-nen:has(.ex-xuat-hop) { align-items:flex-start; padding:10px; }
+  .xuat-hop.ex-xuat-hop { width:100%; max-height:none; overflow:visible; padding:16px; border-radius:14px; margin:auto 0; }
+  .ex-xuat-hop h3 { font-size:18px; margin-bottom:10px; }
+  .ex-xuat-hop .xuat-luoi { grid-template-columns:1fr; gap:12px; }
+  .ex-xuat-hop .xuat-xemCot { position:static; min-height:0; padding:10px; }
+  .ex-xuat-hop .xuat-xem { position:static; inset:auto; max-height:none; overflow:visible; }
+  .ex-xuat-hop .xuat-chon { font-size:15px; padding:2px 0; }
+  .ex-xuat-hop input[type=checkbox], .ex-xuat-hop input[type=radio] { width:18px; height:18px; }
+  .ex-xuat-hop .ex-xb-bieudo { grid-template-columns:1fr; }
+  .ex-xuat-hop .ex-xb-bd { height:210px; }
+  .ex-xuat-hop .hanh-dong { bottom:-16px; padding:10px 0 2px; }
+}
+
+/* Điện thoại nhỏ */
+@media (max-width:480px) {
+  .modal-nen:has(.ex-xuat-hop) { padding:0; }
+  .xuat-hop.ex-xuat-hop { border-radius:0; min-height:100vh; min-height:100dvh; margin:0; padding:14px 14px 0; border:0; }
+  .ex-xuat-hop h3 { font-size:17px; }
+  .ex-xuat-hop fieldset { padding:2px 12px 10px; }
+  .ex-xuat-hop .xuat-so { grid-template-columns:repeat(3, minmax(0, 1fr)); }
+  .ex-xuat-hop .xuat-so-o { padding:6px; }
+  .ex-xuat-hop .xuat-so-o strong { font-size:15px; }
+  .ex-xuat-hop .xuat-the { padding:10px; }
+  .ex-xuat-hop .xuat-the-dau { flex-wrap:wrap; }
+  .ex-xuat-hop .ex-xb-bd { height:190px; }
+  .ex-xuat-hop .ex-xuat-nut .xuat-tatca { flex:1 1 0; }
+  .ex-xuat-hop .hanh-dong { bottom:0; margin:12px -14px 0; padding:10px 14px calc(10px + env(safe-area-inset-bottom, 0px)); box-shadow:0 -6px 14px rgba(10,25,80,.08); }
+  .ex-xuat-hop .hanh-dong .btn { flex:1 1 0; padding:11px 12px; font-size:15px; }
+}
+
+/* Màn hình thấp (điện thoại xoay ngang): bỏ thanh dính để khỏi che nội dung */
+@media (max-height:480px) and (orientation:landscape) {
+  .ex-xuat-hop .hanh-dong { position:static; box-shadow:none; }
+}
+
+/* ---------- Hộp thoại Xuất: bảng xem trước vừa khung, không phải kéo ngang ---------- */
+.xuat-hop.ex-xuat-hop { width:min(1200px, 100%); }
+.ex-xuat-hop .xuat-the .ex-xb-cuon { overflow-x:auto; }   /* chỉ cuộn ngang khi quá nhiều cột */
+.ex-xuat-hop .xuat-the .ex-xb { table-layout:auto; width:100%; font-size:12px; }
+.ex-xuat-hop .xuat-the .ex-xb th { white-space:normal; padding:6px 6px; font-size:11px; line-height:1.25; vertical-align:bottom; }
+.ex-xuat-hop .xuat-the .ex-xb td { padding:6px 6px; overflow-wrap:anywhere; word-break:normal; line-height:1.35; }
+.ex-xuat-hop .xuat-the .ex-xb .ex-xb-nowrap { white-space:normal; }
+.ex-xuat-hop .xuat-the .ex-xb-tt { padding:2px 7px; font-size:11px; }
+/* ---------- Bảng xem trước trong hộp thoại Xuất (cột Mã, Tên...): nền trắng, gọn, đọc được trên điện thoại ----------
+   style_admin.css ép th/td của .admin-noidung bằng !important (chữ HOA, padding 13px 16px...) nên phải ghi đè lại bằng !important. */
+.ex-xuat-hop .xuat-the .ex-xb-cuon { background:#fff; border:1px solid #dfe6f6; border-radius:10px; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+.ex-xuat-hop .xuat-the table.ex-xb { margin:0 !important; width:100% !important; min-width:max-content; border-collapse:collapse !important; border-spacing:0 !important; background:#fff !important; display:table !important; }
+.ex-xuat-hop .xuat-the .ex-xb th { background:#f3f6fd !important; color:#33415f !important; font-size:12px !important; font-weight:700 !important; text-transform:none !important; letter-spacing:0 !important;
+  padding:8px 10px !important; border-bottom:1px solid #dfe6f6 !important; white-space:nowrap; position:sticky; top:0; z-index:1; }
+.ex-xuat-hop .xuat-the .ex-xb td { background:#fff !important; color:#1b2a4a !important; font-size:13px !important; font-weight:500 !important;
+  padding:7px 10px !important; border-bottom:1px solid #eef1fa !important; vertical-align:middle !important; }
+.ex-xuat-hop .xuat-the .ex-xb tbody tr:nth-child(even) td { background:#fafbff !important; }
+.ex-xuat-hop .xuat-the .ex-xb tbody tr:hover td { background:#eef4ff !important; }
+.ex-xuat-hop .xuat-the .ex-xb tr:last-child td { border-bottom:0 !important; }
+@media (max-width:760px) {
+  .ex-xuat-hop .xuat-the .ex-xb-cuon { max-height:60vh; }
+  .ex-xuat-hop .xuat-the .ex-xb th { font-size:11.5px !important; padding:7px 8px !important; }
+  .ex-xuat-hop .xuat-the .ex-xb td { font-size:12.5px !important; padding:7px 8px !important; }
+}
+
+/* Điện thoại: ép bảng xem trước vừa khung (không tràn ngang): bỏ min-width, cho chữ tiêu đề và ô xuống dòng */
+@media (max-width:760px) {
+  .ex-xuat-hop .xuat-luoi, .ex-xuat-hop .xuat-xemCot, .ex-xuat-hop .xuat-xem, .ex-xuat-hop .xuat-the { max-width:100%; min-width:0; box-sizing:border-box; }
+  .ex-xuat-hop .xuat-the .ex-xb-cuon { max-width:100%; }
+  .ex-xuat-hop .xuat-the table.ex-xb { min-width:0 !important; width:100% !important; table-layout:auto; }
+  .ex-xuat-hop .xuat-the .ex-xb th { white-space:normal !important; word-break:break-word; overflow-wrap:anywhere; line-height:1.25; vertical-align:bottom; position:static; }
+  .ex-xuat-hop .xuat-the .ex-xb td { word-break:break-word; overflow-wrap:anywhere; line-height:1.3; }
+  .ex-xuat-hop .xuat-the .ex-xb td.ex-xb-nowrap { white-space:normal; }
+  .ex-xuat-hop .xuat-the .ex-xb th, .ex-xuat-hop .xuat-the .ex-xb td { padding:6px 5px !important; font-size:11.5px !important; }
+  .ex-xuat-hop .xuat-the .ex-xb-tt { font-size:10.5px; padding:2px 6px; }
+}
+
+/* Ô chọn môn trong hộp thoại Xuất */
+.ex-xuat-hop .ex-chon-mon { width:100%; box-sizing:border-box; margin:8px 0 0; padding:9px 10px; border:1px solid #cbd5e1; border-radius:10px; background:#fff; color:#12235e; font-size:14px; }
+.ex-xuat-hop .ex-chon-mon:focus { outline:2px solid #bcd0ff; border-color:#1e5cf0; }
+.ex-xuat-hop .xuat-phu { color:#6b7694; opacity:1; font-size:13px; }

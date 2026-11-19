@@ -271,12 +271,100 @@ body.admin-login-body,
 }
 .sidebar .tach { border-top: 0; margin-top: 0; padding-top: 0; }
 
+/* Nút 3 gạch + lớp nền mờ: mặc định ẩn (chỉ dùng trên điện thoại) */
+.admin-hamburger,
+.sidebar-overlay { display: none; }
+
+/* ==========================================================================
+   ĐIỆN THOẠI (<= 768px): Sidebar thành menu trượt ẩn, mở bằng nút 3 gạch
+   - Mặc định ẩn hoàn toàn, nội dung chiếm trọn màn hình
+   - Bấm nút 3 gạch (góc trái trên) -> menu trượt ra từ mép trái + nền mờ
+   - Bấm nền mờ / nút thu gọn / chọn một mục / phím Esc -> đóng menu
+   ========================================================================== */
 @media (max-width: 768px) {
-  .admin-khung { flex-direction: column; padding: 12px; gap: 14px; }
-  .sidebar { width: 100%; height: auto; position: static; display: flex; flex-wrap: wrap; gap: 4px; padding: 12px; }
-  .sidebar .logo { width: 100%; padding: 4px 8px; }
-  .sidebar a { padding: 7px 12px; }
-  .sidebar .tach { border-top: 0; margin-top: 0; padding-top: 6px; }
+  .admin-khung {
+    flex-direction: column;
+    box-sizing: border-box;
+    width: 100%;
+    padding: 68px 12px 16px; /* chừa chỗ phía trên cho nút 3 gạch */
+    gap: 14px;
+    max-width: 100%;
+  }
+  .admin-noidung { width: 100%; max-width: 100%; }
+
+  /* Nút 3 gạch cố định góc trái trên */
+  .admin-hamburger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    position: fixed;
+    top: 12px;
+    left: 12px;
+    z-index: 1000;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    background: rgba(8, 14, 32, 0.94);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(56, 189, 248, 0.45);
+    border-radius: 12px;
+    color: #38bdf8;
+    cursor: pointer;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+    -webkit-tap-highlight-color: transparent;
+    transition: opacity 0.2s ease, transform 0.15s ease;
+  }
+  .admin-hamburger:active { transform: scale(0.94); }
+
+  /* Nút "Menu" nổi kiểu máy tính không dùng trên điện thoại */
+  .sidebar-expand-btn { display: none !important; }
+
+  /* Lớp nền mờ */
+  .sidebar-overlay {
+    display: block;
+    position: fixed;
+    top: 0; right: 0; bottom: 0; left: 0;
+    z-index: 900;
+    background: rgba(2, 6, 23, 0.62);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.28s ease;
+  }
+
+  /* Sidebar -> ngăn kéo trượt từ trái */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 910;
+    width: min(84vw, 300px);
+    max-width: 300px;
+    height: 100vh;
+    height: 100dvh;
+    padding: 18px 12px;
+    border-radius: 0 18px 18px 0;
+    flex-wrap: nowrap;
+    transform: translateX(-105%);
+    visibility: hidden;
+    overscroll-behavior: contain;
+  }
+  .sidebar .logo { width: auto; padding: 4px 6px 12px; }
+  .sidebar a { padding: 11px 13px; }
+  .sidebar .tach { border-top: 0; margin-top: 0; padding-top: 0; }
+
+  /* Trạng thái mở */
+  body.sidebar-open { overflow: hidden; }
+  body.sidebar-open .sidebar {
+    transform: translateX(0);
+    visibility: visible;
+    box-shadow: 12px 0 40px rgba(0, 0, 0, 0.55) !important;
+  }
+  body.sidebar-open .sidebar-overlay { opacity: 1; pointer-events: auto; }
+  body.sidebar-open .admin-hamburger { opacity: 0; pointer-events: none; }
 }
 
 /* 4. KHU VỰC NỘI DUNG CHÍNH (CONTENT AREA) */
@@ -294,38 +382,40 @@ body.admin-login-body,
    - Nội dung trang khớp hoàn toàn 100% với màn hình hiển thị rộng rãi
    - Nút nổi mở Sidebar hiển thị tinh tế ở mép trái
    ========================================================================== */
-html.sidebar-hidden .sidebar-expand-btn,
-body.sidebar-hidden .sidebar-expand-btn {
-  display: inline-flex !important;
-}
+@media (min-width: 769px) {
+  html.sidebar-hidden .sidebar-expand-btn,
+  body.sidebar-hidden .sidebar-expand-btn {
+    display: inline-flex !important;
+  }
 
-html.sidebar-hidden .admin-khung,
-body.sidebar-hidden .admin-khung {
-  gap: 0 !important;
-  padding: 20px 28px 20px 78px !important; /* Chừa 78px bên trái để Tab menu mép trái không đè lên Card */
-  max-width: 100% !important; /* Lấp đầy toàn màn hình */
-}
+  html.sidebar-hidden .admin-khung,
+  body.sidebar-hidden .admin-khung {
+    gap: 0 !important;
+    padding: 20px 28px 20px 78px !important; /* Chừa 78px bên trái để Tab menu mép trái không đè lên Card */
+    max-width: 100% !important; /* Lấp đầy toàn màn hình */
+  }
 
-html.sidebar-hidden .sidebar,
-body.sidebar-hidden .sidebar {
-  width: 0 !important;
-  min-width: 0 !important;
-  max-width: 0 !important;
-  padding: 0 !important;
-  margin: 0 !important;
-  border: none !important;
-  opacity: 0 !important;
-  visibility: hidden !important;
-  pointer-events: none !important;
-  overflow: hidden !important;
-  transform: translateX(-40px) !important;
-}
+  html.sidebar-hidden .sidebar,
+  body.sidebar-hidden .sidebar {
+    width: 0 !important;
+    min-width: 0 !important;
+    max-width: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+    overflow: hidden !important;
+    transform: translateX(-40px) !important;
+  }
 
-html.sidebar-hidden .admin-noidung,
-body.sidebar-hidden .admin-noidung {
-  flex: 1 1 100% !important;
-  width: 100% !important;
-  max-width: 100% !important; /* Nội dung trang khớp 100% với màn hình */
+  html.sidebar-hidden .admin-noidung,
+  body.sidebar-hidden .admin-noidung {
+    flex: 1 1 100% !important;
+    width: 100% !important;
+    max-width: 100% !important; /* Nội dung trang khớp 100% với màn hình */
+  }
 }
 
 /* Tiêu đề ngoài Card trên nền tối vũ trụ */

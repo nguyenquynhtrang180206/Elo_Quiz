@@ -6,7 +6,7 @@ class ThongBaoHelper
     private static ?bool $bangTonTai = null;
 
     // Các loại thông báo do quản trị viên kiểm duyệt cộng đồng gửi tới chủ bài / chủ bình luận
-    public const LOAI_QUAN_TRI = ['an_bai', 'hien_bai', 'an_bl', 'hien_bl'];
+    public const LOAI_QUAN_TRI = ['an_bai', 'hien_bai', 'an_bl', 'hien_bl', 'khoa_tk', 'mokhoa_tk'];
     public const TEN_QUAN_TRI  = 'Quản trị viên';
 
     // Thông báo từ quản trị viên (không phải người dùng nên MaNguoiGui = 0; giao diện hiện tên "Quản trị viên")
@@ -24,6 +24,41 @@ class ThongBaoHelper
             return false;
         }
         return self::taoThongBao($pdo, $maNguoiNhan, 0, $maBaiDang, $maBinhLuan, $loai, $tieuDe, $noiDung, $lienKet);
+    }
+
+    // Thông báo khi quản trị viên khóa / mở khóa tài khoản (không gắn với bài đăng nên MaBaiDang = NULL).
+    // Trả về false nếu không ghi được; việc khóa tài khoản vẫn đã được lưu trước đó.
+    public static function taoThongBaoTaiKhoan(PDO $pdo, int $maNguoiNhan, bool $khoa, string $lyDo): bool
+    {
+        if ($maNguoiNhan <= 0 || !self::damBaoBang()) {
+            return false;
+        }
+        $loai    = $khoa ? 'khoa_tk' : 'mokhoa_tk';
+        $tieuDe  = $khoa ? 'Tài khoản của bạn đã bị khóa' : 'Tài khoản của bạn đã được mở khóa';
+        $noiDung = $khoa
+            ? ($lyDo !== '' ? 'Lý do: ' . $lyDo : 'Vui lòng liên hệ quản trị viên để được hỗ trợ.')
+            : 'Bạn có thể đăng nhập và thi đấu bình thường.';
+        $sql = 'INSERT INTO THONGBAO (MaND, MaNguoiGui, MaBaiDang, MaBinhLuan, Loai, TieuDe, NoiDung, LienKet, DaDoc, NgayTao)
+                VALUES (?, 0, NULL, NULL, ?, ?, ?, ?, 0, NOW())';
+        // Bấm vào thông báo khóa thì đăng xuất luôn (client/thongbao_khoa.php); thông báo mở khóa chỉ đưa về trang chủ
+        $lienKet = BASE_URL . ($khoa ? '/client/thongbao_khoa.php' : '/client/index.php');
+        $tham = [$maNguoiNhan, $loai, $tieuDe, mb_substr($noiDung, 0, 500), $lienKet];
+        try {
+            return $pdo->prepare($sql)->execute($tham);
+        } catch (PDOException $e) {
+            // Bảng THONGBAO tạo từ phiên bản cũ: MaBaiDang còn NOT NULL (lỗi 1048). Cho phép NULL một lần rồi thử lại.
+            if ((int) ($e->errorInfo[1] ?? 0) === 1048) {
+                try {
+                    $pdo->exec('ALTER TABLE THONGBAO MODIFY MaBaiDang INT UNSIGNED NULL');
+                    return $pdo->prepare($sql)->execute($tham);
+                } catch (Throwable $e2) {
+                    return false;
+                }
+            }
+            return false;
+        } catch (Throwable $e) {
+            return false;
+        }
     }
 
     /**

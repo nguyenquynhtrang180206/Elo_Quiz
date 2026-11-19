@@ -250,6 +250,16 @@ class NhapCauHoi
             $doKhoMap[self::khoa($d)] = $d;
         }
 
+        // Nạp MỘT lần nội dung câu hỏi đã có của các môn xuất hiện trong file, thay cho truy vấn tìm trùng từng dòng
+        $monTrongFile = [];
+        foreach ($dong as $d) {
+            $id = $mon[self::khoa((string) ($d['o'][0] ?? ''))] ?? 0;
+            if ($id > 0) {
+                $monTrongFile[$id] = true;
+            }
+        }
+        $daCoTrongDB = self::taiNoiDungDaCo($pdo, array_keys($monTrongFile));
+
         $ketQua = [];
         $daThay = [];   // khóa (môn + nội dung) => số dòng đầu tiên, để bắt trùng ngay trong file
         foreach ($dong as $d) {
@@ -295,7 +305,7 @@ class NhapCauHoi
             [$l2, $sach] = CauHoiHelper::kiemTra($pdo, [
                 'mon' => $maMon, 'loai' => $maKT, 'dokho' => $doKho, 'noidung' => $o[3], 'giaithich' => $o[9],
                 'dapan' => [$o[4], $o[5], $o[6], $o[7]], 'dung' => $dung,
-            ], 0, true);
+            ], 0, true, true);   // môn và kỳ thi đã đối chiếu ở trên bằng $mon, $kt nên không truy vấn lại
             if ($maMon === 0) {
                 $l2 = array_values(array_diff($l2, ['Hãy chọn môn học.']));   // đã báo riêng ở trên
             }
@@ -307,7 +317,7 @@ class NhapCauHoi
                 $sach = null;
             } else {
                 $khoa = $maMon . '|' . self::khoa($sach['noidung']);
-                $trungDB = CauHoiHelper::timTrung($pdo, $sach['mon'], $sach['noidung']);
+                $trungDB = $daCoTrongDB[$khoa] ?? null;
                 if (isset($daThay[$khoa])) {
                     $tt    = 'Trùng';
                     $loi[] = 'Trùng nội dung với dòng ' . $daThay[$khoa] . ' trong cùng file.';
@@ -326,6 +336,25 @@ class NhapCauHoi
             $ketQua[] = ['so' => $d['so'], 'o' => $o, 'trangThai' => $tt, 'loi' => $loi, 'sach' => $sach];
         }
         return $ketQua;
+    }
+
+    // Trả về [ 'MaMon|nội dung đã chuẩn hóa' => mã câu hỏi nhỏ nhất ] của các câu đã có trong CSDL thuộc các môn $dsMon
+    private static function taiNoiDungDaCo(PDO $pdo, array $dsMon): array
+    {
+        $kq = [];
+        if (!$dsMon) {
+            return $kq;
+        }
+        $st = $pdo->prepare('SELECT MaMon, MaCauHoi, NoiDung FROM CAUHOI WHERE MaMon IN ('
+            . implode(',', array_fill(0, count($dsMon), '?')) . ') ORDER BY MaCauHoi');
+        $st->execute(array_values($dsMon));
+        foreach ($st as $r) {
+            $k = (int) $r['MaMon'] . '|' . self::khoa(CauHoiHelper::chuan((string) $r['NoiDung']));
+            if (!isset($kq[$k])) {
+                $kq[$k] = (int) $r['MaCauHoi'];
+            }
+        }
+        return $kq;
     }
 
     // Chuẩn hóa để so sánh tên: bỏ khoảng trắng thừa, không phân biệt hoa thường

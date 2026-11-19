@@ -11,3 +11,23 @@ input[readonly] { background:#f3f4f6; }
 
 /* Chân trang Elo theo môn: dấu "…" báo có trang bị bỏ qua */
 .elo-dots { display:inline-block; padding:3px 4px; margin:0 2px 4px 0; color:var(--mau-phu); }
+
+/* C-15: biểu đồ biến động Elo */
+#bieudo-elo { margin-top:16px; }
+.bd-dieukhien { display:flex; flex-wrap:wrap; align-items:center; gap:10px 12px; margin-bottom:12px; }
+.bd-dieukhien label { margin:0; }
+.bd-dieukhien select { width:auto; min-width:180px; max-width:100%; }
+.bd-khoang { display:flex; flex-wrap:wrap; gap:8px; margin-left:auto; }
+.bd-khoang .btn { padding:6px 14px; font-size:13px; }
+.bd-khoang .btn.bd-chon { background:rgba(0,217,255,.2); color:#fff; box-shadow:var(--glow-cyan); }
+.bd-tomtat { display:grid; grid-template-columns:repeat(auto-fit, minmax(110px, 1fr)); gap:10px; margin-bottom:12px; }
+.bd-tomtat > div { background:rgba(8,123,255,.12); border:1px solid var(--mau-vien); border-radius:10px; padding:8px 12px; }
+.bd-tomtat span { display:block; color:var(--mau-phu); font-size:12px; }
+.bd-tomtat b { font-size:20px; }
+.bd-tomtat b.bd-len { color:#34d399; }
+.bd-tomtat b.bd-xuong { color:#f87171; }
+.bd-khung { position:relative; height:320px; }
+@media (max-width:600px) {
+  .bd-khoang { margin-left:0; }
+  .bd-khung { height:260px; }
+}

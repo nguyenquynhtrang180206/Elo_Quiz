@@ -382,3 +382,13 @@
   margin: 26px 0 14px 0 !important;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9) !important;
 }
+
+/* ===== Điện thoại: trang Chi tiết người dùng ===== */
+@media (max-width: 768px) {
+  .nd-profile-hero-card { padding: 16px 14px !important; margin-bottom: 14px !important; }
+  .nd-profile-header { gap: 12px; align-items: flex-start; }
+  .nd-avatar-lon { width: 52px; height: 52px; border-radius: 14px; font-size: 22px; }
+  .nd-info-chinh { min-width: 0; }
+  .nd-info-chinh h2 { font-size: 20px !important; word-break: break-word; }
+  .nd-grid-2cot .card, .admin-noidung > .card { overflow-x: auto; }
+}

@@ -233,6 +233,7 @@ $maxTranMon = $topMon ? max(1, (int) $topMon[0]['SoTran']) : 1;
 
 $tieuDe = 'Bảng xếp hạng';
 $cssTrang = 'bxh';
+$jsTrang  = ['capnhat_mem'];   // đổi bộ lọc / tab không tải lại cả trang, giữ vị trí cuộn
 $bodyClass = 'trang-bxh';
 require __DIR__ . '/layout/header.php';
 ?>
@@ -255,7 +256,7 @@ require __DIR__ . '/layout/header.php';
   </div>
 </section>
 
-<div class="bxh-bocuc">
+<div class="bxh-bocuc" data-mem-vung="bxh" data-mem-links>
 
   <!-- ===== Cột trái: bộ lọc + lời mời thi đấu ===== -->
   <aside class="bxh-trai">
@@ -264,12 +265,25 @@ require __DIR__ . '/layout/header.php';
 
       <div class="bxh-nhom">
         <span class="bxh-nhan">Theo môn học</span>
-        <div class="bxh-chips">
+        <?php $soMonHienSan = 6; $soMonAn = max(0, count($dsMon) - $soMonHienSan); ?>
+        <?php if (count($dsMon) > $soMonHienSan): ?>
+        <div class="bxh-mon-tim">
+          <input type="search" id="bxhMonTim" class="bxh-mon-tim-o" placeholder="Tìm môn học..." autocomplete="off" aria-label="Tìm môn học">
+        </div>
+        <?php endif; ?>
+        <div class="bxh-chips" id="bxhMonChips">
           <a class="bxh-chip<?= $phamVi === 'truong' ? ' dang-chon' : '' ?>" href="<?= e(bxhUrl(['pv' => 'truong'])) ?>">&#9734; Tất cả</a>
-          <?php foreach ($dsMon as $m): ?>
-            <a class="bxh-chip<?= $phamVi === 'mon' && (int) $m['MaMon'] === $mon ? ' dang-chon' : '' ?>" href="<?= e(bxhUrl(['pv' => 'mon', 'mon' => (int) $m['MaMon']])) ?>"><?= e($m['TenMon']) ?></a>
+          <?php foreach ($dsMon as $i => $m):
+            $dangChon = $phamVi === 'mon' && (int) $m['MaMon'] === $mon;
+            $laThem   = $i >= $soMonHienSan && !$dangChon;   // môn đang chọn luôn hiện dù nằm ngoài 6 môn đầu
+          ?>
+            <a class="bxh-chip bxh-chip-mon<?= $dangChon ? ' dang-chon' : '' ?><?= $laThem ? ' is-extra' : '' ?>" data-ten="<?= e(mb_strtolower($m['TenMon'])) ?>" href="<?= e(bxhUrl(['pv' => 'mon', 'mon' => (int) $m['MaMon']])) ?>"<?= $laThem ? ' hidden' : '' ?>><?= e($m['TenMon']) ?></a>
           <?php endforeach; ?>
         </div>
+        <div class="bxh-mon-khong" id="bxhMonKhong" hidden>Không tìm thấy môn học nào.</div>
+        <?php if ($soMonAn > 0): ?>
+        <button type="button" class="bxh-xem-them" id="bxhMonXemThem" aria-expanded="false" data-an="Xem thêm +<?= $soMonAn ?> môn" data-thu="Thu gọn">Xem thêm +<?= $soMonAn ?> môn</button>
+        <?php endif; ?>
       </div>
 
       <div class="bxh-nhom">
@@ -286,7 +300,7 @@ require __DIR__ . '/layout/header.php';
         <span class="bxh-nhan">Thời gian</span>
         <div class="bxh-chips">
           <?php foreach ($kyTen as $k => $ten): ?>
-            <a class="bxh-chip<?= $ky === $k ? ' dang-chon' : '' ?>" href="<?= e(bxhUrl(['ky' => $k])) ?>"><?= e($ten) ?></a>
+            <a class="bxh-chip<?= $ky === $k ? ' dang-chon' : '' ?>" data-mem-truoc href="<?= e(bxhUrl(['ky' => $k])) ?>"><?= e($ten) ?></a>
           <?php endforeach; ?>
         </div>
       </div>
@@ -303,7 +317,7 @@ require __DIR__ . '/layout/header.php';
   <section class="bxh-giua">
     <nav class="bxh-tabs" aria-label="Phạm vi bảng xếp hạng">
       <?php foreach ($tabs as $k => $ten): ?>
-        <a class="bxh-tab<?= $phamVi === $k ? ' dang-chon' : '' ?>" href="<?= e(bxhUrl(['pv' => $k])) ?>"><?= e($ten) ?></a>
+        <a class="bxh-tab<?= $phamVi === $k ? ' dang-chon' : '' ?>" data-mem-truoc href="<?= e(bxhUrl(['pv' => $k])) ?>"><?= e($ten) ?></a>
       <?php endforeach; ?>
     </nav>
 
@@ -421,4 +435,43 @@ require __DIR__ . '/layout/header.php';
   </aside>
 
 </div>
+<script>
+(function () {
+  var tt = { moRong: false, q: '' };   // giữ trạng thái "Xem thêm" và ô tìm qua các lần làm mới nội dung
+  function bo(t) {   // bỏ dấu tiếng Việt để tìm "toan" ra "Toán"
+    return t.toLowerCase().replace(/đ/g, 'd').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  }
+  function khoiTao() {
+    var wrap = document.getElementById('bxhMonChips');
+    if (!wrap) return;
+    var chips = Array.prototype.slice.call(wrap.querySelectorAll('.bxh-chip-mon'));
+    var btn = document.getElementById('bxhMonXemThem');
+    var o = document.getElementById('bxhMonTim');
+    var khong = document.getElementById('bxhMonKhong');
+    function capNhat() {
+      var q = o ? bo(o.value.trim()) : '';
+      var thay = 0;
+      chips.forEach(function (c) {
+        var hien = q !== '' ? bo(c.getAttribute('data-ten')).indexOf(q) !== -1
+                            : (tt.moRong || !c.classList.contains('is-extra'));
+        c.hidden = !hien;
+        if (hien) thay++;
+      });
+      if (khong) khong.hidden = !(q !== '' && thay === 0);
+      if (btn) {
+        btn.hidden = q !== '';   // đang tìm thì hiện mọi kết quả khớp, không cần nút
+        btn.textContent = btn.getAttribute(tt.moRong ? 'data-thu' : 'data-an');
+        btn.setAttribute('aria-expanded', tt.moRong ? 'true' : 'false');
+      }
+    }
+    if (btn) btn.addEventListener('click', function () { tt.moRong = !tt.moRong; capNhat(); });
+    if (o) o.addEventListener('input', function () { tt.q = o.value; capNhat(); });
+    if (o) o.value = tt.q;
+    capNhat();
+  }
+  khoiTao();
+  document.addEventListener('mem:capnhat', khoiTao);
+})();
+</script>
+<noscript><style>.bxh-chip[hidden]{display:block !important}</style></noscript>
 <?php require __DIR__ . '/layout/footer.php'; ?>

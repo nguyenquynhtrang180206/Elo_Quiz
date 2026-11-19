@@ -1,5 +1,21 @@
 /* Trang Bài đăng (client/baidang.php) */
 .meta { color:var(--mau-phu); font-size:13px; }
+/* Avatar người đăng / người bình luận (cùng kiểu avatar ở bảng tin Cộng đồng) */
+.meta-av { display:flex; align-items:center; gap:12px; margin:0 0 10px; }
+.meta-av .meta-txt { min-width:0; line-height:1.6; }
+.meta-av .meta-txt b { color:#fff; font-size:14.5px; }
+.cd-av {
+  width:48px; height:48px; border-radius:50%; object-fit:cover; flex:none;
+  border:2px solid rgba(0,217,255,.6); background:#081436;
+  box-shadow:0 0 12px rgba(0,217,255,.35);
+}
+.cd-av-chu {
+  display:flex; align-items:center; justify-content:center;
+  font-weight:800; font-size:19px; color:#fff;
+  background:linear-gradient(135deg,#00D9FF 0%,#8B35FF 100%);
+}
+.cd-av.cd-av-bl { width:36px; height:36px; font-size:15px; border-width:1.5px; box-shadow:none; }
+@media (max-width:768px) { .cd-av { width:42px; height:42px; font-size:16px; } .cd-av.cd-av-bl { width:32px; height:32px; font-size:14px; } }
 textarea { min-height:90px; resize:vertical; font-family:inherit; }
 .binhluan { border-top:1px solid var(--mau-vien); padding:10px 0; }
 .binhluan:first-of-type { border-top:0; }

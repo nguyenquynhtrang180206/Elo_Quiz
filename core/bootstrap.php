@@ -47,6 +47,7 @@ spl_autoload_register(function (string $class): void {
         'ThachDau'         => __DIR__ . '/Game/ThachDau.php',
         'DotBien'          => __DIR__ . '/Game/DotBien.php',
         'LoLChampions'     => __DIR__ . '/Game/LoLChampions.php',
+        'TranDauGiamSat'   => __DIR__ . '/Game/TranDauGiamSat.php',
 
         // Services
         'Mailer'           => __DIR__ . '/Services/Mailer.php',

@@ -12,10 +12,12 @@
   }
 
   // 2. Thu gọn / Mở rộng form Viết bài mới mượt mà
-  var writeToggle = document.getElementById('cd-write-toggle');
-  var writeCard = document.getElementById('khung-dang-bai');
+  // Tra cứu phần tử lúc dùng (không giữ tham chiếu) vì vùng nội dung có thể được thay mới sau khi gửi form
+  function layCard() { return document.getElementById('khung-dang-bai'); }
+  function layToggle() { return document.getElementById('cd-write-toggle'); }
 
   function moFormDangBai(focusInput) {
+    var writeCard = layCard(), writeToggle = layToggle();
     if (!writeCard) { return; }
     if (!writeCard.classList.contains('is-open')) {
       writeCard.classList.add('is-open');
@@ -35,6 +37,7 @@
   }
 
   function dongFormDangBai() {
+    var writeCard = layCard(), writeToggle = layToggle();
     if (!writeCard) { return; }
     writeCard.classList.remove('is-open');
     if (writeToggle) {
@@ -45,6 +48,7 @@
   }
 
   function toggleFormDangBai() {
+    var writeCard = layCard();
     if (!writeCard) { return; }
     if (writeCard.classList.contains('is-open')) {
       dongFormDangBai();
@@ -53,20 +57,20 @@
     }
   }
 
-  if (writeToggle && writeCard) {
-    writeToggle.addEventListener('click', function (e) {
-      // Bỏ qua nếu click phát sinh từ bên trong form bài đăng
-      if (e.target.closest('#cd-write-body')) { return; }
-      toggleFormDangBai();
-    });
+  document.addEventListener('click', function (e) {
+    if (!e.target.closest || !e.target.closest('#cd-write-toggle')) { return; }
+    // Bỏ qua nếu click phát sinh từ bên trong form bài đăng
+    if (e.target.closest('#cd-write-body')) { return; }
+    toggleFormDangBai();
+  });
 
-    writeToggle.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        toggleFormDangBai();
-      }
-    });
-  }
+  document.addEventListener('keydown', function (e) {
+    if (e.target !== layToggle()) { return; }
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      toggleFormDangBai();
+    }
+  });
 
   // Bấm các nút "Viết bài" ngoài trang (như banner, CTA) -> bung form và focus
   document.querySelectorAll('[data-mo-form]').forEach(function (a) {
@@ -118,7 +122,7 @@
   }
 
   // 2b. Bộ chọn môn học tương tác: Hiện 5 môn + Tìm kiếm nhanh + Xem thêm (Tối ưu 20+ môn)
-  (function initMonPicker() {
+  function khoiTaoMonPicker() {
     var monHiddenInput = document.getElementById('mon');
     var monSelectedDisplay = document.getElementById('monSelectedDisplay');
     var monSearchInput = document.getElementById('monSearchInput');
@@ -217,7 +221,9 @@
         });
       }
     }
-  })();
+  }
+  khoiTaoMonPicker();
+  document.addEventListener('mem:capnhat', khoiTaoMonPicker);   // vùng bài đăng vừa được thay mới sau khi gửi form
 
   // 3. Tương tác Thẻ Ngôi Sao Tri Thức Tuần (Weekly MVP)
   var cdMvpCard = document.getElementById('cdMvpCard');

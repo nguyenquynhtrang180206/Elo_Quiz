@@ -54,6 +54,44 @@
     thucHienThaLua(form, btn);
   });
 
+  // 3. Trả lời bình luận: tra cứu phần tử lúc dùng vì vùng bình luận có thể được thay mới sau khi gửi form
+  function $(id) { return document.getElementById(id); }
+
+  document.addEventListener('click', function (e) {
+    var huy = e.target.closest ? e.target.closest('#btnCancelRep') : null;
+    if (huy) {
+      if ($('rep_mand')) $('rep_mand').value = '';
+      if ($('rep_bl_id')) $('rep_bl_id').value = '';
+      if ($('repIndicator')) $('repIndicator').style.display = 'none';
+      var tx = $('noi_dung');
+      if (tx && tx.value.startsWith('@')) {
+        tx.value = tx.value.replace(/^@[^\s]+\s*/, '');
+      }
+      return;
+    }
+
+    var btn = e.target.closest ? e.target.closest('.btn-rep-bl') : null;
+    if (!btn) return;
+    e.preventDefault();
+    var ten = btn.getAttribute('data-ten') || '';
+    if ($('rep_mand')) $('rep_mand').value = btn.getAttribute('data-mand') || '';
+    if ($('rep_bl_id')) $('rep_bl_id').value = btn.getAttribute('data-bl-id') || '';
+    if ($('repTenDisplay')) $('repTenDisplay').textContent = '@' + ten;
+    if ($('repIndicator')) $('repIndicator').style.display = 'inline-flex';
+
+    var textarea = $('noi_dung');
+    if (textarea) {
+      var prefix = '@' + ten + ' ';
+      if (!textarea.value.startsWith(prefix)) {
+        textarea.value = prefix + textarea.value;
+      }
+      if ($('form-bl')) {
+        $('form-bl').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      textarea.focus();
+    }
+  });
+
   function thucHienThaLua(form, btnTarget) {
     var btn = btnTarget || form.querySelector('.cd-tha-lua') || form.querySelector('button[type="submit"]');
     if (!btn || btn.dataset.loading === '1') return;
@@ -110,7 +148,6 @@
       btn.style.pointerEvents = '';
     });
   }
-
   // 3. AJAX Kết bạn trực tiếp cạnh tên tác giả bài đăng & từng bình luận (đồng bộ tất cả bình luận của cùng user)
   document.addEventListener('click', function (e) {
     var btn = e.target.closest ? e.target.closest('[data-friend-action]') : null;

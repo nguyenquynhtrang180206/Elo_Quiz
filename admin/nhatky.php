@@ -37,15 +37,13 @@ $moc7      = date('Y-m-d', strtotime('-6 days')) . ' 00:00:00';
 $moc30     = date('Y-m-d', strtotime('-29 days')) . ' 00:00:00';
 $moc60     = date('Y-m-d', strtotime('-59 days')) . ' 00:00:00';
 
-$thatBaiSql = $coTT ? "COALESCE(SUM(TrangThai = 'Thất bại' AND ThoiGian >= ?), 0) AS thatbai" : "0 AS thatbai";
-$thamTk = $coTT ? [$mocHomNay, $moc30, $moc60, $moc30, $moc7] : [$mocHomNay, $moc30, $moc60, $moc30];
+$thamTk = [$mocHomNay, $moc30, $moc60, $moc30];
 
 $st = $pdo->prepare(
     "SELECT COUNT(*) AS tong,
             COALESCE(SUM(ThoiGian >= ?), 0) AS homnay,
             COALESCE(SUM(ThoiGian >= ?), 0) AS nay30,
-            COALESCE(SUM(ThoiGian >= ? AND ThoiGian < ?), 0) AS truoc30,
-            $thatBaiSql
+            COALESCE(SUM(ThoiGian >= ? AND ThoiGian < ?), 0) AS truoc30
      FROM NHATKYQUANTRI"
 );
 $st->execute($thamTk);
@@ -219,14 +217,6 @@ require __DIR__ . '/layout/header.php';
         <div class="nk-so-nhan">Hôm nay</div>
         <div class="nk-so-lon"><?= e($so($tk['homnay'])) ?></div>
         <div class="nk-so-phu">Hoạt động ghi nhận</div>
-      </div>
-    </div>
-    <div class="nk-so nk-do">
-      <span class="nk-so-icon"><?= $svg('canhbao', 24) ?></span>
-      <div class="nk-so-nd">
-        <div class="nk-so-nhan">Thao tác thất bại</div>
-        <div class="nk-so-lon"><?= e($so($tk['thatbai'])) ?></div>
-        <div class="nk-so-phu"><?= $tk['thatbai'] > 0 ? '<b class="nk-canhbao">Cần kiểm tra</b> · 7 ngày qua' : 'Không có lỗi trong 7 ngày qua' ?></div>
       </div>
     </div>
   </div>
@@ -410,7 +400,7 @@ require __DIR__ . '/layout/header.php';
         <fieldset id="nkTruongBox">
           <legend>Chọn trường của danh sách</legend>
           <?php foreach ([
-              'tg' => 'Thời gian', 'hd' => 'Hành động', 'dt' => 'Đối tượng', 'mota' => 'Mô tả', 'tt' => 'Trạng thái',
+              'tg' => 'Thời gian', 'hd' => 'Hành động', 'dt' => 'Đối tượng', 'mota' => 'Mô tả',
           ] as $k => $ten): ?>
             <label class="xuat-chon"><input type="checkbox" name="truong[]" value="<?= e($k) ?>" checked> <?= e($ten) ?></label>
           <?php endforeach; ?>

@@ -182,7 +182,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             $st->execute([$maND, $maMon, $tieuDeBai, $noiDungBai]);
         }
         CongDongHelper::flash('Đã đăng bài.');
-        redirect(BASE_URL . '/client/congdong.php');
+        redirect(BASE_URL . '/client/congdong.php' . $thamTab($tab));   // ở lại đúng tab/bộ lọc đang xem
     }
 }
 
@@ -333,7 +333,7 @@ $mapBanBe = ($maND !== null && $dsMaNDTrang) ? BanBeHelper::layTrangThaiCacNguoi
 
 $tieuDe = 'Cộng đồng';
 $cssTrang = 'congdong';
-$jsTrang  = 'congdong';
+$jsTrang  = ['capnhat_mem', 'congdong'];
 $bodyClass = 'trang-cd';
 require __DIR__ . '/layout/header.php';
 ?>
@@ -398,7 +398,7 @@ require __DIR__ . '/layout/header.php';
       </p>
 
       <!-- 4 Thẻ chip chỉ số thời gian thực chuẩn Esports -->
-      <div class="cd-hero-chips">
+      <div class="cd-hero-chips" data-mem-vung="chips">
         <div class="cd-hchip chip-posts" title="Tổng số bài viết đang mở trong cộng đồng">
           <span class="hchip-icon" aria-hidden="true">
             <svg viewBox="0 0 16 16" width="13" height="13" fill="none"><path d="M13 2H3a1 1 0 00-1 1v10a1 1 0 001 1h10a1 1 0 001-1V3a1 1 0 00-1-1z" stroke="#38BDF8" stroke-width="1.6"/><path d="M5 5.5h6M5 8h6M5 10.5h4" stroke="#BAE6FD" stroke-width="1.4" stroke-linecap="round"/></svg>
@@ -709,7 +709,7 @@ require __DIR__ . '/layout/header.php';
   </aside>
 
   <!-- ===== CỘT PHẢI: FORM VIẾT BÀI MỚI & BẢNG TIN (CHUẨN THEO HÌNH 2) ===== -->
-  <section class="cd-giua">
+  <section class="cd-giua" data-mem-vung="giua">
     <?php if ($thanhCong): ?><div class="thanhcong"><?= e($thanhCong) ?></div><?php endif; ?>
     <?php if ($loi): ?>
       <div class="loi"><?php foreach ($loi as $m): ?><div><?= e($m) ?></div><?php endforeach; ?></div>
@@ -841,8 +841,16 @@ require __DIR__ . '/layout/header.php';
         <span class="cd-dau-decor"></span>
         <h2><?= e($cacTab[$tab][2]) ?></h2>
       </div>
-      <?php if ($p !== null && $p->trang() < $p->soTrang()): ?>
-        <a class="cd-xem-them" href="<?= e('?' . http_build_query(['tab' => $tab] + $thamLoc + ['page' => $p->trang() + 1])) ?>">Xem trang kế &rarr;</a>
+      <?php if ($p !== null && $p->soTrang() > 1): ?>
+        <div class="cd-trang-nhom">
+          <?php if ($p->trang() > 1): ?>
+            <a class="cd-xem-them cd-xem-truoc" href="<?= e('?' . http_build_query(['tab' => $tab] + $thamLoc + ($p->trang() > 2 ? ['page' => $p->trang() - 1] : []))) ?>">&larr; Trang trước</a>
+          <?php endif; ?>
+          <span class="cd-trang-so"><?= (int) $p->trang() ?>/<?= (int) $p->soTrang() ?></span>
+          <?php if ($p->trang() < $p->soTrang()): ?>
+            <a class="cd-xem-them" href="<?= e('?' . http_build_query(['tab' => $tab] + $thamLoc + ['page' => $p->trang() + 1])) ?>">Trang kế &rarr;</a>
+          <?php endif; ?>
+        </div>
       <?php endif; ?>
     </header>
 

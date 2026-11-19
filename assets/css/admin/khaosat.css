@@ -112,3 +112,128 @@
 .xuat-con { display:grid; grid-template-columns:1fr 1fr; gap:0 8px; margin:2px 0 4px 26px; }
 .xuat-con[hidden] { display:none; }
 .xuat-con .xuat-chon { margin-top:6px; font-size:13px; }
+
+/* ==========================================================================
+   ĐIỆN THOẠI (<= 720px): thu gọn lề, bộ lọc ngày xếp dọc, bảng thành dạng thẻ (không kéo ngang)
+   Sidebar -> nút 3 gạch đã có sẵn ở style_admin.css + sidebar_toggle.js
+   ========================================================================== */
+@media (max-width:720px) {
+  .ks { padding:14px; border-radius:16px; }
+  .ks-tieude { gap:10px; margin-bottom:12px; }
+  .ks-tieude h2 { font-size:20px; }
+  .ks-tieude p { font-size:12.5px; }
+  .ks-icon { width:38px; height:38px; border-radius:10px; }
+
+  /* Thẻ số liệu: 2 cột */
+  .ks-the { grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin-bottom:12px; }
+  .ks-so { padding:12px; }
+  .ks-so-nhan { font-size:12px; }
+  .ks-so-lon { font-size:24px; }
+  .ks-so-ngay { font-size:17px; }
+  .ks-so-phu { font-size:11.5px; }
+
+  /* Bộ lọc ngày */
+  .ks-loc { gap:10px; }
+  .ks-loc-ngay { width:100%; flex-wrap:wrap; gap:6px 8px; }
+  .ks-loc-ngay label { color:#3a3f63; margin:0; font-size:13px; }
+  .ks-loc-ngay input[type=date] { flex:1 1 120px; min-width:0; width:auto; border:1px solid var(--ks-vien); border-radius:8px; padding:6px 8px; background:#fff; }
+  .ks-loc-ngay .btn { flex:1 1 100%; }
+  .ks-loc-phai { width:100%; justify-content:space-between; gap:8px; }
+
+  /* Biểu đồ */
+  .ks-khung { padding:14px; }
+  .ks-bieudo { gap:12px; margin-bottom:12px; }
+  .ks-hinh { height:220px; }
+  .ks-donut { justify-content:center; }
+  .ks-donut-hinh, .ks-hinh { max-width:100%; overflow:hidden; }
+  .ks-donut-hinh canvas, .ks-hinh canvas { max-width:100%; }
+  .ks-chuthich { min-width:0; flex:1 1 100%; }
+
+  /* Bảng -> thẻ: mỗi dòng một khối, mỗi ô là "nhãn ........ giá trị" */
+  .ks-bang table { display:block; overflow:visible; }
+  .ks-bang tbody { display:block; }
+  .ks-bang tr { display:block; }
+  .ks-bang tr:first-child { display:none; }   /* dòng tiêu đề cột: đã có nhãn ở từng ô */
+  .ks-bang tr + tr { margin-top:10px; padding:10px 12px; border:1px solid var(--ks-vien); border-radius:12px; background:#fbfaff; }
+  .ks-bang td { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:6px 0; border-bottom:1px dashed #e6e3f7; text-align:right; font-size:13px; }
+  .ks-bang td:last-child { border-bottom:0; }
+  .ks-bang td::before { flex:none; max-width:45%; text-align:left; font-size:11px; font-weight:700; letter-spacing:.03em; text-transform:uppercase; color:#6b7094; }
+  .ks-bang td:first-child { display:block; text-align:left; font-weight:700; }
+  .ks-bang td:first-child::before { content:none; }
+  .ks-bang tbody tr:hover td { background:transparent; }
+  /* Chi tiết câu hỏi */
+  .ks-bang:not(.ks-sv) td:nth-child(2)::before { content:"Đáp án nhiều nhất"; }
+  .ks-bang:not(.ks-sv) td:nth-child(3)::before { content:"Số lượng"; }
+  .ks-bang:not(.ks-sv) td:nth-child(4)::before { content:"Tỷ lệ"; }
+  /* Chi tiết từng sinh viên */
+  .ks-sv td:nth-child(2)::before { content:"Trạng thái"; }
+  .ks-sv td:nth-child(3)::before { content:"Thời gian"; }
+  .ks-sv td:nth-child(4)::before { content:"Mục tiêu"; }
+  .ks-sv td:nth-child(5)::before { content:"Lĩnh vực"; }
+  .ks-sv td:nth-child(6)::before { content:"Trình độ"; }
+  .ks-sv td[colspan], .ks-bang td[colspan] { display:block; text-align:center; }
+
+  .ks-chantrang .phantrang span { margin-left:0; width:100%; text-align:center; }
+  .xuat-con { grid-template-columns:1fr; margin-left:18px; }
+}
+
+/* ==========================================================================
+   Hộp thoại Xuất thống kê khảo sát: nền trắng, chữ đậm rõ (ghi đè nền tối mặc định của .modal) + điện thoại
+   ========================================================================== */
+.modal-nen:has(.ks-xuat-hop) { background:rgba(8,20,70,.55); backdrop-filter:none; -webkit-backdrop-filter:none; overflow-y:auto; -webkit-overflow-scrolling:touch; }
+.xuat-hop.ks-xuat-hop { box-sizing:border-box; background:#fff; color:#12235e; border:1px solid #dfe6f6; border-radius:16px; box-shadow:0 24px 60px rgba(10,25,80,.35); max-height:92vh; max-height:92dvh; overflow-y:auto; overflow-x:hidden; }
+.ks-xuat-hop .xuat-luoi > * { min-width:0; }
+.ks-xuat-hop h3 { color:#12235e; text-shadow:none; font-size:20px; margin:0 0 10px; }
+.ks-xuat-hop fieldset { border:1px solid #dfe6f6; background:#fff; }
+.ks-xuat-hop legend { color:#12235e; font-weight:700; }
+.ks-xuat-hop .xuat-chon { color:#12235e; font-weight:500; }
+.ks-xuat-hop input[type=checkbox], .ks-xuat-hop input[type=radio] { accent-color:#1e5cf0; }
+.ks-xuat-hop .xuat-ghichu { color:#44527a; opacity:1; }
+.ks-xuat-hop .xuat-xemDau { color:#12235e; font-weight:700; }
+.ks-xuat-hop .xuat-xemCot { background:#f6f8fd; border:1px solid #dfe6f6; border-radius:12px; padding:10px; }
+.ks-xuat-hop .xuat-xemCot .xuat-xem { top:42px; left:10px; right:10px; bottom:10px; }
+.ks-xuat-hop .xuat-the { background:#fff; border:1px solid #dfe6f6; color:#12235e; }
+.ks-xuat-hop .xuat-the .xuat-ghichu { color:#44527a; }
+.ks-xuat-hop .xuat-loai { color:#12235e; }
+.ks-xuat-hop .xuat-bang th { background:#eef3ff; color:#12235e; }
+.ks-xuat-hop .xuat-bang td { color:#24324f; border-top:1px solid #e6ebf7; }
+.ks-xuat-hop .xuat-loi { background:#fde8ea; color:#b4232a; border:1px solid #f5c2c6; }
+.ks-xuat-hop .btn { background:#1e5cf0; color:#fff; border:0; box-shadow:none; text-shadow:none; }
+.ks-xuat-hop .btn:hover { background:#174ed0; color:#fff; box-shadow:none; filter:none; }
+.ks-xuat-hop .btn.btn-phu { background:#e3edff; color:#1e5cf0; }
+.ks-xuat-hop .btn.btn-phu:hover { background:#d3e3ff; color:#1e5cf0; }
+.ks-xuat-hop .btn:disabled { opacity:.6; cursor:default; }
+/* Nút Hủy / Xuất dính đáy hộp thoại để luôn bấm được dù nội dung dài */
+.ks-xuat-hop .hanh-dong { position:sticky; bottom:-22px; background:#fff; padding:12px 0 2px; margin-top:12px; border-top:1px solid #eef1fa; z-index:2; }
+
+/* Máy tính bảng / màn hình hẹp */
+@media (max-width:1000px) { .ks-xuat-hop .xuat-luoi { grid-template-columns:250px minmax(0,1fr); gap:12px; } }
+
+/* Điện thoại lớn / máy tính bảng dọc: 1 cột (chọn ở trên, xem trước ở dưới) */
+@media (max-width:760px) {
+  .modal-nen:has(.ks-xuat-hop) { align-items:flex-start; padding:10px; }
+  .xuat-hop.ks-xuat-hop { width:100%; max-height:none; overflow:visible; padding:16px; border-radius:14px; margin:auto 0; }
+  .ks-xuat-hop h3 { font-size:18px; }
+  .ks-xuat-hop .xuat-luoi { grid-template-columns:1fr; gap:12px; }
+  .ks-xuat-hop .xuat-xemCot { position:static; min-height:0; }
+  .ks-xuat-hop .xuat-xemCot .xuat-xem { position:static; max-height:none; overflow:visible; }
+  .ks-xuat-hop .xuat-chon { font-size:15px; padding:2px 0; }
+  .ks-xuat-hop input[type=checkbox], .ks-xuat-hop input[type=radio] { width:18px; height:18px; }
+  .ks-xuat-hop .hanh-dong { bottom:-16px; padding:10px 0 2px; }
+}
+
+/* Điện thoại nhỏ: hộp thoại phủ kín màn hình, nút Hủy / Xuất to ở đáy */
+@media (max-width:480px) {
+  .modal-nen:has(.ks-xuat-hop) { padding:0; }
+  .xuat-hop.ks-xuat-hop { border-radius:0; min-height:100vh; min-height:100dvh; margin:0; padding:14px 14px 0; border:0; }
+  .ks-xuat-hop h3 { font-size:17px; }
+  .ks-xuat-hop fieldset { padding:2px 12px 10px; }
+  .ks-xuat-hop .xuat-so { grid-template-columns:repeat(3,minmax(0,1fr)); }
+  .ks-xuat-hop .xuat-so-o { padding:6px; }
+  .ks-xuat-hop .xuat-so-o strong { font-size:15px; }
+  .ks-xuat-hop .xuat-the { padding:10px; }
+  .ks-xuat-hop .xuat-the-dau { flex-wrap:wrap; }
+  .ks-xuat-hop .xuat-tatca { width:100%; }
+  .ks-xuat-hop .hanh-dong { bottom:0; margin:12px -14px 0; padding:10px 14px calc(10px + env(safe-area-inset-bottom, 0px)); box-shadow:0 -6px 14px rgba(10,25,80,.08); }
+  .ks-xuat-hop .hanh-dong .btn { flex:1 1 0; padding:11px 12px; font-size:15px; }
+}

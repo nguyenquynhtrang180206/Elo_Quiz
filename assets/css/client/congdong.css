@@ -2155,6 +2155,21 @@ body.trang-cd .container { max-width: 1240px; }
   transform: translateX(2px);
 }
 
+/* Nhóm điều hướng trang: Trang trước / số trang / Trang kế */
+.cd-trang-nhom { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.cd-trang-so { font-size: 13px; font-weight: 700; color: #94a3b8; min-width: 36px; text-align: center; }
+.cd-xem-truoc:hover { transform: translateX(-2px); }
+
+/* Thanh phân trang cuối danh sách */
+.cd-giua .phantrang { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 6px; margin: 18px 0 6px; color: #94a3b8; font-size: 13px; }
+.cd-giua .phantrang a, .cd-giua .phantrang strong {
+  display: inline-block; min-width: 34px; padding: 6px 12px; box-sizing: border-box; text-align: center;
+  border-radius: 999px; font-weight: 700; text-decoration: none;
+  color: var(--cd-cyan-light); background: rgba(0, 217, 255, 0.08); border: 1px solid rgba(0, 217, 255, 0.28);
+}
+.cd-giua .phantrang a:hover { background: rgba(0, 217, 255, 0.2); border-color: var(--cd-cyan); color: #FFF; }
+.cd-giua .phantrang strong { color: #FFF; background: linear-gradient(135deg, rgba(0, 217, 255, 0.35), rgba(2, 132, 199, 0.6)); border-color: var(--cd-cyan); }
+
 /* =====================================================================
    4. THẺ BÀI ĐĂNG (POST CARDS): GLASSMORPHIC FLOATING CARDS
    ===================================================================== */
