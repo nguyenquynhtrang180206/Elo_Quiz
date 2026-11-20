@@ -4,6 +4,9 @@
 require_once __DIR__ . '/../core/bootstrap.php';
 
 $maND = Auth::requireClient(BASE_URL . '/client/dangnhap.php');
+if (Auth::laAdminSinhVien()) {   // tài khoản quản trị không thi đấu, không có lịch sử trận và bạn bè
+    redirect(BASE_URL . '/client/hoso.php');
+}
 $pdo  = Database::pdo();
 
 $st = $pdo->prepare('SELECT COUNT(*) FROM NGUOICHOITRANDAU WHERE MaND = ?');

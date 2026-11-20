@@ -57,7 +57,6 @@ function anh_theo_rong(?array $a, int $rong, int $x = 0): ?array
 }
 
 $anhMucTieu = anh_bieu_do('anh_mucTieu');
-$anhLinhVuc = anh_bieu_do('anh_linhVuc');
 $anhTrinhDo = anh_bieu_do('anh_trinhDo');
 
 $pdo = Database::pdo();
@@ -68,7 +67,6 @@ $tenFile = 'thongke_khaosat_' . date('Ymd_His');
 
 $cacKhaoSat = [
     'mucTieu' => ['tieuDe' => 'Mục tiêu tham gia Elo_Quiz', 'anh' => $anhMucTieu],
-    'linhVuc' => ['tieuDe' => 'Lĩnh vực yêu thích',           'anh' => $anhLinhVuc],
     'trinhDo' => ['tieuDe' => 'Trình độ tự đánh giá',         'anh' => $anhTrinhDo],
 ];
 
@@ -188,7 +186,6 @@ try {
         $tyLe = array_fill(0, count($cotChon), 2);
         if (in_array('hoTen', $cotChon, true)) { $tyLe[array_search('hoTen', $cotChon, true)] = 3; }
         if (in_array('mucTieu', $cotChon, true)) { $tyLe[array_search('mucTieu', $cotChon, true)] = 3; }
-        if (in_array('linhVuc', $cotChon, true)) { $tyLe[array_search('linhVuc', $cotChon, true)] = 3; }
         $pdf->bang($tieuDeCot, $hang, $tyLe);
     }
 

@@ -18,7 +18,7 @@
 
   var du = null;      // số liệu từ máy chủ
   var bieuDo = [];    // biểu đồ Chart.js đang hiển thị
-  var anh = {};       // 'mucTieu' / 'linhVuc' / 'trinhDo' => canvas
+  var anh = {};       // 'mucTieu' / 'trinhDo' => canvas
   var luot = 0;
 
   function bao(msg) { loi.textContent = msg; loi.hidden = !msg; }
@@ -97,20 +97,19 @@
         data: { labels: b.nhan, datasets: [{ data: b.luot, backgroundColor: MAU.slice(0, b.nhan.length), borderWidth: 2, borderColor: '#fff' }] },
         options: Object.assign({ cutout: '62%', plugins: { legend: { display: true, position: 'right', labels: { boxWidth: 10, font: { size: 11 } } } } }, CHUNG) };
     } else {
-      var ngang = k === 'linhVuc';
       var tran = Math.min(100, Math.ceil((Math.max.apply(null, b.tyLe) + 12) / 10) * 10);
       var truc = { min: 0, max: tran, ticks: { callback: function (v) { return v + '%'; } }, grid: { color: 'rgba(60,50,150,.08)' } };
       cfg = { type: 'bar',
-        data: { labels: b.nhan, datasets: [{ data: b.tyLe, backgroundColor: k === 'trinhDo' ? ['#9a8ef0', '#5b4bdb', '#b9b0f5', '#d3cdf9'] : MAU.slice(0, b.nhan.length), borderRadius: 6, barThickness: ngang ? 22 : undefined, maxBarThickness: 46 }] },
-        options: Object.assign({ indexAxis: ngang ? 'y' : 'x', plugins: { legend: { display: false } },
-          scales: ngang ? { x: truc, y: { grid: { display: false } } } : { y: truc, x: { grid: { display: false } } } }, CHUNG),
+        data: { labels: b.nhan, datasets: [{ data: b.tyLe, backgroundColor: ['#9a8ef0', '#5b4bdb', '#b9b0f5', '#d3cdf9'], borderRadius: 6, maxBarThickness: 46 }] },
+        options: Object.assign({ indexAxis: 'x', plugins: { legend: { display: false } },
+          scales: { y: truc, x: { grid: { display: false } } } }, CHUNG),
         plugins: [nhanPT] };
     }
     bieuDo.push(new Chart(cv, cfg));
     anh[k] = cv;
   }
 
-  var TIEU_DE = { mucTieu: 'Mục tiêu tham gia Elo_Quiz', linhVuc: 'Lĩnh vực yêu thích', trinhDo: 'Trình độ tự đánh giá' };
+  var TIEU_DE = { mucTieu: 'Mục tiêu tham gia Elo_Quiz', trinhDo: 'Trình độ tự đánh giá' };
 
   function ve() {
     xoaXemTruoc();
@@ -132,7 +131,7 @@
       t.appendChild(so);
       vung.appendChild(t);
     }
-    ['mucTieu', 'linhVuc', 'trinhDo'].forEach(function (k) {
+    ['mucTieu', 'trinhDo'].forEach(function (k) {
       if (truong.indexOf(k) < 0) { return; }
       var b = du[k];
       var t = the(TIEU_DE[k], tong(b.luot) + ' lượt chọn');

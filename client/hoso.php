@@ -95,7 +95,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$emailHienThi = Auth::laAdminSinhVien() ? 'Tài khoản quản trị' : $nd['Email'];   // tài khoản liên kết của admin dùng email nội bộ
+$laAdminSV = Auth::laAdminSinhVien();
+$emailHienThi = $laAdminSV ? 'Tài khoản quản trị' : $nd['Email'];   // tài khoản liên kết của admin dùng email nội bộ
 $thanhCong = $_SESSION['flash_hoso'] ?? null;
 unset($_SESSION['flash_hoso']);
 
@@ -233,10 +234,18 @@ require __DIR__ . '/layout/header.php';
         <input type="email" id="email" value="<?= e($emailHienThi) ?>" readonly>
 
         <p><button type="submit" class="btn">Lưu thay đổi</button>
-           <a class="btn btn-phu" href="<?= e(BASE_URL) ?>/client/doimatkhau.php">Đổi mật khẩu</a></p>
+           <?php if (!$laAdminSV): ?><a class="btn btn-phu" href="<?= e(BASE_URL) ?>/client/doimatkhau.php">Đổi mật khẩu</a><?php endif; ?></p>
       </form>
     </div>
 
+    <?php if ($laAdminSV): ?>
+    <div class="card hoso-admin-tb" id="tb-admin">
+      <h3>Tài khoản quản trị</h3>
+      <p><strong>Đây là tài khoản quản trị</strong> nên không tham gia thi đấu: không có Elo, không có biểu đồ biến động Elo và không dùng chức năng Tìm trận.</p>
+      <p class="ghichu">Bạn chỉ có thể xem Bảng xếp hạng, Cộng đồng và kiểm duyệt bài viết. Để quản lý hệ thống, hãy quay về trang quản trị.</p>
+      <p><a class="btn" href="<?= e(BASE_URL) ?>/admin/index.php">Về trang quản trị</a></p>
+    </div>
+    <?php else: ?>
     <div class="card" id="elo-theo-mon">
       <h3>Elo theo môn</h3>
       <?php if (!$elo): ?>
@@ -262,8 +271,10 @@ require __DIR__ . '/layout/header.php';
       <?php endif; ?>
       <p class="ghichu">Elo chỉ thay đổi theo kết quả trận đấu, không chỉnh tay được.</p>
     </div>
+    <?php endif; ?>
   </div>
 
+  <?php if (!$laAdminSV): ?>
   <div class="card" id="bieudo-elo">
     <h3>Biến động Elo</h3>
     <?php if (!$bieuDoJson): ?>
@@ -298,6 +309,7 @@ require __DIR__ . '/layout/header.php';
       <script type="application/json" id="bdDuLieu"><?= json_encode($bieuDoJson, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?></script>
     <?php endif; ?>
   </div>
+  <?php endif; ?>
 </div>
-<?php if ($bieuDoJson): ?><script src="<?= e(BASE_URL) ?>/assets/vendor/chart.umd.js"></script><?php endif; ?>
+<?php if (!$laAdminSV && $bieuDoJson): ?><script src="<?= e(BASE_URL) ?>/assets/vendor/chart.umd.js"></script><?php endif; ?>
 <?php require __DIR__ . '/layout/footer.php'; ?>

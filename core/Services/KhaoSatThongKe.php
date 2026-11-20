@@ -11,20 +11,12 @@ class KhaoSatThongKe
         'so_hoa_du_lieu'     => 'Số hóa dữ liệu học tập',
         'xoa_so_thi'         => 'Xóa bỏ tâm lý sợ thi cử',
     ];
-    public const LINH_VUC = [
-        'toan_hoc'  => 'Toán học',
-        'tin_hoc'   => 'Tin học',
-        'khoa_hoc'  => 'Khoa học',
-        'tieng_anh' => 'Tiếng Anh',
-        'lich_su'   => 'Lịch sử',
-    ];
     public const TRINH_DO = ['Mới bắt đầu', 'Trung bình', 'Khá', 'Nâng cao'];
 
     // Các phần có thể chọn xuất (mã => nhãn hiển thị trong hộp thoại)
     public const TRUONG = [
         'the'      => 'Số liệu tổng quan (4 ô)',
         'mucTieu'  => 'Mục tiêu tham gia',
-        'linhVuc'  => 'Lĩnh vực yêu thích',
         'trinhDo'  => 'Trình độ tự đánh giá',
         'chiTiet'  => 'Chi tiết câu hỏi khảo sát',
         'sinhVien' => 'Danh sách từng sinh viên',
@@ -35,7 +27,6 @@ class KhaoSatThongKe
         'trangThai' => 'Trạng thái',
         'thoiGian'  => 'Thời gian',
         'mucTieu'   => 'Mục tiêu tham gia',
-        'linhVuc'   => 'Lĩnh vực yêu thích',
         'trinhDo'   => 'Trình độ',
     ];
     public const TOI_DA_SV = 500;
@@ -123,18 +114,16 @@ class KhaoSatThongKe
         $st->execute([$tuS, $denS]);
         $gn = $st->fetchColumn() ?: null;
 
-        $st = $pdo->prepare("SELECT MucTieuKhaoSat, LinhVucYeuThich, TrinhDoTuDanhGia FROM NGUOIDUNG WHERE TrangThaiKhaoSat = 'Hoàn tất' AND NgayKhaoSat >= ? AND NgayKhaoSat < ?");
+        $st = $pdo->prepare("SELECT MucTieuKhaoSat, TrinhDoTuDanhGia FROM NGUOIDUNG WHERE TrangThaiKhaoSat = 'Hoàn tất' AND NgayKhaoSat >= ? AND NgayKhaoSat < ?");
         $st->execute([$tuS, $denS]);
         $dong = $st->fetchAll(PDO::FETCH_ASSOC);
 
         $lMT = self::demNhieuMa($dong, 'MucTieuKhaoSat', self::MUC_TIEU);
-        $lLV = self::demNhieuMa($dong, 'LinhVucYeuThich', self::LINH_VUC);
         $lTD = array_fill_keys(self::TRINH_DO, 0);
         foreach ($dong as $r) { if (isset($lTD[$r['TrinhDoTuDanhGia']])) { $lTD[$r['TrinhDoTuDanhGia']]++; } }
 
         $chiTiet = [
             ['cau' => 'Bạn tham gia Elo_Quiz với mục đích gì?']              + self::nhieuNhat($lMT, self::MUC_TIEU),
-            ['cau' => 'Bạn yêu thích lĩnh vực nào nhất?']                     + self::nhieuNhat($lLV, self::LINH_VUC),
             ['cau' => 'Bạn tự đánh giá trình độ hiện tại của mình như thế nào?'] + self::nhieuNhat($lTD, array_combine(self::TRINH_DO, self::TRINH_DO)),
         ];
         foreach ($chiTiet as &$c) { $c['tyLe'] = $hoanTat > 0 ? round($c['so'] * 100 / $hoanTat, 1) : 0; }
@@ -142,7 +131,7 @@ class KhaoSatThongKe
 
         // Từng sinh viên (mới nhất trước), bỏ tài khoản admin như trang chính
         $st = $pdo->prepare(
-            "SELECT HoTen, TrangThaiKhaoSat, NgayKhaoSat, MucTieuKhaoSat, LinhVucYeuThich, TrinhDoTuDanhGia FROM NGUOIDUNG
+            "SELECT HoTen, TrangThaiKhaoSat, NgayKhaoSat, MucTieuKhaoSat, TrinhDoTuDanhGia FROM NGUOIDUNG
              WHERE TrangThaiKhaoSat <> 'Chưa làm' AND NgayKhaoSat >= ? AND NgayKhaoSat < ?
                AND MaND NOT IN (SELECT MaND FROM ADMIN WHERE MaND IS NOT NULL)
              ORDER BY NgayKhaoSat DESC, MaND DESC LIMIT " . self::TOI_DA_SV
@@ -156,7 +145,6 @@ class KhaoSatThongKe
                 'trangThai' => $xong ? 'Hoàn tất' : 'Chưa hoàn thành',
                 'thoiGian' => date('d/m/Y H:i', strtotime($r['NgayKhaoSat'])),
                 'mucTieu' => $xong ? self::nhan($r['MucTieuKhaoSat'], self::MUC_TIEU) : '—',
-                'linhVuc' => $xong ? self::nhan($r['LinhVucYeuThich'], self::LINH_VUC) : '—',
                 'trinhDo' => $xong ? ($r['TrinhDoTuDanhGia'] ?: '—') : '—',
             ];
         }
@@ -170,7 +158,6 @@ class KhaoSatThongKe
                 ['Thời gian khảo sát gần nhất', $gn ? date('d/m/Y H:i:s', strtotime($gn)) : '—', ''],
             ],
             'mucTieu' => ['nhan' => array_values(self::MUC_TIEU), 'luot' => array_values($lMT), 'tyLe' => array_values(self::tyLe($lMT))],
-            'linhVuc' => ['nhan' => array_values(self::LINH_VUC), 'luot' => array_values($lLV), 'tyLe' => array_values(self::tyLe($lLV))],
             'trinhDo' => ['nhan' => self::TRINH_DO,               'luot' => array_values($lTD), 'tyLe' => array_values(self::tyLe($lTD))],
             'chiTiet' => $chiTiet,
             'hoanTat' => $hoanTat,

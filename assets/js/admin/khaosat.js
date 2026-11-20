@@ -1,4 +1,4 @@
-// Trang Thống kê khảo sát (admin/khaosat.php): vẽ 3 biểu đồ bằng Chart.js (assets/vendor/chart.umd.js).
+// Trang Thống kê khảo sát (admin/khaosat.php): vẽ 2 biểu đồ bằng Chart.js (assets/vendor/chart.umd.js).
 // Dữ liệu đọc từ <script id="du-lieu-khaosat" type="application/json"> do PHP in ra.
 (function () {
   'use strict';
@@ -68,25 +68,7 @@
     });
   }
 
-  // 2) Cột ngang: lĩnh vực yêu thích
-  var cv2 = document.getElementById('bdLinhVuc'), lv = d.linhVuc;
-  if (tong(lv.luot) === 0) { bao_trong(cv2); } else {
-    var tran2 = Math.min(100, Math.ceil((Math.max.apply(null, lv.tyLe) + 12) / 10) * 10);
-    new Chart(cv2, {
-      type: 'bar',
-      data: { labels: lv.nhan, datasets: [{ data: lv.tyLe, backgroundColor: mau(lv.nhan.length), borderRadius: 6, barThickness: 22 }] },
-      options: {
-        indexAxis: 'y', responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { display: false },
-          tooltip: { callbacks: { label: function (c) { return ' ' + lv.luot[c.dataIndex] + ' lượt (' + pt(c.raw) + ')'; } } } },
-        scales: { x: { min: 0, max: tran2, ticks: { callback: function (v) { return v + '%'; } }, grid: { color: 'rgba(138,245,255,.12)' } },
-                  y: { grid: { display: false } } }
-      },
-      plugins: [nhanPT]
-    });
-  }
-
-  // 3) Cột dọc: trình độ tự đánh giá
+  // 2) Cột dọc: trình độ tự đánh giá
   var cv3 = document.getElementById('bdTrinhDo'), td = d.trinhDo;
   if (tong(td.luot) === 0) { bao_trong(cv3); } else {
     var tran3 = Math.min(100, Math.ceil((Math.max.apply(null, td.tyLe) + 8) / 10) * 10);

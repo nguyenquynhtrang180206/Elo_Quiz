@@ -3,6 +3,9 @@
 require_once __DIR__ . '/../core/bootstrap.php';
 
 $maND = Auth::requireClient(BASE_URL . '/client/dangnhap.php');
+if (Auth::laAdminSinhVien()) {   // tài khoản quản trị không thi đấu, không có lịch sử trận và bạn bè
+    redirect(BASE_URL . '/client/hoso.php');
+}
 $pdo  = Database::pdo();
 
 $q    = mb_substr(trim((string) ($_GET['q'] ?? '')), 0, 100);
@@ -110,122 +113,171 @@ $st = $pdo->prepare(
 $st->execute([$maND, $maND, $maND]);
 $banBe = $st->fetchAll();
 
-function anhNguoi(array $r): string
+
+// Ảnh đại diện (chưa có ảnh thì hiện chữ cái đầu tên)
+function bbAva(array $r): string
 {
     if (!empty($r['AnhDaiDien'])) {
-        return '<img class="avatar-nho" src="' . e(BASE_URL . '/' . ltrim((string) $r['AnhDaiDien'], '/')) . '" alt="">';
+        return '<img class="bb-ava" src="' . e(BASE_URL . '/' . ltrim((string) $r['AnhDaiDien'], '/')) . '" alt="">';
     }
-    return '<span class="avatar-nho avatar-chu" aria-hidden="true">'
+    return '<span class="bb-ava bb-ava-chu" aria-hidden="true">'
         . e(mb_strtoupper(mb_substr((string) $r['HoTen'], 0, 1))) . '</span>';
 }
 
-function thongTinNguoi(array $r): string
+// Khối "ảnh + tên + dòng phụ" dùng chung cho mọi danh sách
+function bbNguoi(array $r, string $phu = ''): string
 {
-    return '<div class="nguoi">' . anhNguoi($r) . '<div>'
-        . '<b>' . e($r['HoTen']) . '</b>'
-        . (isset($r['EloCao']) ? '<div class="ghichu">Elo cao nhất: <b>' . (int) $r['EloCao'] . '</b></div>' : '')
-        . '</div></div>';
+    if ($phu === '' && isset($r['EloCao'])) {
+        $phu = '<span class="bb-elo" title="Elo cao nhất ở một môn"><svg viewBox="0 0 20 20" width="13" height="13" aria-hidden="true"><path d="M2.5 15.5l-1.2-8.5 5 4.2L10 3.5l3.7 7.7 5-4.2-1.2 8.5H2.5z" fill="currentColor"/></svg>'
+             . (int) $r['EloCao'] . ' Elo</span>';
+    }
+    return '<div class="bb-nguoi">' . bbAva($r) . '<div class="bb-ten"><b>' . e($r['HoTen']) . '</b>'
+        . ($phu !== '' ? '<small>' . $phu . '</small>' : '') . '</div></div>';
 }
 
-// Khối "Lời mời đã nhận": có lời mời thì đặt lên đầu trang để dễ thấy, không có thì nằm sau ô tìm kiếm
-$veLoiMoiNhan = function () use ($daNhan, $q, $trangDangXem): void { ?>
-  <div class="card<?= $daNhan ? ' co-moi' : '' ?>" id="loimoi">
-    <h3>Lời mời đã nhận (<?= count($daNhan) ?>)</h3>
-    <?php if (!$daNhan): ?><p class="ghichu">Không có lời mời nào đang chờ.</p><?php endif; ?>
-    <?php foreach ($daNhan as $r): ?>
-      <div class="dong">
-        <div><?= thongTinNguoi($r) ?></div>
-        <div>
-          <?= nutBanBe('chapnhan', (int) $r['MaND'], 'Chấp nhận', $q, $trangDangXem) ?>
-          <?= nutBanBe('tuchoi', (int) $r['MaND'], 'Từ chối', $q, $trangDangXem, 'btn btn-phu') ?>
-        </div>
-      </div>
-    <?php endforeach; ?>
-  </div>
-<?php };
+function bbNgay(?string $t): string
+{
+    return $t ? 'Gửi ngày ' . date('d/m/Y', strtotime($t)) : '';
+}
+
+$soBan = count($banBe);
+$soNhan = count($daNhan);
+$soGui = count($daGui);
 
 $tieuDe = 'Bạn bè';
 $cssTrang = 'banbe';
 require __DIR__ . '/layout/header.php';
 ?>
-<div class="container">
-  <h2>Bạn bè</h2>
+<div class="container bb-trang">
+
+  <!-- ===== Banner đầu trang + số liệu nhanh ===== -->
+  <header class="bb-hero">
+    <div class="bb-hero-chu">
+      <span class="bb-tag"><i aria-hidden="true"></i> KẾT NỐI ĐỒNG ĐỘI</span>
+      <h2>Bạn bè</h2>
+      <p>Tìm đối thủ quen mặt, thách đấu 1 vs 1 và cùng nhau leo bảng xếp hạng.</p>
+    </div>
+    <div class="bb-so">
+      <a class="bb-so-o" href="#danhsach"><b><?= $soBan ?></b><span>Bạn bè</span></a>
+      <a class="bb-so-o<?= $soNhan ? ' co-moi' : '' ?>" href="#loimoi"><b><?= $soNhan ?></b><span>Lời mời nhận</span></a>
+      <a class="bb-so-o" href="#loimoigui"><b><?= $soGui ?></b><span>Đã gửi</span></a>
+    </div>
+  </header>
 
   <?php if ($thongBao): ?>
-    <div class="<?= $thongBao['loai'] === 'ok' ? 'thanhcong' : 'loi' ?>"><?= e($thongBao['nd']) ?></div>
+    <div class="<?= $thongBao['loai'] === 'ok' ? 'thanhcong' : 'loi' ?> bb-tb"><?= e($thongBao['nd']) ?></div>
   <?php endif; ?>
 
-  <?php if ($daNhan) { $veLoiMoiNhan(); } ?>
+  <div class="bb-luoi<?= $soNhan ? ' co-loi-moi' : '' ?>">
 
-  <div class="card">
-    <h3>Tìm sinh viên</h3>
-    <form method="get" action="" class="timkiem">
-      <input type="text" name="q" value="<?= e($q) ?>" maxlength="100" placeholder="Nhập họ tên cần tìm">
-      <button type="submit" class="btn">Tìm</button>
-    </form>
+    <!-- ===== Cột chính: tìm kiếm + danh sách bạn bè ===== -->
+    <div class="bb-chinh">
 
-    <?php if ($q !== ''): ?>
-      <div class="khoi-ketqua">
-        <?php if (!$ketQua): ?>
-          <p class="ghichu">Không tìm thấy sinh viên nào.</p>
+      <section class="bb-hop" id="timban">
+        <h3 class="bb-tieude">Tìm sinh viên</h3>
+        <form method="get" action="" class="bb-tim">
+          <svg class="bb-tim-ico" viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="9" cy="9" r="5.5"/><path d="M13.2 13.2L17 17"/></svg>
+          <input type="text" name="q" value="<?= e($q) ?>" maxlength="100" placeholder="Nhập họ tên cần tìm..." aria-label="Họ tên sinh viên cần tìm" autocomplete="off">
+          <button type="submit" class="bb-nut bb-nut-chinh">Tìm</button>
+        </form>
+
+        <?php if ($q !== ''): ?>
+          <div class="bb-ketqua">
+            <?php if (!$ketQua): ?>
+              <p class="bb-rong bb-rong-nho">Không tìm thấy sinh viên nào khớp “<?= e($q) ?>”.</p>
+            <?php endif; ?>
+            <?php foreach ($ketQua as $r):
+                $tt  = $r['TrangThaiBan'];
+                $gui = (int) ($r['MaNguoiGui'] ?? 0);
+                $id  = (int) $r['MaND'];
+            ?>
+              <div class="bb-dong">
+                <?= bbNguoi($r) ?>
+                <div class="bb-nut-nhom">
+                  <?php if ($tt === 'Đã chấp nhận'): ?>
+                    <span class="bb-nhan bb-nhan-ok">✓ Đã là bạn bè</span>
+                  <?php elseif ($tt === 'Chờ' && $gui === $maND): ?>
+                    <span class="bb-nhan">Đã gửi lời mời</span>
+                    <?= nutBanBe('huy', $id, 'Hủy lời mời', $q, $trangDangXem, 'bb-nut bb-nut-phu') ?>
+                  <?php elseif ($tt === 'Chờ'): ?>
+                    <span class="bb-nhan bb-nhan-tim">Đã gửi lời mời cho bạn</span>
+                    <?= nutBanBe('chapnhan', $id, 'Chấp nhận', $q, $trangDangXem, 'bb-nut bb-nut-chinh') ?>
+                    <?= nutBanBe('tuchoi', $id, 'Từ chối', $q, $trangDangXem, 'bb-nut bb-nut-phu') ?>
+                  <?php else: /* chưa có dòng, hoặc đã "Từ chối" thì được gửi lại */ ?>
+                    <?= nutBanBe('gui', $id, '+ Kết bạn', $q, $trangDangXem, 'bb-nut bb-nut-chinh') ?>
+                  <?php endif; ?>
+                </div>
+              </div>
+            <?php endforeach; ?>
+            <?= $p ? $p->links() : '' ?>
+          </div>
         <?php endif; ?>
-        <?php foreach ($ketQua as $r):
-            $tt  = $r['TrangThaiBan'];
-            $gui = (int) ($r['MaNguoiGui'] ?? 0);
-            $id  = (int) $r['MaND'];
-        ?>
-          <div class="dong">
-            <div><?= thongTinNguoi($r) ?></div>
-            <div>
-              <?php if ($tt === 'Đã chấp nhận'): ?>
-                <span class="ghichu">Đã là bạn bè</span>
-              <?php elseif ($tt === 'Chờ' && $gui === $maND): ?>
-                <span class="ghichu">Đã gửi lời mời</span>
-                <?= nutBanBe('huy', $id, 'Hủy lời mời', $q, $trangDangXem, 'btn btn-phu') ?>
-              <?php elseif ($tt === 'Chờ'): ?>
-                <span class="ghichu">Đã gửi lời mời cho bạn</span>
-                <?= nutBanBe('chapnhan', $id, 'Chấp nhận', $q, $trangDangXem) ?>
-                <?= nutBanBe('tuchoi', $id, 'Từ chối', $q, $trangDangXem, 'btn btn-phu') ?>
-              <?php else: /* chưa có dòng, hoặc đã "Từ chối" thì được gửi lại */ ?>
-                <?= nutBanBe('gui', $id, 'Kết bạn', $q, $trangDangXem) ?>
-              <?php endif; ?>
+      </section>
+
+      <section class="bb-hop" id="danhsach">
+        <h3 class="bb-tieude">Bạn bè của tôi <span class="bb-dem"><?= $soBan ?></span></h3>
+        <?php if (!$banBe): ?>
+          <div class="bb-rong">
+            <svg viewBox="0 0 48 48" width="44" height="44" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="18" cy="17" r="6"/><path d="M6 38c1.3-7 6-10 12-10s10.7 3 12 10"/><circle cx="33" cy="19" r="4.5"/><path d="M34 29c5 .4 8 3 9 8"/></svg>
+            <p>Bạn chưa có bạn bè nào.<br>Hãy tìm tên một người bạn ở khung bên trên và gửi lời mời.</p>
+          </div>
+        <?php else: ?>
+          <div class="bb-luoi-the">
+            <?php foreach ($banBe as $r): ?>
+              <article class="bb-the">
+                <?= bbAva($r) ?>
+                <b class="bb-the-ten"><?= e($r['HoTen']) ?></b>
+                <?php if (isset($r['EloCao'])): ?>
+                  <span class="bb-elo" title="Elo cao nhất ở một môn"><svg viewBox="0 0 20 20" width="13" height="13" aria-hidden="true"><path d="M2.5 15.5l-1.2-8.5 5 4.2L10 3.5l3.7 7.7 5-4.2-1.2 8.5H2.5z" fill="currentColor"/></svg><?= (int) $r['EloCao'] ?> Elo</span>
+                <?php else: ?>
+                  <span class="bb-elo bb-elo-moi">Chưa có Elo</span>
+                <?php endif; ?>
+                <div class="bb-the-nut">
+                  <a href="<?= e(BASE_URL) ?>/client/timtran.php?che_do=pin&amp;moi_ban=<?= (int) $r['MaND'] ?>" class="bb-nut bb-nut-xanh">⚔️ Thách đấu</a>
+                  <?= nutBanBe('huyketban', (int) $r['MaND'], 'Hủy kết bạn', $q, $trangDangXem, 'bb-nut bb-nut-nguy',
+                               'Hủy kết bạn với ' . $r['HoTen'] . '? Hai bạn sẽ không còn thấy nhau trong bảng xếp hạng bạn bè.') ?>
+                </div>
+              </article>
+            <?php endforeach; ?>
+          </div>
+          <p class="bb-lienket"><a href="<?= e(BASE_URL) ?>/client/bxh.php?pv=banbe">Xem bảng xếp hạng bạn bè →</a></p>
+        <?php endif; ?>
+      </section>
+    </div>
+
+    <!-- ===== Cột phụ: lời mời ===== -->
+    <aside class="bb-phu">
+      <section class="bb-hop<?= $soNhan ? ' bb-hop-moi' : '' ?>" id="loimoi">
+        <h3 class="bb-tieude">Lời mời đã nhận <span class="bb-dem"><?= $soNhan ?></span></h3>
+        <?php if (!$daNhan): ?>
+          <p class="bb-rong bb-rong-nho">Không có lời mời nào đang chờ.</p>
+        <?php endif; ?>
+        <?php foreach ($daNhan as $r): ?>
+          <div class="bb-loimoi">
+            <?= bbNguoi($r, e(bbNgay($r['NgayGui'] ?? null))) ?>
+            <div class="bb-nut-nhom">
+              <?= nutBanBe('chapnhan', (int) $r['MaND'], 'Chấp nhận', $q, $trangDangXem, 'bb-nut bb-nut-chinh') ?>
+              <?= nutBanBe('tuchoi', (int) $r['MaND'], 'Từ chối', $q, $trangDangXem, 'bb-nut bb-nut-phu') ?>
             </div>
           </div>
         <?php endforeach; ?>
-        <?= $p ? $p->links() : '' ?>
-      </div>
-    <?php endif; ?>
-  </div>
+      </section>
 
-  <?php if (!$daNhan) { $veLoiMoiNhan(); } ?>
-
-  <div class="card">
-    <h3>Lời mời đã gửi (<?= count($daGui) ?>)</h3>
-    <?php if (!$daGui): ?><p class="ghichu">Bạn chưa gửi lời mời nào đang chờ.</p><?php endif; ?>
-    <?php foreach ($daGui as $r): ?>
-      <div class="dong">
-        <div><?= thongTinNguoi($r) ?></div>
-        <div><?= nutBanBe('huy', (int) $r['MaND'], 'Hủy lời mời', $q, $trangDangXem, 'btn btn-phu') ?></div>
-      </div>
-    <?php endforeach; ?>
-  </div>
-
-  <div class="card" id="danhsach">
-    <h3>Bạn bè của tôi (<?= count($banBe) ?>)</h3>
-    <?php if (!$banBe): ?><p class="ghichu">Bạn chưa có bạn bè nào. Hãy tìm và gửi lời mời ở trên.</p><?php endif; ?>
-    <?php foreach ($banBe as $r): ?>
-      <div class="dong">
-        <div><?= thongTinNguoi($r) ?></div>
-        <div style="display: flex; align-items: center; gap: 6px;">
-          <a href="<?= e(BASE_URL) ?>/client/timtran.php?che_do=pin&amp;moi_ban=<?= (int) $r['MaND'] ?>" class="btn btn-sm" style="background: linear-gradient(135deg, #10B981 0%, #059669 100%); color: #fff; font-weight: 700; text-decoration: none; padding: 5px 12px; border-radius: 6px; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);">⚔️ Thách đấu</a>
-          <?= nutBanBe('huyketban', (int) $r['MaND'], 'Hủy kết bạn', $q, $trangDangXem, 'btn btn-phu',
-                       'Hủy kết bạn với ' . $r['HoTen'] . '? Hai bạn sẽ không còn thấy nhau trong bảng xếp hạng bạn bè.') ?>
-        </div>
-      </div>
-    <?php endforeach; ?>
-    <?php if ($banBe): ?>
-      <p class="ghichu lien-ket-bxh"><a href="<?= e(BASE_URL) ?>/client/bxh.php?pv=banbe">Xem bảng xếp hạng bạn bè →</a></p>
-    <?php endif; ?>
+      <section class="bb-hop" id="loimoigui">
+        <h3 class="bb-tieude">Lời mời đã gửi <span class="bb-dem"><?= $soGui ?></span></h3>
+        <?php if (!$daGui): ?>
+          <p class="bb-rong bb-rong-nho">Bạn chưa gửi lời mời nào đang chờ.</p>
+        <?php endif; ?>
+        <?php foreach ($daGui as $r): ?>
+          <div class="bb-loimoi">
+            <?= bbNguoi($r, e(bbNgay($r['NgayGui'] ?? null))) ?>
+            <div class="bb-nut-nhom">
+              <?= nutBanBe('huy', (int) $r['MaND'], 'Hủy lời mời', $q, $trangDangXem, 'bb-nut bb-nut-phu') ?>
+            </div>
+          </div>
+        <?php endforeach; ?>
+      </section>
+    </aside>
   </div>
 </div>
 <?php require __DIR__ . '/layout/footer.php'; ?>

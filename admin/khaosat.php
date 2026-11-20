@@ -1,6 +1,6 @@
 <?php
 // Thống kê khảo sát định hướng (UC10, luồng thay thế: A-35, A-36). Đặt tại: elo_quiz/admin/khaosat.php
-// Bước 3: truy vấn theo khoảng ngày. Bước 4-6: khung giao diện mới, 3 biểu đồ Chart.js, bảng chi tiết câu hỏi.
+// Bước 3: truy vấn theo khoảng ngày. Bước 4-6: khung giao diện mới, 2 biểu đồ Chart.js, bảng chi tiết câu hỏi.
 require_once __DIR__ . '/../core/bootstrap.php';
 Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');   // A-04
 
@@ -14,13 +14,6 @@ $mucTieu = [
     'ap_luc_thoi_gian'   => 'Rèn luyện áp lực thời gian',
     'so_hoa_du_lieu'     => 'Số hóa dữ liệu học tập',
     'xoa_so_thi'         => 'Xóa bỏ tâm lý sợ thi cử',
-];
-$linhVuc = [
-    'toan_hoc'  => 'Toán học',
-    'tin_hoc'   => 'Tin học',
-    'khoa_hoc'  => 'Khoa học',
-    'tieng_anh' => 'Tiếng Anh',
-    'lich_su'   => 'Lịch sử',
 ];
 $trinhDo = ['Mới bắt đầu', 'Trung bình', 'Khá', 'Nâng cao'];
 
@@ -86,7 +79,7 @@ $gannhat = $st->fetchColumn() ?: null;
 
 // ---- Câu trả lời của SV hoàn tất trong khoảng ngày ----
 $st = $pdo->prepare(
-    "SELECT MucTieuKhaoSat, LinhVucYeuThich, TrinhDoTuDanhGia FROM NGUOIDUNG
+    "SELECT MucTieuKhaoSat, TrinhDoTuDanhGia FROM NGUOIDUNG
      WHERE TrangThaiKhaoSat = 'Hoàn tất' AND NgayKhaoSat >= ? AND NgayKhaoSat < ?"
 );
 $st->execute([$tu->format('Y-m-d'), $den->modify('+1 day')->format('Y-m-d')]);
@@ -106,7 +99,6 @@ function dem_nhieu_ma(array $dong, string $cot, array $danhSach): array
     return $dem;
 }
 $luotMucTieu = dem_nhieu_ma($dong, 'MucTieuKhaoSat', $mucTieu);
-$luotLinhVuc = dem_nhieu_ma($dong, 'LinhVucYeuThich', $linhVuc);
 $luotTrinhDo = array_fill_keys($trinhDo, 0);
 foreach ($dong as $r) {
     if (isset($luotTrinhDo[$r['TrinhDoTuDanhGia']])) {
@@ -121,7 +113,6 @@ function ty_le_tren_tong(array $dem): array
     return array_map(static fn ($v) => $tong > 0 ? round($v * 100 / $tong, 1) : 0, $dem);
 }
 $tyLeMucTieu = ty_le_tren_tong($luotMucTieu);
-$tyLeLinhVuc = ty_le_tren_tong($luotLinhVuc);
 $tyLeTrinhDo = ty_le_tren_tong($luotTrinhDo);
 
 // ---- Bảng "Chi tiết câu hỏi": đáp án được chọn nhiều nhất, tỷ lệ trên số SV hoàn tất ----
@@ -136,7 +127,6 @@ function dap_an_nhieu_nhat(array $dem, array $nhan): array
 $nhanTrinhDo = array_combine($trinhDo, $trinhDo);
 $chiTiet = [
     ['cau' => 'Bạn tham gia QUIZUP ARENA với mục đích gì?']           + dap_an_nhieu_nhat($luotMucTieu, $mucTieu),
-    ['cau' => 'Bạn yêu thích lĩnh vực nào nhất?']                      + dap_an_nhieu_nhat($luotLinhVuc, $linhVuc),
     ['cau' => 'Bạn tự đánh giá trình độ hiện tại của mình như thế nào?'] + dap_an_nhieu_nhat($luotTrinhDo, $nhanTrinhDo),
 ];
 foreach ($chiTiet as &$c) {
@@ -149,7 +139,6 @@ $duLieu = [
     'tongLuot'  => $tongLuot,
     'tongChon'  => array_sum($luotMucTieu),   // số ở giữa donut: tổng lượt chọn mục tiêu
     'mucTieu'   => ['nhan' => array_values($mucTieu), 'luot' => array_values($luotMucTieu), 'tyLe' => array_values($tyLeMucTieu)],
-    'linhVuc'   => ['nhan' => array_values($linhVuc), 'luot' => array_values($luotLinhVuc), 'tyLe' => array_values($tyLeLinhVuc)],
     'trinhDo'   => ['nhan' => $trinhDo,               'luot' => array_values($luotTrinhDo), 'tyLe' => array_values($tyLeTrinhDo)],
 ];
 
@@ -161,7 +150,7 @@ $st = $pdo->prepare("SELECT COUNT(*) FROM NGUOIDUNG WHERE $dieuKienSV");
 $st->execute($thamSoSV);
 $phanTrang = new Paginator((int) $st->fetchColumn(), 5);   // 5 sinh viên mỗi trang; ?page=N, giữ nguyên tu/den
 $st = $pdo->prepare(
-    "SELECT MaND, HoTen, TrangThaiKhaoSat, NgayKhaoSat, MucTieuKhaoSat, LinhVucYeuThich, TrinhDoTuDanhGia
+    "SELECT MaND, HoTen, TrangThaiKhaoSat, NgayKhaoSat, MucTieuKhaoSat, TrinhDoTuDanhGia
      FROM NGUOIDUNG WHERE $dieuKienSV
      ORDER BY NgayKhaoSat DESC, MaND DESC
      LIMIT " . $phanTrang->limit() . ' OFFSET ' . $phanTrang->offset()
@@ -258,7 +247,7 @@ $denHienThi = $den->format('d/m/Y');
     </div>
   </form>
 
-  <!-- 3 biểu đồ -->
+  <!-- 2 biểu đồ -->
   <div class="ks-bieudo">
     <section class="ks-khung">
       <h3>Mục tiêu tham gia Elo_Quiz</h3>
@@ -269,10 +258,6 @@ $denHienThi = $den->format('d/m/Y');
         </div>
         <ul class="ks-chuthich" id="bdMucTieuChuThich"></ul>
       </div>
-    </section>
-    <section class="ks-khung">
-      <h3>Lĩnh vực yêu thích</h3>
-      <div class="ks-hinh"><canvas id="bdLinhVuc" aria-label="Biểu đồ cột ngang lĩnh vực yêu thích"></canvas></div>
     </section>
     <section class="ks-khung">
       <h3>Trình độ tự đánh giá</h3>
@@ -295,26 +280,25 @@ $denHienThi = $den->format('d/m/Y');
       <?php endforeach; ?>
     </table>
     <p class="nhan-phu ks-chuthich-duoi">Hiển thị 1–<?= count($chiTiet) ?> trong tổng số <?= count($chiTiet) ?> câu hỏi.
-      Tỷ lệ tính trên số sinh viên hoàn tất (<?= so_vn($hoanTat) ?>); câu 1 và câu 2 cho chọn nhiều mục nên tổng có thể lớn hơn 100%.</p>
+      Tỷ lệ tính trên số sinh viên hoàn tất (<?= so_vn($hoanTat) ?>); câu 1 cho chọn nhiều mục nên tổng có thể lớn hơn 100%.</p>
   </section>
 
   <!-- Chi tiết từng sinh viên -->
   <section class="ks-khung ks-bang ks-sv" id="ks-sv">
     <h3>Chi tiết từng sinh viên trả lời</h3>
     <table>
-      <tr><th>Sinh viên</th><th>Trạng thái</th><th>Thời gian</th><th>Mục tiêu tham gia</th><th>Lĩnh vực yêu thích</th><th>Trình độ</th></tr>
+      <tr><th>Sinh viên</th><th>Trạng thái</th><th>Thời gian</th><th>Mục tiêu tham gia</th><th>Trình độ</th></tr>
       <?php foreach ($dsSinhVien as $r): $xong = $r['TrangThaiKhaoSat'] === 'Hoàn tất'; ?>
         <tr>
           <td><a href="<?= e(BASE_URL) ?>/admin/nguoidung_chitiet.php?id=<?= (int) $r['MaND'] ?>"><?= e($r['HoTen']) ?></a></td>
           <td><span class="ks-tt <?= $xong ? 'xong' : 'bo' ?>"><?= $xong ? 'Hoàn tất' : 'Chưa hoàn thành' ?></span></td>
           <td class="khong-ngat"><?= e(date('d/m/Y H:i', strtotime($r['NgayKhaoSat']))) ?></td>
           <td><?= $xong ? e(ma_ra_nhan($r['MucTieuKhaoSat'], $mucTieu)) : '—' ?></td>
-          <td><?= $xong ? e(ma_ra_nhan($r['LinhVucYeuThich'], $linhVuc)) : '—' ?></td>
           <td><?= $xong ? e($r['TrinhDoTuDanhGia'] ?: '—') : '—' ?></td>
         </tr>
       <?php endforeach; ?>
       <?php if (!$dsSinhVien): ?>
-        <tr><td colspan="6" class="nhan-phu">Chưa có sinh viên nào làm khảo sát trong khoảng ngày này.</td></tr>
+        <tr><td colspan="5" class="nhan-phu">Chưa có sinh viên nào làm khảo sát trong khoảng ngày này.</td></tr>
       <?php endif; ?>
     </table>
     <div class="ks-chantrang"><?= preg_replace('/href="([^"]*)"/', 'href="$1#ks-sv"', $phanTrang->links()) ?></div>
