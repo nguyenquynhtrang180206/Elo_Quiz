@@ -73,6 +73,24 @@
 .admin-noidung .nd-chan { padding:12px 16px; border-top:1px solid #eef2fb; }
 .admin-noidung .nd-chan .phantrang { margin:0; display:flex; align-items:center; justify-content:center; gap:6px; flex-wrap:wrap; color:#6b7694; font-size:13.5px; }
 
+/* ---------- Bảng xếp hạng Elo tích hợp ---------- */
+.admin-noidung .nd-khung-bxh { scroll-margin-top:18px; }
+.admin-noidung .nd-bxh-dau { padding:16px 16px 0; }
+.admin-noidung .nd-bxh-tieude { margin:0; font-size:18px; color:#12235e; }
+.admin-noidung .nd-bxh-mota { margin:6px 0 0; color:#6b7694; font-size:13px; line-height:1.5; }
+.admin-noidung .nd-bxh-loc { border-bottom:1px solid #eef2fb; }
+.admin-noidung table.nd-bang-bxh th,
+.admin-noidung table.nd-bang-bxh td { white-space:nowrap; }
+.admin-noidung table.nd-bang-bxh td:nth-child(2) { white-space:normal; min-width:190px; }
+.admin-noidung .nd-bxh-email { display:block; margin-top:3px; color:#7c88a5; font-size:12px; }
+.admin-noidung .nd-bxh-hang { font-weight:800; color:#44527a !important; }
+.admin-noidung .nd-bxh-bac { display:inline-flex; align-items:center; padding:4px 9px; border-radius:999px; font-size:12px; font-weight:700; }
+.admin-noidung .nd-bxh-bac.cao { color:#8c2bb0; background:#f7e8ff; }
+.admin-noidung .nd-bxh-bac.kim-cuong { color:#1765c2; background:#e7f2ff; }
+.admin-noidung .nd-bxh-bac.vang { color:#9a6500; background:#fff3d4; }
+.admin-noidung .nd-bxh-bac.bac { color:#53627b; background:#edf1f7; }
+.admin-noidung .nd-bxh-bac.dong { color:#8b4e29; background:#f9eee7; }
+
 /* ---------- Hộp xác nhận ---------- */
 dialog.nd-hop { border:0; border-radius:16px; padding:0; width:min(440px,92vw); box-shadow:0 24px 60px rgba(10,25,80,.35); color:#12235e; font-family:inherit; }
 dialog.nd-hop::backdrop { background:rgba(8,20,70,.55); }
