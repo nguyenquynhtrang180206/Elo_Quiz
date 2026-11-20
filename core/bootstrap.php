@@ -56,8 +56,6 @@ spl_autoload_register(function (string $class): void {
         'ThongBaoHelper'   => __DIR__ . '/Services/ThongBaoHelper.php',
         'ThongBaoAdmin'    => __DIR__ . '/Services/ThongBaoAdmin.php',
         'CauHoiHelper'     => __DIR__ . '/Services/CauHoiHelper.php',
-        'KhaoSatThongKe'   => __DIR__ . '/Services/KhaoSatThongKe.php',
-        'khaosatthongke'   => __DIR__ . '/Services/KhaoSatThongKe.php',
         'ThongKe'          => __DIR__ . '/Services/ThongKe.php',
         'thongke'          => __DIR__ . '/Services/ThongKe.php',
         'NhatKy'           => __DIR__ . '/Services/NhatKy.php',

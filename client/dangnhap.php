@@ -31,7 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 . RateLimiter::dinhDangThoiGian($hanChe['thoiGianCon']) . '.';
         } else {
             $st = Database::pdo()->prepare(
-                'SELECT MaND, MatKhau, TrangThai, TrangThaiKhaoSat FROM NGUOIDUNG WHERE Email = ?'
+                'SELECT MaND, MatKhau, TrangThai FROM NGUOIDUNG WHERE Email = ?'
             );
             $st->execute([$email]);
             $nd = $st->fetch();
@@ -74,10 +74,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 Auth::regenerate();              // chống session fixation
                 $_SESSION['nd_id'] = (int) $nd['MaND'];
 
-                // C-45: chưa hoàn tất hoặc bỏ qua khảo sát thì hiện lại ở lần đăng nhập này
-                if ($nd['TrangThaiKhaoSat'] === 'Chưa làm') {
-                    redirect(BASE_URL . '/client/khaosat.php');
-                }
                 redirect(BASE_URL . '/client/index.php');
             }
         }

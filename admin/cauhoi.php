@@ -845,7 +845,7 @@ require __DIR__ . '/layout/header.php';
 </aside>
 <!-- Hộp thoại Xuất ngân hàng câu hỏi (Excel / PDF): cùng giao diện với hộp thoại Xuất của trang Tổng quan, xử lý ở cauhoi_xuat.php -->
 <div class="modal-nen" id="cxHop" hidden>
-  <form class="modal xuat-hop" id="cxForm" method="post" action="<?= e(BASE_URL) ?>/admin/cauhoi_xuat.php" role="dialog" aria-modal="true" aria-labelledby="cxTieuDe">
+  <form class="modal xuat-hop tq-xuat-hop" id="cxForm" method="post" action="<?= e(BASE_URL) ?>/admin/cauhoi_xuat.php" role="dialog" aria-modal="true" aria-labelledby="cxTieuDe">
     <h3 id="cxTieuDe">Xuất ngân hàng câu hỏi</h3>
     <?= csrf_field() ?>
     <input type="hidden" name="q" value="<?= e($q) ?>">

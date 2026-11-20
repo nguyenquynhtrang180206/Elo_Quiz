@@ -24,17 +24,10 @@ CREATE TABLE IF NOT EXISTS NGUOIDUNG (
   Email             VARCHAR(150) NOT NULL,
   MatKhau           VARCHAR(255) NOT NULL COMMENT 'Lưu dạng băm (Argon2id hoặc Bcrypt)',
   AnhDaiDien        VARCHAR(255) NULL COMMENT 'Đường dẫn file; NULL = avatar chữ mặc định',
-  Lop               VARCHAR(50)  NULL,
-  Khoa              VARCHAR(100) NULL,
   TuongChon         VARCHAR(40)  NOT NULL DEFAULT 'sunflower' COMMENT 'Mã tướng/linh vật xuất chiến',
   ChoPhepBot        TINYINT(1)   NOT NULL DEFAULT 1 COMMENT '1 = tự ghép Bot sau hạn chờ, 0 = chỉ ghép PvP',
   TrangThai         ENUM('Hoạt động','Bị khóa') NOT NULL DEFAULT 'Hoạt động',
   NgayTao           DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  TrangThaiKhaoSat  ENUM('Chưa làm','Hoàn tất','Bỏ qua') NOT NULL DEFAULT 'Chưa làm',
-  MucTieuKhaoSat    VARCHAR(255) NULL COMMENT 'Danh sách mã mục tiêu, phân tách bằng dấu phẩy',
-  LinhVucYeuThich   VARCHAR(255) NULL COMMENT 'Danh sách mã lĩnh vực yêu thích',
-  TrinhDoTuDanhGia  ENUM('Mới bắt đầu','Trung bình','Khá','Nâng cao') NULL,
-  NgayKhaoSat       DATETIME NULL,
   PRIMARY KEY (MaND),
   UNIQUE KEY uq_nguoidung_email (Email),
   KEY idx_nguoidung_trangthai (TrangThai, NgayTao)
@@ -548,13 +541,13 @@ INSERT INTO ADMIN (TenDangNhap, MatKhau, HoTen, TrangThai) VALUES
   ('admin', '$2y$10$TeACaYhx5feO6rATfKBvZOxNiguhrOek2baislMlQTWetyVg9dia.', 'Quản trị viên', 'Hoạt động')
 ON DUPLICATE KEY UPDATE HoTen = VALUES(HoTen);
 
-INSERT INTO NGUOIDUNG (HoTen, Email, MatKhau, Lop, Khoa, TrangThai, TrangThaiKhaoSat) VALUES
-  ('Nguyễn Văn An', 'an@test.com', '$2y$10$5MOB9RsdS2KQ7u7XSozfRegxPg6munieu4rdL6h9RQKMYgbtH0RTy', 'CNTT01', 'Công nghệ thông tin', 'Hoạt động', 'Hoàn tất'),
-  ('Trần Thị Bình', 'binh@test.com', '$2y$10$5MOB9RsdS2KQ7u7XSozfRegxPg6munieu4rdL6h9RQKMYgbtH0RTy', 'CNTT01', 'Công nghệ thông tin', 'Hoạt động', 'Hoàn tất'),
-  ('Lê Minh Cường', 'cuong@test.com', '$2y$10$5MOB9RsdS2KQ7u7XSozfRegxPg6munieu4rdL6h9RQKMYgbtH0RTy', 'CNTT02', 'Công nghệ thông tin', 'Hoạt động', 'Hoàn tất'),
-  ('Phạm Thu Dung', 'dung@test.com', '$2y$10$5MOB9RsdS2KQ7u7XSozfRegxPg6munieu4rdL6h9RQKMYgbtH0RTy', 'HTTT01', 'Hệ thống thông tin', 'Hoạt động', 'Hoàn tất'),
-  ('Hoàng Gia Huy', 'huy@test.com', '$2y$10$5MOB9RsdS2KQ7u7XSozfRegxPg6munieu4rdL6h9RQKMYgbtH0RTy', 'HTTT01', 'Hệ thống thông tin', 'Hoạt động', 'Hoàn tất'),
-  ('Vũ Khánh Linh', 'linh@test.com', '$2y$10$5MOB9RsdS2KQ7u7XSozfRegxPg6munieu4rdL6h9RQKMYgbtH0RTy', 'KTPM01', 'Kỹ thuật phần mềm', 'Hoạt động', 'Hoàn tất');
+INSERT INTO NGUOIDUNG (HoTen, Email, MatKhau, TrangThai) VALUES
+  ('Nguyễn Văn An', 'an@test.com', '$2y$10$5MOB9RsdS2KQ7u7XSozfRegxPg6munieu4rdL6h9RQKMYgbtH0RTy', 'Hoạt động'),
+  ('Trần Thị Bình', 'binh@test.com', '$2y$10$5MOB9RsdS2KQ7u7XSozfRegxPg6munieu4rdL6h9RQKMYgbtH0RTy', 'Hoạt động'),
+  ('Lê Minh Cường', 'cuong@test.com', '$2y$10$5MOB9RsdS2KQ7u7XSozfRegxPg6munieu4rdL6h9RQKMYgbtH0RTy', 'Hoạt động'),
+  ('Phạm Thu Dung', 'dung@test.com', '$2y$10$5MOB9RsdS2KQ7u7XSozfRegxPg6munieu4rdL6h9RQKMYgbtH0RTy', 'Hoạt động'),
+  ('Hoàng Gia Huy', 'huy@test.com', '$2y$10$5MOB9RsdS2KQ7u7XSozfRegxPg6munieu4rdL6h9RQKMYgbtH0RTy', 'Hoạt động'),
+  ('Vũ Khánh Linh', 'linh@test.com', '$2y$10$5MOB9RsdS2KQ7u7XSozfRegxPg6munieu4rdL6h9RQKMYgbtH0RTy', 'Hoạt động');
 
 INSERT INTO CAUHOI (MaCauHoi, MaMon, MaLoaiKT, NoiDung, GiaiThich, DoKho, TrangThai) VALUES
   (1, 1, NULL, 'Lệnh SQL nào dùng để truy vấn dữ liệu từ bảng?', 'SELECT dùng để đọc dữ liệu; các lệnh còn lại thêm, sửa, xóa dữ liệu.', 'Dễ', 'Hiển thị'),

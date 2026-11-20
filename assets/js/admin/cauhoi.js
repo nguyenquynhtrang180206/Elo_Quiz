@@ -36,6 +36,12 @@
     var tong = bang.querySelectorAll('.ch-chon').length;
     soChon.textContent = n;
     thanh.hidden = n === 0;
+    // Chỉ hiện nút phù hợp: chọn toàn câu đã ẩn => chỉ "Hiện lại"; toàn câu đang hiện => chỉ "Ẩn"; lẫn cả hai => hiện cả hai
+    var nAn = dsChon().filter(function (o) { return o.closest('tr').classList.contains('da-an'); }).length;
+    var btAn  = thanh.querySelector('button[value="an_nhieu"]');
+    var btHien = thanh.querySelector('button[value="hien_nhieu"]');
+    if (btAn)   { btAn.hidden   = n > 0 && nAn === n; }
+    if (btHien) { btHien.hidden = n > 0 && nAn === 0; }
     if (chonTatCa) {
       chonTatCa.checked = n > 0 && n === tong;
       chonTatCa.indeterminate = n > 0 && n < tong;
@@ -326,6 +332,95 @@
     var dau = ds[0], cuoi = ds[ds.length - 1];
     if (e.shiftKey && document.activeElement === dau) { e.preventDefault(); cuoi.focus(); }
     else if (!e.shiftKey && document.activeElement === cuoi) { e.preventDefault(); dau.focus(); }
+  });
+  // ---------- 4) Thao tác (ẩn / hiện / xóa / đổi độ khó...) không tải lại trang ----------
+  // Gửi form ngầm bằng fetch, rồi chỉ thay các khối số liệu và phần thân bảng bằng bản mới từ máy chủ.
+  // Vị trí cuộn, bộ lọc, trang đang xem đều giữ nguyên; thông báo kết quả hiện ở thanh nổi phía trên.
+  var dangGui = false;
+  var toast = null, henToast = 0;
+
+  function hienToast(chu, loai) {
+    if (!chu) { return; }
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.className = 'ch-toast';
+      toast.setAttribute('role', 'status');
+      toast.setAttribute('aria-live', 'polite');
+      document.body.appendChild(toast);
+    }
+    toast.textContent = chu;
+    toast.className = 'ch-toast ' + (loai === 'loi' ? 'loi' : 'ok');
+    void toast.offsetWidth;                       // cho hiệu ứng chạy lại khi bấm liên tiếp
+    toast.classList.add('hien');
+    clearTimeout(henToast);
+    henToast = setTimeout(function () { toast.classList.remove('hien'); }, 4000);
+  }
+
+  // Thay nguyên một khối (cùng bộ chọn) bằng bản mới; trả về false nếu thiếu ở một trong hai bên
+  function thayKhoi(sel, doc) {
+    var cu = document.querySelector(sel), moi = doc.querySelector(sel);
+    if (!cu || !moi) { return false; }
+    cu.parentNode.replaceChild(document.importNode(moi, true), cu);
+    return true;
+  }
+
+  function capNhatTaiCho(doc) {
+    var tbCu = document.querySelector('#chBang tbody'), tbMoi = doc.querySelector('#chBang tbody');
+    if (!tbCu || !tbMoi) { return false; }          // ví dụ bảng chuyển sang trạng thái rỗng => tải lại trang
+    if (typeof dongNgan === 'function') { dongNgan(); }   // đóng ngăn Xem nhanh nếu đang mở
+    tbCu.innerHTML = tbMoi.innerHTML;
+    ['.ch-the-so', 'section[aria-labelledby="chTieuDeBando"]', 'section[aria-labelledby="chTieuDeLech"]',
+     '.ch-chips', '.ch-chan-ds'].forEach(function (sel) { thayKhoi(sel, doc); });
+
+    // Dòng "Xóa tất cả câu của môn này" có thể xuất hiện / biến mất theo số câu còn lại
+    var xoaCu = document.querySelector('.ch-xoa-mon'), xoaMoi = doc.querySelector('.ch-xoa-mon');
+    if (xoaCu && xoaMoi) {
+      xoaCu.parentNode.replaceChild(document.importNode(xoaMoi, true), xoaCu);
+    } else if (xoaCu && !xoaMoi) {
+      xoaCu.parentNode.removeChild(xoaCu);
+    }
+    // Thông báo cũ trên đầu trang (nếu có) đã được hiển thị ở thanh nổi, bỏ đi cho khỏi trùng
+    [].forEach.call(document.querySelectorAll('.ch-trang > .thanhcong, .ch-trang > .loi'), function (el) { el.remove(); });
+
+    if (typeof capNhatChon === 'function') { capNhatChon(); }   // làm mới thanh chọn nhiều (không còn ô nào được tích)
+    return true;
+  }
+
+  document.addEventListener('submit', function (e) {
+    var f = e.target;
+    if (e.defaultPrevented || !f || f.tagName !== 'FORM') { return; }      // đã bị chặn (hủy xác nhận, hộp Xuất...)
+    if (String(f.method).toLowerCase() !== 'post' || f.id === 'cxForm' || f.hasAttribute('data-khong-ajax')) { return; }
+    if (!f.closest('.ch-trang') && !f.closest('#chNgan')) { return; }
+    if (!window.fetch || !window.FormData || !window.DOMParser) { return; } // trình duyệt quá cũ: gửi form như thường
+
+    e.preventDefault();
+    if (dangGui) { return; }
+    dangGui = true;
+
+    var nut = e.submitter || null;
+    var fd;
+    try { fd = new FormData(f, nut); } catch (err) { fd = new FormData(f); }
+    if (nut && nut.name && !fd.has(nut.name)) { fd.append(nut.name, nut.value); }
+    if (nut) { nut.disabled = true; }
+
+    fetch(f.getAttribute('action') || window.location.href, { method: 'POST', body: fd, credentials: 'same-origin' })
+      .then(function (r) { return r.text().then(function (t) { return { r: r, t: t }; }); })
+      .then(function (kq) {
+        var doc = new DOMParser().parseFromString(kq.t, 'text/html');
+        var flash = doc.querySelector('.ch-trang > .thanhcong, .ch-trang > .loi');
+        if (!kq.r.ok || !doc.querySelector('.ch-trang') || !capNhatTaiCho(doc)) {
+          window.location.reload();        // thao tác đã gửi xong; chỉ cần nạp lại để thấy kết quả (hoặc đăng nhập lại)
+          return;
+        }
+        if (flash) { hienToast(flash.textContent.trim(), flash.classList.contains('loi') ? 'loi' : 'ok'); }
+      })
+      .catch(function () {
+        hienToast('Không kết nối được máy chủ. Hãy thử lại.', 'loi');
+      })
+      .then(function () {
+        dangGui = false;
+        if (nut) { nut.disabled = false; }
+      });
   });
 })();
 

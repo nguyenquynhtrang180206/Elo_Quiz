@@ -505,9 +505,9 @@ require __DIR__ . '/layout/header.php';
                 $n = $soO[$mm][(int) $k['MaLoaiKT']] ?? 0; ?>
               <td class="giua" data-label="<?= e($k['TenLoaiKT']) ?>">
                 <?php if ($n > 0): ?>
-                  <a class="mh-o <?= $mucO($n) ?>" href="<?= e(BASE_URL . '/admin/cauhoi.php?' . http_build_query(['mon' => $mm, 'kt' => (int) $k['MaLoaiKT']])) ?>" title="Xem <?= $n ?> câu hỏi"><?= $n ?></a>
+                  <a class="mh-o <?= $mucO($n) ?>" href="<?= e(BASE_URL . '/admin/cauhoi.php?' . http_build_query(['mon' => $mm, 'kt' => (int) $k['MaLoaiKT']])) . '#chDanhSach' ?>" title="Xem <?= $n ?> câu hỏi"><?= $n ?></a>
                 <?php elseif (!$an): ?>
-                  <a class="mh-o mh-o-trong" href="<?= e(BASE_URL . '/admin/cauhoi_form.php?mon=' . $mm) ?>">+ Thêm câu hỏi</a>
+                  <a class="mh-o mh-o-trong" href="<?= e(BASE_URL . '/admin/cauhoi_form.php?' . http_build_query(['mon' => $mm, 'loai' => (int) $k['MaLoaiKT']])) ?>" title="Thêm câu hỏi môn <?= e($r['TenMon']) ?>, loại kỳ thi <?= e($k['TenLoaiKT']) ?>">+ Thêm câu hỏi</a>
                 <?php else: ?>
                   <span class="mh-o mh-o0">0</span>
                 <?php endif; ?>
@@ -516,7 +516,7 @@ require __DIR__ . '/layout/header.php';
             <td class="giua" data-label="Dùng chung cả hai">
               <?php $nc = $soO[$mm]['chung'] ?? 0; ?>
               <?php if ($nc > 0): ?>
-                <a class="mh-o <?= $mucO($nc) ?>" href="<?= e(BASE_URL . '/admin/cauhoi.php?' . http_build_query(['mon' => $mm, 'kt' => 'chung'])) ?>" title="Xem <?= $nc ?> câu hỏi dùng chung"><?= $nc ?></a>
+                <a class="mh-o <?= $mucO($nc) ?>" href="<?= e(BASE_URL . '/admin/cauhoi.php?' . http_build_query(['mon' => $mm, 'kt' => 'chung'])) . '#chDanhSach' ?>" title="Xem <?= $nc ?> câu hỏi dùng chung"><?= $nc ?></a>
               <?php else: ?>
                 <span class="mh-o mh-o0">&mdash;</span>
               <?php endif; ?>

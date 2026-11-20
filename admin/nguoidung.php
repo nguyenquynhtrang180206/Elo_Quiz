@@ -5,7 +5,7 @@ Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');   // A-04
 
 $pdo = Database::pdo();
 
-// ---- Bộ lọc: từ khóa (họ tên, email, lớp, khoa) và trạng thái ----
+// ---- Bộ lọc: từ khóa (họ tên, email) và trạng thái ----
 $q  = trim((string) ($_GET['q'] ?? ''));
 $tt = (string) ($_GET['tt'] ?? '');
 if (!in_array($tt, ['Hoạt động', 'Bị khóa'], true)) {
@@ -100,10 +100,14 @@ $monHocBxh = $pdo->query('SELECT MaMon, TenMon FROM MONHOC ORDER BY TenMon')->fe
 $tenMonBxh = array_column($monHocBxh, 'TenMon', 'MaMon');
 $monBxh = (int) ($_GET['bxh_mon'] ?? 0);
 if ($monBxh !== 0 && !isset($tenMonBxh[$monBxh])) {
-    $monBxh = 0;
+    $monBxh = 0;   // mặc định: tất cả các môn
 }
 $qBxh = trim((string) ($_GET['bxh_q'] ?? ''));
-$nMinBxh = max(1, Config::int('SO_TRAN_TOI_THIEU_BXH', 10));
+$nMinBxh = 1;   // giống client: "Tất cả" tính mọi người chơi đã đấu ít nhất 1 trận, không đặt ngưỡng cấu hình
+$soMonHienBxh = 5;   // chỉ hiện 5 môn, các môn còn lại ẩn và tìm bằng ô "Tìm môn"
+// Môn đang chọn luôn nằm đầu danh sách để không bị ẩn
+usort($monHocBxh, static fn (array $a, array $b): int =>
+    ((int) $b['MaMon'] === $monBxh) <=> ((int) $a['MaMon'] === $monBxh));
 
 $dkBxh = [];
 $thamBxh = [];
@@ -112,13 +116,15 @@ if ($monBxh > 0) {
     $thamBxh[] = $monBxh;
     $cotBxh = 'n.MaND, n.HoTen, n.Email, n.TrangThai, e.DiemElo AS elo, e.SoTran, e.SoThang';
     $nhomBxh = '';
-    $orderBxh = 'ORDER BY elo DESC, SoTran DESC, n.MaND ASC';
 } else {
     $dkBxh[] = 'e.SoTran >= ?';
     $thamBxh[] = $nMinBxh;
-    $cotBxh = 'n.MaND, n.HoTen, n.Email, n.TrangThai, ROUND(AVG(e.DiemElo)) AS elo, SUM(e.SoTran) AS SoTran, SUM(e.SoThang) AS SoThang';
+    // MonChinh: môn người này đấu nhiều trận nhất (môn đang mở), giống bảng xếp hạng phía client
+    $cotBxh = "n.MaND, n.HoTen, n.Email, n.TrangThai, AVG(e.DiemElo) AS elo, SUM(e.SoTran) AS SoTran, SUM(e.SoThang) AS SoThang,
+               (SELECT m.TenMon FROM ELOMONHOC x JOIN MONHOC m ON m.MaMon = x.MaMon
+                 WHERE x.MaND = n.MaND AND x.SoTran >= ? AND m.TrangThai = 'Đang mở'
+                 ORDER BY x.SoTran DESC, x.DiemElo DESC LIMIT 1) AS MonChinh";
     $nhomBxh = 'GROUP BY n.MaND, n.HoTen, n.Email, n.TrangThai';
-    $orderBxh = 'ORDER BY elo DESC, SoTran DESC, n.MaND ASC';
 }
 if ($qBxh !== '') {
     $likeBxh = '%' . addcslashes($qBxh, '\\%_') . '%';
@@ -134,11 +140,14 @@ $st = $pdo->prepare(
 );
 $st->execute($thamBxh);
 $pBxh = new Paginator((int) $st->fetchColumn(), 20, 'bxh_page');
+// Cùng Elo thì cùng hạng (RANK), trong cùng hạng ưu tiên người nhiều trận hơn: giống client
 $st = $pdo->prepare(
-    "SELECT $cotBxh $fromBxh $nhomSqlBxh $orderBxh
+    "SELECT r.* FROM (SELECT d.*, RANK() OVER (ORDER BY d.elo DESC) AS Hang
+                        FROM (SELECT $cotBxh $fromBxh $nhomSqlBxh) d) r
+     ORDER BY r.Hang, r.SoTran DESC, r.MaND
      LIMIT " . $pBxh->limit() . ' OFFSET ' . $pBxh->offset()
 );
-$st->execute($thamBxh);
+$st->execute($monBxh > 0 ? $thamBxh : array_merge([$nMinBxh], $thamBxh));
 $dsBxh = $st->fetchAll();
 
 $eloKhoiTaoBxh = Config::int('ELO_KHOI_TAO', 1000);
@@ -243,22 +252,37 @@ require __DIR__ . '/layout/header.php';
         <p class="nd-bxh-mota">
           <?= $monBxh > 0
               ? 'Xếp hạng theo Elo môn ' . e($tenMonBxh[$monBxh]) . '.'
-              : 'Xếp hạng toàn trường theo Elo trung bình các môn đã đủ ' . $nMinBxh . ' trận.' ?>
+              : 'Gồm mọi người chơi đã đấu ít nhất 1 trận, xếp theo Elo trung bình của các môn đã đấu.' ?>
           Elo chỉ thay đổi theo kết quả trận đấu.
         </p>
       </div>
     </div>
-    <form method="get" action="#bxh" class="nd-thanh-cu nd-bxh-loc">
+    <form method="get" action="#bxh" class="nd-thanh-cu nd-bxh-loc" id="ndBxhLoc">
       <?php if ($q !== ''): ?><input type="hidden" name="q" value="<?= e($q) ?>"><?php endif; ?>
       <?php if ($tt !== ''): ?><input type="hidden" name="tt" value="<?= e($tt) ?>"><?php endif; ?>
-      <input type="text" name="bxh_q" value="<?= e($qBxh) ?>" placeholder="Tìm trong bảng xếp hạng" class="nd-o-tim" autocomplete="off">
-      <select name="bxh_mon" class="nd-chon">
-        <option value="0"<?= $monBxh === 0 ? ' selected' : '' ?>>Toàn trường</option>
-        <?php foreach ($monHocBxh as $m): ?>
-          <option value="<?= (int) $m['MaMon'] ?>"<?= $monBxh === (int) $m['MaMon'] ? ' selected' : '' ?>><?= e($m['TenMon']) ?></option>
-        <?php endforeach; ?>
-      </select>
-      <button type="submit" class="nd-nut">Lọc BXH</button>
+      <input type="text" name="bxh_q" value="<?= e($qBxh) ?>" placeholder="Tìm người dùng trong bảng xếp hạng" class="nd-o-tim" autocomplete="off">
+      <!-- Chọn môn: ô chọn có tìm kiếm, mặc định chỉ hiện 5 môn + nút "Xem thêm" (xử lý ở assets/js/admin/nguoidung.js) -->
+      <div class="nd-chon-mon" id="ndChonMon">
+        <input type="hidden" name="bxh_mon" value="<?= (int) $monBxh ?>">
+        <button type="button" class="nd-chon-mon-nut" aria-haspopup="listbox" aria-expanded="false">
+          <span class="nd-chon-mon-ten"><?= e($monBxh > 0 ? $tenMonBxh[$monBxh] : 'Tất cả môn') ?></span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <div class="nd-chon-mon-hop" hidden>
+          <input type="search" class="nd-chon-mon-tim" placeholder="Tìm môn học…" aria-label="Tìm môn học" autocomplete="off">
+          <ul role="listbox">
+            <li><button type="button" data-id="0" data-ten="Tất cả môn"<?= $monBxh === 0 ? ' class="dang-chon"' : '' ?>>Tất cả môn</button></li>
+            <?php foreach ($monHocBxh as $i => $m): ?>
+              <li<?= $i >= $soMonHienBxh ? ' data-them="1"' : '' ?>><button type="button" data-id="<?= (int) $m['MaMon'] ?>" data-ten="<?= e($m['TenMon']) ?>"<?= (int) $m['MaMon'] === $monBxh ? ' class="dang-chon"' : '' ?>><?= e($m['TenMon']) ?></button></li>
+            <?php endforeach; ?>
+          </ul>
+          <?php if (count($monHocBxh) > $soMonHienBxh): ?>
+            <button type="button" class="nd-chon-mon-them">Xem thêm <?= count($monHocBxh) - $soMonHienBxh ?> môn</button>
+          <?php endif; ?>
+          <p class="nd-chon-mon-rong" hidden>Không có môn nào khớp.</p>
+        </div>
+      </div>
+      <button type="submit" class="nd-nut">Tìm</button>
       <a class="nd-nut nd-nut-vien" href="<?= e(BASE_URL) ?>/admin/nguoidung.php#bxh">Xóa lọc BXH</a>
     </form>
     <?php if (!$dsBxh): ?>
@@ -267,12 +291,12 @@ require __DIR__ . '/layout/header.php';
       <div class="nd-cuon">
         <table class="nd-bang nd-bang-bxh">
           <thead>
-            <tr><th>Hạng</th><th>Người dùng</th><th>Bậc</th><th><?= $monBxh > 0 ? 'Elo' : 'Elo trung bình' ?></th><th>Số trận</th><th>Tỷ lệ thắng</th><th>Trạng thái</th></tr>
+            <tr><th>Hạng</th><th>Người dùng</th><?= $monBxh === 0 ? '<th>Môn học chính</th>' : '' ?><th>Bậc</th><th><?= $monBxh > 0 ? 'Elo' : 'Elo trung bình' ?></th><th>Số trận</th><th>Tỷ lệ thắng</th><th>Trạng thái</th></tr>
           </thead>
           <tbody>
           <?php foreach ($dsBxh as $i => $r):
-              $hangBxh = $pBxh->offset() + $i + 1;
-              [$tenBacBxh, $lopBacBxh] = $bacCuaBxh((int) $r['elo']);
+              $hangBxh = (int) $r['Hang'];
+              [$tenBacBxh, $lopBacBxh] = $bacCuaBxh((int) round((float) $r['elo']));
               $biKhoaBxh = $r['TrangThai'] === 'Bị khóa';
           ?>
             <tr>
@@ -281,8 +305,11 @@ require __DIR__ . '/layout/header.php';
                 <a href="<?= e(BASE_URL) ?>/admin/nguoidung_chitiet.php?id=<?= (int) $r['MaND'] ?>"><?= e($r['HoTen']) ?></a>
                 <small class="nd-bxh-email"><?= e($r['Email']) ?></small>
               </td>
+              <?php if ($monBxh === 0): ?>
+                <td data-label="Môn học chính"><?= $r['MonChinh'] !== null ? e($r['MonChinh']) : '&ndash;' ?></td>
+              <?php endif; ?>
               <td data-label="Bậc"><span class="nd-bxh-bac <?= e($lopBacBxh) ?>"><?= e($tenBacBxh) ?></span></td>
-              <td data-label="<?= $monBxh > 0 ? 'Elo' : 'Elo trung bình' ?>"><b><?= number_format((int) $r['elo'], 0, ',', '.') ?></b></td>
+              <td data-label="<?= $monBxh > 0 ? 'Elo' : 'Elo trung bình' ?>"><b><?= $monBxh > 0 ? number_format((int) $r['elo'], 0, ',', '.') : number_format(round((float) $r['elo'], 1), 1, ',', '.') ?></b></td>
               <td data-label="Số trận"><?= (int) $r['SoTran'] ?></td>
               <td data-label="Tỷ lệ thắng"><?= e($tyLeThangBxh((int) $r['SoThang'], (int) $r['SoTran'])) ?></td>
               <td data-label="Trạng thái"><?= $biKhoaBxh

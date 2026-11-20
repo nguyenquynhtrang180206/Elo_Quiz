@@ -1,6 +1,6 @@
 /* Trang Trận đấu (admin/trandau.php) */
 
-/* ===== Khối nội dung sáng đặt trên nền tối của khung (cùng cách với trang Thống kê khảo sát) ===== */
+/* ===== Khối nội dung sáng đặt trên nền tối của khung ===== */
 .td { background:#eef2fb; color:#12235e; border-radius:20px; padding:22px; box-shadow:0 10px 30px rgba(0,0,0,.25); }
 .td * { box-sizing:border-box; }
 .td h2 { color:#12235e; text-shadow:none; margin:0; }
@@ -292,4 +292,40 @@ a.td-so-bt:hover { background:#fff5f5; }
   .td-so b { font-size:18px; }
   .td-ng { flex-direction:column; text-align:center; gap:2px; }
   .td-ng-phai { flex-direction:column; text-align:center; }
+}
+
+/* ===== Ô tìm kiếm: chừa chỗ cho biểu tượng kính lúp (style_admin.css đặt padding !important nên bị đè, chữ chồng lên icon) ===== */
+.admin-noidung .td .td-tim input[type=text] { padding:0 14px 0 42px !important; }
+.td-tim svg { z-index:1; }
+
+/* ===== Lọc môn: ô chọn có tìm kiếm, mặc định 5 môn + "Xem thêm" ===== */
+.td-mon { position:relative; flex:0 0 auto; min-width:200px; }
+.td .td-mon .td-mon-nut { display:flex; align-items:center; justify-content:space-between; gap:10px; width:100%; height:40px; padding:0 12px;
+  border:1px solid #d6dff2; border-radius:10px; background:#f7f9fe !important; color:#12235e !important; font:inherit; font-size:14px; cursor:pointer; box-shadow:none; text-shadow:none; }
+.td .td-mon .td-mon-nut:hover, .td .td-mon .td-mon-nut[aria-expanded="true"] { border-color:#1e5cf0; background:#fff !important; }
+.td-mon-ten { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:600; }
+.td-mon-hop { position:absolute; left:0; top:calc(100% + 6px); z-index:40; width:max(100%, 280px); padding:10px; background:#fff;
+  border:1px solid #dfe6f6; border-radius:12px; box-shadow:0 14px 36px rgba(20,33,61,.22); }
+.td-mon-hop[hidden], .td-mon-rong[hidden], .td-mon-them[hidden], .td-mon-ds li[hidden] { display:none; }
+.admin-noidung .td .td-mon-tim { width:100%; height:38px; margin:0 0 8px; padding:0 12px !important; box-sizing:border-box; border:1px solid #cfd9f0 !important; border-radius:9px !important; background:#f7f9fe !important; color:#12235e !important; font-size:14px !important; }
+.admin-noidung .td .td-mon-tim:focus { border-color:#1e5cf0 !important; background:#fff !important; box-shadow:0 0 0 3px rgba(30,92,240,.15); outline:none; }
+.td-mon-ds { list-style:none; margin:0; padding:0; }
+.td .td-mon .td-mon-cd { display:block; width:100%; padding:9px 10px; border:0; border-radius:8px; background:transparent !important; color:#12235e !important; font:inherit; font-size:14px; text-align:left; cursor:pointer; box-shadow:none; text-shadow:none; }
+.td .td-mon .td-mon-cd:hover { background:#eef3ff !important; }
+.td .td-mon .td-mon-cd.on { background:#e3edff !important; color:#1e5cf0 !important; font-weight:700; }
+.td-mon-rong { margin:6px 4px 2px; color:#6b7694; font-size:13px; }
+.td .td-mon .td-mon-them { display:block; width:100%; margin-top:6px; padding:8px 10px; border:1px dashed #b9c8ee; border-radius:8px; background:#f7f9fe !important; color:#1e5cf0 !important; font:inherit; font-size:13.5px; font-weight:700; cursor:pointer; box-shadow:none; text-shadow:none; }
+.td .td-mon .td-mon-them:hover { background:#eaf0ff !important; }
+@media (max-width:768px) {
+  .td-mon { flex:1 1 100%; min-width:0; }
+  .td .td-mon .td-mon-nut { height:44px; font-size:16px; }
+  .td-mon-hop { width:100%; }
+}
+
+/* ===== Tỉ lệ hàng lọc: ô tìm nhỏ lại, ô lọc môn rộng ra (màn hình lớn; điện thoại giữ xếp dọc) ===== */
+@media (min-width:769px) {
+  .td-loc-hang .td-tim { flex:0 1 340px; min-width:220px; }
+  .td-loc-hang .td-mon { flex:1 1 360px; min-width:280px; max-width:560px; }
+  .td .td-mon .td-mon-nut { font-size:15px; }
+  .td-mon-hop { width:max(100%, 340px); }
 }

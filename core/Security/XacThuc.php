@@ -94,7 +94,7 @@ class XacThuc
             $pdo->beginTransaction();
             try {
                 $st = $pdo->prepare(
-                    "INSERT INTO NGUOIDUNG (HoTen, Email, MatKhau, TrangThaiKhaoSat) VALUES (?, ?, ?, 'Bỏ qua')"
+                    "INSERT INTO NGUOIDUNG (HoTen, Email, MatKhau) VALUES (?, ?, ?)"
                 );
                 $st->execute([
                     $ad['HoTen'],

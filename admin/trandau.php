@@ -159,7 +159,7 @@ $lopTT = ['Đã ghép' => 'tt-daghep', 'Đang diễn ra' => 'tt-dangdau', 'Kết
 $tieuDe  = 'Trận đấu';
 $mucChon = 'trandau';
 $cssTrang = ['trandau', 'trandau_xuat'];
-$jsTrang  = ['trandau_bieudo', 'trandau_xuat'];   // biểu đồ nhịp trận (gọi admin/trandau_nhip.php)
+$jsTrang  = ['trandau_bieudo', 'trandau_xuat', 'trandau_loc_mon'];   // biểu đồ nhịp trận (gọi admin/trandau_nhip.php)
 require __DIR__ . '/layout/header.php';
 ?>
 <div class="td">
@@ -321,12 +321,26 @@ require __DIR__ . '/layout/header.php';
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
         <input type="text" name="q" value="<?= e($q) ?>" placeholder="Mã trận, tên hoặc email người chơi">
       </label>
-      <select name="mon" aria-label="Môn học" onchange="this.form.submit()">
-        <option value="0">Mọi môn</option>
-        <?php foreach ($monHoc as $m): ?>
-          <option value="<?= (int) $m['MaMon'] ?>"<?= $mon === (int) $m['MaMon'] ? ' selected' : '' ?>><?= e($m['TenMon']) ?></option>
-        <?php endforeach; ?>
-      </select>
+      <!-- Lọc môn: ô chọn có tìm kiếm, mặc định chỉ hiện 5 môn + nút "Xem thêm" (xử lý ở assets/js/admin/trandau_loc_mon.js) -->
+      <div class="td-mon" id="tdMon" data-gioi-han="5">
+        <input type="hidden" name="mon" value="<?= (int) $mon ?>">
+        <?php $tenMonChon = 'Mọi môn'; foreach ($monHoc as $m) { if ($mon === (int) $m['MaMon']) { $tenMonChon = $m['TenMon']; break; } } ?>
+        <button type="button" class="td-mon-nut" aria-haspopup="listbox" aria-expanded="false" aria-label="Môn học">
+          <span class="td-mon-ten"><?= e($tenMonChon) ?></span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <div class="td-mon-hop" hidden>
+          <input type="search" class="td-mon-tim" placeholder="Tìm môn học..." autocomplete="off" aria-label="Tìm môn học">
+          <ul class="td-mon-ds" role="listbox">
+            <li><button type="button" role="option" data-v="0" class="td-mon-cd<?= $mon === 0 ? ' on' : '' ?>">Mọi môn</button></li>
+            <?php foreach ($monHoc as $m): ?>
+              <li><button type="button" role="option" data-v="<?= (int) $m['MaMon'] ?>" class="td-mon-cd<?= $mon === (int) $m['MaMon'] ? ' on' : '' ?>"><?= e($m['TenMon']) ?></button></li>
+            <?php endforeach; ?>
+          </ul>
+          <p class="td-mon-rong" hidden>Không có môn nào khớp.</p>
+          <button type="button" class="td-mon-them" hidden>Xem thêm</button>
+        </div>
+      </div>
       <?php if ($tt !== ''): ?><input type="hidden" name="tt" value="<?= e($tt) ?>"><?php endif; ?>
       <?php if ($bt): ?><input type="hidden" name="bt" value="1"><?php endif; ?>
       <button type="submit" class="td-nut-tim">Tìm</button>
