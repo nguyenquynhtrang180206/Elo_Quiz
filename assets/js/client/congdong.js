@@ -24,6 +24,18 @@
     if (f && f.id === 'formLocCD') { e.preventDefault(); locMem(f); }
   });
 
+  // Đăng bài xong: cuộn lên đầu bảng tin để thấy ngay bài vừa đăng (được làm nổi bật)
+  function cuonToiBaiVuaDang() {
+    var bai = document.querySelector('.cd-the-vua-dang');
+    var khu = document.getElementById('cd-bang-tin');
+    if (!bai || !khu) { return; }
+    var giam = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    khu.scrollIntoView({ behavior: giam ? 'auto' : 'smooth', block: 'start' });
+  }
+  document.addEventListener('mem:capnhat', cuonToiBaiVuaDang);
+  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', cuonToiBaiVuaDang); }
+  else { cuonToiBaiVuaDang(); }
+
   // 2. Thu gọn / Mở rộng form Viết bài mới mượt mà
   // Tra cứu phần tử lúc dùng (không giữ tham chiếu) vì vùng nội dung có thể được thay mới sau khi gửi form
   function layCard() { return document.getElementById('khung-dang-bai'); }

@@ -206,12 +206,15 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             $st = $pdo->prepare('INSERT INTO BAIDANG (MaND, MaMon, TieuDe, NoiDung, AnhDinhKem) VALUES (?, ?, ?, ?, ?)');
             $st->execute([$maND, $maMon, $tieuDeBai, $noiDungBai, $anhLuu]);
         }
+        $_SESSION['bai_vua_dang'] = (int) $pdo->lastInsertId();   // để làm nổi bật + cuộn tới bài vừa đăng ở lần hiển thị kế tiếp
         CongDongHelper::flash('Đã đăng bài.');
-        redirect(BASE_URL . '/client/congdong.php' . $thamTab($tab));   // ở lại đúng tab/bộ lọc đang xem
+        redirect(BASE_URL . '/client/congdong.php?tab=moi#cd-bang-tin');   // về tab "Bài đăng mới", bỏ lọc môn/loại/từ khóa và về trang 1 để bài vừa đăng hiện ngay đầu bảng tin
     }
 }
 
 $thanhCong = CongDongHelper::flash();
+$baiVuaDang = (int) ($_SESSION['bai_vua_dang'] ?? 0);
+unset($_SESSION['bai_vua_dang']);
 
 $baiDang = [];
 $eloMap = [];   // Elo theo người đăng, dùng cho huy hiệu cạnh tên
@@ -742,7 +745,7 @@ require __DIR__ . '/layout/header.php';
   </aside>
 
   <!-- ===== CỘT PHẢI: FORM VIẾT BÀI MỚI & BẢNG TIN (CHUẨN THEO HÌNH 2) ===== -->
-  <section class="cd-giua" id="cd-bang-tin" style="scroll-margin-top:80px" data-mem-vung="giua">
+  <section class="cd-giua" id="cd-bang-tin" style="scroll-margin-top:80px" data-mem-vung="giua" data-mem-links>
     <?php if ($thanhCong): ?><div class="thanhcong"><?= e($thanhCong) ?></div><?php endif; ?>
     <?php if ($loi): ?>
       <div class="loi"><?php foreach ($loi as $m): ?><div><?= e($m) ?></div><?php endforeach; ?></div>
@@ -895,11 +898,11 @@ require __DIR__ . '/layout/header.php';
       <?php if ($p !== null && $p->soTrang() > 1): ?>
         <div class="cd-trang-nhom">
           <?php if ($p->trang() > 1): ?>
-            <a class="cd-xem-them cd-xem-truoc" href="<?= e('?' . http_build_query(['tab' => $tab] + $thamLoc + ($p->trang() > 2 ? ['page' => $p->trang() - 1] : [])) . '#cd-bang-tin') ?>">&larr; Trang trước</a>
+            <a class="cd-xem-them cd-xem-truoc" data-mem-truoc href="<?= e('?' . http_build_query(['tab' => $tab] + $thamLoc + ($p->trang() > 2 ? ['page' => $p->trang() - 1] : [])) . '#cd-bang-tin') ?>">&larr; Trang trước</a>
           <?php endif; ?>
           <span class="cd-trang-so"><?= (int) $p->trang() ?>/<?= (int) $p->soTrang() ?></span>
           <?php if ($p->trang() < $p->soTrang()): ?>
-            <a class="cd-xem-them" href="<?= e('?' . http_build_query(['tab' => $tab] + $thamLoc + ['page' => $p->trang() + 1]) . '#cd-bang-tin') ?>">Trang kế &rarr;</a>
+            <a class="cd-xem-them" data-mem-truoc href="<?= e('?' . http_build_query(['tab' => $tab] + $thamLoc + ['page' => $p->trang() + 1]) . '#cd-bang-tin') ?>">Trang kế &rarr;</a>
           <?php endif; ?>
         </div>
       <?php endif; ?>
@@ -1022,7 +1025,7 @@ require __DIR__ . '/layout/header.php';
         $link = BASE_URL . '/client/baidang.php?id=' . (int) $b['MaBaiDang'];
         $dangAn = $b['TrangThai'] === 'Bị ẩn';
       ?>
-        <article class="cd-the<?= $dangAn ? '' : ' cd-the-bam' ?>" id="bai-<?= (int) $b['MaBaiDang'] ?>"<?= $dangAn ? '' : ' data-href="' . e($link) . '#binh-luan"' ?>>
+        <article class="cd-the<?= $dangAn ? '' : ' cd-the-bam' ?><?= $baiVuaDang > 0 && (int) $b['MaBaiDang'] === $baiVuaDang ? ' cd-the-vua-dang' : '' ?>" id="bai-<?= (int) $b['MaBaiDang'] ?>"<?= $dangAn ? '' : ' data-href="' . e($link) . '"' ?>>
           <span class="pet-corner tl" aria-hidden="true"></span>
           <span class="pet-corner tr" aria-hidden="true"></span>
           <?= CongDongHelper::avatar((string) $b['HoTen'], $b['AnhDaiDien']) ?>
