@@ -129,7 +129,7 @@ $where = $dk ? 'WHERE ' . implode(' AND ', $dk) : '';
 if ($loai === 'bai') {
     $cotPhu = ($coLoaiBai ? ', x.LoaiBai' : ', NULL AS LoaiBai') . (CongDongHelper::coCotNguoiAn() ? ', x.NguoiAn' : ', NULL AS NguoiAn');
     $from  = 'FROM BAIDANG x JOIN NGUOIDUNG n ON n.MaND = x.MaND LEFT JOIN MONHOC m ON m.MaMon = x.MaMon';
-    $cot   = 'x.MaBaiDang AS ma, x.TieuDe, x.NoiDung, x.NgayDang AS ngay, x.TrangThai, n.MaND, n.HoTen, n.AnhDaiDien, m.TenMon' . $cotPhu . ',
+    $cot   = 'x.MaBaiDang AS ma, x.TieuDe, x.NoiDung, x.AnhDinhKem, x.NgayDang AS ngay, x.TrangThai, n.MaND, n.HoTen, n.AnhDaiDien, m.TenMon' . $cotPhu . ',
              (SELECT COUNT(*) FROM BINHLUAN c WHERE c.MaBaiDang = x.MaBaiDang) AS so_bl';
     $order = [
         'moi'   => 'ORDER BY x.NgayDang DESC, x.MaBaiDang DESC',
@@ -183,7 +183,7 @@ $sel = null;
 if ($maChon > 0) {
     if ($loai === 'bai') {
         $st = $pdo->prepare(
-            'SELECT b.MaBaiDang AS ma, b.TieuDe, b.NoiDung, b.NgayDang AS ngay, b.TrangThai, b.MaMon, m.TenMon, n.MaND, n.HoTen'
+            'SELECT b.MaBaiDang AS ma, b.TieuDe, b.NoiDung, b.AnhDinhKem, b.NgayDang AS ngay, b.TrangThai, b.MaMon, m.TenMon, n.MaND, n.HoTen'
             . ($coLoaiBai ? ', b.LoaiBai' : ', NULL AS LoaiBai') . (CongDongHelper::coCotNguoiAn() ? ', b.NguoiAn' : ', NULL AS NguoiAn')
             . ' FROM BAIDANG b JOIN NGUOIDUNG n ON n.MaND = b.MaND LEFT JOIN MONHOC m ON m.MaMon = b.MaMon WHERE b.MaBaiDang = ?'
         );
@@ -466,6 +466,7 @@ unset($_GET['chon'], $_GET['kq'], $_GET['n'], $_GET['t']);
                   <?php endif; ?>
                   <span><?= e($r['HoTen']) ?> · <?= e(CongDongHelper::truocDo((string) $r['ngay'])) ?></span>
                   <?php if ($loai === 'bai'): ?><span>💬 <?= (int) $r['so_bl'] ?></span><?php endif; ?>
+                  <?php if ($loai === 'bai' && !empty($r['AnhDinhKem'])): ?><span title="Bài có ảnh đính kèm">🖼 Có ảnh</span><?php endif; ?>
                   <?php if ($nhayCam): ?><span class="cdm-canh-bao">● Từ ngữ khiếm nhã?</span><?php endif; ?>
                   <span class="cdm-tt <?= e($lopTT[$r['TrangThai']] ?? '') ?>"><?= e($nhanTT($r)) ?></span>
                 </span>
@@ -512,6 +513,12 @@ unset($_GET['chon'], $_GET['kq'], $_GET['n'], $_GET['t']);
         </div>
 
         <div class="cdm-noidung"><?= e($sel['NoiDung']) ?></div>
+        <?php if ($loai === 'bai' && !empty($sel['AnhDinhKem'])): ?>
+          <?php $srcAnhQT = BASE_URL . '/' . ltrim((string) $sel['AnhDinhKem'], '/'); ?>
+          <a href="<?= e($srcAnhQT) ?>" target="_blank" rel="noopener" title="Mở ảnh gốc trong tab mới">
+            <img src="<?= e($srcAnhQT) ?>" alt="Ảnh đính kèm bài viết" loading="lazy" style="display:block;max-width:100%;max-height:360px;margin:10px 0;border-radius:8px;object-fit:contain">
+          </a>
+        <?php endif; ?>
         <?php if ($loai === 'bl' && $coTuNhay((string) $sel['NoiDung'])): ?><p class="cdm-canh-bao">● Gợi ý: có từ ngữ có thể không phù hợp, hãy xem xét kỹ.</p><?php endif; ?>
 
         <?php if ($loai === 'bl'): ?>

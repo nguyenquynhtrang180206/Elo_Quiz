@@ -5,6 +5,8 @@ class CongDongHelper
     public const TIEU_DE_TOI_DA   = 200;
     public const NOI_DUNG_TOI_DA  = 5000;
     public const BINH_LUAN_TOI_DA = 1000;
+    public const ANH_TOI_DA_BYTE  = 3 * 1024 * 1024;   // ảnh đính kèm tối đa 3 MB
+    public const ANH_THU_MUC      = 'uploads/baidang';   // lưu trong cột BAIDANG.AnhDinhKem, tính từ gốc dự án
     public const SUA_TOI_DA_PHUT  = 15;   // chủ bài chỉ được sửa trong 15 phút kể từ lúc đăng
 
     // Phân loại bài đăng (cột BAIDANG.LoaiBai). 'Thảo luận' là loại mặc định cho bài cũ và bài không chọn loại.
@@ -132,6 +134,110 @@ class CongDongHelper
             }
         }
         return [$loi, $maMon];
+    }
+
+    // Đổi giá trị cấu hình PHP dạng "2M", "8M", "512K" ra số byte (0 nếu không đặt hoặc không giới hạn)
+    private static function iniBytes(string $khoa): int
+    {
+        $v = trim((string) ini_get($khoa));
+        if ($v === '' || (int) $v <= 0) {
+            return 0;
+        }
+        $so = (float) $v;
+        switch (strtolower(substr($v, -1))) {
+            case 'g': $so *= 1024;   // no break
+            case 'm': $so *= 1024;   // no break
+            case 'k': $so *= 1024;
+        }
+        return (int) $so;
+    }
+
+    // Dung lượng ảnh tối đa thực tế = nhỏ nhất trong: giới hạn của dự án, upload_max_filesize, post_max_size của máy chủ
+    public static function gioiHanAnhByte(): int
+    {
+        $gh = [self::ANH_TOI_DA_BYTE];
+        foreach (['upload_max_filesize', 'post_max_size'] as $khoa) {
+            $b = self::iniBytes($khoa);
+            if ($b > 0) {
+                $gh[] = $b;
+            }
+        }
+        return min($gh);
+    }
+
+    // Giới hạn dạng chữ để hiện cho người dùng, ví dụ "2 MB"
+    public static function gioiHanAnhChu(): string
+    {
+        $b = self::gioiHanAnhByte();
+        return $b >= 1048576
+            ? rtrim(rtrim(number_format($b / 1048576, 1, '.', ''), '0'), '.') . ' MB'
+            : max(1, (int) round($b / 1024)) . ' KB';
+    }
+
+    // Yêu cầu gửi lên lớn hơn post_max_size: PHP bỏ trống cả $_POST lẫn $_FILES nên csrf_check sẽ báo sai lý do
+    public static function postQuaLon(): bool
+    {
+        return ($_SERVER['REQUEST_METHOD'] ?? '') === 'POST'
+            && empty($_POST) && empty($_FILES)
+            && (int) ($_SERVER['CONTENT_LENGTH'] ?? 0) > 0;
+    }
+
+    // Kiểm tra ảnh đính kèm của bài đăng (không bắt buộc).
+    // Trả về [danh sách lỗi, phần đuôi file hợp lệ hoặc null nếu không gửi ảnh]
+    public static function kiemTraAnh(?array $f): array
+    {
+        if (!$f || ($f['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+            return [[], null];
+        }
+        $gioiHan = 'Ảnh quá lớn, tối đa ' . self::gioiHanAnhChu() . '.';
+        if ($f['error'] === UPLOAD_ERR_INI_SIZE || $f['error'] === UPLOAD_ERR_FORM_SIZE) {
+            return [[$gioiHan], null];
+        }
+        if ($f['error'] !== UPLOAD_ERR_OK || !is_uploaded_file($f['tmp_name'])) {
+            return [['Tải ảnh lên không thành công, hãy thử lại.'], null];
+        }
+        if ($f['size'] > self::gioiHanAnhByte()) {
+            return [[$gioiHan], null];
+        }
+        // Đọc loại ảnh thật từ nội dung file, không tin tên file hay loại do trình duyệt gửi
+        $kieu = @getimagesize($f['tmp_name'])[2] ?? null;
+        $duoi = [IMAGETYPE_JPEG => 'jpg', IMAGETYPE_PNG => 'png', IMAGETYPE_WEBP => 'webp'][$kieu] ?? null;
+        if ($duoi === null) {
+            return [['Ảnh đính kèm chỉ nhận file JPG, PNG hoặc WEBP.'], null];
+        }
+        return [[], $duoi];
+    }
+
+    // Lưu ảnh đã kiểm tra vào uploads/baidang với tên ngẫu nhiên.
+    // Trả về đường dẫn để ghi vào BAIDANG.AnhDinhKem, hoặc null nếu không lưu được
+    public static function luuAnh(array $f, string $duoi, string $thuMucGoc): ?string
+    {
+        $thuMuc = rtrim($thuMucGoc, '/\\') . '/baidang';
+        if (!is_dir($thuMuc)) {
+            @mkdir($thuMuc, 0775, true);
+        }
+        // Chặn chạy PHP trong thư mục ảnh (lớp bảo vệ thứ hai ngoài việc kiểm tra loại file)
+        $ht = $thuMuc . '/.htaccess';
+        if (!is_file($ht)) {
+            @file_put_contents($ht, "<IfModule mod_authz_core.c>\n<FilesMatch \"\\.(php|phtml|phar)$\">\nRequire all denied\n</FilesMatch>\n</IfModule>\n");
+        }
+        $ten = bin2hex(random_bytes(16)) . '.' . $duoi;
+        if (!move_uploaded_file($f['tmp_name'], $thuMuc . '/' . $ten)) {
+            return null;
+        }
+        return self::ANH_THU_MUC . '/' . $ten;
+    }
+
+    // Xóa file ảnh đính kèm khỏi ổ đĩa (chỉ xóa file nằm trong uploads/baidang)
+    public static function xoaFileAnh(?string $duongDan, string $thuMucGoc): void
+    {
+        if ($duongDan === null || $duongDan === '' || strpos($duongDan, self::ANH_THU_MUC . '/') !== 0) {
+            return;
+        }
+        $tep = rtrim($thuMucGoc, '/\\') . '/baidang/' . basename($duongDan);
+        if (is_file($tep)) {
+            @unlink($tep);
+        }
     }
 
     // "Vừa xong", "5 phút trước", "2 giờ trước", "3 ngày trước"; quá 30 ngày thì in ngày d/m/Y

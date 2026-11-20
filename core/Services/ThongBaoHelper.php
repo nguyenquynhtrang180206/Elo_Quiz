@@ -69,6 +69,70 @@ class ThongBaoHelper
         return true;
     }
 
+    // Đã có thông báo thả lửa cùng loại từ người này cho cùng bài/bình luận chưa (chống báo lặp khi thả - bỏ - thả lại)
+    private static function daCoThongBaoThaLua(PDO $pdo, int $maNhan, int $maGui, ?int $maBaiDang, ?int $maBinhLuan, string $loai): bool
+    {
+        $st = $pdo->prepare(
+            'SELECT 1 FROM THONGBAO WHERE MaND = ? AND MaNguoiGui = ? AND Loai = ?
+                AND MaBaiDang <=> ? AND MaBinhLuan <=> ? LIMIT 1'
+        );
+        $st->execute([$maNhan, $maGui, $loai, $maBaiDang, $maBinhLuan]);
+        return (bool) $st->fetchColumn();
+    }
+
+    // Thông báo cho chủ bài khi có người thả lửa bài viết (gọi sau khi vừa thả, không gọi khi bỏ thả)
+    public static function thaLuaBai(PDO $pdo, int $maBai, int $maNguoiThich): bool
+    {
+        try {
+            $st = $pdo->prepare(
+                "SELECT b.MaND, b.TieuDe, (SELECT HoTen FROM NGUOIDUNG WHERE MaND = ?) AS TenNguoiThich
+                   FROM BAIDANG b WHERE b.MaBaiDang = ? AND b.TrangThai = 'Hiển thị'"
+            );
+            $st->execute([$maNguoiThich, $maBai]);
+            $r = $st->fetch();
+            if (!$r || (int) $r['MaND'] === $maNguoiThich
+                || self::daCoThongBaoThaLua($pdo, (int) $r['MaND'], $maNguoiThich, $maBai, null, 'tha_lua_bai')) {
+                return false;
+            }
+            $ten = (string) ($r['TenNguoiThich'] ?: 'Một thành viên');
+            return self::taoThongBao(
+                $pdo, (int) $r['MaND'], $maNguoiThich, $maBai, null, 'tha_lua_bai',
+                $ten . ' đã thả lửa bài viết của bạn: "' . mb_substr((string) $r['TieuDe'], 0, 60) . '"',
+                null,
+                BASE_URL . '/client/baidang.php?id=' . $maBai
+            );
+        } catch (Throwable $e) {
+            return false;   // thông báo lỗi không được làm hỏng thao tác thả lửa
+        }
+    }
+
+    // Thông báo cho chủ bình luận khi có người thả lửa bình luận
+    public static function thaLuaBL(PDO $pdo, int $maBL, int $maNguoiThich): bool
+    {
+        try {
+            $st = $pdo->prepare(
+                "SELECT c.MaND, c.MaBaiDang, c.NoiDung, (SELECT HoTen FROM NGUOIDUNG WHERE MaND = ?) AS TenNguoiThich
+                   FROM BINHLUAN c JOIN BAIDANG b ON b.MaBaiDang = c.MaBaiDang
+                  WHERE c.MaBinhLuan = ? AND c.TrangThai = 'Hiển thị' AND b.TrangThai = 'Hiển thị'"
+            );
+            $st->execute([$maNguoiThich, $maBL]);
+            $r = $st->fetch();
+            if (!$r || (int) $r['MaND'] === $maNguoiThich
+                || self::daCoThongBaoThaLua($pdo, (int) $r['MaND'], $maNguoiThich, (int) $r['MaBaiDang'], $maBL, 'tha_lua_bl')) {
+                return false;
+            }
+            $ten = (string) ($r['TenNguoiThich'] ?: 'Một thành viên');
+            return self::taoThongBao(
+                $pdo, (int) $r['MaND'], $maNguoiThich, (int) $r['MaBaiDang'], $maBL, 'tha_lua_bl',
+                $ten . ' đã thả lửa bình luận của bạn',
+                mb_substr(strip_tags((string) $r['NoiDung']), 0, 120),
+                BASE_URL . '/client/baidang.php?id=' . (int) $r['MaBaiDang'] . '#bl-' . $maBL
+            );
+        } catch (Throwable $e) {
+            return false;
+        }
+    }
+
     /**
      * Tạo một thông báo mới
      */

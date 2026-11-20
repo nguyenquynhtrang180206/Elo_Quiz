@@ -901,6 +901,10 @@ label { display:block; margin:10px 0 4px; font-weight:600; color:var(--light-cya
 .qt-nut.qt-do { color:#ff9aa8; border-color:rgba(255,100,120,.5); background:rgba(255,80,100,.08); }
 .qt-form { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:0; flex:1 1 320px; }
 .qt-lydo { min-width:240px; flex:1 1 240px; }
+/* Trong khối Quản trị: đẩy ô lý do + nút sang bên phải, chiếm khoảng một nửa chiều ngang */
+.qt-khoi > .qt-form { margin-left:auto; flex:0 1 50%; min-width:280px; }
+.qt-khoi > .qt-form .qt-lydo { min-width:0; flex:1 1 160px; }
+@media (max-width:640px) { .qt-khoi > .qt-form { flex:1 1 100%; margin-left:0; min-width:0; } }
 
 .btn-do { border-color:rgba(255,100,120,.6); color:#ff9aa8; }
 

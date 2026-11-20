@@ -3,7 +3,7 @@
 // Chạy đúng 1 lần cho mỗi phiên bản (đánh dấu bằng CAUHINH.SCHEMA_VERSION), các request sau chỉ tốn 1 truy vấn nhẹ.
 class DbSchema
 {
-    public const PHIEN_BAN = '6';
+    public const PHIEN_BAN = '7';
     private static bool $daKiemTra = false;
 
     public static function damBao(PDO $pdo): void
@@ -79,6 +79,7 @@ class DbSchema
         // 4. Cột mở rộng bảng BAIDANG & BINHLUAN (phân loại bài đăng, ẩn bài/bình luận, phản hồi đa cấp)
         self::themCot($pdo, 'BAIDANG', 'LoaiBai', "ENUM('Thảo luận','Hỏi đáp','Chia sẻ mẹo','Tìm bạn ôn thi','Khác') NOT NULL DEFAULT 'Thảo luận'");
         self::themCot($pdo, 'BAIDANG', 'NguoiAn', "ENUM('Chủ bài','Quản trị') DEFAULT NULL");
+        self::themCot($pdo, 'BAIDANG', 'AnhDinhKem', 'VARCHAR(255) NULL DEFAULT NULL');   // 1 ảnh đính kèm mỗi bài (đường dẫn tương đối từ gốc dự án)
         self::themCot($pdo, 'BINHLUAN', 'NguoiAn', "ENUM('Chủ bài','Quản trị') DEFAULT NULL");
         self::themCot($pdo, 'BINHLUAN', 'MaBinhLuanCha', 'INT UNSIGNED NULL DEFAULT NULL');
 

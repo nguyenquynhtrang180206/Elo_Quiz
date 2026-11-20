@@ -265,7 +265,7 @@ CREATE TABLE IF NOT EXISTS BAIDANG (
   NgayDang   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   TrangThai  ENUM('Hiển thị','Bị ẩn','Đã xóa') NOT NULL DEFAULT 'Hiển thị',
   NguoiAn    ENUM('Chủ bài','Quản trị') NULL,
-  LoaiBai    ENUM('Thảo luận','Hỏi đáp','Chia sẻ mẹo','Tìm bạn ôn thi') NOT NULL DEFAULT 'Thảo luận',
+  LoaiBai    ENUM('Thảo luận','Hỏi đáp','Chia sẻ mẹo','Tìm bạn ôn thi','Khác') NOT NULL DEFAULT 'Thảo luận',
   PRIMARY KEY (MaBaiDang),
   KEY idx_baidang_mon (MaMon, TrangThai, NgayDang),
   KEY idx_baidang_loai (LoaiBai, TrangThai, NgayDang),
