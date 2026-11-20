@@ -45,6 +45,8 @@ body.admin-login-body,
   min-height: 100vh;
   gap: 24px;
   padding: 20px 24px;
+  width: 100%;
+  box-sizing: border-box;
   max-width: 1600px;
   margin: 0 auto;
   position: relative;
