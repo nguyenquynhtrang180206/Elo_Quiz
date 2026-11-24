@@ -1,13 +1,13 @@
 <?php
 // Bảng xếp hạng (C-36 đến C-39). Đặt tại: elo_quiz/client/bxh.php
-// Các tab: Tổng thể = toàn trường (C-37), Theo môn học (C-36), Theo loại kỳ thi, Bạn bè (C-38).
+// Bộ lọc duy nhất ở cột trái: Phạm vi (Toàn hệ thống C-37, Bạn bè C-38), Theo môn học (C-36), Theo loại kỳ thi, Thời gian.
 // Ba kỳ: tất cả, tuần này, tháng này (C-39): kỳ tuần/tháng xếp theo tổng ThayDoi trong LICHSUELO của kỳ.
 // Xem BXH không bắt buộc đăng nhập (C-12); riêng tab Bạn bè cần đăng nhập. Phân trang 10 dòng/trang (3.8).
 require_once __DIR__ . '/../core/bootstrap.php';
 
 $pdo  = Database::pdo();
 $toi  = Auth::clientId();   // có thể null: khách vẫn xem được
-$nMin = max(1, Config::int('SO_TRAN_TOI_THIEU_BXH', 10));
+$nMin = 1;   // "Tất cả" tính toàn bộ người chơi, không đặt ngưỡng số trận tối thiểu (trước đây lấy từ cấu hình SO_TRAN_TOI_THIEU_BXH)
 
 $dsMon = $pdo->query("SELECT MaMon, TenMon FROM MONHOC WHERE TrangThai = 'Đang mở' ORDER BY TenMon")->fetchAll();
 $mon = (int) ($_GET['mon'] ?? 0);
@@ -264,6 +264,14 @@ require __DIR__ . '/layout/header.php';
       <h3 class="bxh-hop-tieude">&#127942; Bộ lọc</h3>
 
       <div class="bxh-nhom">
+        <span class="bxh-nhan">Phạm vi</span>
+        <div class="bxh-chips">
+          <a class="bxh-chip<?= $phamVi === 'truong' ? ' dang-chon' : '' ?>" data-mem-truoc href="<?= e(bxhUrl(['pv' => 'truong'])) ?>">&#9734; Toàn hệ thống</a>
+          <a class="bxh-chip<?= $phamVi === 'banbe' ? ' dang-chon' : '' ?>" data-mem-truoc href="<?= e(bxhUrl(['pv' => 'banbe'])) ?>">&#128101; Bạn bè</a>
+        </div>
+      </div>
+
+      <div class="bxh-nhom">
         <span class="bxh-nhan">Theo môn học</span>
         <?php $soMonHienSan = 6; $soMonAn = max(0, count($dsMon) - $soMonHienSan); ?>
         <?php if (count($dsMon) > $soMonHienSan): ?>
@@ -272,12 +280,11 @@ require __DIR__ . '/layout/header.php';
         </div>
         <?php endif; ?>
         <div class="bxh-chips" id="bxhMonChips">
-          <a class="bxh-chip<?= $phamVi === 'truong' ? ' dang-chon' : '' ?>" href="<?= e(bxhUrl(['pv' => 'truong'])) ?>">&#9734; Tất cả</a>
           <?php foreach ($dsMon as $i => $m):
-            $dangChon = $phamVi === 'mon' && (int) $m['MaMon'] === $mon;
+            $dangChon = in_array($phamVi, ['mon', 'banbe'], true) && (int) $m['MaMon'] === $mon;   // đang xem Bạn bè thì môn được chọn vẫn sáng
             $laThem   = $i >= $soMonHienSan && !$dangChon;   // môn đang chọn luôn hiện dù nằm ngoài 6 môn đầu
           ?>
-            <a class="bxh-chip bxh-chip-mon<?= $dangChon ? ' dang-chon' : '' ?><?= $laThem ? ' is-extra' : '' ?>" data-ten="<?= e(mb_strtolower($m['TenMon'])) ?>" href="<?= e(bxhUrl(['pv' => 'mon', 'mon' => (int) $m['MaMon']])) ?>"<?= $laThem ? ' hidden' : '' ?>><?= e($m['TenMon']) ?></a>
+            <a class="bxh-chip bxh-chip-mon<?= $dangChon ? ' dang-chon' : '' ?><?= $laThem ? ' is-extra' : '' ?>" data-ten="<?= e(mb_strtolower($m['TenMon'])) ?>" href="<?= e(bxhUrl(['pv' => $phamVi === 'banbe' ? 'banbe' : 'mon', 'mon' => (int) $m['MaMon']])) ?>"<?= $laThem ? ' hidden' : '' ?>><?= e($m['TenMon']) ?></a>
           <?php endforeach; ?>
         </div>
         <div class="bxh-mon-khong" id="bxhMonKhong" hidden>Không tìm thấy môn học nào.</div>
@@ -313,14 +320,8 @@ require __DIR__ . '/layout/header.php';
     </div>
   </aside>
 
-  <!-- ===== Cột giữa: tab + bảng xếp hạng ===== -->
+  <!-- ===== Cột giữa: bảng xếp hạng ===== -->
   <section class="bxh-giua">
-    <nav class="bxh-tabs" aria-label="Phạm vi bảng xếp hạng">
-      <?php foreach ($tabs as $k => $ten): ?>
-        <a class="bxh-tab<?= $phamVi === $k ? ' dang-chon' : '' ?>" data-mem-truoc href="<?= e(bxhUrl(['pv' => $k])) ?>"><?= e($ten) ?></a>
-      <?php endforeach; ?>
-    </nav>
-
     <div class="bxh-khung">
       <?php if ($khongCoLoai): ?>
         <p class="bxh-rong">Chưa có loại kỳ thi nào.</p>
@@ -390,9 +391,9 @@ require __DIR__ . '/layout/header.php';
         Xếp theo tổng Elo thay đổi trong các trận đã kết thúc của loại kỳ thi này (mọi môn)<?= $ky !== 'tong' ? ' trong kỳ đã chọn' : '' ?>.
       <?php elseif ($phamVi === 'truong'): ?>
         <?php if ($ky === 'tong'): ?>
-          Elo trung bình chỉ tính các môn đã đấu từ <?= (int) $nMin ?> trận trở lên; số trận và tỉ lệ thắng cũng chỉ tính trong các môn đó. Môn học chính là môn bạn đấu nhiều nhất.
+          Gồm toàn bộ người chơi đã đấu ít nhất 1 trận, xếp theo Elo trung bình của các môn đã đấu. Môn học chính là môn bạn đấu nhiều nhất.
         <?php else: ?>
-          Xếp theo tổng mức thay đổi Elo của mọi môn trong kỳ; Elo hiện tại là Elo trung bình các môn đã đủ <?= (int) $nMin ?> trận.
+          Xếp theo tổng mức thay đổi Elo của mọi môn trong kỳ; Elo hiện tại là Elo trung bình các môn đã đấu.
         <?php endif; ?>
       <?php elseif ($ky !== 'tong'): ?>
         Xếp theo tổng mức thay đổi Elo trong kỳ; người không có trận trong kỳ không hiện ở bảng này.

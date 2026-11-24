@@ -200,8 +200,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         Auth::regenerate();
                         $_SESSION['nd_id'] = $maND;
 
-                        // C-45: vừa đăng ký xong thì hiện khảo sát định hướng
-                        redirect(BASE_URL . '/client/khaosat.php');
+                        redirect(BASE_URL . '/client/index.php');
                     } catch (PDOException $ex) {
                         if ($ex->getCode() === '23000') {
                             unset($_SESSION['register_flow']);

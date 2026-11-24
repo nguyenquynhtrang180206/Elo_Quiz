@@ -10,7 +10,7 @@ $pdo = Database::pdo();
 $id  = (int) ($_GET['id'] ?? 0);
 
 $st = $pdo->prepare(
-    'SELECT b.MaBaiDang, b.TieuDe, b.NoiDung, b.NgayDang, b.TrangThai, n.MaND, n.HoTen, m.TenMon
+    'SELECT b.MaBaiDang, b.TieuDe, b.NoiDung, b.AnhDinhKem, b.NgayDang, b.TrangThai, n.MaND, n.HoTen, m.TenMon
        FROM BAIDANG b
        JOIN NGUOIDUNG n ON n.MaND = b.MaND
        LEFT JOIN MONHOC m ON m.MaMon = b.MaMon
@@ -89,6 +89,12 @@ require __DIR__ . '/layout/header.php';
     · <strong class="<?= e($lopTT[$bai['TrangThai']] ?? '') ?>"><?= e($bai['TrangThai']) ?></strong>
   </p>
   <div class="xuong-dong"><?= e($bai['NoiDung']) ?></div>
+  <?php if (!empty($bai['AnhDinhKem'])): ?>
+    <?php $srcAnhQT = BASE_URL . '/' . ltrim((string) $bai['AnhDinhKem'], '/'); ?>
+    <a href="<?= e($srcAnhQT) ?>" target="_blank" rel="noopener" title="Mở ảnh gốc trong tab mới">
+      <img src="<?= e($srcAnhQT) ?>" alt="Ảnh đính kèm bài viết" loading="lazy" style="display:block;max-width:100%;max-height:360px;margin:10px 0;border-radius:8px;object-fit:contain">
+    </a>
+  <?php endif; ?>
 
   <div class="khoi-thaotac">
     <?php if ($bai['TrangThai'] === 'Hiển thị'): ?>

@@ -150,7 +150,7 @@ class XacThuc
             $st->execute([$dinhDanh, $dinhDanh]);
         } else {
             $st = $pdo->prepare(
-                'SELECT MaND, HoTen, Email, MatKhau, TrangThai, TrangThaiKhaoSat
+                'SELECT MaND, HoTen, Email, MatKhau, TrangThai
                    FROM NGUOIDUNG
                   WHERE Email = ?
                   LIMIT 1'
@@ -388,7 +388,7 @@ class XacThuc
             $pdo->beginTransaction();
             try {
                 $st = $pdo->prepare(
-                    "INSERT INTO NGUOIDUNG (HoTen, Email, MatKhau, TrangThaiKhaoSat) VALUES (?, ?, ?, 'Bỏ qua')"
+                    "INSERT INTO NGUOIDUNG (HoTen, Email, MatKhau) VALUES (?, ?, ?)"
                 );
                 $st->execute([
                     $ad['HoTen'],

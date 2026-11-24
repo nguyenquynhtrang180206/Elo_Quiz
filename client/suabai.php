@@ -9,7 +9,7 @@ $coLoai = CongDongHelper::coCotLoaiBai();
 
 // Chỉ sửa được bài của mình, đang "Hiển thị", và trong vòng 15 phút kể từ lúc đăng
 $st = $pdo->prepare(
-    "SELECT b.MaBaiDang, b.MaMon, b.TieuDe, b.NoiDung, m.TenMon,
+    "SELECT b.MaBaiDang, b.MaMon, b.TieuDe, b.NoiDung, b.AnhDinhKem, m.TenMon,
             " . ($coLoai ? 'b.LoaiBai' : "'" . CongDongHelper::LOAI_MAC_DINH . "' AS LoaiBai") . ",
             TIMESTAMPDIFF(SECOND, b.NgayDang, NOW()) AS GiayTuDang
        FROM BAIDANG b LEFT JOIN MONHOC m ON m.MaMon = b.MaMon
@@ -34,7 +34,12 @@ $noiDungBai = $bai['NoiDung'] ?? '';
 $monChon    = $bai ? (string) ($bai['MaMon'] ?? '') : '';
 $loaiChon   = $bai['LoaiBai'] ?? CongDongHelper::LOAI_MAC_DINH;
 
-if ($bai && !$hetHan && $_SERVER['REQUEST_METHOD'] === 'POST') {
+$quaLon = $bai && !$hetHan && CongDongHelper::postQuaLon();   // ảnh làm yêu cầu vượt post_max_size: $_POST rỗng
+if ($quaLon) {
+    $loi[] = 'Ảnh quá lớn (tối đa ' . CongDongHelper::gioiHanAnhChu() . '), bài chưa được lưu. Hãy chọn ảnh nhỏ hơn rồi lưu lại.';
+}
+
+if ($bai && !$hetHan && !$quaLon && $_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_check();
     $tieuDeBai  = trim((string) ($_POST['tieu_de'] ?? ''));
     $noiDungBai = trim((string) ($_POST['noi_dung'] ?? ''));
@@ -43,15 +48,45 @@ if ($bai && !$hetHan && $_SERVER['REQUEST_METHOD'] === 'POST') {
 
     [$loi, $maMon] = CongDongHelper::kiemTraBai($tieuDeBai, $noiDungBai, $monChon, $monDangMo);
 
+    // Ảnh đính kèm: chọn ảnh mới thì thay ảnh cũ; tích "Xóa ảnh" (không chọn ảnh mới) thì gỡ ảnh; còn lại giữ nguyên
+    $anhCu = $bai['AnhDinhKem'] ?? null;
+    $anhMoi = $anhCu;
+    $anhVuaLuu = null;
+    [$loiAnh, $duoiAnh] = CongDongHelper::kiemTraAnh($_FILES['anh_dinh_kem'] ?? null);
+    $loi = array_merge($loi, $loiAnh);
+
+    if (!$loi) {
+        if ($duoiAnh !== null) {
+            $anhVuaLuu = CongDongHelper::luuAnh($_FILES['anh_dinh_kem'], $duoiAnh, $cfg['upload_dir']);
+            if ($anhVuaLuu === null) {
+                $loi[] = 'Không lưu được ảnh lên máy chủ. Kiểm tra quyền ghi thư mục uploads/baidang.';
+            } else {
+                $anhMoi = $anhVuaLuu;
+            }
+        } elseif (!empty($_POST['xoa_anh'])) {
+            $anhMoi = null;
+        }
+    }
+
     if (!$loi) {
         $up = $pdo->prepare(
-            "UPDATE BAIDANG SET TieuDe = ?, NoiDung = ?, MaMon = ?" . ($coLoai ? ', LoaiBai = ?' : '') . "
+            "UPDATE BAIDANG SET TieuDe = ?, NoiDung = ?, MaMon = ?, AnhDinhKem = ?" . ($coLoai ? ', LoaiBai = ?' : '') . "
               WHERE MaBaiDang = ? AND MaND = ? AND TrangThai = 'Hiển thị'
                 AND NgayDang >= DATE_SUB(NOW(), INTERVAL " . CongDongHelper::SUA_TOI_DA_PHUT . " MINUTE)"
         );
         $up->execute($coLoai
-            ? [$tieuDeBai, $noiDungBai, $maMon, $loaiChon, $id, $maND]
-            : [$tieuDeBai, $noiDungBai, $maMon, $id, $maND]);
+            ? [$tieuDeBai, $noiDungBai, $maMon, $anhMoi, $loaiChon, $id, $maND]
+            : [$tieuDeBai, $noiDungBai, $maMon, $anhMoi, $id, $maND]);
+
+        if ($up->rowCount() >= 1 || $anhMoi === $anhCu) {
+            // Cập nhật được: dọn file ảnh cũ nếu đã bị thay hoặc gỡ
+            if ($anhMoi !== $anhCu) {
+                CongDongHelper::xoaFileAnh($anhCu, $cfg['upload_dir']);
+            }
+        } else {
+            // Không cập nhật được (hết hạn sửa...): bỏ file ảnh vừa tải lên để khỏi thành file mồ côi
+            CongDongHelper::xoaFileAnh($anhVuaLuu, $cfg['upload_dir']);
+        }
         CongDongHelper::flash('Đã cập nhật bài đăng.');
         redirect(BASE_URL . '/client/baidang.php?id=' . $id);
     }
@@ -75,7 +110,7 @@ require __DIR__ . '/layout/header.php';
       <?php if ($loi): ?>
         <div class="loi"><?php foreach ($loi as $m): ?><div><?= e($m) ?></div><?php endforeach; ?></div>
       <?php endif; ?>
-      <form method="post" action="?id=<?= (int) $id ?>" novalidate>
+      <form method="post" action="?id=<?= (int) $id ?>" enctype="multipart/form-data" novalidate>
         <?= csrf_field() ?>
         <label for="tieu_de">Tiêu đề</label>
         <input type="text" id="tieu_de" name="tieu_de" maxlength="200" value="<?= e($tieuDeBai) ?>" required>
@@ -99,6 +134,30 @@ require __DIR__ . '/layout/header.php';
 
         <label for="noi_dung">Nội dung</label>
         <textarea id="noi_dung" name="noi_dung" maxlength="5000" required><?= e($noiDungBai) ?></textarea>
+
+        <label for="anh_dinh_kem">Ảnh đính kèm (không bắt buộc, JPG/PNG/WEBP, tối đa <?= e(CongDongHelper::gioiHanAnhChu()) ?>)</label>
+        <?php if (!empty($bai['AnhDinhKem'])): ?>
+          <p>
+            <img src="<?= e(BASE_URL . '/' . ltrim((string) $bai['AnhDinhKem'], '/')) ?>" alt="Ảnh hiện tại" style="display:block;max-width:100%;max-height:200px;border-radius:8px;margin-bottom:6px">
+            <label style="font-weight:400"><input type="checkbox" name="xoa_anh" value="1"> Xóa ảnh hiện tại</label>
+          </p>
+        <?php endif; ?>
+        <input type="file" id="anh_dinh_kem" name="anh_dinh_kem" accept="image/jpeg,image/png,image/webp" data-toi-da="<?= (int) CongDongHelper::gioiHanAnhByte() ?>" data-toi-da-chu="<?= e(CongDongHelper::gioiHanAnhChu()) ?>">
+        <script>
+          (function () {
+            var i = document.getElementById('anh_dinh_kem');
+            if (!i) { return; }
+            i.addEventListener('change', function () {
+              var f = i.files && i.files[0], max = parseInt(i.getAttribute('data-toi-da'), 10);
+              if (f && max && f.size > max) {
+                alert('Ảnh quá lớn, tối đa ' + i.getAttribute('data-toi-da-chu') + '. Hãy chọn ảnh nhỏ hơn.');
+                i.value = '';
+              }
+            });
+          })();
+        </script>
+
+        <?php if (!empty($bai['AnhDinhKem'])): ?><p class="meta">Chọn ảnh mới để thay ảnh hiện tại.</p><?php endif; ?>
 
         <p><button type="submit" class="btn">Lưu</button>
            <a class="btn btn-phu" href="<?= e(BASE_URL) ?>/client/baidang.php?id=<?= (int) $id ?>">Hủy</a></p>

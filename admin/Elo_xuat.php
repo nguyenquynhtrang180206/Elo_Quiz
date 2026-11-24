@@ -1,6 +1,6 @@
 <?php
-// Xuất bảng xếp hạng Elo ra Excel hoặc PDF. Đặt tại: elo_quiz/admin/elo_xuat.php
-// Được gọi (POST, có CSRF) từ hộp thoại "Xuất" ở tab Bảng xếp hạng của admin/elo.php (A-46).
+// Endpoint tương thích cho yêu cầu xuất bảng xếp hạng Elo (POST, có CSRF).
+// BXH hiện được tích hợp trên admin/nguoidung.php; endpoint này được giữ để xử lý các biểu mẫu xuất cũ (A-46).
 // Mỗi lần gọi trả MỘT file; khi người dùng chọn "Cả hai", trình duyệt (elo_xuat.js) gọi lần lượt hai lần.
 //
 // Tham số:
@@ -42,7 +42,7 @@ function anh_theo_rong(?array $a, int $rong, int $x = 0): ?array
 }
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    redirect(BASE_URL . '/admin/elo.php?v=bxh');
+    redirect(BASE_URL . '/admin/nguoidung.php#bxh');
 }
 csrf_check();
 @set_time_limit(120);
@@ -93,7 +93,7 @@ if ($buoc !== 'xemtruoc') {
     if ($coDs && !$truong) { loi_xuat('Hãy chọn ít nhất một cột cho bảng xếp hạng.'); }
 }
 
-// ---- Bậc rank: giống admin/elo.php (tính từ Elo khởi tạo, không lưu database) ----
+// ---- Bậc rank tính từ Elo khởi tạo, không lưu database ----
 $eloKt   = Config::int('ELO_KHOI_TAO', 1000);
 $bacRank = [
     ['ten' => 'Cao thủ',   'tu' => $eloKt + 450, 'mau' => '#c13cff'],
@@ -112,7 +112,7 @@ $ty = static fn (int $thang, int $tran): string => $tran > 0 ? number_format($th
 
 $nMin = max(1, Config::int('SO_TRAN_TOI_THIEU_BXH', 10));
 
-// ---- Truy vấn: giống hệt tab Bảng xếp hạng của admin/elo.php ----
+// ---- Truy vấn bảng xếp hạng theo môn / toàn trường ----
 if ($mon > 0) {
     $from  = 'FROM ELOMONHOC e JOIN NGUOIDUNG n ON n.MaND = e.MaND WHERE e.MaMon = ?';
     $tham  = [$mon];

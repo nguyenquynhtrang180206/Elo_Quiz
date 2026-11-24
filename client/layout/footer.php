@@ -1,49 +1,10 @@
 <?php
 // =====================================================================
 // MEGA HYBRID FOOTER: ESPORTS COMMAND HUB & HIGH-TECH TELEMETRY
-// 1. Holographic Telemetry Dashboard (Số liệu máy chủ trực tiếp)
-// 2. Esports Battle Gateway Bar (Tìm trận nhanh 1 vs 1)
-// 3. 4 Cột Điều Hướng Cao Cấp & Trạm Tiếp Sức Sĩ Tử 3D Mascot
-// 4. Bottom Bar Chuyên Nghiệp (Tránh chồng đè nút FX)
+// 1. Esports Battle Gateway Bar (Tìm trận nhanh 1 vs 1)
+// 2. 4 Cột Điều Hướng Cao Cấp & Trạm Tiếp Sức Sĩ Tử 3D Mascot
+// 3. Bottom Bar Chuyên Nghiệp (Tránh chồng đè nút FX)
 // =====================================================================
-
-// Số liệu thật từ database; lỗi truy vấn thì để null và hiển thị "—" (không dùng số giả)
-$ftSoTranDau = $ftSoMonHoc = $ftTopElo = $ftChinhXac = null;
-
-try {
-    $db = Database::pdo();
-
-    // Trận đã hoàn tất
-    $ftSoTranDau = (int) $db->query("SELECT COUNT(*) FROM TRANDAU WHERE TrangThai = 'Kết thúc'")->fetchColumn();
-
-    // Môn đang mở (tái sử dụng nếu trang cha đã truy vấn)
-    $ftSoMonHoc = isset($soMonMo)
-        ? (int) $soMonMo
-        : (int) $db->query("SELECT COUNT(*) FROM MONHOC WHERE TrangThai = 'Đang mở'")->fetchColumn();
-
-    // Elo cao nhất: trong ELOMONHOC, người đã đấu, tài khoản đang hoạt động, môn đang mở
-    $maxElo = $db->query(
-        "SELECT MAX(e.DiemElo) FROM ELOMONHOC e
-           JOIN NGUOIDUNG u ON u.MaND = e.MaND AND u.TrangThai = 'Hoạt động'
-           JOIN MONHOC m ON m.MaMon = e.MaMon AND m.TrangThai = 'Đang mở'
-          WHERE e.SoTran > 0"
-    )->fetchColumn();
-    $ftTopElo = $maxElo !== false && $maxElo !== null ? (int) $maxElo : null;
-
-    // Tỉ lệ trả lời đúng: câu "Đã trả lời" chọn đúng đáp án / tổng câu "Đã trả lời", chỉ tính trận đã kết thúc
-    $r = $db->query(
-        "SELECT COUNT(*) AS Tong, COALESCE(SUM(d.LaDapAnDung = 1), 0) AS Dung
-           FROM CHITIETTRALOI c
-           JOIN TRANDAU t ON t.MaTran = c.MaTran AND t.TrangThai = 'Kết thúc'
-           LEFT JOIN DAPAN d ON d.MaCauHoi = c.MaCauHoi AND d.MaDapAn = c.MaDapAn
-          WHERE c.TrangThai = 'Đã trả lời'"
-    )->fetch();
-    if ($r && (int) $r['Tong'] > 0) {
-        $ftChinhXac = round((int) $r['Dung'] * 100 / (int) $r['Tong'], 1);
-    }
-} catch (Throwable $t) {
-    // Giữ nguyên null: trang vẫn hiển thị bình thường
-}
 ?>
 </main>
 
@@ -52,57 +13,6 @@ try {
   <div class="ft-energy-beam" aria-hidden="true"></div>
 
   <div class="container footer-container">
-
-    <!-- 1. HOLOGRAPHIC TELEMETRY DASHBOARD (Bảng chỉ số server công nghệ cao) -->
-    <div class="footer-dashboard-row" aria-label="Bảng chỉ số server trực tiếp">
-      <!-- Card 1 -->
-      <div class="ft-dash-card">
-        <div class="ft-dash-icon-box icon-cyan">
-          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 17.5L3 6V3h3l11.5 11.5M14.5 6.5l3-3 3.5 3.5-3 3M6.5 14.5l-3 3L7 21l3-3"/><path d="M10.5 13.5L3 21M21 3l-7.5 7.5" stroke="#00D9FF" stroke-width="2"/></svg>
-        </div>
-        <div class="ft-dash-info">
-          <div class="ft-dash-top"><span class="ft-dash-tag">LIVE ARENA</span></div>
-          <strong class="ft-dash-num"><?= $ftSoTranDau !== null ? number_format($ftSoTranDau) : '—' ?></strong>
-          <span class="ft-dash-label">Trận Đã Hoàn Tất</span>
-        </div>
-      </div>
-
-      <!-- Card 2 -->
-      <div class="ft-dash-card">
-        <div class="ft-dash-icon-box icon-orange">
-          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="#F59E0B"/><circle cx="12" cy="12" r="5" stroke="#FDE047"/><circle cx="12" cy="12" r="2" fill="#EF4444"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3" stroke="#F59E0B" stroke-width="1.5"/></svg>
-        </div>
-        <div class="ft-dash-info">
-          <div class="ft-dash-top"><span class="ft-dash-tag tag-gold">ĐỘ CHÍNH XÁC</span></div>
-          <strong class="ft-dash-num text-gold"><?= $ftChinhXac !== null ? number_format($ftChinhXac, 1) . '%' : '—' ?></strong>
-          <span class="ft-dash-label">Tỉ Lệ Trả Lời Chuẩn Xác</span>
-        </div>
-      </div>
-
-      <!-- Card 3 -->
-      <div class="ft-dash-card">
-        <div class="ft-dash-icon-box icon-yellow">
-          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 18h14v2H5zM6 18L3 8l5 3 4-7 4 7 5-3-3 10H6z" fill="rgba(255,209,71,0.2)" stroke="#FFD147"/><circle cx="12" cy="12" r="2" fill="#00D9FF"/><circle cx="3" cy="7" r="1.5" fill="#FFE27A"/><circle cx="12" cy="3" r="1.5" fill="#FFE27A"/><circle cx="21" cy="7" r="1.5" fill="#FFE27A"/></svg>
-        </div>
-        <div class="ft-dash-info">
-          <div class="ft-dash-top"><span class="ft-dash-tag tag-challenger">THÁCH ĐẤU</span></div>
-          <strong class="ft-dash-num text-challenger"><?= $ftTopElo !== null ? number_format($ftTopElo) . ' ELO' : '—' ?></strong>
-          <span class="ft-dash-label">Kỷ Lục Điểm Đấu Thần</span>
-        </div>
-      </div>
-
-      <!-- Card 4 -->
-      <div class="ft-dash-card">
-        <div class="ft-dash-icon-box icon-purple">
-          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 4.5A2.5 2.5 0 0 1 6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15zM8 7h8M8 11h6" stroke="#C084FC"/></svg>
-        </div>
-        <div class="ft-dash-info">
-          <div class="ft-dash-top"><span class="ft-dash-tag tag-purple">BẢN ĐỒ TRI THỨC</span></div>
-          <strong class="ft-dash-num text-purple"><?= $ftSoMonHoc !== null ? (int) $ftSoMonHoc . ' Bộ Môn' : '—' ?></strong>
-          <span class="ft-dash-label">Đang Mở Tranh Tài</span>
-        </div>
-      </div>
-    </div>
 
     <!-- 2. THÂN CHÂN TRANG: TRẠM CHỈ HUY & ĐIỀU HƯỚNG -->
     <div class="footer-main-grid">

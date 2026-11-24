@@ -39,7 +39,8 @@ $loaiLoc = $coLoai && in_array((string) ($_GET['loai'] ?? ''), CongDongHelper::L
 $tuKhoa = mb_substr(trim((string) ($_GET['q'] ?? '')), 0, 100);
 // Tham số lọc giữ nguyên khi đổi tab, sang trang, thả lửa bài...
 $thamLoc = ($monLoc > 0 ? ['mon' => $monLoc] : []) + ($loaiLoc !== '' ? ['loai' => $loaiLoc] : []) + ($tuKhoa !== '' ? ['q' => $tuKhoa] : []);
-$thamTab = fn(string $t): string => '?' . http_build_query(['tab' => $t] + $thamLoc);
+// Mọi liên kết chuyên mục kèm #cd-bang-tin để bấm xong trang cuộn thẳng xuống khu bảng tin, không quay lên banner
+$thamTab = fn(string $t): string => '?' . http_build_query(['tab' => $t] + $thamLoc) . '#cd-bang-tin';
 
 $loi = [];
 $tieuDeBai = $noiDungBai = $monChon = '';
@@ -54,7 +55,9 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         }
         redirect(BASE_URL . '/client/dangnhap.php');
     }
-    csrf_check();
+    if (!CongDongHelper::postQuaLon()) {   // yêu cầu quá lớn thì $_POST rỗng: bỏ qua, báo lỗi ảnh ở dưới thay vì báo "phiên hết hạn"
+        csrf_check();
+    }
 
     if (($_POST['hanh_dong'] ?? '') === 'ajax_ket_ban') {
         header('Content-Type: application/json; charset=utf-8');
@@ -82,7 +85,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                 $quayLai[$k] = mb_substr(trim((string) $_POST[$k]), 0, 100);
             }
         }
-        redirect(BASE_URL . '/client/congdong.php?' . http_build_query($quayLai));
+        redirect(BASE_URL . '/client/congdong.php?' . http_build_query($quayLai) . '#cd-bang-tin');
     }
 
     if (($_POST['hanh_dong'] ?? '') === 'thich') {
@@ -102,6 +105,10 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                 $daThich = true;
             }
         }
+        if ($daThich) {
+            ThongBaoHelper::thaLuaBai($pdo, $maBai, $maND);   // báo cho chủ bài (không báo khi bỏ thả lửa)
+        }
+
         $stCount = $pdo->prepare('SELECT COUNT(*) FROM LUOTTHICH WHERE MaBaiDang = ?');
         $stCount->execute([$maBai]);
         $soThichMoi = (int) $stCount->fetchColumn();
@@ -162,7 +169,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         if ((int) ($_POST['page'] ?? 1) > 1) {
             $quayLai['page'] = (int) $_POST['page'];
         }
-        redirect(BASE_URL . '/client/congdong.php?' . http_build_query($quayLai));
+        redirect(BASE_URL . '/client/congdong.php?' . http_build_query($quayLai) . '#cd-bang-tin');
     }
 
     // ---- Đăng bài mới ----
@@ -173,20 +180,41 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
 
     [$loi, $maMon] = CongDongHelper::kiemTraBai($tieuDeBai, $noiDungBai, $monChon, $monDangMo);
 
+    // Ảnh đính kèm (không bắt buộc): JPG/PNG/WEBP, mỗi bài 1 ảnh, dung lượng theo CongDongHelper::gioiHanAnhByte()
+    [$loiAnh, $duoiAnh] = CongDongHelper::kiemTraAnh($_FILES['anh_dinh_kem'] ?? null);
+    $loi = array_merge($loi, $loiAnh);
+    if (CongDongHelper::postQuaLon()) {
+        // Ảnh làm yêu cầu vượt post_max_size nên máy chủ đã bỏ cả tiêu đề và nội dung: chỉ báo lỗi ảnh, không báo thiếu tiêu đề/nội dung
+        $loi = ['Ảnh quá lớn (tối đa ' . CongDongHelper::gioiHanAnhChu() . '), bài chưa được đăng. Hãy chọn ảnh nhỏ hơn rồi nhập lại bài.'];
+    }
+
+    if (!$loi) {
+        $anhLuu = null;
+        if ($duoiAnh !== null) {
+            $anhLuu = CongDongHelper::luuAnh($_FILES['anh_dinh_kem'], $duoiAnh, $cfg['upload_dir']);
+            if ($anhLuu === null) {
+                $loi[] = 'Không lưu được ảnh lên máy chủ. Kiểm tra quyền ghi thư mục uploads/baidang.';
+            }
+        }
+    }
+
     if (!$loi) {
         if ($coLoai) {
-            $st = $pdo->prepare('INSERT INTO BAIDANG (MaND, MaMon, TieuDe, NoiDung, LoaiBai) VALUES (?, ?, ?, ?, ?)');
-            $st->execute([$maND, $maMon, $tieuDeBai, $noiDungBai, $loaiChon]);
+            $st = $pdo->prepare('INSERT INTO BAIDANG (MaND, MaMon, TieuDe, NoiDung, LoaiBai, AnhDinhKem) VALUES (?, ?, ?, ?, ?, ?)');
+            $st->execute([$maND, $maMon, $tieuDeBai, $noiDungBai, $loaiChon, $anhLuu]);
         } else {
-            $st = $pdo->prepare('INSERT INTO BAIDANG (MaND, MaMon, TieuDe, NoiDung) VALUES (?, ?, ?, ?)');
-            $st->execute([$maND, $maMon, $tieuDeBai, $noiDungBai]);
+            $st = $pdo->prepare('INSERT INTO BAIDANG (MaND, MaMon, TieuDe, NoiDung, AnhDinhKem) VALUES (?, ?, ?, ?, ?)');
+            $st->execute([$maND, $maMon, $tieuDeBai, $noiDungBai, $anhLuu]);
         }
+        $_SESSION['bai_vua_dang'] = (int) $pdo->lastInsertId();   // để làm nổi bật + cuộn tới bài vừa đăng ở lần hiển thị kế tiếp
         CongDongHelper::flash('Đã đăng bài.');
-        redirect(BASE_URL . '/client/congdong.php' . $thamTab($tab));   // ở lại đúng tab/bộ lọc đang xem
+        redirect(BASE_URL . '/client/congdong.php?tab=moi#cd-bang-tin');   // về tab "Bài đăng mới", bỏ lọc môn/loại/từ khóa và về trang 1 để bài vừa đăng hiện ngay đầu bảng tin
     }
 }
 
 $thanhCong = CongDongHelper::flash();
+$baiVuaDang = (int) ($_SESSION['bai_vua_dang'] ?? 0);
+unset($_SESSION['bai_vua_dang']);
 
 $baiDang = [];
 $eloMap = [];   // Elo theo người đăng, dùng cho huy hiệu cạnh tên
@@ -236,13 +264,18 @@ if ($tab === 'huyhieu') {
         $tham[':q2'] = $like;
     }
     if ($tab === 'hot') {
-        $where .= " AND EXISTS (SELECT 1 FROM BINHLUAN h WHERE h.MaBaiDang = b.MaBaiDang
-                                 AND h.TrangThai = 'Hiển thị' AND h.NgayBinhLuan >= DATE_SUB(NOW(), INTERVAL 7 DAY))";
+        // Thảo luận hot: có từ 3 bình luận hiển thị trong 7 ngày gần nhất
+        $where .= " AND (SELECT COUNT(*) FROM BINHLUAN h WHERE h.MaBaiDang = b.MaBaiDang
+                          AND h.TrangThai = 'Hiển thị' AND h.NgayBinhLuan >= DATE_SUB(NOW(), INTERVAL 7 DAY)) >= 3";
+    }
+    if ($tab === 'noibat' && $coLike) {
+        // Bài viết nổi bật: chỉ lấy bài đã có ít nhất 1 lượt thả lửa
+        $where .= ' AND EXISTS (SELECT 1 FROM LUOTTHICH lx WHERE lx.MaBaiDang = b.MaBaiDang)';
     }
     $thuTu = [
         'moi'    => 'b.NgayDang DESC, b.MaBaiDang DESC',
         'cuatoi' => 'b.NgayDang DESC, b.MaBaiDang DESC',
-        'noibat' => '(SoThich * 2 + SoBL) DESC, b.NgayDang DESC, b.MaBaiDang DESC',
+        'noibat' => 'SoThich DESC, SoBL DESC, b.NgayDang DESC, b.MaBaiDang DESC',
         'hot'    => 'SoBL7 DESC, SoBL DESC, b.NgayDang DESC, b.MaBaiDang DESC',
     ][$tab];
 
@@ -260,7 +293,7 @@ if ($tab === 'huyhieu') {
     }
 
     $st = $pdo->prepare(
-        "SELECT b.MaBaiDang, b.MaMon, b.TieuDe, b.NoiDung, b.NgayDang, b.TrangThai, u.MaND, u.HoTen, u.AnhDaiDien, m.TenMon,
+        "SELECT b.MaBaiDang, b.MaMon, b.TieuDe, b.NoiDung, b.AnhDinhKem, b.NgayDang, b.TrangThai, u.MaND, u.HoTen, u.AnhDaiDien, m.TenMon,
                 TIMESTAMPDIFF(SECOND, b.NgayDang, NOW()) AS GiayTuDang,
                 " . (CongDongHelper::coCotNguoiAn() ? 'b.NguoiAn' : 'NULL AS NguoiAn') . ",
                 " . ($coLoai ? 'b.LoaiBai' : "'" . CongDongHelper::LOAI_MAC_DINH . "' AS LoaiBai") . ",
@@ -314,8 +347,8 @@ $tongSiTuCD  = (int) ($stStats['TongSiTu'] ?? 0);
 $topMvp = $pdo->query("
     SELECT * FROM (
         SELECT u.MaND, u.HoTen, u.AnhDaiDien,
-               (SELECT COUNT(*) FROM BAIDANG b WHERE b.MaND = u.MaND AND b.TrangThai = 'Hiển thị') AS SoBai,
-               (SELECT COUNT(*) FROM BINHLUAN c WHERE c.MaND = u.MaND AND c.TrangThai = 'Hiển thị') AS SoBL,
+               (SELECT COUNT(*) FROM BAIDANG b WHERE b.MaND = u.MaND AND b.TrangThai = 'Hiển thị' AND b.NgayDang >= DATE_SUB(NOW(), INTERVAL 7 DAY)) AS SoBai,
+               (SELECT COUNT(*) FROM BINHLUAN c WHERE c.MaND = u.MaND AND c.TrangThai = 'Hiển thị' AND c.NgayBinhLuan >= DATE_SUB(NOW(), INTERVAL 7 DAY)) AS SoBL,
                (SELECT MAX(e.DiemElo) FROM ELOMONHOC e WHERE e.MaND = u.MaND AND e.SoTran > 0) AS EloCao,
                (SELECT m.TenMon FROM ELOMONHOC e JOIN MONHOC m ON m.MaMon = e.MaMon WHERE e.MaND = u.MaND AND e.SoTran > 0 ORDER BY e.DiemElo DESC LIMIT 1) AS TenMonGanh
           FROM NGUOIDUNG u WHERE u.TrangThai = 'Hoạt động'
@@ -627,18 +660,20 @@ require __DIR__ . '/layout/header.php';
 
   <!-- ===== CỘT TRÁI: BỘ LỌC TÌM KIẾM & 6 CHUYÊN MỤC DỌC (CHUẨN XÁC THEO HÌNH 1) ===== -->
   <aside class="cd-trai">
-    <div class="cd-hop-trai cd-sidebar-panel">
+    <div class="cd-hop-trai cd-sidebar-panel" data-mem-vung="loc" data-mem-links>
       <span class="pet-corner tl" aria-hidden="true"></span>
       <span class="pet-corner tr" aria-hidden="true"></span>
       <span class="pet-corner bl" aria-hidden="true"></span>
       <span class="pet-corner br" aria-hidden="true"></span>
 
       <!-- 1. Bộ lọc tìm kiếm trên cùng của Sidebar -->
-      <form method="get" action="" class="cd-loc-sidebar" id="formLocCD">
+      <?php if (!in_array($tab, ['thanhvien', 'huyhieu'], true)): ?>
+      <form method="get" action="congdong.php#cd-bang-tin" class="cd-loc-sidebar" id="formLocCD">
         <input type="hidden" name="tab" value="<?= e($tab) ?>">
 
         <!-- Chọn môn học (mặc định Tất cả môn) -->
         <div class="cd-filter-item">
+          <label for="loc_mon" class="cd-filter-label">Lọc theo môn</label>
           <select id="loc_mon" name="mon" class="cd-dropdown-input">
             <option value="0">Tất cả môn</option>
             <?php foreach ($monDangMo as $id => $ten): ?>
@@ -662,17 +697,18 @@ require __DIR__ . '/layout/header.php';
         <div class="cd-filter-item">
           <label for="tim_q" class="cd-filter-label">Tìm theo từ khóa</label>
           <div class="cd-tim-bar">
-            <input type="search" id="tim_q" name="q" maxlength="100" value="<?= e($tuKhoa) ?>" placeholder="Tiêu đề hoặc nội..." class="cd-tim-input">
+            <input type="search" id="tim_q" name="q" maxlength="100" value="<?= e($tuKhoa) ?>" placeholder="Tiêu đề hoặc nội dung..." class="cd-tim-input">
             <button class="btn-tim-action" type="submit">Tìm</button>
           </div>
         </div>
 
         <?php if ($thamLoc): ?>
           <div class="cd-clear-filter-wrap">
-            <a class="cd-bo-loc" href="<?= e('?' . http_build_query(['tab' => $tab])) ?>">&times; Xóa bộ lọc</a>
+            <a class="cd-bo-loc" href="<?= e('?' . http_build_query(['tab' => $tab]) . '#cd-bang-tin') ?>">&times; Xóa bộ lọc</a>
           </div>
         <?php endif; ?>
       </form>
+      <?php endif; ?>
 
       <!-- 2. Danh sách 6 nút chuyên mục dọc (Chuẩn xác như hình 1) -->
       <nav class="cd-menu-list" aria-label="Danh mục cộng đồng">
@@ -709,7 +745,7 @@ require __DIR__ . '/layout/header.php';
   </aside>
 
   <!-- ===== CỘT PHẢI: FORM VIẾT BÀI MỚI & BẢNG TIN (CHUẨN THEO HÌNH 2) ===== -->
-  <section class="cd-giua" data-mem-vung="giua">
+  <section class="cd-giua" id="cd-bang-tin" style="scroll-margin-top:80px" data-mem-vung="giua" data-mem-links>
     <?php if ($thanhCong): ?><div class="thanhcong"><?= e($thanhCong) ?></div><?php endif; ?>
     <?php if ($loi): ?>
       <div class="loi"><?php foreach ($loi as $m): ?><div><?= e($m) ?></div><?php endforeach; ?></div>
@@ -746,7 +782,7 @@ require __DIR__ . '/layout/header.php';
       <!-- Phần thân form: mặc định thu gọn, bấm thì tung ra -->
       <div class="cd-write-body" id="cd-write-body">
         <?php if ($maND !== null): ?>
-          <form method="post" action="" novalidate id="formDangBai" class="cd-write-form">
+          <form method="post" action="" enctype="multipart/form-data" novalidate id="formDangBai" class="cd-write-form">
             <?= csrf_field() ?>
             
             <div class="cd-write-field">
@@ -757,7 +793,7 @@ require __DIR__ . '/layout/header.php';
             <div class="cd-write-field cd-mon-picker-field">
               <div class="cd-mon-field-header">
                 <label class="cd-write-label">Môn học (không bắt buộc)</label>
-                <span class="cd-mon-current-label">Đang chọn: <strong id="monSelectedDisplay"><?= $monChon !== '' && isset($monDangMo[(int)$monChon]) ? e($monDangMo[(int)$monChon]) : 'Không gắn môn' ?></strong></span>
+                <span class="cd-mon-current-label">Đã chọn <strong id="monSelectedDisplay"><?= $monChon !== '' && isset($monDangMo[(int)$monChon]) ? e($monDangMo[(int)$monChon]) : 'Không gắn môn' ?></strong></span>
               </div>
               <input type="hidden" id="mon" name="mon" value="<?= e($monChon) ?>">
 
@@ -819,6 +855,24 @@ require __DIR__ . '/layout/header.php';
               <textarea id="noi_dung" name="noi_dung" rows="4" maxlength="5000" placeholder="Viết chia sẻ, câu hỏi hoặc kinh nghiệm ôn thi của bạn ở đây..." class="cd-write-textarea" required><?= e($noiDungBai) ?></textarea>
             </div>
 
+            <div class="cd-write-field">
+              <label for="anh_dinh_kem" class="cd-write-label">Ảnh đính kèm <span style="opacity:.6;font-weight:400">(không bắt buộc, JPG/PNG/WEBP, tối đa <?= e(CongDongHelper::gioiHanAnhChu()) ?>)</span></label>
+              <input type="file" id="anh_dinh_kem" name="anh_dinh_kem" accept="image/jpeg,image/png,image/webp" class="cd-write-input" data-toi-da="<?= (int) CongDongHelper::gioiHanAnhByte() ?>" data-toi-da-chu="<?= e(CongDongHelper::gioiHanAnhChu()) ?>">
+              <script>
+                (function () {
+                  var i = document.getElementById('anh_dinh_kem');
+                  if (!i) { return; }
+                  i.addEventListener('change', function () {
+                    var f = i.files && i.files[0], max = parseInt(i.getAttribute('data-toi-da'), 10);
+                    if (f && max && f.size > max) {
+                      alert('Ảnh quá lớn, tối đa ' + i.getAttribute('data-toi-da-chu') + '. Hãy chọn ảnh nhỏ hơn.');
+                      i.value = '';
+                    }
+                  });
+                })();
+              </script>
+            </div>
+
             <div class="cd-write-actions">
               <button type="submit" class="btn-dang-bai-gradient">
                 <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -2px; margin-right: 5px;"><path d="M14 2L7 9M14 2L9.5 14l-2.5-5-5-2.5L14 2z"/></svg>
@@ -844,11 +898,11 @@ require __DIR__ . '/layout/header.php';
       <?php if ($p !== null && $p->soTrang() > 1): ?>
         <div class="cd-trang-nhom">
           <?php if ($p->trang() > 1): ?>
-            <a class="cd-xem-them cd-xem-truoc" href="<?= e('?' . http_build_query(['tab' => $tab] + $thamLoc + ($p->trang() > 2 ? ['page' => $p->trang() - 1] : []))) ?>">&larr; Trang trước</a>
+            <a class="cd-xem-them cd-xem-truoc" data-mem-truoc href="<?= e('?' . http_build_query(['tab' => $tab] + $thamLoc + ($p->trang() > 2 ? ['page' => $p->trang() - 1] : [])) . '#cd-bang-tin') ?>">&larr; Trang trước</a>
           <?php endif; ?>
           <span class="cd-trang-so"><?= (int) $p->trang() ?>/<?= (int) $p->soTrang() ?></span>
           <?php if ($p->trang() < $p->soTrang()): ?>
-            <a class="cd-xem-them" href="<?= e('?' . http_build_query(['tab' => $tab] + $thamLoc + ['page' => $p->trang() + 1])) ?>">Trang kế &rarr;</a>
+            <a class="cd-xem-them" data-mem-truoc href="<?= e('?' . http_build_query(['tab' => $tab] + $thamLoc + ['page' => $p->trang() + 1]) . '#cd-bang-tin') ?>">Trang kế &rarr;</a>
           <?php endif; ?>
         </div>
       <?php endif; ?>
@@ -956,7 +1010,7 @@ require __DIR__ . '/layout/header.php';
           </div>
           <?php if ($tuKhoa !== '' || $monLoc > 0 || $loaiLoc !== ''): ?>
             <p>Không có bài đăng nào phù hợp với bộ lọc hiện tại.</p>
-            <a class="cd-bo-loc" href="<?= e('?' . http_build_query(['tab' => $tab])) ?>">Xóa bộ lọc để xem tất cả</a>
+            <a class="cd-bo-loc" href="<?= e('?' . http_build_query(['tab' => $tab]) . '#cd-bang-tin') ?>">Xóa bộ lọc để xem tất cả</a>
           <?php elseif ($tab === 'hot'): ?>
             <p>Tuần này chưa có cuộc thảo luận sôi nổi nào. Hãy là người mở đầu chủ đề mới!</p>
           <?php elseif ($tab === 'cuatoi'): ?>
@@ -971,7 +1025,7 @@ require __DIR__ . '/layout/header.php';
         $link = BASE_URL . '/client/baidang.php?id=' . (int) $b['MaBaiDang'];
         $dangAn = $b['TrangThai'] === 'Bị ẩn';
       ?>
-        <article class="cd-the<?= $dangAn ? '' : ' cd-the-bam' ?>" id="bai-<?= (int) $b['MaBaiDang'] ?>"<?= $dangAn ? '' : ' data-href="' . e($link) . '#binh-luan"' ?>>
+        <article class="cd-the<?= $dangAn ? '' : ' cd-the-bam' ?><?= $baiVuaDang > 0 && (int) $b['MaBaiDang'] === $baiVuaDang ? ' cd-the-vua-dang' : '' ?>" id="bai-<?= (int) $b['MaBaiDang'] ?>"<?= $dangAn ? '' : ' data-href="' . e($link) . '"' ?>>
           <span class="pet-corner tl" aria-hidden="true"></span>
           <span class="pet-corner tr" aria-hidden="true"></span>
           <?= CongDongHelper::avatar((string) $b['HoTen'], $b['AnhDaiDien']) ?>
@@ -989,6 +1043,14 @@ require __DIR__ . '/layout/header.php';
               <?php if ($dangAn): ?><?= e($b['TieuDe']) ?><?php else: ?><a href="<?= e($link) ?>"><?= e($b['TieuDe']) ?></a><?php endif; ?>
             </h3>
             <p class="cd-trich"><?= e(mb_strimwidth(preg_replace('/\s+/u', ' ', $b['NoiDung']), 0, 140, '…')) ?></p>
+            <?php if (!empty($b['AnhDinhKem'])): ?>
+              <?php $srcAnh = BASE_URL . '/' . ltrim((string) $b['AnhDinhKem'], '/'); ?>
+              <?php if ($dangAn): ?>
+                <img class="cd-anh-bai" src="<?= e($srcAnh) ?>" alt="Ảnh đính kèm bài viết" loading="lazy">
+              <?php else: ?>
+                <a href="<?= e($link) ?>" class="cd-anh-bai-link" tabindex="-1" aria-hidden="true"><img class="cd-anh-bai" src="<?= e($srcAnh) ?>" alt="Ảnh đính kèm bài viết" loading="lazy"></a>
+              <?php endif; ?>
+            <?php endif; ?>
             <div class="cd-so-lieu">
               <?php if ($dangAn): ?>
                 <span class="cd-chi-so cd-tha-lua-static" title="Lượt thả lửa">

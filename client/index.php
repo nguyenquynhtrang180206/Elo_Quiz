@@ -226,7 +226,9 @@ require __DIR__ . '/layout/header.php';
             <a class="hero-btn-chinh" href="<?= e(BASE_URL) ?>/client/congdong.php">
               <span class="icon-play">▶</span> Vào cộng đồng
             </a>
+            <?php if (!Auth::laAdminSinhVien()): ?>
             <a class="hero-link-phu" href="<?= e(BASE_URL) ?>/client/banbe.php">Danh sách bạn bè <span>&rarr;</span></a>
+            <?php endif; ?>
           </div>
         </div>
       </div>
@@ -527,11 +529,11 @@ require __DIR__ . '/layout/header.php';
               <span class="tc-stat-val"><?= $ng ? ($chuoiThang > 0 ? '🔥 Chuỗi ' . $chuoiThang . ' thắng' : (int) $ng['SoTran'] . ' trận đã đấu') : 'Đang chờ chiến thần' ?></span>
             </div>
 
-            <!-- Nút Thách Đấu / So Tài -->
-            <a class="tc-action-btn" href="<?= e(BASE_URL) ?>/client/timtran.php<?= $ng ? '?doithu=' . (int) $ng['MaND'] : '' ?>">
-              <span class="tc-btn-icon">⚔️</span>
-              <span class="tc-btn-text"><?= $hang === 1 ? 'Thách Đấu' : 'So Tài' ?></span>
-            </a>
+            <!-- Danh hiệu (không còn link thách đấu) -->
+            <div class="tc-action-btn tc-title-tag">
+              <span class="tc-btn-icon"><?= $tc['crown'] ?></span>
+              <span class="tc-btn-text"><?= $hang === 1 ? 'Vô Địch' : ($hang === 2 ? 'Á Quân' : 'Hạng Ba') ?></span>
+            </div>
           </div>
         <?php endforeach; ?>
       </div>

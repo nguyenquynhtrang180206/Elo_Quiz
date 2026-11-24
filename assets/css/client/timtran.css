@@ -5359,3 +5359,14 @@ input.vip-mon-search-input:focus,
   color: #F5D0FE;
   box-shadow: 0 0 25px rgba(192, 132, 252, 0.6);
 }
+
+/* ===== Radar: chọn chế độ nào thì làm mờ chế độ còn lại ===== */
+.btn-radar-mode-segmented.is-pvp .seg-item-bot,
+.btn-radar-mode-segmented.is-bot .seg-item-pvp {
+  opacity: 0.35;
+  filter: grayscale(1);
+}
+.btn-radar-mode-segmented.is-pvp .seg-item-bot:hover,
+.btn-radar-mode-segmented.is-bot .seg-item-pvp:hover {
+  opacity: 0.7;
+}

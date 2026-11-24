@@ -58,4 +58,56 @@
   });
   $('ndHopHuy').addEventListener('click', function () { hop.close(); });
   hop.addEventListener('click', function (ev) { if (ev.target === hop) { hop.close(); } });
+  // Chọn môn của bảng xếp hạng: ô chọn có tìm kiếm, mặc định chỉ hiện 5 môn, "Xem thêm" để mở hết
+  var chonMon = document.getElementById('ndChonMon');
+  var formBxh = document.getElementById('ndBxhLoc');
+  if (chonMon && formBxh) {
+    var nutMo = chonMon.querySelector('.nd-chon-mon-nut');
+    var hop = chonMon.querySelector('.nd-chon-mon-hop');
+    var oTim = chonMon.querySelector('.nd-chon-mon-tim');
+    var nutThem = chonMon.querySelector('.nd-chon-mon-them');
+    var rong = chonMon.querySelector('.nd-chon-mon-rong');
+    var giaTri = chonMon.querySelector('input[name="bxh_mon"]');
+    var dsLi = [].slice.call(hop.querySelectorAll('li'));
+
+    // Bỏ dấu để gõ "toan" vẫn ra "Toán"
+    var boDau = function (t) {
+      return String(t).normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
+    };
+    var locMon = function () {
+      var t = boDau(oTim.value.trim()), dem = 0;
+      dsLi.forEach(function (li) {
+        var khop = t === '' || boDau(li.querySelector('button').getAttribute('data-ten')).indexOf(t) !== -1;
+        li.classList.toggle('an', !khop);
+        if (khop) { dem++; }
+      });
+      hop.classList.toggle('dang-tim', t !== '');
+      rong.hidden = dem > 0;
+      if (nutThem) { nutThem.hidden = t !== '' || hop.classList.contains('mo-het'); }
+    };
+    var moHop = function (mo) {
+      hop.hidden = !mo;
+      nutMo.setAttribute('aria-expanded', mo ? 'true' : 'false');
+      if (mo) { hop.classList.remove('mo-het'); oTim.value = ''; locMon(); oTim.focus(); }
+    };
+
+    nutMo.addEventListener('click', function () { moHop(hop.hidden); });
+    oTim.addEventListener('input', locMon);
+    oTim.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); } });
+    if (nutThem) {
+      nutThem.addEventListener('click', function () { hop.classList.add('mo-het'); nutThem.hidden = true; });
+    }
+    hop.addEventListener('click', function (e) {
+      var b = e.target.closest('button[data-id]');
+      if (!b) { return; }
+      giaTri.value = b.getAttribute('data-id');
+      formBxh.submit();
+    });
+    document.addEventListener('click', function (e) {
+      if (!hop.hidden && !chonMon.contains(e.target)) { moHop(false); }
+    });
+    chonMon.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && !hop.hidden) { moHop(false); nutMo.focus(); }
+    });
+  }
 })();

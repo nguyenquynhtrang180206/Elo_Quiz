@@ -223,7 +223,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 } else {
     // ?dokho= (từ dấu + trên bản đồ phủ ở cauhoi.php) chọn sẵn độ khó; giá trị lạ thì dùng Trung bình
     $dokhoGoiY = (string) ($_GET['dokho'] ?? '');
-    $v = ['mon' => (int) ($_GET['mon'] ?? 0), 'loai' => '', 'dokho' => in_array($dokhoGoiY, CauHoiHelper::DO_KHO, true) ? $dokhoGoiY : 'Trung bình', 'noidung' => '', 'giaithich' => '',
+    // ?loai= (từ ô "+ Thêm câu hỏi" ở bản đồ môn học) chọn sẵn loại kỳ thi; không hợp lệ thì để "cả hai kỳ"
+    $loaiGoiY = (string) ($_GET['loai'] ?? '');
+    $loaiHopLe = in_array($loaiGoiY, array_map(static fn ($k) => (string) $k['MaLoaiKT'], $dsKT), true) ? $loaiGoiY : '';
+    $v = ['mon' => (int) ($_GET['mon'] ?? 0), 'loai' => $loaiHopLe, 'dokho' => in_array($dokhoGoiY, CauHoiHelper::DO_KHO, true) ? $dokhoGoiY : 'Trung bình', 'noidung' => '', 'giaithich' => '',
           'dapan' => ['', '', '', ''], 'dung' => -1];
 }
 

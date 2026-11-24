@@ -8,7 +8,7 @@ Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');   // A-04
 $pdo = Database::pdo();
 $id  = (int) ($_GET['id'] ?? 0);
 
-$st = $pdo->prepare('SELECT MaND, HoTen, Email, TrangThai, NgayTao, TrangThaiKhaoSat FROM NGUOIDUNG WHERE MaND = ?');
+$st = $pdo->prepare('SELECT MaND, HoTen, Email, TrangThai, NgayTao FROM NGUOIDUNG WHERE MaND = ?');
 $st->execute([$id]);
 $nd = $st->fetch();
 
@@ -159,10 +159,6 @@ require __DIR__ . '/layout/header.php';
       <div class="nd-dl-item">
         <span class="nd-dl-nhan">Ngày đăng ký</span>
         <span class="nd-dl-giatri"><?= e(date('d/m/Y H:i', strtotime($nd['NgayTao']))) ?></span>
-      </div>
-      <div class="nd-dl-item">
-        <span class="nd-dl-nhan">Khảo sát ý kiến</span>
-        <span class="nd-dl-giatri"><?= e($nd['TrangThaiKhaoSat']) ?></span>
       </div>
       <div class="nd-dl-item">
         <span class="nd-dl-nhan">Tổng trận đã đấu</span>

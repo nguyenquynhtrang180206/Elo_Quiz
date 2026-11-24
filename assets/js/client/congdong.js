@@ -1,15 +1,40 @@
 /* Trang Cộng đồng (client/congdong.php) - Theme Cosmic Esports Arena */
 (function () {
-  // 1. Tự động submit lọc khi thay đổi môn học hoặc loại bài
-  var chonMon = document.getElementById('loc_mon');
-  if (chonMon) {
-    chonMon.addEventListener('change', function () { chonMon.form.submit(); });
+  // 1. Lọc môn / loại bài / từ khóa: mở mềm bằng capnhat_mem.js (chỉ thay nội dung, không tải lại trang, không nhảy lên banner)
+  //    Dùng ủy quyền sự kiện vì vùng bộ lọc được thay mới sau mỗi lần bấm
+  function locMem(form) {
+    var qs = new URLSearchParams();
+    new FormData(form).forEach(function (v, k) {
+      v = String(v).trim();
+      if (v !== '' && v !== '0') { qs.append(k, v); }
+    });
+    var a = document.createElement('a');
+    a.href = '?' + qs.toString();
+    a.hidden = true;
+    form.appendChild(a);
+    a.click();
+    if (a.parentNode) { a.parentNode.removeChild(a); }
   }
+  document.addEventListener('change', function (e) {
+    var t = e.target;
+    if (t && (t.id === 'loc_mon' || t.id === 'loc_loai') && t.form) { locMem(t.form); }
+  });
+  document.addEventListener('submit', function (e) {
+    var f = e.target;
+    if (f && f.id === 'formLocCD') { e.preventDefault(); locMem(f); }
+  });
 
-  var chonLoai = document.getElementById('loc_loai');
-  if (chonLoai) {
-    chonLoai.addEventListener('change', function () { chonLoai.form.submit(); });
+  // Đăng bài xong: cuộn lên đầu bảng tin để thấy ngay bài vừa đăng (được làm nổi bật)
+  function cuonToiBaiVuaDang() {
+    var bai = document.querySelector('.cd-the-vua-dang');
+    var khu = document.getElementById('cd-bang-tin');
+    if (!bai || !khu) { return; }
+    var giam = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    khu.scrollIntoView({ behavior: giam ? 'auto' : 'smooth', block: 'start' });
   }
+  document.addEventListener('mem:capnhat', cuonToiBaiVuaDang);
+  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', cuonToiBaiVuaDang); }
+  else { cuonToiBaiVuaDang(); }
 
   // 2. Thu gọn / Mở rộng form Viết bài mới mượt mà
   // Tra cứu phần tử lúc dùng (không giữ tham chiếu) vì vùng nội dung có thể được thay mới sau khi gửi form
@@ -86,15 +111,16 @@
   }
 
   // Khi bấm nút "✏️ Bài đăng mới" trên Sidebar nếu đang ở tab 'moi' -> tự động bung form
-  var tabMoiBtn = document.querySelector('.cd-tab-btn[href*="tab=moi"].active');
-  if (tabMoiBtn) {
-    tabMoiBtn.addEventListener('click', function (e) {
-      if (location.search.indexOf('tab=moi') !== -1 || location.search === '' || location.search === '?') {
-        e.preventDefault();
-        moFormDangBai(true);
-      }
-    });
-  }
+  // (ủy quyền ở pha bắt sự kiện để chạy trước bộ mở mềm, vì nút trong sidebar bị thay mới sau mỗi lần bấm)
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest ? e.target.closest('.cd-tab-btn.active[href*="tab=moi"]') : null;
+    if (!b) { return; }
+    if (location.search.indexOf('tab=moi') !== -1 || location.search === '' || location.search === '?') {
+      e.preventDefault();
+      e.stopPropagation();
+      moFormDangBai(true);
+    }
+  }, true);
 
   // Bấm nút "Viết bài ngay" trên Hero Banner -> bung form và cuộn xuống
   var btnHeroDangBai = document.getElementById('btnHeroDangBai');
@@ -121,7 +147,13 @@
     }, 4500);
   }
 
-  // 2b. Bộ chọn môn học tương tác: Hiện 5 môn + Tìm kiếm nhanh + Xem thêm (Tối ưu 20+ môn)
+  // 2b. Bộ chọn môn học tương tác: hiện 5 môn + tìm kiếm nhanh + xem thêm (tối ưu 20+ môn)
+  // Quy tắc để chọn môn, tìm kiếm và thu gọn không xung đột nhau:
+  //  - "Không gắn môn" luôn hiện (để bỏ chọn bất cứ lúc nào), không tính vào kết quả tìm kiếm.
+  //  - Đang tìm: hiện môn khớp từ khóa, cộng với môn đang chọn (giữ viền sáng) để người dùng luôn thấy mình đang chọn gì.
+  //    Bấm chọn một môn thì xóa từ khóa và quay lại danh sách thường.
+  //  - Không tìm: hiện 5 môn đầu; môn đang chọn luôn hiện dù nằm ngoài 5 môn đầu, kể cả khi đang thu gọn.
+  //  - Nhấn Enter trong ô tìm kiếm không được gửi form đăng bài: chỉ chọn môn nếu còn đúng 1 kết quả.
   function khoiTaoMonPicker() {
     var monHiddenInput = document.getElementById('mon');
     var monSelectedDisplay = document.getElementById('monSelectedDisplay');
@@ -132,9 +164,61 @@
     var monNoMatch = document.getElementById('monNoMatch');
     if (!cdMonGrid) { return; }
 
-    var allPills = cdMonGrid.querySelectorAll('.cd-mon-pill');
-    var extraPills = cdMonGrid.querySelectorAll('.cd-mon-pill.is-extra');
+    var SO_MON_HIEN_SAN = 5;
+    var allPills = Array.prototype.slice.call(cdMonGrid.querySelectorAll('.cd-mon-pill'));
+    var pillKhong = allPills.filter(function (p) { return (p.getAttribute('data-mon-id') || '') === ''; })[0] || null;
+    var pillMon = allPills.filter(function (p) { return (p.getAttribute('data-mon-id') || '') !== ''; });
     var isExpanded = false;
+    var dangKhop = [];   // các môn khớp từ khóa tìm kiếm hiện tại (không tính môn đang chọn nếu nó không khớp)
+
+    // Đánh dấu môn "xem thêm" theo thứ tự, không phụ thuộc môn nào đang được chọn lúc tải trang
+    pillMon.forEach(function (p, i) { p.classList.toggle('is-extra', i >= SO_MON_HIEN_SAN); });
+
+    // Tìm kiếm môn học không dấu & có dấu
+    function boDauTiengViet(str) {
+      return (str || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/đ/g, 'd')
+        .replace(/Đ/g, 'd');
+    }
+
+    // Tính lại môn nào hiện, môn nào ẩn từ trạng thái hiện tại (từ khóa, môn đang chọn, đang mở rộng hay không)
+    function hienThi() {
+      var q = boDauTiengViet(monSearchInput ? monSearchInput.value.trim() : '');
+      var dangTim = q !== '';
+      var chon = cdMonGrid.querySelector('.cd-mon-pill.is-selected');
+      var khop = 0;
+      var anDi = 0;
+      dangKhop = [];
+
+      allPills.forEach(function (p) {
+        var hien;
+        if (p === pillKhong) {
+          hien = true;
+        } else if (dangTim) {
+          var trungTuKhoa = boDauTiengViet(p.getAttribute('data-mon-ten') || '').indexOf(q) !== -1;
+          if (trungTuKhoa) { khop++; dangKhop.push(p); }
+          hien = trungTuKhoa || p === chon;   // môn đang chọn luôn hiện để không bị tưởng là đã bỏ chọn
+        } else {
+          hien = !p.classList.contains('is-extra') || isExpanded || p === chon;
+          if (!hien) { anDi++; }
+        }
+        p.style.display = hien ? 'inline-flex' : 'none';
+      });
+
+      if (monClearSearch) { monClearSearch.style.display = dangTim ? 'block' : 'none'; }
+      if (monNoMatch) { monNoMatch.style.display = dangTim && khop === 0 ? 'block' : 'none'; }
+
+      if (btnXemThemMon) {
+        // Ẩn nút khi đang tìm kiếm, hoặc khi đang thu gọn mà không còn môn nào để xem thêm
+        btnXemThemMon.style.display = (dangTim || (!isExpanded && anDi === 0)) ? 'none' : '';
+        btnXemThemMon.classList.toggle('is-open', isExpanded);
+        var txt = btnXemThemMon.querySelector('.xem-them-text');
+        if (txt) { txt.textContent = isExpanded ? 'Thu gọn môn học' : 'Xem thêm +' + anDi + ' môn khác'; }
+      }
+    }
 
     // Chọn môn học khi click vào pill
     cdMonGrid.addEventListener('click', function (e) {
@@ -147,80 +231,51 @@
       pill.classList.add('is-selected');
 
       if (monHiddenInput) { monHiddenInput.value = monId; }
-      if (monSelectedDisplay) { monSelectedDisplay.textContent = monTen; }
+      if (monSelectedDisplay) {
+        monSelectedDisplay.textContent = monTen;
+        var badge = monSelectedDisplay.parentNode;
+        badge.classList.remove('is-pulse');
+        void badge.offsetWidth; // restart animation
+        badge.classList.add('is-pulse');
+      }
+
+      // Chọn xong thì thoát chế độ tìm kiếm để thấy môn vừa chọn trong danh sách thường
+      if (monSearchInput) { monSearchInput.value = ''; }
+      hienThi();
     });
 
     // Toggle xem thêm môn
     if (btnXemThemMon) {
       btnXemThemMon.addEventListener('click', function () {
         isExpanded = !isExpanded;
-        btnXemThemMon.classList.toggle('is-open', isExpanded);
-        var txt = btnXemThemMon.querySelector('.xem-them-text');
-        if (txt) {
-          txt.textContent = isExpanded ? 'Thu gọn môn học' : 'Xem thêm +' + extraPills.length + ' môn khác';
-        }
-        extraPills.forEach(function (p) {
-          p.style.display = isExpanded ? 'inline-flex' : 'none';
-        });
+        hienThi();
       });
     }
 
-    // Tìm kiếm môn học không dấu & có dấu
-    function boDauTiengViet(str) {
-      return (str || '')
-        .toLowerCase()
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .replace(/đ/g, 'd')
-        .replace(/Đ/g, 'd');
-    }
-
     if (monSearchInput) {
-      monSearchInput.addEventListener('input', function () {
-        var q = boDauTiengViet(monSearchInput.value.trim());
-        if (monClearSearch) {
-          monClearSearch.style.display = q !== '' ? 'block' : 'none';
-        }
+      monSearchInput.addEventListener('input', hienThi);
 
-        if (q === '') {
-          // Khôi phục trạng thái ban đầu
-          allPills.forEach(function (p) {
-            if (p.classList.contains('is-extra')) {
-              p.style.display = isExpanded ? 'inline-flex' : 'none';
-            } else {
-              p.style.display = 'inline-flex';
-            }
-          });
-          if (monNoMatch) { monNoMatch.style.display = 'none'; }
-          if (btnXemThemMon) { btnXemThemMon.style.display = ''; }
-          return;
-        }
-
-        // Đang tìm kiếm -> ẩn nút xem thêm và lọc tất cả pills
-        if (btnXemThemMon) { btnXemThemMon.style.display = 'none'; }
-        var count = 0;
-        allPills.forEach(function (p) {
-          var name = boDauTiengViet(p.getAttribute('data-mon-ten') || '');
-          if (name.indexOf(q) !== -1) {
-            p.style.display = 'inline-flex';
-            count++;
-          } else {
-            p.style.display = 'none';
-          }
-        });
-        if (monNoMatch) {
-          monNoMatch.style.display = count === 0 ? 'block' : 'none';
+      monSearchInput.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+          // Không để Enter gửi form đăng bài; còn đúng 1 kết quả thì chọn luôn môn đó
+          e.preventDefault();
+          if (dangKhop.length === 1) { dangKhop[0].click(); }
+        } else if (e.key === 'Escape') {
+          monSearchInput.value = '';
+          hienThi();
         }
       });
 
       if (monClearSearch) {
         monClearSearch.addEventListener('click', function () {
           monSearchInput.value = '';
-          monSearchInput.dispatchEvent(new Event('input'));
+          hienThi();
           monSearchInput.focus();
         });
       }
     }
+
+    hienThi();
   }
   khoiTaoMonPicker();
   document.addEventListener('mem:capnhat', khoiTaoMonPicker);   // vùng bài đăng vừa được thay mới sau khi gửi form

@@ -18,7 +18,7 @@ try {
 
 // C-44: mọi người chỉ thấy bài "Hiển thị"; riêng chủ bài vẫn xem được bài của mình khi đang "Bị ẩn" (chỉ đọc, để xem thông báo và lý do); quản trị viên xem được cả bài bị ẩn để hiện lại
 $st = $pdo->prepare(
-    "SELECT b.MaBaiDang, b.MaND, b.MaMon, b.TieuDe, b.NoiDung, b.NgayDang, b.TrangThai, u.HoTen, u.AnhDaiDien, m.TenMon,
+    "SELECT b.MaBaiDang, b.MaND, b.MaMon, b.TieuDe, b.NoiDung, b.AnhDinhKem, b.NgayDang, b.TrangThai, u.HoTen, u.AnhDaiDien, m.TenMon,
             " . (CongDongHelper::coCotNguoiAn() ? 'b.NguoiAn' : 'NULL AS NguoiAn') . ",
             " . ($coLoai ? 'b.LoaiBai' : "'" . CongDongHelper::LOAI_MAC_DINH . "' AS LoaiBai") . ",
             TIMESTAMPDIFF(SECOND, b.NgayDang, NOW()) AS GiayTuDang,
@@ -141,6 +141,10 @@ if ($bai && $_SERVER['REQUEST_METHOD'] === 'POST') {
                 $daThich = true;
             }
         }
+        if ($daThich) {
+            ThongBaoHelper::thaLuaBai($pdo, $id, $maND);   // báo cho chủ bài (không báo khi bỏ thả lửa)
+        }
+
         $stCount = $pdo->prepare('SELECT COUNT(*) FROM LUOTTHICH WHERE MaBaiDang = ?');
         $stCount->execute([$id]);
         $soThichMoi = (int) $stCount->fetchColumn();
@@ -186,6 +190,9 @@ if ($bai && $_SERVER['REQUEST_METHOD'] === 'POST') {
             $stDaThich = $pdo->prepare('SELECT COUNT(*) FROM LUOTTHICH_BL WHERE MaBinhLuan = ? AND MaND = ?');
             $stDaThich->execute([$maBL, $maND]);
             $daThichBL = ((int) $stDaThich->fetchColumn()) > 0;
+            if ($daThichBL) {
+                ThongBaoHelper::thaLuaBL($pdo, $maBL, $maND);   // báo cho chủ bình luận (không báo khi bỏ thả lửa)
+            }
 
             if ($isAjax) {
                 header('Content-Type: application/json; charset=utf-8');
@@ -490,7 +497,24 @@ require __DIR__ . '/layout/header.php';
     .bl-reply-level-2 { margin-left: 30px; padding-left: 8px; }
     .bl-reply-level-3 { margin-left: 45px; padding-left: 8px; }
 }
+
+/* Ảnh đính kèm bài đăng */
+.cd-anh-bai-lon { display: block; max-width: 100%; max-height: 480px; margin: 12px 0; border-radius: 10px; cursor: zoom-in; object-fit: contain; background: rgba(0,0,0,.25); }
+.cd-anh-zoom { position: fixed; inset: 0; z-index: 9999; display: none; align-items: center; justify-content: center; padding: 16px; background: rgba(0,0,0,.85); cursor: zoom-out; }
+.cd-anh-zoom.mo { display: flex; }
+.cd-anh-zoom img { max-width: 100%; max-height: 100%; border-radius: 8px; }
 </style>
+
+<div class="cd-anh-zoom" id="anhZoom" role="dialog" aria-label="Xem ảnh lớn"><img src="" alt=""></div>
+<script>
+(function () {
+  var a = document.getElementById('anhBaiDang'), z = document.getElementById('anhZoom');
+  if (!a || !z) { return; }
+  a.addEventListener('click', function () { z.querySelector('img').src = a.src; z.classList.add('mo'); });
+  z.addEventListener('click', function () { z.classList.remove('mo'); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { z.classList.remove('mo'); } });
+})();
+</script>
 
 <div class="container" data-mem-vung="baidang">
   <p><a href="<?= e(BASE_URL) ?>/client/congdong.php">&laquo; Về bảng tin</a></p>
@@ -526,6 +550,10 @@ require __DIR__ . '/layout/header.php';
         </div>
       </div>
       <p><?= nl2br(e($bai['NoiDung'])) ?></p>
+      <?php if (!empty($bai['AnhDinhKem'])): ?>
+        <?php $srcAnh = BASE_URL . '/' . ltrim((string) $bai['AnhDinhKem'], '/'); ?>
+        <img class="cd-anh-bai-lon" id="anhBaiDang" src="<?= e($srcAnh) ?>" alt="Ảnh đính kèm bài viết" title="Bấm để phóng to" loading="lazy">
+      <?php endif; ?>
 
       <?php if ($coLike && !$baiAn): ?>
         <form method="post" action="?id=<?= (int) $id ?>" class="form-dong cd-like-form" data-bai-id="<?= (int) $id ?>">

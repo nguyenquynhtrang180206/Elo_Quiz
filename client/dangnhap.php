@@ -9,7 +9,7 @@
 //   + Nếu là Tài khoản Quản trị viên (nhập Tên đăng nhập hoặc Email Admin):
 //     -> Kiểm tra thiết bị tin cậy / Gửi mã OTP 2FA ngay trên giao diện này -> Chuyển thẳng vào /admin/index.php
 //   + Nếu là Tài khoản Sinh viên (nhập Email sinh viên):
-//     -> Hỗ trợ Ghi nhớ đăng nhập 30 ngày -> Chuyển thẳng vào /client/index.php (hoặc Khảo sát)
+//     -> Hỗ trợ Ghi nhớ đăng nhập 30 ngày -> Chuyển thẳng vào /client/index.php
 // =========================================================================
 require_once __DIR__ . '/../core/bootstrap.php';
 
@@ -109,10 +109,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!$dangCho2FA && empty($loi)) {
                 $kqClient = Auth::dangNhap('client', strtolower($dinhDanhNhap), $matKhau, ['remember' => $ghiNho]);
                 if ($kqClient['ok']) {
-                    $dich = (($kqClient['user']['TrangThaiKhaoSat'] ?? '') === 'Chưa làm')
-                        ? '/client/khaosat.php'
-                        : '/client/index.php';
-                    redirect(BASE_URL . $dich);
+                    redirect(BASE_URL . '/client/index.php');
                 }
                 $loi[] = $kqClient['loi'];
             }

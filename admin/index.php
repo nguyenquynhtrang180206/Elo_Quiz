@@ -484,7 +484,7 @@ require __DIR__ . '/layout/header.php';
           <svg class="tieude-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg>
           Top người chơi
         </h3>
-        <a class="dash-xemthem" href="<?= e(BASE_URL) ?>/admin/elo.php?v=bxh">Xem thêm →</a>
+        <a class="dash-xemthem" href="<?= e(BASE_URL) ?>/admin/nguoidung.php#bxh">Xem thêm →</a>
       </div>
       <?php if (!$topNguoi): ?>
         <p class="dash-phu">Chưa có người chơi nào có trận.</p>

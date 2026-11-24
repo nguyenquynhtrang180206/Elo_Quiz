@@ -844,6 +844,10 @@
 .tc-action-btn:hover {
   transform:scale(1.05); filter:brightness(1.15);
 }
+/* Danh hiệu: chỉ hiển thị, không bấm được */
+.tc-title-tag, .tc-title-tag:hover {
+  cursor:default; transform:none; filter:none;
+}
 
 /* ---- SỐ LIỆU CÁ NHÂN ---- */
 .so-lieu { display:flex; flex-wrap:wrap; gap:14px; margin:8px 0; }

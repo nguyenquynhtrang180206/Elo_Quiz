@@ -30,7 +30,7 @@
     });
   }
 
-  var ICON_LOAI = { rep_bl: '💬', loi_moi_kb: '👋', chap_nhan_kb: '🤝', thach_dau: '⚔️' };
+  var ICON_LOAI = { rep_bl: '💬', loi_moi_kb: '👋', chap_nhan_kb: '🤝', thach_dau: '⚔️', tha_lua_bai: '🔥', tha_lua_bl: '🔥' };
 
   // Cập nhật số đếm trên badge
   function capNhatBadge(count) {
