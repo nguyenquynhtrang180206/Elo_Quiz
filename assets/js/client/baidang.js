@@ -205,4 +205,76 @@
         }
       });
   });
+
+  // 4. Xem trước ảnh trực tiếp & nút dấu × xóa ảnh cho Bình luận (form viết mới & form sửa bình luận)
+  document.addEventListener('change', function (e) {
+    var input = e.target;
+    if (!input || !input.classList || !input.classList.contains('input-anh-bl')) return;
+
+    var form = input.closest('form');
+    if (!form) return;
+    var box = form.querySelector('.bl-preview-box');
+    var img = form.querySelector('.bl-preview-img');
+    var nameEl = form.querySelector('.bl-preview-name');
+    var xoaHidden = form.querySelector('.xoa-anh-bl-hidden');
+    if (!box || !img) return;
+
+    var f = input.files && input.files[0];
+    if (!f) return;
+
+    var max = parseInt(input.getAttribute('data-toi-da') || '3145728', 10);
+    var maxChu = input.getAttribute('data-toi-da-chu') || '3 MB';
+    var hopLe = /\.(jpe?g|png|webp)$/i.test(f.name) || ['image/jpeg', 'image/png', 'image/webp'].indexOf(f.type) !== -1;
+
+    if (!hopLe) {
+      alert('Chỉ chấp nhận ảnh định dạng JPG, PNG hoặc WEBP.');
+      input.value = '';
+      return;
+    }
+    if (max && f.size > max) {
+      alert('Ảnh quá lớn (tối đa ' + maxChu + '). Hãy chọn ảnh nhỏ hơn.');
+      input.value = '';
+      return;
+    }
+
+    if (img.dataset.objUrl) {
+      URL.revokeObjectURL(img.dataset.objUrl);
+    }
+    var objUrl = URL.createObjectURL(f);
+    img.dataset.objUrl = objUrl;
+    img.src = objUrl;
+    if (nameEl) {
+      nameEl.textContent = f.name + ' (' + (f.size / 1048576).toFixed(2) + ' MB)';
+    }
+    if (xoaHidden) {
+      xoaHidden.value = '0';
+    }
+    box.style.display = 'inline-flex';
+  });
+
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest ? e.target.closest('.btn-xoa-anh-bl') : null;
+    if (!btn) return;
+    e.preventDefault();
+
+    var form = btn.closest('form');
+    if (!form) return;
+    var input = form.querySelector('.input-anh-bl');
+    var box = form.querySelector('.bl-preview-box');
+    var img = form.querySelector('.bl-preview-img');
+    var nameEl = form.querySelector('.bl-preview-name');
+    var xoaHidden = form.querySelector('.xoa-anh-bl-hidden');
+
+    if (input) { input.value = ''; }
+    if (img) {
+      if (img.dataset.objUrl) {
+        URL.revokeObjectURL(img.dataset.objUrl);
+        delete img.dataset.objUrl;
+      }
+      img.src = '';
+    }
+    if (nameEl) { nameEl.textContent = ''; }
+    if (box) { box.style.display = 'none'; }
+    if (xoaHidden) { xoaHidden.value = '1'; }
+  });
 })();

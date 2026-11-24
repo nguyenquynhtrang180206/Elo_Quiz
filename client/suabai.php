@@ -136,28 +136,60 @@ require __DIR__ . '/layout/header.php';
         <textarea id="noi_dung" name="noi_dung" maxlength="5000" required><?= e($noiDungBai) ?></textarea>
 
         <label for="anh_dinh_kem">Ảnh đính kèm (không bắt buộc, JPG/PNG/WEBP, tối đa <?= e(CongDongHelper::gioiHanAnhChu()) ?>)</label>
-        <?php if (!empty($bai['AnhDinhKem'])): ?>
-          <p>
-            <img src="<?= e(BASE_URL . '/' . ltrim((string) $bai['AnhDinhKem'], '/')) ?>" alt="Ảnh hiện tại" style="display:block;max-width:100%;max-height:200px;border-radius:8px;margin-bottom:6px">
-            <label style="font-weight:400"><input type="checkbox" name="xoa_anh" value="1"> Xóa ảnh hiện tại</label>
-          </p>
-        <?php endif; ?>
+        <input type="hidden" name="xoa_anh" id="xoa_anh_hidden" value="0">
+        <?php $srcAnhHienTai = !empty($bai['AnhDinhKem']) ? BASE_URL . '/' . ltrim((string) $bai['AnhDinhKem'], '/') : ''; ?>
+        <div class="cd-img-preview-box" id="previewBoxSuaBai"<?= $srcAnhHienTai !== '' ? '' : ' style="display:none;"' ?>>
+          <div class="cd-img-preview-wrap">
+            <img id="previewImgSuaBai" src="<?= e($srcAnhHienTai) ?>" alt="Xem trước ảnh đính kèm">
+            <button type="button" class="cd-img-remove-btn" id="btnXoaAnhSuaBai" title="Xóa ảnh này" aria-label="Xóa ảnh này">&times;</button>
+          </div>
+          <span class="cd-img-preview-name" id="previewNameSuaBai"><?= $srcAnhHienTai !== '' ? 'Ảnh hiện tại của bài viết (bấm dấu × để gỡ ảnh)' : '' ?></span>
+        </div>
         <input type="file" id="anh_dinh_kem" name="anh_dinh_kem" accept="image/jpeg,image/png,image/webp" data-toi-da="<?= (int) CongDongHelper::gioiHanAnhByte() ?>" data-toi-da-chu="<?= e(CongDongHelper::gioiHanAnhChu()) ?>">
         <script>
           (function () {
             var i = document.getElementById('anh_dinh_kem');
-            if (!i) { return; }
+            var box = document.getElementById('previewBoxSuaBai');
+            var img = document.getElementById('previewImgSuaBai');
+            var nameEl = document.getElementById('previewNameSuaBai');
+            var btnXoa = document.getElementById('btnXoaAnhSuaBai');
+            var xoaHidden = document.getElementById('xoa_anh_hidden');
+            var objUrl = null;
+            if (!i || !box || !img) { return; }
+
+            function donUrl() {
+              if (objUrl) { URL.revokeObjectURL(objUrl); objUrl = null; }
+            }
+
             i.addEventListener('change', function () {
-              var f = i.files && i.files[0], max = parseInt(i.getAttribute('data-toi-da'), 10);
-              if (f && max && f.size > max) {
-                alert('Ảnh quá lớn, tối đa ' + i.getAttribute('data-toi-da-chu') + '. Hãy chọn ảnh nhỏ hơn.');
+              donUrl();
+              var f = i.files && i.files[0];
+              var max = parseInt(i.getAttribute('data-toi-da') || '3145728', 10);
+              var maxChu = i.getAttribute('data-toi-da-chu') || '3 MB';
+              if (!f) { return; }
+              if (max && f.size > max) {
+                alert('Ảnh quá lớn, tối đa ' + maxChu + '. Hãy chọn ảnh nhỏ hơn.');
                 i.value = '';
+                return;
               }
+              objUrl = URL.createObjectURL(f);
+              img.src = objUrl;
+              if (nameEl) { nameEl.textContent = f.name + ' (' + (f.size / 1048576).toFixed(2) + ' MB)'; }
+              if (xoaHidden) { xoaHidden.value = '0'; }
+              box.style.display = 'inline-flex';
             });
+
+            if (btnXoa) {
+              btnXoa.addEventListener('click', function () {
+                donUrl();
+                i.value = '';
+                img.src = '';
+                box.style.display = 'none';
+                if (xoaHidden) { xoaHidden.value = '1'; }
+              });
+            }
           })();
         </script>
-
-        <?php if (!empty($bai['AnhDinhKem'])): ?><p class="meta">Chọn ảnh mới để thay ảnh hiện tại.</p><?php endif; ?>
 
         <p><button type="submit" class="btn">Lưu</button>
            <a class="btn btn-phu" href="<?= e(BASE_URL) ?>/client/baidang.php?id=<?= (int) $id ?>">Hủy</a></p>

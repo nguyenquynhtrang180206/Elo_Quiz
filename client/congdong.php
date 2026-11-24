@@ -185,7 +185,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     $loi = array_merge($loi, $loiAnh);
     if (CongDongHelper::postQuaLon()) {
         // Ảnh làm yêu cầu vượt post_max_size nên máy chủ đã bỏ cả tiêu đề và nội dung: chỉ báo lỗi ảnh, không báo thiếu tiêu đề/nội dung
-        $loi = ['Ảnh quá lớn (tối đa ' . CongDongHelper::gioiHanAnhChu() . '), bài chưa được đăng. Hãy chọn ảnh nhỏ hơn rồi nhập lại bài.'];
+        $loi = ['anh_dinh_kem' => 'Không thể đăng bài: Ảnh đính kèm quá lớn (vượt giới hạn máy chủ ' . CongDongHelper::gioiHanAnhChu() . '). Vui lòng chọn ảnh nhỏ hơn rồi thử lại.'];
     }
 
     if (!$loi) {
@@ -193,7 +193,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         if ($duoiAnh !== null) {
             $anhLuu = CongDongHelper::luuAnh($_FILES['anh_dinh_kem'], $duoiAnh, $cfg['upload_dir']);
             if ($anhLuu === null) {
-                $loi[] = 'Không lưu được ảnh lên máy chủ. Kiểm tra quyền ghi thư mục uploads/baidang.';
+                $loi['anh_dinh_kem'] = 'Không thể đăng bài: Không lưu được ảnh lên máy chủ. Vui lòng kiểm tra quyền ghi thư mục uploads/baidang.';
             }
         }
     }
@@ -206,14 +206,23 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             $st = $pdo->prepare('INSERT INTO BAIDANG (MaND, MaMon, TieuDe, NoiDung, AnhDinhKem) VALUES (?, ?, ?, ?, ?)');
             $st->execute([$maND, $maMon, $tieuDeBai, $noiDungBai, $anhLuu]);
         }
-        $_SESSION['bai_vua_dang'] = (int) $pdo->lastInsertId();   // để làm nổi bật + cuộn tới bài vừa đăng ở lần hiển thị kế tiếp
-        CongDongHelper::flash('Đã đăng bài.');
-        redirect(BASE_URL . '/client/congdong.php?tab=moi#cd-bang-tin');   // về tab "Bài đăng mới", bỏ lọc môn/loại/từ khóa và về trang 1 để bài vừa đăng hiện ngay đầu bảng tin
+        $idVuaDang = (int) $pdo->lastInsertId();
+        $_SESSION['bai_vua_dang'] = [
+            'id'     => $idVuaDang,
+            'tieuDe' => $tieuDeBai,
+            'loai'   => $loaiChon,
+            'tenMon' => ($maMon !== null && isset($monDangMo[$maMon])) ? $monDangMo[$maMon] : '',
+        ];
+        CongDongHelper::flash('Đăng bài thành công! Bài viết "' . mb_strimwidth($tieuDeBai, 0, 70, '…') . '" đã hiển thị trực tiếp ở đầu bảng tin.');
+        redirect(BASE_URL . '/client/congdong.php?tab=moi#bai-' . $idVuaDang);
     }
 }
 
 $thanhCong = CongDongHelper::flash();
-$baiVuaDang = (int) ($_SESSION['bai_vua_dang'] ?? 0);
+$thongTinVuaDang = is_array($_SESSION['bai_vua_dang'] ?? null)
+    ? $_SESSION['bai_vua_dang']
+    : ((int) ($_SESSION['bai_vua_dang'] ?? 0) > 0 ? ['id' => (int) $_SESSION['bai_vua_dang'], 'tieuDe' => ''] : null);
+$baiVuaDang = (int) ($thongTinVuaDang['id'] ?? 0);
 unset($_SESSION['bai_vua_dang']);
 
 $baiDang = [];
@@ -313,9 +322,10 @@ if ($tab === 'huyhieu') {
     $eloMap  = CongDongHelper::layElo($pdo, array_column($baiDang, 'MaND'));
 
     // Xem trước 2 bình luận cấp 1 mới nhất của mỗi bài (chỉ bình luận 'Hiển thị', không lấy trả lời lồng bên trong); phần còn lại xem trong trang bài
+    DbSchema::damBaoCot($pdo, 'BINHLUAN', 'AnhDinhKem', 'VARCHAR(255) NULL DEFAULT NULL');
     $blXemTruoc = [];
     $stBL = $pdo->prepare(
-        "SELECT c.NoiDung, c.NgayBinhLuan, u.HoTen, u.AnhDaiDien
+        "SELECT c.NoiDung, c.AnhDinhKem, c.NgayBinhLuan, u.HoTen, u.AnhDaiDien
            FROM BINHLUAN c JOIN NGUOIDUNG u ON u.MaND = c.MaND
           WHERE c.MaBaiDang = ? AND c.TrangThai = 'Hiển thị' AND c.MaBinhLuanCha IS NULL
           ORDER BY c.NgayBinhLuan DESC, c.MaBinhLuan DESC
@@ -746,15 +756,43 @@ require __DIR__ . '/layout/header.php';
 
   <!-- ===== CỘT PHẢI: FORM VIẾT BÀI MỚI & BẢNG TIN (CHUẨN THEO HÌNH 2) ===== -->
   <section class="cd-giua" id="cd-bang-tin" style="scroll-margin-top:80px" data-mem-vung="giua" data-mem-links>
-    <?php if ($thanhCong): ?><div class="thanhcong"><?= e($thanhCong) ?></div><?php endif; ?>
+    <?php if ($thanhCong): ?>
+      <div class="thanhcong cd-thongbao-tructiep" id="cdThongBaoThanhCong" data-toast-msg="<?= e($thanhCong) ?>">
+        <div class="cd-tb-noidung">
+          <span class="cd-tb-icon">✅</span>
+          <div>
+            <strong><?= e($thanhCong) ?></strong>
+            <?php if ($baiVuaDang > 0): ?>
+              <div class="cd-tb-sub">
+                Bài viết của bạn đã xuất hiện ngay bên dưới (được đóng khung viền sáng).
+                <a href="#bai-<?= (int) $baiVuaDang ?>" class="cd-tb-link-nhay">↓ Chỉ tới bài vừa đăng</a>
+                &bull;
+                <a href="<?= e(BASE_URL) ?>/client/baidang.php?id=<?= (int) $baiVuaDang ?>" class="cd-tb-link-nhay">Mở chi tiết bài viết &rarr;</a>
+              </div>
+            <?php endif; ?>
+          </div>
+        </div>
+      </div>
+    <?php endif; ?>
+
     <?php if ($loi): ?>
-      <div class="loi"><?php foreach ($loi as $m): ?><div><?= e($m) ?></div><?php endforeach; ?></div>
+      <div class="loi cd-thongbao-loi-tructiep" id="cdThongBaoLoi" data-toast-err="<?= e(reset($loi)) ?>">
+        <div class="cd-tb-dau-loi">
+          <span class="cd-tb-icon">⚠️</span>
+          <strong>Chưa thể đăng bài viết vì các nguyên nhân sau:</strong>
+        </div>
+        <ul class="cd-ds-lydo-loi">
+          <?php foreach ($loi as $truong => $m): ?>
+            <li><?= e($m) ?></li>
+          <?php endforeach; ?>
+        </ul>
+      </div>
     <?php endif; ?>
 
     <!-- KHUNG VIẾT BÀI MỚI CHUẨN ĐẸP (THU GỌN MẶC ĐỊNH, BẤM VÀO MỚI TUNG RA) -->
     <?php if (!in_array($tab, ['thanhvien', 'huyhieu'], true)): ?>
     <?php $moFormSan = !empty($loi) || $tieuDeBai !== '' || $noiDungBai !== ''; ?>
-    <div class="cd-hop-trai cd-write-card<?= $moFormSan ? ' is-open' : '' ?>" id="khung-dang-bai">
+    <div class="cd-hop-trai cd-write-card<?= $moFormSan ? ' is-open' : '' ?><?= !empty($loi) ? ' has-post-error' : '' ?>" id="khung-dang-bai">
       <span class="pet-corner tl" aria-hidden="true"></span>
       <span class="pet-corner tr" aria-hidden="true"></span>
       <span class="pet-corner bl" aria-hidden="true"></span>
@@ -785,9 +823,13 @@ require __DIR__ . '/layout/header.php';
           <form method="post" action="" enctype="multipart/form-data" novalidate id="formDangBai" class="cd-write-form">
             <?= csrf_field() ?>
             
-            <div class="cd-write-field">
-              <label for="tieu_de" class="cd-write-label">Tiêu đề</label>
-              <input type="text" id="tieu_de" name="tieu_de" maxlength="200" value="<?= e($tieuDeBai) ?>" placeholder="Tiêu đề bài viết..." class="cd-write-input" required>
+            <div class="cd-write-field<?= isset($loi['tieu_de']) ? ' field-has-error' : '' ?>">
+              <div class="cd-label-row">
+                <label for="tieu_de" class="cd-write-label">Tiêu đề <span class="cd-bat-buoc">*</span></label>
+                <span class="cd-char-counter" id="demTieuDe"><?= mb_strlen($tieuDeBai) ?>/<?= (int) CongDongHelper::TIEU_DE_TOI_DA ?></span>
+              </div>
+              <input type="text" id="tieu_de" name="tieu_de" maxlength="200" value="<?= e($tieuDeBai) ?>" placeholder="Nhập tiêu đề bài viết (bắt buộc, tối đa 200 ký tự)..." class="cd-write-input<?= isset($loi['tieu_de']) ? ' is-invalid' : '' ?>" required>
+              <div class="cd-field-error" id="loiTieuDe"<?= isset($loi['tieu_de']) ? '' : ' style="display:none;"' ?>><?= e($loi['tieu_de'] ?? '') ?></div>
             </div>
 
             <div class="cd-write-field cd-mon-picker-field">
@@ -850,27 +892,26 @@ require __DIR__ . '/layout/header.php';
               </select>
             </div>
 
-            <div class="cd-write-field">
-              <label for="noi_dung" class="cd-write-label">Nội dung</label>
-              <textarea id="noi_dung" name="noi_dung" rows="4" maxlength="5000" placeholder="Viết chia sẻ, câu hỏi hoặc kinh nghiệm ôn thi của bạn ở đây..." class="cd-write-textarea" required><?= e($noiDungBai) ?></textarea>
+            <div class="cd-write-field<?= isset($loi['noi_dung']) ? ' field-has-error' : '' ?>">
+              <div class="cd-label-row">
+                <label for="noi_dung" class="cd-write-label">Nội dung <span class="cd-bat-buoc">*</span></label>
+                <span class="cd-char-counter" id="demNoiDung"><?= mb_strlen($noiDungBai) ?>/<?= (int) CongDongHelper::NOI_DUNG_TOI_DA ?></span>
+              </div>
+              <textarea id="noi_dung" name="noi_dung" rows="4" maxlength="5000" placeholder="Viết chia sẻ, câu hỏi hoặc kinh nghiệm ôn thi của bạn ở đây (bắt buộc)..." class="cd-write-textarea<?= isset($loi['noi_dung']) ? ' is-invalid' : '' ?>" required><?= e($noiDungBai) ?></textarea>
+              <div class="cd-field-error" id="loiNoiDung"<?= isset($loi['noi_dung']) ? '' : ' style="display:none;"' ?>><?= e($loi['noi_dung'] ?? '') ?></div>
             </div>
 
-            <div class="cd-write-field">
-              <label for="anh_dinh_kem" class="cd-write-label">Ảnh đính kèm <span style="opacity:.6;font-weight:400">(không bắt buộc, JPG/PNG/WEBP, tối đa <?= e(CongDongHelper::gioiHanAnhChu()) ?>)</span></label>
-              <input type="file" id="anh_dinh_kem" name="anh_dinh_kem" accept="image/jpeg,image/png,image/webp" class="cd-write-input" data-toi-da="<?= (int) CongDongHelper::gioiHanAnhByte() ?>" data-toi-da-chu="<?= e(CongDongHelper::gioiHanAnhChu()) ?>">
-              <script>
-                (function () {
-                  var i = document.getElementById('anh_dinh_kem');
-                  if (!i) { return; }
-                  i.addEventListener('change', function () {
-                    var f = i.files && i.files[0], max = parseInt(i.getAttribute('data-toi-da'), 10);
-                    if (f && max && f.size > max) {
-                      alert('Ảnh quá lớn, tối đa ' + i.getAttribute('data-toi-da-chu') + '. Hãy chọn ảnh nhỏ hơn.');
-                      i.value = '';
-                    }
-                  });
-                })();
-              </script>
+            <div class="cd-write-field<?= isset($loi['anh_dinh_kem']) ? ' field-has-error' : '' ?>">
+              <label for="anh_dinh_kem" class="cd-write-label">Ảnh đính kèm <span style="opacity:.6;font-weight:400">(không bắt buộc, chỉ nhận JPG/PNG/WEBP, tối đa <?= e(CongDongHelper::gioiHanAnhChu()) ?>)</span></label>
+              <input type="file" id="anh_dinh_kem" name="anh_dinh_kem" accept="image/jpeg,image/png,image/webp" class="cd-write-input<?= isset($loi['anh_dinh_kem']) ? ' is-invalid' : '' ?>" data-toi-da="<?= (int) CongDongHelper::gioiHanAnhByte() ?>" data-toi-da-chu="<?= e(CongDongHelper::gioiHanAnhChu()) ?>">
+              <div class="cd-img-preview-box" id="previewBoxBaiDang" style="display:none;">
+                <div class="cd-img-preview-wrap">
+                  <img id="previewImgBaiDang" src="" alt="Xem trước ảnh đính kèm">
+                  <button type="button" class="cd-img-remove-btn" id="btnXoaAnhBaiDang" title="Xóa ảnh đã chọn" aria-label="Xóa ảnh đã chọn">&times;</button>
+                </div>
+                <span class="cd-img-preview-name" id="previewNameBaiDang"></span>
+              </div>
+              <div class="cd-field-error" id="loiAnhDinhKem"<?= isset($loi['anh_dinh_kem']) ? '' : ' style="display:none;"' ?>><?= e($loi['anh_dinh_kem'] ?? '') ?></div>
             </div>
 
             <div class="cd-write-actions">
@@ -1024,10 +1065,14 @@ require __DIR__ . '/layout/header.php';
       <?php foreach ($baiDang as $b):
         $link = BASE_URL . '/client/baidang.php?id=' . (int) $b['MaBaiDang'];
         $dangAn = $b['TrangThai'] === 'Bị ẩn';
+        $laBaiMoiDang = ($baiVuaDang > 0 && (int) $b['MaBaiDang'] === $baiVuaDang);
       ?>
-        <article class="cd-the<?= $dangAn ? '' : ' cd-the-bam' ?><?= $baiVuaDang > 0 && (int) $b['MaBaiDang'] === $baiVuaDang ? ' cd-the-vua-dang' : '' ?>" id="bai-<?= (int) $b['MaBaiDang'] ?>"<?= $dangAn ? '' : ' data-href="' . e($link) . '"' ?>>
+        <article class="cd-the<?= $dangAn ? '' : ' cd-the-bam' ?><?= $laBaiMoiDang ? ' cd-the-vua-dang' : '' ?>" id="bai-<?= (int) $b['MaBaiDang'] ?>"<?= $dangAn ? '' : ' data-href="' . e($link) . '"' ?>>
           <span class="pet-corner tl" aria-hidden="true"></span>
           <span class="pet-corner tr" aria-hidden="true"></span>
+          <?php if ($laBaiMoiDang): ?>
+            <div class="cd-nhan-vua-dang">✨ BÀI VIẾT CỦA BẠN VỪA ĐĂNG THÀNH CÔNG</div>
+          <?php endif; ?>
           <?= CongDongHelper::avatar((string) $b['HoTen'], $b['AnhDaiDien']) ?>
           <div class="cd-the-than">
             <div class="cd-dong-tren">
@@ -1097,7 +1142,12 @@ require __DIR__ . '/layout/header.php';
                     <div class="cd-bl-xem-nd">
                       <span class="cd-bl-xem-ten"><?= e($bl['HoTen']) ?></span>
                       <span class="cd-gio">&middot; <?= e(CongDongHelper::truocDo($bl['NgayBinhLuan'])) ?></span>
-                      <p><?= e(mb_strimwidth(preg_replace('/\s+/u', ' ', $bl['NoiDung']), 0, 120, '…')) ?></p>
+                      <?php if (trim((string) $bl['NoiDung']) !== ''): ?>
+                        <p><?= e(mb_strimwidth(preg_replace('/\s+/u', ' ', $bl['NoiDung']), 0, 120, '…')) ?></p>
+                      <?php endif; ?>
+                      <?php if (!empty($bl['AnhDinhKem'])): ?>
+                        <img class="cd-anh-bl-nho" src="<?= e(BASE_URL . '/' . ltrim((string) $bl['AnhDinhKem'], '/')) ?>" alt="Ảnh bình luận" loading="lazy">
+                      <?php endif; ?>
                     </div>
                   </div>
                 <?php endforeach; ?>

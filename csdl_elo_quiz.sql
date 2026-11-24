@@ -28,6 +28,7 @@ CREATE TABLE IF NOT EXISTS NGUOIDUNG (
   ChoPhepBot        TINYINT(1)   NOT NULL DEFAULT 1 COMMENT '1 = tự ghép Bot sau hạn chờ, 0 = chỉ ghép PvP',
   TrangThai         ENUM('Hoạt động','Bị khóa') NOT NULL DEFAULT 'Hoạt động',
   NgayTao           DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  NgayDoiMatKhau    DATETIME NULL DEFAULT NULL,
   PRIMARY KEY (MaND),
   UNIQUE KEY uq_nguoidung_email (Email),
   KEY idx_nguoidung_trangthai (TrangThai, NgayTao)
@@ -37,13 +38,15 @@ CREATE TABLE IF NOT EXISTS NGUOIDUNG (
 -- 2. BẢNG ADMIN (Tài khoản quản trị viên hệ thống)
 -- ---------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS ADMIN (
-  MaAdmin       INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  TenDangNhap   VARCHAR(50)  NOT NULL,
-  MatKhau       VARCHAR(255) NOT NULL COMMENT 'Lưu dạng băm',
-  HoTen         VARCHAR(100) NOT NULL,
-  TrangThai     ENUM('Hoạt động','Bị khóa') NOT NULL DEFAULT 'Hoạt động',
-  NgayTao       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  MaND          INT UNSIGNED NULL COMMENT 'Tài khoản sinh viên liên kết (nếu có)',
+  MaAdmin        INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  TenDangNhap    VARCHAR(50)  NOT NULL,
+  MatKhau        VARCHAR(255) NOT NULL COMMENT 'Lưu dạng băm',
+  HoTen          VARCHAR(100) NOT NULL,
+  Email          VARCHAR(150) NULL DEFAULT 'buithutrang149506@gmail.com',
+  TrangThai      ENUM('Hoạt động','Bị khóa') NOT NULL DEFAULT 'Hoạt động',
+  NgayTao        DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  NgayDoiMatKhau DATETIME NULL DEFAULT NULL,
+  MaND           INT UNSIGNED NULL COMMENT 'Tài khoản sinh viên liên kết (nếu có)',
   PRIMARY KEY (MaAdmin),
   UNIQUE KEY uq_admin_tendangnhap (TenDangNhap),
   UNIQUE KEY uq_admin_mand (MaND),
@@ -255,6 +258,7 @@ CREATE TABLE IF NOT EXISTS BAIDANG (
   MaMon      INT UNSIGNED NULL,
   TieuDe     VARCHAR(200) NOT NULL,
   NoiDung    TEXT NOT NULL,
+  AnhDinhKem VARCHAR(255) NULL DEFAULT NULL COMMENT 'Đường dẫn ảnh đính kèm bài viết (uploads/baidang/...)',
   NgayDang   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   TrangThai  ENUM('Hiển thị','Bị ẩn','Đã xóa') NOT NULL DEFAULT 'Hiển thị',
   NguoiAn    ENUM('Chủ bài','Quản trị') NULL,
@@ -276,6 +280,7 @@ CREATE TABLE IF NOT EXISTS BINHLUAN (
   MaND           INT UNSIGNED NOT NULL,
   MaBinhLuanCha  INT UNSIGNED NULL DEFAULT NULL COMMENT 'NULL = bình luận gốc; khác NULL = phản hồi bình luận cha',
   NoiDung        TEXT NOT NULL,
+  AnhDinhKem     VARCHAR(255) NULL DEFAULT NULL COMMENT 'Đường dẫn ảnh đính kèm bình luận (uploads/baidang/...)',
   NgayBinhLuan   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   TrangThai      ENUM('Hiển thị','Bị ẩn','Đã xóa') NOT NULL DEFAULT 'Hiển thị',
   NguoiAn        ENUM('Chủ bình luận','Quản trị') NULL,
@@ -513,8 +518,17 @@ INSERT INTO CAUHINH (TenCauHinh, GiaTri, MoTa) VALUES
   ('NGUONG_TRAN_KEO_DAI',             '10',   'Trận quá thời gian này (phút) bị liệt kê là bất thường'),
   ('NGUONG_BIEN_DONG_ELO',            '150',  'Elo tăng/giảm quá mức này trong khoảng thời gian bên dưới thì cảnh báo'),
   ('KHOANG_BIEN_DONG_ELO',            '24',   'Khoảng thời gian xét biến động Elo (giờ)'),
-  ('SCHEMA_VERSION',                  '3',    'Phiên bản cấu trúc CSDL chuẩn hóa')
+  ('SCHEMA_VERSION',                  '8',    'Phiên bản cấu trúc CSDL chuẩn hóa')
 ON DUPLICATE KEY UPDATE GiaTri = VALUES(GiaTri), MoTa = VALUES(MoTa);
+
+-- ---------------------------------------------------------------------
+-- TỰ ĐỘNG BỔ SUNG CỘT MỚI CHO DATABASE ĐÃ TỒN TẠI (CHẠY AN TOÀN TRÊN MYSQL/MARIADB)
+-- ---------------------------------------------------------------------
+ALTER TABLE BAIDANG  ADD COLUMN IF NOT EXISTS AnhDinhKem VARCHAR(255) NULL DEFAULT NULL AFTER NoiDung;
+ALTER TABLE BINHLUAN ADD COLUMN IF NOT EXISTS AnhDinhKem VARCHAR(255) NULL DEFAULT NULL AFTER NoiDung;
+ALTER TABLE ADMIN    ADD COLUMN IF NOT EXISTS Email VARCHAR(150) NULL DEFAULT 'buithutrang149506@gmail.com' AFTER HoTen;
+ALTER TABLE ADMIN    ADD COLUMN IF NOT EXISTS NgayDoiMatKhau DATETIME NULL DEFAULT NULL AFTER NgayTao;
+ALTER TABLE NGUOIDUNG ADD COLUMN IF NOT EXISTS NgayDoiMatKhau DATETIME NULL DEFAULT NULL AFTER NgayTao;
 
 -- 3. Tài khoản Quản trị viên mặc định: admin / admin123
 INSERT INTO ADMIN (MaAdmin, TenDangNhap, MatKhau, HoTen, TrangThai) VALUES

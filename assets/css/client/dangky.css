@@ -143,3 +143,22 @@
   text-decoration: underline;
   text-shadow: 0 0 8px rgba(0, 217, 255, 0.6);
 }
+
+@media (max-width: 560px) {
+  .container.khung-register {
+    padding: 8px 10px;
+  }
+  .container.khung-register .card {
+    padding: 18px 14px;
+  }
+  .thongbao-email-box {
+    align-items: flex-start;
+    padding: 10px 12px;
+    font-size: 12.5px;
+    word-break: break-word;
+  }
+  .hang-gui-lai {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+}

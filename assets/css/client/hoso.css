@@ -1,6 +1,6 @@
 /* Trang Hồ sơ cá nhân (client/hoso.php) */
 .hoso-luoi { display:flex; flex-wrap:wrap; gap:16px; }
-.hoso-luoi > .card { flex:1 1 340px; }
+.hoso-luoi > .card { flex:1 1 320px; min-width:0; max-width:100%; }
 .avatar, .avatar-mac-dinh { width:96px; height:96px; border-radius:50%; display:block; }
 .avatar { object-fit:cover; border:1px solid var(--mau-vien); }
 .avatar-mac-dinh { background:var(--mau-chinh); color:#fff; font-size:40px; font-weight:700;

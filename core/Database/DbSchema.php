@@ -3,7 +3,7 @@
 // Chạy đúng 1 lần cho mỗi phiên bản (đánh dấu bằng CAUHINH.SCHEMA_VERSION), các request sau chỉ tốn 1 truy vấn nhẹ.
 class DbSchema
 {
-    public const PHIEN_BAN = '7';
+    public const PHIEN_BAN = '8';
     private static bool $daKiemTra = false;
 
     public static function damBao(PDO $pdo): void
@@ -12,11 +12,27 @@ class DbSchema
             return;
         }
         self::$daKiemTra = true;
+
+        // Luôn đảm bảo bảng CAUHINH tồn tại trước khi đọc SCHEMA_VERSION
+        self::thucThiAnToan($pdo, "CREATE TABLE IF NOT EXISTS CAUHINH (
+            MaCauHinh   INT UNSIGNED NOT NULL AUTO_INCREMENT,
+            TenCauHinh  VARCHAR(60)  NOT NULL,
+            GiaTri      VARCHAR(100) NOT NULL,
+            MoTa        VARCHAR(255) NULL,
+            PRIMARY KEY (MaCauHinh),
+            UNIQUE KEY uq_cauhinh_ten (TenCauHinh)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
         try {
             $st = $pdo->query("SELECT GiaTri FROM CAUHINH WHERE TenCauHinh = 'SCHEMA_VERSION'");
             if ($st && (string) $st->fetchColumn() === self::PHIEN_BAN) {
                 return;
             }
+        } catch (Throwable) {
+            // Tiếp tục chạy nangCap() ngay cả khi truy vấn CAUHINH lỗi
+        }
+
+        try {
             self::nangCap($pdo);
             $pdo->prepare(
                 "INSERT INTO CAUHINH (TenCauHinh, GiaTri, MoTa) VALUES ('SCHEMA_VERSION', ?, 'Phiên bản cấu trúc CSDL chuẩn hóa')
@@ -25,6 +41,12 @@ class DbSchema
         } catch (Throwable $e) {
             error_log('DbSchema: ' . $e->getMessage());
         }
+    }
+
+    /** Đảm bảo trực tiếp một cột bắt buộc tồn tại trong bảng (tự động sửa lỗi 42S22 tức thì). */
+    public static function damBaoCot(PDO $pdo, string $bang, string $cot, string $dinhNghia = 'VARCHAR(255) NULL DEFAULT NULL'): void
+    {
+        self::themCot($pdo, $bang, $cot, $dinhNghia);
     }
 
     private static function coCot(PDO $pdo, string $bang, string $cot): bool
@@ -46,7 +68,21 @@ class DbSchema
     private static function themCot(PDO $pdo, string $bang, string $cot, string $dinhNghia): void
     {
         if (!self::coCot($pdo, $bang, $cot)) {
-            self::thucThiAnToan($pdo, "ALTER TABLE `$bang` ADD COLUMN `$cot` $dinhNghia");
+            // Tìm tên bảng thực tế trong DB để tránh lỗi phân biệt hoa/thường trên một số cấu hình MySQL
+            $tenBangThuc = $bang;
+            try {
+                $st = $pdo->prepare(
+                    'SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES
+                      WHERE TABLE_SCHEMA = DATABASE() AND LOWER(TABLE_NAME) = LOWER(?) LIMIT 1'
+                );
+                $st->execute([$bang]);
+                $found = $st->fetchColumn();
+                if ($found) {
+                    $tenBangThuc = (string) $found;
+                }
+            } catch (Throwable) {
+            }
+            self::thucThiAnToan($pdo, "ALTER TABLE `$tenBangThuc` ADD COLUMN `$cot` $dinhNghia");
         }
     }
 
@@ -82,6 +118,7 @@ class DbSchema
         self::themCot($pdo, 'BAIDANG', 'AnhDinhKem', 'VARCHAR(255) NULL DEFAULT NULL');   // 1 ảnh đính kèm mỗi bài (đường dẫn tương đối từ gốc dự án)
         self::themCot($pdo, 'BINHLUAN', 'NguoiAn', "ENUM('Chủ bài','Quản trị') DEFAULT NULL");
         self::themCot($pdo, 'BINHLUAN', 'MaBinhLuanCha', 'INT UNSIGNED NULL DEFAULT NULL');
+        self::themCot($pdo, 'BINHLUAN', 'AnhDinhKem', 'VARCHAR(255) NULL DEFAULT NULL');
 
         // 5. Cột mở rộng bảng NHATKYQUANTRI (IP và trạng thái thao tác)
         self::themCot($pdo, 'NHATKYQUANTRI', 'DiaChiIP', 'VARCHAR(45) NULL');

@@ -24,17 +24,202 @@
     if (f && f.id === 'formLocCD') { e.preventDefault(); locMem(f); }
   });
 
-  // Đăng bài xong: cuộn lên đầu bảng tin để thấy ngay bài vừa đăng (được làm nổi bật)
+  // Đăng bài xong hoặc gặp lỗi: cuộn trực tiếp tới bài vừa đăng / thông báo lỗi và hiện Toast nổi trực tiếp
   function cuonToiBaiVuaDang() {
+    var tbThanhCong = document.getElementById('cdThongBaoThanhCong');
+    var tbLoi = document.getElementById('cdThongBaoLoi');
     var bai = document.querySelector('.cd-the-vua-dang');
-    var khu = document.getElementById('cd-bang-tin');
-    if (!bai || !khu) { return; }
     var giam = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    khu.scrollIntoView({ behavior: giam ? 'auto' : 'smooth', block: 'start' });
+
+    if (tbThanhCong && tbThanhCong.dataset.daHienToast !== '1') {
+      tbThanhCong.dataset.daHienToast = '1';
+      var msgOk = tbThanhCong.getAttribute('data-toast-msg');
+      if (msgOk) { hienThiToast(msgOk, '✅'); }
+    }
+
+    if (tbLoi && tbLoi.dataset.daHienToast !== '1') {
+      tbLoi.dataset.daHienToast = '1';
+      var msgErr = tbLoi.getAttribute('data-toast-err');
+      if (msgErr) { hienThiToast(msgErr, '⚠️'); }
+      tbLoi.scrollIntoView({ behavior: giam ? 'auto' : 'smooth', block: 'center' });
+      var oLoiDau = document.querySelector('#formDangBai .is-invalid');
+      if (oLoiDau && oLoiDau.focus) {
+        setTimeout(function () { oLoiDau.focus(); }, 250);
+      }
+      return;
+    }
+
+    if (bai) {
+      bai.scrollIntoView({ behavior: giam ? 'auto' : 'smooth', block: 'center' });
+    }
   }
   document.addEventListener('mem:capnhat', cuonToiBaiVuaDang);
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', cuonToiBaiVuaDang); }
-  else { cuonToiBaiVuaDang(); }
+  else { setTimeout(cuonToiBaiVuaDang, 50); }
+
+  // 1b. Kiểm tra trực tiếp tại chỗ (Real-time Validation) khi người dùng nhập hoặc bấm Đăng bài
+  function khoiTaoKiemTraFormDangBai() {
+    var form = document.getElementById('formDangBai');
+    if (!form || form.dataset.daGanKiemTra === '1') { return; }
+    form.dataset.daGanKiemTra = '1';
+
+    var oTieuDe = document.getElementById('tieu_de');
+    var oNoiDung = document.getElementById('noi_dung');
+    var oAnh = document.getElementById('anh_dinh_kem');
+    var demTieuDe = document.getElementById('demTieuDe');
+    var demNoiDung = document.getElementById('demNoiDung');
+    var loiTieuDe = document.getElementById('loiTieuDe');
+    var loiNoiDung = document.getElementById('loiNoiDung');
+    var loiAnh = document.getElementById('loiAnhDinhKem');
+
+    function datLoiTruong(inputEl, errEl, msg) {
+      if (!inputEl || !errEl) { return; }
+      var wrap = inputEl.closest('.cd-write-field');
+      if (msg) {
+        inputEl.classList.add('is-invalid');
+        if (wrap) { wrap.classList.add('field-has-error'); }
+        errEl.textContent = msg;
+        errEl.style.display = 'block';
+      } else {
+        inputEl.classList.remove('is-invalid');
+        if (wrap) { wrap.classList.remove('field-has-error'); }
+        errEl.textContent = '';
+        errEl.style.display = 'none';
+      }
+    }
+
+    if (oTieuDe) {
+      oTieuDe.addEventListener('input', function () {
+        var len = oTieuDe.value.length;
+        if (demTieuDe) { demTieuDe.textContent = len + '/200'; }
+        if (oTieuDe.value.trim() !== '') {
+          datLoiTruong(oTieuDe, loiTieuDe, '');
+        }
+      });
+    }
+
+    if (oNoiDung) {
+      oNoiDung.addEventListener('input', function () {
+        var len = oNoiDung.value.length;
+        if (demNoiDung) { demNoiDung.textContent = len + '/5000'; }
+        if (oNoiDung.value.trim() !== '') {
+          datLoiTruong(oNoiDung, loiNoiDung, '');
+        }
+      });
+    }
+
+    if (oAnh) {
+      var boxPreview = document.getElementById('previewBoxBaiDang');
+      var imgPreview = document.getElementById('previewImgBaiDang');
+      var namePreview = document.getElementById('previewNameBaiDang');
+      var btnXoaAnh = document.getElementById('btnXoaAnhBaiDang');
+      var curObjUrl = null;
+
+      function donPreviewAnh() {
+        if (curObjUrl) {
+          URL.revokeObjectURL(curObjUrl);
+          curObjUrl = null;
+        }
+        if (imgPreview) { imgPreview.src = ''; }
+        if (namePreview) { namePreview.textContent = ''; }
+        if (boxPreview) { boxPreview.style.display = 'none'; }
+      }
+
+      if (btnXoaAnh) {
+        btnXoaAnh.addEventListener('click', function () {
+          oAnh.value = '';
+          donPreviewAnh();
+          datLoiTruong(oAnh, loiAnh, '');
+        });
+      }
+
+      oAnh.addEventListener('change', function () {
+        var f = oAnh.files && oAnh.files[0];
+        if (!f) {
+          donPreviewAnh();
+          datLoiTruong(oAnh, loiAnh, '');
+          return;
+        }
+        var max = parseInt(oAnh.getAttribute('data-toi-da') || '3145728', 10);
+        var maxChu = oAnh.getAttribute('data-toi-da-chu') || '3 MB';
+        var hopLeDinhDang = /\.(jpe?g|png|webp)$/i.test(f.name) || ['image/jpeg', 'image/png', 'image/webp'].indexOf(f.type) !== -1;
+
+        if (!hopLeDinhDang) {
+          var msgDinhDang = 'Không thể đăng bài: Tệp "' + f.name + '" không đúng định dạng ảnh (chỉ chấp nhận JPG, PNG hoặc WEBP).';
+          donPreviewAnh();
+          datLoiTruong(oAnh, loiAnh, msgDinhDang);
+          hienThiToast(msgDinhDang, '⚠️');
+          oAnh.value = '';
+          return;
+        }
+        if (max && f.size > max) {
+          var mb = (f.size / 1048576).toFixed(2);
+          var msgSize = 'Không thể đăng bài: Ảnh "' + f.name + '" nặng ' + mb + ' MB (vượt giới hạn tối đa ' + maxChu + '). Hãy chọn ảnh nhẹ hơn.';
+          donPreviewAnh();
+          datLoiTruong(oAnh, loiAnh, msgSize);
+          hienThiToast(msgSize, '⚠️');
+          oAnh.value = '';
+          return;
+        }
+        datLoiTruong(oAnh, loiAnh, '');
+
+        if (curObjUrl) { URL.revokeObjectURL(curObjUrl); }
+        curObjUrl = URL.createObjectURL(f);
+        if (imgPreview) { imgPreview.src = curObjUrl; }
+        if (namePreview) { namePreview.textContent = f.name + ' (' + (f.size / 1048576).toFixed(2) + ' MB)'; }
+        if (boxPreview) { boxPreview.style.display = 'inline-flex'; }
+      });
+    }
+
+    // Chặn ở pha capture trước khi gửi mềm nếu thiếu Tiêu đề hoặc Nội dung để chỉ rõ lý do ngay lập tức
+    form.addEventListener('submit', function (e) {
+      var dsLoi = [];
+      var oFocus = null;
+
+      if (oTieuDe) {
+        var td = oTieuDe.value.trim();
+        if (td === '') {
+          var m1 = 'Không thể đăng bài: Bạn chưa nhập tiêu đề bài viết.';
+          datLoiTruong(oTieuDe, loiTieuDe, m1);
+          dsLoi.push(m1);
+          oFocus = oFocus || oTieuDe;
+        } else if (td.length > 200) {
+          var m2 = 'Không thể đăng bài: Tiêu đề vượt quá 200 ký tự cho phép.';
+          datLoiTruong(oTieuDe, loiTieuDe, m2);
+          dsLoi.push(m2);
+          oFocus = oFocus || oTieuDe;
+        } else {
+          datLoiTruong(oTieuDe, loiTieuDe, '');
+        }
+      }
+
+      if (oNoiDung) {
+        var nd = oNoiDung.value.trim();
+        if (nd === '') {
+          var m3 = 'Không thể đăng bài: Bạn chưa nhập nội dung bài viết.';
+          datLoiTruong(oNoiDung, loiNoiDung, m3);
+          dsLoi.push(m3);
+          oFocus = oFocus || oNoiDung;
+        } else if (nd.length > 5000) {
+          var m4 = 'Không thể đăng bài: Nội dung vượt quá 5000 ký tự cho phép.';
+          datLoiTruong(oNoiDung, loiNoiDung, m4);
+          dsLoi.push(m4);
+          oFocus = oFocus || oNoiDung;
+        } else {
+          datLoiTruong(oNoiDung, loiNoiDung, '');
+        }
+      }
+
+      if (dsLoi.length > 0) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        hienThiToast(dsLoi[0], '⚠️');
+        if (oFocus && oFocus.focus) { oFocus.focus(); }
+      }
+    }, true);
+  }
+  khoiTaoKiemTraFormDangBai();
+  document.addEventListener('mem:capnhat', khoiTaoKiemTraFormDangBai);
 
   // 2. Thu gọn / Mở rộng form Viết bài mới mượt mà
   // Tra cứu phần tử lúc dùng (không giữ tham chiếu) vì vùng nội dung có thể được thay mới sau khi gửi form

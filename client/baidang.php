@@ -5,6 +5,7 @@ require_once __DIR__ . '/../core/bootstrap.php';
 $maND = Auth::clientId();   // khách chưa đăng nhập vẫn xem được bài; bình luận/xóa/sửa cần đăng nhập
 $laQT = Auth::laQuanTriKiemDuyet();   // admin đang ở khu sinh viên: kiểm duyệt (ẩn/hiện kèm lý do) ngay tại đây
 $pdo  = Database::pdo();
+DbSchema::damBaoCot($pdo, 'BINHLUAN', 'AnhDinhKem', 'VARCHAR(255) NULL DEFAULT NULL');
 $id   = (int) ($_POST['id'] ?? $_GET['id'] ?? 0);
 $coLoai = CongDongHelper::coCotLoaiBai();
 
@@ -81,21 +82,36 @@ if ($bai && $_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($hanhDong === 'binhluan') {
         $noiDungBL = trim((string) ($_POST['noi_dung'] ?? ''));
-        if ($noiDungBL === '') {
-            $loi[] = 'Vui lòng nhập nội dung bình luận.';
+        [$loiAnhBL, $duoiAnhBL] = CongDongHelper::kiemTraAnh($_FILES['anh_bl'] ?? null);
+        if ($loiAnhBL) {
+            $loi = array_merge($loi, array_values($loiAnhBL));
+        }
+
+        if ($noiDungBL === '' && $duoiAnhBL === null) {
+            $loi[] = 'Vui lòng nhập nội dung bình luận hoặc đính kèm ảnh.';
         } elseif (mb_strlen($noiDungBL) > CongDongHelper::BINH_LUAN_TOI_DA) {
             $loi[] = 'Bình luận tối đa ' . CongDongHelper::BINH_LUAN_TOI_DA . ' ký tự.';
-        } else {
+        }
+
+        $anhLuuBL = null;
+        if (!$loi && $duoiAnhBL !== null) {
+            $anhLuuBL = CongDongHelper::luuAnh($_FILES['anh_bl'], $duoiAnhBL, $cfg['upload_dir']);
+            if ($anhLuuBL === null) {
+                $loi[] = 'Không lưu được ảnh bình luận lên máy chủ.';
+            }
+        }
+
+        if (!$loi) {
             // Lấy ID bình luận cha nếu có (Trả lời bình luận)
             $rep_bl_id = (int) ($_POST['rep_bl_id'] ?? 0);
             $maBinhLuanCha = $rep_bl_id > 0 ? $rep_bl_id : null;
 
-            $ins = $pdo->prepare('INSERT INTO BINHLUAN (MaBaiDang, MaND, NoiDung, MaBinhLuanCha) VALUES (?, ?, ?, ?)');
-            $ins->execute([$id, $maND, $noiDungBL, $maBinhLuanCha]);
+            $ins = $pdo->prepare('INSERT INTO BINHLUAN (MaBaiDang, MaND, NoiDung, MaBinhLuanCha, AnhDinhKem) VALUES (?, ?, ?, ?, ?)');
+            $ins->execute([$id, $maND, $noiDungBL, $maBinhLuanCha, $anhLuuBL]);
             $maBLMoi = (int) $pdo->lastInsertId();
 
             $linkBL = BASE_URL . '/client/baidang.php?id=' . $id . '#bl-' . $maBLMoi;
-            $trichDoan = mb_substr(strip_tags($noiDungBL), 0, 120);
+            $trichDoan = $noiDungBL !== '' ? mb_substr(strip_tags($noiDungBL), 0, 120) : '[Hình ảnh đính kèm]';
 
             // Tên người gửi bình luận
             $stUser = $pdo->prepare('SELECT HoTen FROM NGUOIDUNG WHERE MaND = ?');
@@ -220,19 +236,53 @@ if ($bai && $_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             $dangSua    = $maBL;
             $noiDungSua = trim((string) ($_POST['noi_dung'] ?? ''));
-            if ($noiDungSua === '') {
-                $loiSua[] = 'Vui lòng nhập nội dung bình luận.';
+            $xoaAnhBL   = !empty($_POST['xoa_anh_bl']);
+
+            $stCurBL = $pdo->prepare('SELECT AnhDinhKem FROM BINHLUAN WHERE MaBinhLuan = ? AND MaND = ?');
+            $stCurBL->execute([$maBL, $maND]);
+            $anhCuBL = $stCurBL->fetchColumn() ?: null;
+
+            [$loiAnhSua, $duoiAnhSua] = CongDongHelper::kiemTraAnh($_FILES['anh_bl_sua'] ?? null);
+            if ($loiAnhSua) {
+                $loiSua = array_merge($loiSua, array_values($loiAnhSua));
+            }
+
+            $coAnhSauSua = ($duoiAnhSua !== null) || (!$xoaAnhBL && !empty($anhCuBL));
+            if ($noiDungSua === '' && !$coAnhSauSua) {
+                $loiSua[] = 'Vui lòng nhập nội dung bình luận hoặc giữ lại ảnh đính kèm.';
             } elseif (mb_strlen($noiDungSua) > CongDongHelper::BINH_LUAN_TOI_DA) {
                 $loiSua[] = 'Bình luận tối đa ' . CongDongHelper::BINH_LUAN_TOI_DA . ' ký tự.';
-            } else {
-                $kq = CongDongHelper::suaBL($pdo, $maBL, $maND, $noiDungSua);
-                if ($kq === 'ok') {
-                    CongDongHelper::flash('Đã cập nhật bình luận.', 'flash_bl');
-                    $veLai();
+            }
+
+            if (!$loiSua) {
+                $anhMoiBL = $anhCuBL;
+                $capNhatAnh = false;
+                if ($duoiAnhSua !== null) {
+                    $anhVuaLuu = CongDongHelper::luuAnh($_FILES['anh_bl_sua'], $duoiAnhSua, $cfg['upload_dir']);
+                    if ($anhVuaLuu === null) {
+                        $loiSua[] = 'Không lưu được ảnh bình luận lên máy chủ.';
+                    } else {
+                        $anhMoiBL = $anhVuaLuu;
+                        $capNhatAnh = true;
+                    }
+                } elseif ($xoaAnhBL) {
+                    $anhMoiBL = null;
+                    $capNhatAnh = true;
                 }
-                $loiSua[] = $kq === 'het_han'
-                    ? 'Đã quá ' . CongDongHelper::SUA_TOI_DA_PHUT . ' phút kể từ lúc viết nên không thể sửa bình luận này.'
-                    : 'Không sửa được bình luận này.';
+
+                if (!$loiSua) {
+                    $kq = CongDongHelper::suaBL($pdo, $maBL, $maND, $noiDungSua, $anhMoiBL, $capNhatAnh);
+                    if ($kq === 'ok') {
+                        if ($capNhatAnh && $anhCuBL && $anhCuBL !== $anhMoiBL) {
+                            CongDongHelper::xoaFileAnh((string) $anhCuBL, $cfg['upload_dir']);
+                        }
+                        CongDongHelper::flash('Đã cập nhật bình luận.', 'flash_bl');
+                        $veLai();
+                    }
+                    $loiSua[] = $kq === 'het_han'
+                        ? 'Đã quá ' . CongDongHelper::SUA_TOI_DA_PHUT . ' phút kể từ lúc viết nên không thể sửa bình luận này.'
+                        : 'Không sửa được bình luận này.';
+                }
             }
         }
     } elseif ($hanhDong === 'xoa' && (int) $bai['MaND'] === $maND) {
@@ -270,7 +320,7 @@ if ($bai) {
     }
     
     $st = $pdo->prepare(
-        "SELECT c.MaBinhLuan, c.MaND, c.NoiDung, c.NgayBinhLuan, c.TrangThai, u.HoTen, u.AnhDaiDien,
+        "SELECT c.MaBinhLuan, c.MaND, c.NoiDung, c.AnhDinhKem, c.NgayBinhLuan, c.TrangThai, u.HoTen, u.AnhDaiDien,
                 c.MaBinhLuanCha,
                 " . ($coAnBL ? 'c.NguoiAn' : 'NULL AS NguoiAn') . ",
                 TIMESTAMPDIFF(SECOND, c.NgayBinhLuan, NOW()) AS GiayTuLuc,
@@ -332,21 +382,43 @@ function renderBinhLuan($c, $level, $maND, $coAnBL, $coLikeBL, $bai, $eloMap, $c
         </div>
 
         <?php if ($moSua): ?>
-            <form method="post" action="?id=<?= (int) $id ?>" novalidate class="form-sua-bl">
+            <form method="post" action="?id=<?= (int) $id ?>" enctype="multipart/form-data" novalidate class="form-sua-bl">
                 <?= csrf_field() ?>
                 <input type="hidden" name="hanh_dong" value="sua_bl">
                 <?= $truongBL ?>
                 <?php if ($loiSua): $loiSuaDaHien = true; ?>
                     <div class="loi"><?php foreach ($loiSua as $m): ?><div><?= e($m) ?></div><?php endforeach; ?></div>
                 <?php endif; ?>
-                <textarea name="noi_dung" maxlength="1000" required><?= e($noiDungSua ?? $c['NoiDung']) ?></textarea>
+                <textarea name="noi_dung" maxlength="1000" placeholder="Nhập nội dung bình luận..."><?= e($noiDungSua ?? $c['NoiDung']) ?></textarea>
+                <input type="hidden" name="xoa_anh_bl" class="xoa-anh-bl-hidden" value="0">
+                <?php $srcAnhBL = !empty($c['AnhDinhKem']) ? BASE_URL . '/' . ltrim((string) $c['AnhDinhKem'], '/') : ''; ?>
+                <div class="cd-img-preview-box bl-preview-box"<?= $srcAnhBL !== '' ? '' : ' style="display:none;"' ?>>
+                    <div class="cd-img-preview-wrap">
+                        <img class="bl-preview-img" src="<?= e($srcAnhBL) ?>" alt="Ảnh đính kèm bình luận">
+                        <button type="button" class="cd-img-remove-btn btn-xoa-anh-bl" title="Xóa ảnh đính kèm">&times;</button>
+                    </div>
+                    <span class="cd-img-preview-name bl-preview-name"><?= $srcAnhBL !== '' ? 'Ảnh hiện tại (bấm × để xóa)' : '' ?></span>
+                </div>
+                <div class="bl-upload-bar">
+                    <label class="btn-chon-anh-bl">
+                        <svg viewBox="0 0 20 20" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="3.5" width="15" height="13" rx="2"/><circle cx="7" cy="8" r="1.5"/><path d="M17.5 13l-4-4-6.5 6.5"/></svg>
+                        <span>Đổi / Thêm ảnh</span>
+                        <input type="file" name="anh_bl_sua" class="input-anh-bl" accept="image/jpeg,image/png,image/webp" data-toi-da="<?= (int) CongDongHelper::gioiHanAnhByte() ?>" data-toi-da-chu="<?= e(CongDongHelper::gioiHanAnhChu()) ?>" hidden>
+                    </label>
+                </div>
                 <p>
                     <button type="submit" class="btn">Lưu</button>
                     <a class="btn btn-phu" data-mem-lien href="?id=<?= (int) $id ?>#bl-<?= (int) $c['MaBinhLuan'] ?>">Hủy</a>
                 </p>
             </form>
         <?php else: ?>
-            <div><?= nl2br(e($c['NoiDung'])) ?></div>
+            <?php if (trim((string) $c['NoiDung']) !== ''): ?>
+                <div><?= nl2br(e($c['NoiDung'])) ?></div>
+            <?php endif; ?>
+            <?php if (!empty($c['AnhDinhKem'])): ?>
+                <?php $srcAnhBL = BASE_URL . '/' . ltrim((string) $c['AnhDinhKem'], '/'); ?>
+                <img class="cd-anh-bl-lon cd-zoomable-img" src="<?= e($srcAnhBL) ?>" alt="Ảnh bình luận" title="Bấm để phóng to" loading="lazy">
+            <?php endif; ?>
         <?php endif; ?>
 
         <?php if (!$moSua): ?>
@@ -508,9 +580,15 @@ require __DIR__ . '/layout/header.php';
 <div class="cd-anh-zoom" id="anhZoom" role="dialog" aria-label="Xem ảnh lớn"><img src="" alt=""></div>
 <script>
 (function () {
-  var a = document.getElementById('anhBaiDang'), z = document.getElementById('anhZoom');
-  if (!a || !z) { return; }
-  a.addEventListener('click', function () { z.querySelector('img').src = a.src; z.classList.add('mo'); });
+  var z = document.getElementById('anhZoom');
+  if (!z) { return; }
+  document.addEventListener('click', function (e) {
+    var img = e.target.closest ? e.target.closest('#anhBaiDang, .cd-zoomable-img') : null;
+    if (img && img.src) {
+      z.querySelector('img').src = img.src;
+      z.classList.add('mo');
+    }
+  });
   z.addEventListener('click', function () { z.classList.remove('mo'); });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { z.classList.remove('mo'); } });
 })();
@@ -648,7 +726,7 @@ require __DIR__ . '/layout/header.php';
         <?php elseif ($maND === null): ?>
           <p class="meta"><a href="<?= e(BASE_URL) ?>/client/dangnhap.php">Đăng nhập</a> để viết bình luận.</p>
         <?php else: ?>
-        <form method="post" action="?id=<?= (int) $id ?>" novalidate id="formDangBL">
+        <form method="post" action="?id=<?= (int) $id ?>" enctype="multipart/form-data" novalidate id="formDangBL">
           <?= csrf_field() ?>
           <input type="hidden" name="hanh_dong" value="binhluan">
           <input type="hidden" name="rep_mand" id="rep_mand" value="">
@@ -661,13 +739,29 @@ require __DIR__ . '/layout/header.php';
           </div>
 
           <label for="noi_dung">Viết bình luận</label>
-          <textarea id="noi_dung" name="noi_dung" maxlength="1000" placeholder="Chia sẻ lời giải hoặc trả lời thảo luận..." required><?= e($noiDungBL) ?></textarea>
-          <p>
+          <textarea id="noi_dung" name="noi_dung" maxlength="1000" placeholder="Chia sẻ lời giải hoặc trả lời thảo luận (có thể đính kèm ảnh)..."><?= e($noiDungBL) ?></textarea>
+
+          <!-- Khung hiển thị ảnh xem trước ngay khi chọn kèm dấu X xóa ảnh -->
+          <div class="cd-img-preview-box bl-preview-box" id="previewBoxBL" style="display:none;">
+            <div class="cd-img-preview-wrap">
+              <img class="bl-preview-img" id="previewImgBL" src="" alt="Xem trước ảnh bình luận">
+              <button type="button" class="cd-img-remove-btn btn-xoa-anh-bl" id="btnXoaAnhBL" title="Xóa ảnh đã chọn" aria-label="Xóa ảnh đã chọn">&times;</button>
+            </div>
+            <span class="cd-img-preview-name bl-preview-name" id="previewNameBL"></span>
+          </div>
+
+          <div class="bl-form-actions">
+            <label class="btn-chon-anh-bl" for="anh_bl">
+              <svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="3.5" width="15" height="13" rx="2"/><circle cx="7" cy="8" r="1.5"/><path d="M17.5 13l-4-4-6.5 6.5"/></svg>
+              <span>Đính kèm ảnh</span>
+              <input type="file" id="anh_bl" name="anh_bl" class="input-anh-bl" accept="image/jpeg,image/png,image/webp" data-toi-da="<?= (int) CongDongHelper::gioiHanAnhByte() ?>" data-toi-da-chu="<?= e(CongDongHelper::gioiHanAnhChu()) ?>" hidden>
+            </label>
+
             <button type="submit" class="btn btn-dang-bai-gradient">
               <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -2px; margin-right: 5px;" aria-hidden="true"><path d="M14 2L7 9M14 2L9.5 14l-2.5-5-5-2.5L14 2z"/></svg>
               Gửi bình luận
             </button>
-          </p>
+          </div>
         </form>
         <?php endif; ?>
       </div>

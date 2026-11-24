@@ -1,8 +1,34 @@
-@import url("../../pw_security.css");
+@import url("../pw_security.css");
 
-/* Trang Đăng nhập (client/dangnhap.php) */
+/* Trang Đăng nhập hợp nhất (client/dangnhap.php) */
 .container.khung-login { 
-  max-width: 440px; 
+  max-width: 440px;
+  width: 100%;
+}
+
+@media (max-width: 560px) {
+  .container.khung-login {
+    padding: 8px 10px;
+  }
+  .container.khung-login .card {
+    padding: 18px 14px;
+  }
+  .hang-ghi-nho {
+    align-items: flex-start;
+    font-size: 12.5px !important;
+    line-height: 1.4;
+  }
+  .hang-ghi-nho input[type="checkbox"] {
+    margin-top: 2px !important;
+    flex-shrink: 0;
+  }
+  .thongbao-2fa-box {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 10px 12px;
+    font-size: 12.5px;
+  }
 }
 
 .hang-mat-khau-header {

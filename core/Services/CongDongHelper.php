@@ -106,21 +106,21 @@ class CongDongHelper
         return $kq;
     }
 
-    // Kiểm tra dữ liệu bài đăng. Trả về [danh sách lỗi, MaMon hợp lệ hoặc null (không gắn môn)]
+    // Kiểm tra dữ liệu bài đăng. Trả về [danh sách lỗi theo trường, MaMon hợp lệ hoặc null (không gắn môn)]
     public static function kiemTraBai(string $tieuDe, string $noiDung, $maMonGui, array $monChoPhep): array
     {
         $loi = [];
 
         if ($tieuDe === '') {
-            $loi[] = 'Vui lòng nhập tiêu đề.';
+            $loi['tieu_de'] = 'Không thể đăng bài: Bạn chưa nhập tiêu đề bài viết.';
         } elseif (mb_strlen($tieuDe) > self::TIEU_DE_TOI_DA) {
-            $loi[] = 'Tiêu đề tối đa ' . self::TIEU_DE_TOI_DA . ' ký tự.';
+            $loi['tieu_de'] = 'Không thể đăng bài: Tiêu đề quá dài (' . mb_strlen($tieuDe) . '/' . self::TIEU_DE_TOI_DA . ' ký tự cho phép).';
         }
 
         if ($noiDung === '') {
-            $loi[] = 'Vui lòng nhập nội dung.';
+            $loi['noi_dung'] = 'Không thể đăng bài: Bạn chưa nhập nội dung bài viết.';
         } elseif (mb_strlen($noiDung) > self::NOI_DUNG_TOI_DA) {
-            $loi[] = 'Nội dung tối đa ' . self::NOI_DUNG_TOI_DA . ' ký tự.';
+            $loi['noi_dung'] = 'Không thể đăng bài: Nội dung quá dài (' . mb_strlen($noiDung) . '/' . self::NOI_DUNG_TOI_DA . ' ký tự cho phép).';
         }
 
         $maMon = null;
@@ -130,7 +130,7 @@ class CongDongHelper
             if (isset($monChoPhep[$id])) {
                 $maMon = $id;
             } else {
-                $loi[] = 'Môn học không hợp lệ.';
+                $loi['mon'] = 'Không thể đăng bài: Môn học đã chọn không hợp lệ hoặc đã bị đóng.';
             }
         }
         return [$loi, $maMon];
@@ -183,27 +183,29 @@ class CongDongHelper
     }
 
     // Kiểm tra ảnh đính kèm của bài đăng (không bắt buộc).
-    // Trả về [danh sách lỗi, phần đuôi file hợp lệ hoặc null nếu không gửi ảnh]
+    // Trả về [danh sách lỗi theo trường, phần đuôi file hợp lệ hoặc null nếu không gửi ảnh]
     public static function kiemTraAnh(?array $f): array
     {
         if (!$f || ($f['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
             return [[], null];
         }
-        $gioiHan = 'Ảnh quá lớn, tối đa ' . self::gioiHanAnhChu() . '.';
+        $tenFile = trim((string) ($f['name'] ?? 'ảnh đã chọn'));
+        $gioiHan = 'Không thể đăng bài: Ảnh đính kèm "' . $tenFile . '" có dung lượng quá lớn (vượt mức tối đa ' . self::gioiHanAnhChu() . '). Vui lòng chọn ảnh nhẹ hơn.';
         if ($f['error'] === UPLOAD_ERR_INI_SIZE || $f['error'] === UPLOAD_ERR_FORM_SIZE) {
-            return [[$gioiHan], null];
+            return [['anh_dinh_kem' => $gioiHan], null];
         }
         if ($f['error'] !== UPLOAD_ERR_OK || !is_uploaded_file($f['tmp_name'])) {
-            return [['Tải ảnh lên không thành công, hãy thử lại.'], null];
+            return [['anh_dinh_kem' => 'Không thể đăng bài: Quá trình tải ảnh lên bị gián đoạn hoặc lỗi kết nối. Vui lòng chọn lại ảnh.'], null];
         }
         if ($f['size'] > self::gioiHanAnhByte()) {
-            return [[$gioiHan], null];
+            $mb = number_format($f['size'] / 1048576, 2, '.', '');
+            return [['anh_dinh_kem' => 'Không thể đăng bài: Ảnh "' . $tenFile . '" nặng ' . $mb . ' MB (tối đa chỉ cho phép ' . self::gioiHanAnhChu() . ').'], null];
         }
         // Đọc loại ảnh thật từ nội dung file, không tin tên file hay loại do trình duyệt gửi
         $kieu = @getimagesize($f['tmp_name'])[2] ?? null;
         $duoi = [IMAGETYPE_JPEG => 'jpg', IMAGETYPE_PNG => 'png', IMAGETYPE_WEBP => 'webp'][$kieu] ?? null;
         if ($duoi === null) {
-            return [['Ảnh đính kèm chỉ nhận file JPG, PNG hoặc WEBP.'], null];
+            return [['anh_dinh_kem' => 'Không thể đăng bài: Tệp "' . $tenFile . '" không đúng định dạng ảnh hỗ trợ (chỉ chấp nhận ảnh JPG, PNG hoặc WEBP).'], null];
         }
         return [[], $duoi];
     }
@@ -331,7 +333,7 @@ class CongDongHelper
     }
 
     // Sửa bình luận của mình, chỉ trong 15 phút kể từ lúc viết. Trả về 'ok' | 'het_han' | 'khong'
-    public static function suaBL(PDO $pdo, int $maBL, int $maND, string $noiDung): string
+    public static function suaBL(PDO $pdo, int $maBL, int $maND, string $noiDung, ?string $anhMoi = null, bool $capNhatAnh = false): string
     {
         $st = $pdo->prepare(
             'SELECT MaND, TrangThai, TIMESTAMPDIFF(SECOND, NgayBinhLuan, NOW()) AS Giay FROM BINHLUAN WHERE MaBinhLuan = ?'
@@ -344,12 +346,21 @@ class CongDongHelper
         if (!self::conHanSua((int) $r['Giay'])) {
             return 'het_han';
         }
-        $up = $pdo->prepare(
-            "UPDATE BINHLUAN SET NoiDung = ?
-              WHERE MaBinhLuan = ? AND MaND = ? AND TrangThai = 'Hiển thị'
-                AND NgayBinhLuan >= DATE_SUB(NOW(), INTERVAL " . self::SUA_TOI_DA_PHUT . ' MINUTE)'
-        );
-        $up->execute([$noiDung, $maBL, $maND]);
+        if ($capNhatAnh) {
+            $up = $pdo->prepare(
+                "UPDATE BINHLUAN SET NoiDung = ?, AnhDinhKem = ?
+                  WHERE MaBinhLuan = ? AND MaND = ? AND TrangThai = 'Hiển thị'
+                    AND NgayBinhLuan >= DATE_SUB(NOW(), INTERVAL " . self::SUA_TOI_DA_PHUT . ' MINUTE)'
+            );
+            $up->execute([$noiDung, $anhMoi, $maBL, $maND]);
+        } else {
+            $up = $pdo->prepare(
+                "UPDATE BINHLUAN SET NoiDung = ?
+                  WHERE MaBinhLuan = ? AND MaND = ? AND TrangThai = 'Hiển thị'
+                    AND NgayBinhLuan >= DATE_SUB(NOW(), INTERVAL " . self::SUA_TOI_DA_PHUT . ' MINUTE)'
+            );
+            $up->execute([$noiDung, $maBL, $maND]);
+        }
         return 'ok';
     }
 
