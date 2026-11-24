@@ -30,3 +30,51 @@
   text-shadow: 0 0 8px rgba(0, 217, 255, 0.6);
   text-decoration: underline;
 }
+
+.hang-ghi-nho {
+  display: flex !important;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0 6px !important;
+  font-size: 13.5px !important;
+  font-weight: 500 !important;
+  color: #cbd5e1 !important;
+  cursor: pointer;
+  user-select: none;
+}
+
+.hang-ghi-nho input[type="checkbox"] {
+  width: 16px !important;
+  height: 16px !important;
+  margin: 0 !important;
+  accent-color: #00D9FF;
+  cursor: pointer;
+}
+
+.thongbao-2fa-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(0, 217, 255, 0.1);
+  border: 1px solid rgba(0, 217, 255, 0.35);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  font-size: 13.5px;
+  color: #e2e8f0;
+  line-height: 1.5;
+}
+
+.thongbao-2fa-box strong {
+  color: #00D9FF;
+}
+
+.thongbao-2fa-box .icon-2fa {
+  font-size: 22px;
+  flex-shrink: 0;
+}
+
+.thongbao-2fa-box .spam-tag {
+  color: #FDE047;
+  font-weight: 700;
+}

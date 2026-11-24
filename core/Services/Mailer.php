@@ -56,6 +56,23 @@ class Mailer
     }
 
     /**
+     * Gửi mã OTP xác thực đăng nhập 2 lớp (2FA) cho Quản trị viên trên thiết bị mới
+     */
+    public static function guiOtpDangNhapAdmin(string $toEmail, string $hoTen, string $tenDangNhap, string $otp): array
+    {
+        $ip = substr((string) ($_SERVER['REMOTE_ADDR'] ?? '127.0.0.1'), 0, 45);
+        return self::guiOtpEmail(
+            $toEmail,
+            $hoTen . ' (' . $tenDangNhap . ')',
+            $otp,
+            "[QuizUp Arena - Quản Trị] Mã OTP xác thực đăng nhập 2 lớp (2FA): {$otp}",
+            'Xác thực đăng nhập Quản trị viên (2FA) 🔐',
+            "Hệ thống ghi nhận yêu cầu đăng nhập vào cổng Quản trị ({$tenDangNhap}) từ địa chỉ IP {$ip}. Vui lòng nhập mã bảo mật OTP 6 chữ số dưới đây để hoàn tất đăng nhập:",
+            'Nếu không phải bạn vừa đăng nhập, hãy đổi mật khẩu quản trị ngay lập tức vì mật khẩu của bạn có thể đã bị lộ.'
+        );
+    }
+
+    /**
      * Dùng chung template Esports để gửi Email chứa mã OTP 6 số
      */
     private static function guiOtpEmail(
@@ -156,22 +173,41 @@ class Mailer
         $pass     = trim((string) ($smtp['password'] ?? ''));
         $fromMail = trim((string) ($smtp['from_email'] ?? 'no-reply@quizup.edu.vn'));
         $fromName = trim((string) ($smtp['from_name'] ?? 'QUIZUP ARENA'));
+        $adminMail = $fromMail !== '' ? $fromMail : $user;
+
+        // Nhận diện email thử nghiệm / không có thật hoặc tên miền nội bộ -> tự động chuyển hướng về mail chủ hệ thống
+        $laMailKhongThuc = self::laEmailThuNghiemHoacKhongThuc($toEmail);
+        $dichThucTe      = ($laMailKhongThuc && $adminMail !== '') ? $adminMail : $toEmail;
+
+        // Nếu đang ở môi trường Debug/Demo (hoặc email thử nghiệm) và người nhận khác mail chủ hệ thống:
+        // gắn thêm nhãn thông tin tài khoản gốc vào tiêu đề để chủ hệ thống dễ nhận biết khi nhận thư
+        $subjectGui = $subject;
+        if (strcasecmp($dichThucTe, $toEmail) !== 0) {
+            $subjectGui = "[Test: {$toEmail}] " . $subject;
+        }
 
         // Nếu đã cấu hình tài khoản SMTP -> Gửi thật qua mạng
         if ($enabled && $user !== '' && $pass !== '') {
             try {
+                // Nếu là email bình thường khác với mail chủ hệ thống và đang ở chế độ debug,
+                // đồng thời gửi kèm bản sao (BCC) về Hộp thư đến của chủ hệ thống để luôn nhận được OTP khi demo
+                $bccAdmin = (!empty($cfg['debug']) && $adminMail !== '' && strcasecmp($dichThucTe, $adminMail) !== 0)
+                    ? $adminMail
+                    : null;
+
                 self::chaySocketSmtp(
                     $host,
                     $port,
                     $encrypt,
                     $user,
                     $pass,
-                    $fromMail ?: $user,
+                    $adminMail,
                     $fromName,
-                    $toEmail,
+                    $dichThucTe,
                     $toName,
-                    $subject,
-                    $htmlBody
+                    $subjectGui,
+                    $htmlBody,
+                    $bccAdmin
                 );
                 return [
                     'ok'   => true,
@@ -200,7 +236,41 @@ class Mailer
     }
 
     /**
-     * Động cơ gửi thư qua giao thức SMTP Socket thuần (hỗ trợ STARTTLS và SSL)
+     * Kiểm tra địa chỉ email có phải là email thử nghiệm / không có máy chủ nhận thư thực tế hay không.
+     */
+    private static function laEmailThuNghiemHoacKhongThuc(string $email): bool
+    {
+        $parts = explode('@', strtolower(trim($email)));
+        if (count($parts) !== 2) {
+            return true;
+        }
+        [$local, $domain] = $parts;
+
+        // 1. Các tên miền thử nghiệm / nội bộ
+        $tenMienThuNghiem = ['test.com', 'example.com', 'localhost', 'local', 'elo.local', 'quizup.arena', 'invalid', 'test'];
+        foreach ($tenMienThuNghiem as $d) {
+            if ($domain === $d || str_ends_with($domain, '.' . $d)) {
+                return true;
+            }
+        }
+
+        // 2. Các tài khoản đặt tên kiểu demo / kiểm thử phổ biến (vd: nguoikiemtra@..., test1@..., demo@..., sv1@...)
+        if (preg_match('/^(test|demo|nguoikiemtra|kiemtra|sinhvien|sv|user|acc|fake|clone|abc|xyz)[0-9_]*$/i', $local)) {
+            return true;
+        }
+
+        // 3. Kiểm tra DNS MX Record của tên miền (nếu tên miền không có máy chủ mail thật)
+        if (function_exists('checkdnsrr') && !in_array($domain, ['gmail.com', 'outlook.com', 'hotmail.com', 'yahoo.com', 'icloud.com'], true)) {
+            if (!@checkdnsrr($domain, 'MX') && !@checkdnsrr($domain, 'A')) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Động cơ gửi thư qua giao thức SMTP Socket thuần (hỗ trợ STARTTLS, SSL và BCC về hộp thư chủ)
      */
     private static function chaySocketSmtp(
         string $host,
@@ -213,7 +283,8 @@ class Mailer
         string $toEmail,
         string $toName,
         string $subject,
-        string $htmlBody
+        string $htmlBody,
+        ?string $bccEmail = null
     ): void {
         $timeout = 10;
         $prefix  = ($encryption === 'ssl' || $port === 465) ? 'ssl://' : 'tcp://';
@@ -278,9 +349,16 @@ class Mailer
         $guiLenh(base64_encode($username), 334);
         $guiLenh(base64_encode($password), 235);
 
-        // 5. Khai báo người gửi & người nhận
+        // 5. Khai báo người gửi & người nhận (kèm BCC về hộp thư chủ nếu có)
         $guiLenh("MAIL FROM:<{$fromEmail}>", 250);
         $guiLenh("RCPT TO:<{$toEmail}>", 250);
+        if ($bccEmail !== null && $bccEmail !== '' && strcasecmp($bccEmail, $toEmail) !== 0) {
+            try {
+                $guiLenh("RCPT TO:<{$bccEmail}>", 250);
+            } catch (Throwable) {
+                // Nếu RCPT TO phụ gặp lỗi vẫn tiếp tục gửi thư chính
+            }
+        }
 
         // 6. Gửi nội dung thư DATA
         $guiLenh('DATA', 354);
@@ -310,14 +388,22 @@ class Mailer
     }
 
     /**
-     * Ghi tệp lưu trữ nhật ký email trong thư mục uploads/mail_logs
+     * Ghi tệp lưu trữ nhật ký email trong thư mục uploads/mail_logs (Chỉ ghi ở môi trường Debug/Local và khóa truy cập web)
      */
     private static function ghiNhatKyMail(string $toEmail, string $subject, string $htmlBody): void
     {
         try {
+            $cfg = $GLOBALS['APP_CONFIG'] ?? [];
+            if (empty($cfg['debug'])) {
+                return; // Môi trường Production: tuyệt đối không lưu mã OTP ra file tĩnh
+            }
             $dir = __DIR__ . '/../../uploads/mail_logs';
             if (!is_dir($dir)) {
                 @mkdir($dir, 0777, true);
+            }
+            $htaccess = $dir . '/.htaccess';
+            if (!is_file($htaccess)) {
+                @file_put_contents($htaccess, "Order deny,allow\nDeny from all\n");
             }
             $safeEmail = preg_replace('/[^a-zA-Z0-9_\-]/', '_', $toEmail);
             $filename  = $dir . '/mail_' . $safeEmail . '_' . date('Ymd_His') . '.html';

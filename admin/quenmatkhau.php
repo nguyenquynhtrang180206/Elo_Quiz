@@ -2,27 +2,28 @@
 // =====================================================================
 // KHÔI PHỤC MẬT KHẨU QUẢN TRỊ VIÊN QUA EMAIL OTP - QUIZUP ARENA
 // Đặt tại: elo_quiz/admin/quenmatkhau.php
+// Bảo mật chuẩn OWASP:
+// - Không bao giờ điền sẵn (pre-fill) hay làm lộ địa chỉ Email thật của Admin.
+// - Bắt buộc cả Tên đăng nhập VÀ Email nhập vào phải khớp 100% với bản ghi trong bảng ADMIN.
+// - Tuyệt đối không cho phép ghi đè Email mới từ form khôi phục mật khẩu.
 // =====================================================================
 require_once __DIR__ . '/../core/bootstrap.php';
 
-// Nếu đã đăng nhập Admin thì vào thẳng Dashboard
 if (Auth::adminId() !== null) {
     redirect(BASE_URL . '/admin/index.php');
 }
 
-$pdo            = Database::pdo();
-$loi            = [];
-$daGuiLai       = false;
-$coTheDangNhap  = false;
-$buoc           = 1; // 1: Tài khoản & Email, 2: OTP & Mật khẩu mới, 3: Hoàn tất
+$pdo           = Database::pdo();
+$loi           = [];
+$daGuiLai      = false;
+$coTheDangNhap = false;
+$buoc          = 1; // 1: Tài khoản & Email, 2: OTP & Mật khẩu mới, 3: Hoàn tất
 
-// Quay lại bước 1 để nhập tài khoản / email khác
 if (isset($_GET['doi_email'])) {
     unset($_SESSION['admin_reset_flow']);
     redirect(BASE_URL . '/admin/quenmatkhau.php');
 }
 
-// Kiểm tra phiên khôi phục đang dở
 if (!empty($_SESSION['admin_reset_flow'])) {
     if (time() > ($_SESSION['admin_reset_flow']['expire'] ?? 0)) {
         unset($_SESSION['admin_reset_flow']);
@@ -35,7 +36,7 @@ if (!empty($_SESSION['admin_reset_flow'])) {
     }
 }
 
-// Xử lý yêu cầu gửi lại mã OTP (cooldown 60s)
+// Xử lý yêu cầu gửi lại mã OTP (cooldown 60s + RateLimiter)
 if (isset($_GET['gui_lai']) && !empty($_SESSION['admin_reset_flow'])) {
     $now      = time();
     $flow     = $_SESSION['admin_reset_flow'];
@@ -63,22 +64,8 @@ if (isset($_GET['gui_lai']) && !empty($_SESSION['admin_reset_flow'])) {
     $buoc = 2;
 }
 
-// Giá trị mặc định cho Bước 1 (tự lấy tên đăng nhập 'admin' & Email cấu hình trong ADMIN hoặc SMTP)
-$tenDangNhap = trim((string) ($_POST['ten_dang_nhap'] ?? $_GET['ten_dang_nhap'] ?? 'admin'));
-$emailMacDinh = (string) ($GLOBALS['APP_CONFIG']['smtp']['username'] ?? '');
-if ($tenDangNhap !== '') {
-    try {
-        $stDef = $pdo->prepare('SELECT Email FROM ADMIN WHERE TenDangNhap = ?');
-        $stDef->execute([$tenDangNhap]);
-        $dbEmail = trim((string) ($stDef->fetchColumn() ?: ''));
-        if ($dbEmail !== '') {
-            $emailMacDinh = $dbEmail;
-        }
-    } catch (Throwable) {
-        // Giữ fallback từ SMTP config nếu chưa kịp đọc DB
-    }
-}
-$emailNhap = strtolower(trim((string) ($_POST['email'] ?? $emailMacDinh)));
+$tenDangNhap = trim((string) ($_POST['ten_dang_nhap'] ?? $_GET['ten_dang_nhap'] ?? ''));
+$emailNhap   = strtolower(trim((string) ($_POST['email'] ?? '')));
 
 // =====================================================================
 // XỬ LÝ FORM GỬI LÊN
@@ -87,7 +74,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_check();
     $action = trim((string) ($_POST['action'] ?? ''));
 
-    // BƯỚC 1: XÁC MINH TÀI KHOẢN QUẢN TRỊ & GỬI MÃ OTP QUA EMAIL
+    // BƯỚC 1: XÁC MINH TÀI KHOẢN QUẢN TRỊ & EMAIL ĐĂNG KÝ CHÍNH CHỦ
     if ($action === 'xac_minh_admin') {
         $loi         = [];
         $tenDangNhap = trim((string) ($_POST['ten_dang_nhap'] ?? ''));
@@ -97,12 +84,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $loi[] = 'Vui lòng nhập tên đăng nhập quản trị.';
         }
         if ($emailNhap === '') {
-            $loi[] = 'Vui lòng nhập địa chỉ email nhận mã OTP.';
+            $loi[] = 'Vui lòng nhập địa chỉ email quản trị đã đăng ký.';
         } elseif (!filter_var($emailNhap, FILTER_VALIDATE_EMAIL) || strlen($emailNhap) > 150) {
             $loi[] = 'Địa chỉ email không đúng định dạng.';
         }
 
         if (!$loi) {
+            DbSchema::damBao($pdo);
             $hanChe = RateLimiter::kiemTra('forgot_pw_admin', $tenDangNhap);
             if ($hanChe['biKhoa']) {
                 $loi[] = 'Bạn đã gửi yêu cầu quá nhiều lần. Vui lòng thử lại sau '
@@ -110,11 +98,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 $st = $pdo->prepare('SELECT MaAdmin, TenDangNhap, HoTen, Email, TrangThai FROM ADMIN WHERE TenDangNhap = ?');
                 $st->execute([$tenDangNhap]);
-                $ad = $st->fetch();
+                $ad = $st->fetch(PDO::FETCH_ASSOC);
 
-                if (!$ad) {
-                    RateLimiter::ghiNhanThatBai('forgot_pw_admin', $tenDangNhap);
-                    $loi[] = 'Không tìm thấy tài khoản quản trị với tên đăng nhập này.';
+                $emailChinhChu = strtolower(trim((string) ($ad['Email'] ?? '')));
+                $khopEmail     = ($ad && $emailChinhChu !== '' && hash_equals($emailChinhChu, $emailNhap));
+
+                if (!$khopEmail) {
+                    $soLan  = RateLimiter::ghiNhanThatBai('forgot_pw_admin', $tenDangNhap);
+                    $conLai = max(0, 5 - $soLan);
+                    $loi[]  = $conLai > 0
+                        ? "Tên đăng nhập hoặc địa chỉ email quản trị không chính xác (còn {$conLai} lần thử)."
+                        : 'Bạn đã nhập sai thông tin xác thực 5 lần. Tạm khóa khôi phục trong 15 phút.';
                 } elseif ($ad['TrangThai'] === 'Bị khóa') {
                     $loi[] = 'Tài khoản quản trị này hiện đang bị khóa. Không thể khôi phục mật khẩu.';
                 } else {
@@ -125,13 +119,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         'maAdmin'     => (int) $ad['MaAdmin'],
                         'tenDangNhap' => (string) $ad['TenDangNhap'],
                         'hoTen'       => (string) $ad['HoTen'],
-                        'email'       => $emailNhap,
+                        'email'       => $emailChinhChu,
                         'otp'         => $otp,
                         'expire'      => time() + 900, // 15 phút
                         'last_sent'   => time(),
                     ];
 
-                    Mailer::guiOtpQuenMatKhauAdmin($emailNhap, (string) $ad['HoTen'], (string) $ad['TenDangNhap'], $otp);
+                    Mailer::guiOtpQuenMatKhauAdmin($emailChinhChu, (string) $ad['HoTen'], (string) $ad['TenDangNhap'], $otp);
                     $loi  = [];
                     $buoc = 2;
                 }
@@ -194,14 +188,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
 
-            // 3. Lưu mật khẩu mới, ghi lịch sử mật khẩu & nhật ký quản trị
+            // 3. Lưu mật khẩu mới (KHÔNG ghi đè cột Email) & ghi nhật ký quản trị
             if (!$loi) {
                 $hashMoi = PasswordSecurity::hash($matKhauMoi);
-                PasswordSecurity::ghiNhanDoiMatKhauAdmin($pdo, (int) $flow['maAdmin'], $hashMoi, $flow['email']);
+                PasswordSecurity::ghiNhanDoiMatKhauAdmin($pdo, (int) $flow['maAdmin'], $hashMoi);
                 NhatKy::ghi(
                     'Khôi phục mật khẩu qua OTP',
                     'ADMIN #' . $flow['maAdmin'],
-                    'Email nhận OTP: ' . $flow['email'],
+                    'Email xác thực: ' . $flow['email'],
                     'Thành công',
                     (int) $flow['maAdmin']
                 );
@@ -250,7 +244,7 @@ $urlDangNhapLai = BASE_URL . '/admin/dangnhap.php'
       </span>
     </a>
     <h2>Quên mật khẩu quản trị</h2>
-    <p class="quenmk-mo-ta">Xác thực qua mã OTP Email để khôi phục quyền truy cập khu quản trị.</p>
+    <p class="quenmk-mo-ta">Xác thực qua mã OTP gửi về Email đã đăng ký của Quản trị viên.</p>
 
     <!-- Stepper Tiến trình tối giản -->
     <div class="quenmk-stepper">
@@ -292,11 +286,11 @@ $urlDangNhapLai = BASE_URL . '/admin/dangnhap.php'
 
         <label for="ten_dang_nhap">Tên đăng nhập quản trị</label>
         <input type="text" id="ten_dang_nhap" name="ten_dang_nhap" maxlength="50"
-               value="<?= e($tenDangNhap) ?>" required autofocus placeholder="Nhập tên đăng nhập (vd: admin)">
+               value="<?= e($tenDangNhap) ?>" required autofocus placeholder="Nhập tên đăng nhập quản trị">
 
-        <label for="email">Email nhận mã xác thực OTP</label>
+        <label for="email">Email quản trị đã đăng ký</label>
         <input type="email" id="email" name="email" maxlength="150"
-               value="<?= e($emailNhap) ?>" required placeholder="Nhập email nhận mã OTP">
+               value="<?= e($emailNhap) ?>" required placeholder="Nhập đúng email gắn với tài khoản quản trị">
 
         <p><button type="submit" class="btn">Gửi mã OTP xác thực</button></p>
       </form>
@@ -306,7 +300,7 @@ $urlDangNhapLai = BASE_URL . '/admin/dangnhap.php'
       <div class="thongbao-email-box">
         <span class="email-icon-pulse">✉️</span>
         <div>
-          <?= $daGuiLai ? 'Đã gửi lại mã OTP mới' : 'Mã OTP quản trị đã được gửi' ?> tới: <strong><?= e($flow['email'] ?? '') ?></strong> (kiểm tra cả mục <span class="email-spam-hint">Spam</span>).
+          <?= $daGuiLai ? 'Đã gửi lại mã OTP mới' : 'Mã OTP quản trị đã được gửi' ?> tới: <strong><?= e(Auth::cheEmail((string) ($flow['email'] ?? ''))) ?></strong> (kiểm tra cả mục <span class="email-spam-hint">Spam</span>).
         </div>
       </div>
 

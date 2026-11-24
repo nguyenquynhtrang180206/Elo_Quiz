@@ -1,9 +1,6 @@
 <?php
-// Đăng xuất sinh viên (C-03). Menu ở layout/header.php đã trỏ tới file này.
+// Đăng xuất sinh viên (C-03). Đặt tại: elo_quiz/client/dangxuat.php
 require_once __DIR__ . '/../core/bootstrap.php';
 
-// Chỉ xóa khóa của sinh viên, không đụng tới phiên Admin nếu cùng trình duyệt
-unset($_SESSION['nd_id'], $_SESSION['nd_la_admin']);   // phiên admin (nếu có) vẫn giữ nguyên
-session_regenerate_id(true);
-
+Auth::dangXuat('client');
 redirect(BASE_URL . '/client/dangnhap.php');

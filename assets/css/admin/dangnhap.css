@@ -360,3 +360,23 @@ body {
 .khung-login .pw-requirements-list li.ok {
   color: #059669 !important;
 }
+
+.hang-checkbox-nho {
+  display: flex !important;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  color: #334155 !important;
+  cursor: pointer;
+  margin: 6px 0 14px !important;
+  user-select: none;
+}
+
+.hang-checkbox-nho input[type="checkbox"] {
+  width: 16px !important;
+  height: 16px !important;
+  margin: 0 !important;
+  accent-color: #2563eb;
+  cursor: pointer;
+}

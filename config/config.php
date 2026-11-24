@@ -20,28 +20,39 @@ if (!function_exists('detectMysqlPort')) {
 
 $dbHost = '127.0.0.1';
 
-return [
+$baseConfig = [
     'db' => [
-        'host'    => $dbHost,
-        'port'    => detectMysqlPort($dbHost, [3307, 3306]),
-        'name'    => 'elo_quiz',   // tên database (import file csdl_elo_quiz.sql để tạo)
-        'user'    => 'root',
-        'pass'    => '',
+        'host'    => getenv('DB_HOST') ?: $dbHost,
+        'port'    => (int) (getenv('DB_PORT') ?: detectMysqlPort($dbHost, [3307, 3306])),
+        'name'    => getenv('DB_NAME') ?: 'elo_quiz',   // tên database (import file csdl_elo_quiz.sql để tạo)
+        'user'    => getenv('DB_USER') ?: 'root',
+        'pass'    => getenv('DB_PASS') !== false ? (string) getenv('DB_PASS') : '',
         'charset' => 'utf8mb4',
     ],
     'timezone'   => 'Asia/Ho_Chi_Minh',
-    'debug'      => true,   // true khi đang làm; đổi false khi nộp/chạy thật
+    'debug'      => getenv('APP_DEBUG') !== false ? filter_var(getenv('APP_DEBUG'), FILTER_VALIDATE_BOOLEAN) : true,
     'upload_dir' => __DIR__ . '/../uploads',
+    'app_secret' => getenv('APP_SECRET') ?: 'quizup-arena-hmac-secret-key-2026-v2',
 
-    // Cấu hình gửi Email thực tế qua SMTP (VD: Gmail SMTP)
+    // Cấu hình gửi Email thực tế qua SMTP (VD: Gmail SMTP / Amazon SES / SendGrid / Brevo)
     'smtp' => [
-        'enabled'    => true,                               // true: bật gửi qua SMTP; false: lưu trữ thư vào logs
-        'host'       => 'smtp.gmail.com',                   // Máy chủ SMTP (smtp.gmail.com)
-        'port'       => 587,                                // Cổng SMTP: 587 (TLS) hoặc 465 (SSL)
-        'encryption' => 'tls',                              // 'tls' hoặc 'ssl'
-        'username'   => 'buithutrang149506@gmail.com',      // Địa chỉ Gmail gửi tin
-        'password'   => 'uhzobtahixlhpepn',                 // Mật khẩu ứng dụng 16 ký tự của Google (App Password)
-        'from_email' => 'buithutrang149506@gmail.com',      // Địa chỉ hiển thị người gửi
-        'from_name'  => 'QUIZUP ARENA',                     // Tên hiển thị người gửi
+        'enabled'    => getenv('SMTP_ENABLED') !== false ? filter_var(getenv('SMTP_ENABLED'), FILTER_VALIDATE_BOOLEAN) : true,
+        'host'       => getenv('SMTP_HOST') ?: 'smtp.gmail.com',
+        'port'       => (int) (getenv('SMTP_PORT') ?: 587),
+        'encryption' => getenv('SMTP_ENCRYPTION') ?: 'tls',
+        'username'   => getenv('SMTP_USER') ?: 'buithutrang149506@gmail.com',
+        'password'   => getenv('SMTP_PASS') ?: 'uhzobtahixlhpepn',
+        'from_email' => getenv('SMTP_FROM_EMAIL') ?: 'buithutrang149506@gmail.com',
+        'from_name'  => getenv('SMTP_FROM_NAME') ?: 'QUIZUP ARENA',
     ],
 ];
+
+// Cho phép ghi đè cấu hình thực tế (Production / Cloud) từ config.local.php (đã nằm trong .gitignore)
+if (is_file(__DIR__ . '/config.local.php')) {
+    $localConfig = require __DIR__ . '/config.local.php';
+    if (is_array($localConfig)) {
+        $baseConfig = array_replace_recursive($baseConfig, $localConfig);
+    }
+}
+
+return $baseConfig;
