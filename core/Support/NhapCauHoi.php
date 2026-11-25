@@ -3,8 +3,8 @@
 // Đặt tại: elo_quiz/core/Support/NhapCauHoi.php
 class NhapCauHoi
 {
-    public const TOI_DA_DONG = 500;               // số câu tối đa mỗi lần
-    public const TOI_DA_BYTE = 2 * 1024 * 1024;   // 2 MB, khớp upload_max_filesize mặc định của XAMPP
+    public const TOI_DA_DONG = 1000;              // số câu tối đa mỗi lần
+    public const TOI_DA_BYTE = 10 * 1024 * 1024;  // 10 MB, hỗ trợ bộ đề lớn có nhiều bảng/định dạng
 
     // 10 cột của file Excel mẫu (A-22), theo đúng thứ tự
     public const COT = ['Môn học', 'Loại kỳ thi', 'Độ khó', 'Nội dung', 'Phương án A', 'Phương án B',
@@ -22,7 +22,8 @@ class NhapCauHoi
         $ma = is_array($f) ? ($f['error'] ?? UPLOAD_ERR_NO_FILE) : UPLOAD_ERR_NO_FILE;
         if ($ma !== UPLOAD_ERR_OK) {
             if ($ma === UPLOAD_ERR_INI_SIZE || $ma === UPLOAD_ERR_FORM_SIZE) {
-                throw new RuntimeException('File vượt quá dung lượng cho phép (tối đa 2 MB). Hãy chia nhỏ file rồi tải lên lại.');
+                $maxMb = (int) round(self::TOI_DA_BYTE / 1048576);
+                throw new RuntimeException('File vượt quá dung lượng cho phép (tối đa ' . $maxMb . ' MB, hoặc vượt giới hạn upload_max_filesize=' . ini_get('upload_max_filesize') . ' của PHP). Hãy chia nhỏ file rồi tải lên lại.');
             }
             throw new RuntimeException('Hãy chọn một file để tải lên.');
         }
@@ -30,7 +31,8 @@ class NhapCauHoi
             throw new RuntimeException('File tải lên không hợp lệ.');
         }
         if ((int) $f['size'] > self::TOI_DA_BYTE) {
-            throw new RuntimeException('File vượt quá dung lượng cho phép (tối đa 2 MB).');
+            $maxMb = (int) round(self::TOI_DA_BYTE / 1048576);
+            throw new RuntimeException('File vượt quá dung lượng cho phép (tối đa ' . $maxMb . ' MB).');
         }
         $duoiThuc = strtolower(pathinfo((string) $f['name'], PATHINFO_EXTENSION));
         if ($duoiThuc !== $duoi) {

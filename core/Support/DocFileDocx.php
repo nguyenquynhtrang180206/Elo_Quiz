@@ -33,6 +33,14 @@ class DocFileDocx
         $xml = $zip->getFromName('word/document.xml');
         $numXml = $zip->getFromName('word/numbering.xml');
         $stylesXml = $zip->getFromName('word/styles.xml');
+        $coAnh = false;
+        for ($i = 0; $i < $zip->numFiles; $i++) {
+            $tenMuc = (string) $zip->getNameIndex($i);
+            if (str_starts_with($tenMuc, 'word/media/')) {
+                $coAnh = true;
+                break;
+            }
+        }
         $zip->close();
 
         if ($xml === false || $xml === '') {
@@ -105,6 +113,12 @@ class DocFileDocx
                     ];
                 }
             }
+        }
+        if (!$dong) {
+            if ($coAnh) {
+                throw new RuntimeException('File Word này chỉ chứa hình ảnh/ảnh chụp (không có văn bản để tách câu hỏi). Hãy dùng file Word dạng chữ hoặc tải file Word mẫu (.docx) ở góc trên.');
+            }
+            throw new RuntimeException('File Word đang trống, không có nội dung văn bản nào.');
         }
         return $dong;
     }

@@ -85,14 +85,22 @@
     var nuts = form.querySelectorAll('button[type=submit]');
     var file = form.querySelector('input[type=file]');
     var mon = form.elements['mon'] || null;
+    var nhac = form.querySelector('.ci-nhac-loi');
     var hen = null;
 
     function kiemTra() {
-      var duDuLieu = !!(file && file.files && file.files.length);
-      if (mon && parseInt(mon.value, 10) <= 0) { duDuLieu = false; }
+      var coFile = !!(file && file.files && file.files.length);
+      // Mở nút ngay khi đã chọn file để Admin không bị bối rối; nếu chưa chọn môn mà bấm nút thì nhắc và focus vào ô Môn học
       Array.prototype.forEach.call(nuts, function (n) {
-        if (!n.classList.contains('dang-xu-ly')) { n.disabled = !duDuLieu; }
+        if (!n.classList.contains('dang-xu-ly')) { n.disabled = !coFile; }
       });
+      if (mon && parseInt(mon.value, 10) > 0) {
+        mon.classList.remove('ci-thieu-mon');
+        if (nhac && nhac.textContent.indexOf('Hãy chọn Môn học') === 0) {
+          nhac.textContent = '';
+          nhac.hidden = true;
+        }
+      }
     }
 
     function khoiPhuc() {
@@ -106,7 +114,17 @@
     form.addEventListener('ci-doi', kiemTra);
     if (mon) { mon.addEventListener('change', kiemTra); }
 
-    form.addEventListener('submit', function () {
+    form.addEventListener('submit', function (ev) {
+      if (mon && parseInt(mon.value, 10) <= 0) {
+        ev.preventDefault();
+        mon.classList.add('ci-thieu-mon');
+        mon.focus();
+        if (nhac) {
+          nhac.textContent = 'Hãy chọn Môn học ở ô phía trên trước khi phân tích file Word.';
+          nhac.hidden = false;
+        }
+        return;
+      }
       var cheDoWord = document.getElementById('cheDoWord');
       if (form.getAttribute('data-ci-form') === 'word' && cheDoWord && cheDoWord.value === 'xuat') {
         hen = setTimeout(khoiPhuc, 4000);
@@ -141,7 +159,6 @@
     var countLoiEl = document.getElementById('countLoi');
     var countTrungEl = document.getElementById('countTrung');
 
-    // Kiểm tra nhanh tại trình duyệt xem một dòng sau khi Admin click sửa đã đủ điều kiện Hợp lệ chưa
     function danhGiaLaiDong(tr) {
       if (!tr) { return; }
       var idx = tr.getAttribute('data-idx');
@@ -179,7 +196,6 @@
         loi.push('Phương án ' + daDung + ' được chọn làm đáp án đúng đang để trống.');
       }
 
-      // Kiểm tra 2 phương án trùng nhau trong cùng 1 câu
       var daThayPA = {};
       for (var i = 0; i < dsPA.length; i++) {
         if (daThayPA[dsPA[i]]) {
@@ -194,7 +210,6 @@
       var nhacDa = tr.querySelector('.ci-nhac-da');
       if (nhacDa) { nhacDa.hidden = daDung !== ''; }
 
-      // Nếu dòng vốn bị Trùng từ máy chủ mà Admin chưa đổi nội dung câu hỏi thì giữ nguyên trạng thái Trùng
       var trangThaiCu = tr.getAttribute('data-trang-thai');
       if (loi.length > 0) {
         tr.setAttribute('data-trang-thai', 'loi');
@@ -236,7 +251,6 @@
       if (btnLuuHopLe) { btnLuuHopLe.disabled = ok === 0; }
     }
 
-    // Click nút A / B / C / D để chọn đáp án đúng trong 1 click
     bangSua.addEventListener('click', function (ev) {
       var nutDa = ev.target.closest ? ev.target.closest('.ci-nut-da') : null;
       if (nutDa) {
@@ -262,7 +276,6 @@
       }
     });
 
-    // Khi Admin gõ sửa nội dung câu hỏi hoặc phương án -> nếu dòng đang bị Trùng mà đổi nội dung thì cho phép xét lại
     bangSua.addEventListener('input', function (ev) {
       var tr = ev.target.closest ? ev.target.closest('.ci-dong-sua') : null;
       if (!tr) { return; }
@@ -272,7 +285,6 @@
       danhGiaLaiDong(tr);
     });
 
-    // Bộ lọc Tab: Tất cả / Hợp lệ / Cần sửa / Trùng
     var tabs = document.querySelectorAll('.ci-loc-tab');
     Array.prototype.forEach.call(tabs, function (tab) {
       tab.addEventListener('click', function () {
@@ -286,7 +298,6 @@
       });
     });
 
-    // Điền nhanh chuỗi đáp án (VD: "1A 2B 3C 4D" hoặc "ABCD")
     var btnChuoiDA = document.getElementById('btnApDungChuoiDA');
     var inpChuoiDA = document.getElementById('inputChuoiDapAn');
     if (btnChuoiDA && inpChuoiDA) {
@@ -308,7 +319,6 @@
             }
           });
         } else {
-          // Chuỗi liền "ABCD..."
           var chuCai = raw.replace(/[^A-D]/g, '').split('');
           chuCai.forEach(function (chu, idx) {
             if (dongs[idx]) {
@@ -320,7 +330,6 @@
       });
     }
 
-    // Nút "Bỏ qua tất cả dòng lỗi/trùng"
     var btnBoQuaLoi = document.getElementById('btnBoQuaTatCaLoi');
     if (btnBoQuaLoi) {
       btnBoQuaLoi.addEventListener('click', function () {

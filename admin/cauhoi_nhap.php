@@ -1,13 +1,6 @@
 <?php
 // Nhập câu hỏi hàng loạt từ Word / Excel kèm Trợ lý Xem trước & Sửa lỗi trực tiếp trên Web
 // (UC13: A-22, A-43, A-44; 6.5, 6.8). Đặt tại: elo_quiz/admin/cauhoi_nhap.php
-//   - Cách 1 (Đẩy file Word .docx):
-//       + Tùy chọn Mặc định ("xem"): Tách câu thông minh -> Mở Bảng Trợ Lý Xem Trước & Sửa Lỗi ngay trên Web ->
-//         Admin có thể click chọn nhanh đáp án A/B/C/D cho câu thiếu, sửa trực tiếp nội dung/phương án/độ khó,
-//         bỏ qua dòng lỗi/trùng hoặc Lưu ngay tất cả câu hợp lệ vào CSDL chỉ với 1 cú click!
-//       + Tùy chọn Phụ ("xuat_excel"): Tách câu và tải về file Excel (.xlsx) kèm 3 cột kiểm tra để sửa ngoại tuyến.
-//   - Cách 2 (Đẩy file Excel .xlsx):
-//       + Kiểm tra từng dòng -> Mở Bảng Trợ Lý Xem Trước & Sửa Lỗi (nếu có dòng lỗi/trùng) hoặc lưu thẳng vào CSDL.
 require_once __DIR__ . '/../core/bootstrap.php';
 Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');   // A-04
 
@@ -62,7 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
         if ($tenMon === '') {
-            $loi[] = 'Hãy chọn môn học ở khung Thiết lập cho file Word.';
+            $loi[] = 'Hãy chọn Môn học cho đề thi Word.';
         }
         if ($tenKT === '') {
             $loi[] = 'Loại kỳ thi không hợp lệ.';
@@ -117,11 +110,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $tam       = null;
         $daLuu     = false;
         $soLuu     = 0;
-        $boQuaLoi  = !empty($_POST['bo_qua_trung']); // Cho phép lưu ngay các câu hợp lệ, bỏ qua câu trùng
+        $boQuaLoi  = !empty($_POST['bo_qua_trung']);
         try {
             $tam      = NhapCauHoi::nhanFileTai('file_excel', 'xlsx', 'xl/workbook.xml');
             $nguonTen = mb_substr(basename((string) ($_FILES['file_excel']['name'] ?? 'file.xlsx')), 0, 100);
-            $hang     = XlsxReader::doc($tam, NhapCauHoi::TOI_DA_DONG + 1);   // +1 cho dòng tiêu đề
+            $hang     = XlsxReader::doc($tam, NhapCauHoi::TOI_DA_DONG + 1);
             if (!$hang) {
                 throw new RuntimeException('File Excel đang trống.');
             }
@@ -145,7 +138,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
 
-            // Nếu mọi dòng đều hợp lệ HOẶC Admin tích "Lưu ngay các câu hợp lệ, bỏ qua câu trùng/lỗi" và có ít nhất 1 câu hợp lệ
             if ((!$coDongLoi || ($boQuaLoi && count($dsHopLe) > 0)) && count($dsHopLe) > 0) {
                 $pdo->beginTransaction();
                 try {
@@ -185,14 +177,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // ======================= LUỒNG 3: LƯU HOẶC KIỂM TRA LẠI TỪ BẢNG TRỢ LÝ TRÊN WEB =======================
     if ($buoc === 'luu_truc_tiep') {
-        $hanhDong   = (string) ($_POST['hanh_dong_bang'] ?? 'luu_hop_le'); // 'luu_hop_le' | 'kiem_tra_lai' | 'xuat_excel_bang'
+        $hanhDong   = (string) ($_POST['hanh_dong_bang'] ?? 'luu_hop_le');
         $nguonTen   = mb_substr(trim((string) ($_POST['nguon_ten'] ?? 'Trợ lý Web')), 0, 100);
         $dsDongRaw  = (array) ($_POST['dong'] ?? []);
         $dongChuan  = [];
 
         foreach ($dsDongRaw as $idx => $item) {
             if (!is_array($item) || !empty($item['bo_qua'])) {
-                continue; // Admin đã bấm nút "Bỏ qua dòng này"
+                continue;
             }
             $soDong = (int) ($item['so'] ?? ($idx + 1));
             $dongChuan[] = [
@@ -242,7 +234,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
                 if ($hanhDong === 'luu_tat_ca' && $soConLoi > 0) {
-                    $loi[] = 'Vẫn còn ' . $soConLoi . ' câu chưa hợp lệ (được tô vàng/đỏ bên dưới). Hãy sửa nhanh trên bảng hoặc bấm nút "Lưu ngay ' . count($dsHopLe) . ' câu hợp lệ (Bỏ qua câu lỗi/trùng)".';
+                    $loi[] = 'Vẫn còn ' . $soConLoi . ' câu chưa hợp lệ (được tô vàng/đỏ bên dưới). Hãy sửa nhanh trên bảng hoặc bấm nút "Lưu ngay ' . count($dsHopLe) . ' câu hợp lệ".';
                 } elseif (count($dsHopLe) === 0) {
                     $loi[] = 'Chưa có câu hỏi nào đạt trạng thái Hợp lệ để lưu. Hãy bổ sung đáp án đúng hoặc sửa các ô báo đỏ bên dưới.';
                 } else {
@@ -279,9 +271,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // ---- Thống kê kết quả kiểm tra cho Bảng Trợ Lý trên Web ----
-$soLoi       = 0;
-$soTrung     = 0;
-$soThieuDA   = 0;
+$soLoi     = 0;
+$soTrung   = 0;
+$soThieuDA = 0;
 foreach ($kq as $r) {
     if ($r['trangThai'] === 'Lỗi') {
         $soLoi++;
@@ -292,9 +284,9 @@ foreach ($kq as $r) {
         $soTrung++;
     }
 }
-$soHopLe      = max(0, $tongDong - $soLoi - $soTrung);
-$macDinhLuoi  = 'Bấm vào bất kỳ ô vuông nào để nhảy nhanh tới câu hỏi đó trong bảng bên dưới.';
-$dokhoChon    = (string) ($_POST['dokho'] ?? 'Trung bình');
+$soHopLe     = max(0, $tongDong - $soLoi - $soTrung);
+$macDinhLuoi = 'Bấm vào bất kỳ ô vuông nào để nhảy nhanh tới câu hỏi đó trong bảng bên dưới.';
+$dokhoChon   = (string) ($_POST['dokho'] ?? 'Trung bình');
 if (!in_array($dokhoChon, CauHoiHelper::DO_KHO, true)) {
     $dokhoChon = 'Trung bình';
 }
@@ -319,7 +311,10 @@ $mucChon  = 'cauhoi';
 $cssTrang = 'cauhoi_nhap';
 $jsTrang  = 'cauhoi_nhap';
 
-$bt = [
+require __DIR__ . '/layout/header.php';
+
+// Lưu ý: Khai báo $ciSvg SAU header.php để không bị biến $svg của header.php ghi đè!
+$ciBt = [
     'tai'      => '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/>',
     'xuong'    => '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/>',
     'word'     => '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/>',
@@ -332,24 +327,22 @@ $bt = [
     'sach'     => '<path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/>',
     'sua'      => '<path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>',
 ];
-$svg = static fn (string $k, int $px = 18, int|float $net = 2): string =>
+$ciSvg = static fn (string $k, int $px = 18, int|float $net = 2): string =>
     '<svg width="' . $px . '" height="' . $px . '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="' . $net
-    . '" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' . $bt[$k] . '</svg>';
-
-require __DIR__ . '/layout/header.php';
+    . '" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' . ($ciBt[$k] ?? '') . '</svg>';
 ?>
 <div class="ci-trang">
 
   <div class="ci-dau">
-    <span class="ci-dau-icon" aria-hidden="true"><?= $svg('tai', 28) ?></span>
+    <span class="ci-dau-icon" aria-hidden="true"><?= $ciSvg('tai', 28) ?></span>
     <div class="ci-dau-chu">
       <h2>Nhập câu hỏi từ Word / Excel</h2>
       <p>Hệ thống tự nhận diện danh sách tự động, đáp án gạch chân/in đậm/tô màu và hỗ trợ sửa lỗi trực tiếp trên Web.</p>
     </div>
     <div class="ci-dau-nut">
-      <a class="ci-nut ci-nut-vien" href="?mau_word=1" title="Tải file Word mẫu (.docx) có sẵn ví dụ chuẩn"><?= $svg('word', 16) ?>Tải Word mẫu (.docx)</a>
-      <a class="ci-nut ci-nut-vien" href="?mau=1" title="Tải file Excel mẫu (.xlsx)"><?= $svg('xuong', 16) ?>Tải Excel mẫu (.xlsx)</a>
-      <a class="ci-nut ci-nut-vien" href="<?= e(BASE_URL) ?>/admin/cauhoi.php"><?= $svg('quaylai', 16) ?>Ngân hàng câu hỏi</a>
+      <a class="ci-nut ci-nut-vien" href="?mau_word=1" title="Tải file Word mẫu (.docx) có sẵn ví dụ chuẩn"><?= $ciSvg('word', 16) ?>Tải Word mẫu (.docx)</a>
+      <a class="ci-nut ci-nut-vien" href="?mau=1" title="Tải file Excel mẫu (.xlsx)"><?= $ciSvg('xuong', 16) ?>Tải Excel mẫu (.xlsx)</a>
+      <a class="ci-nut ci-nut-vien" href="<?= e(BASE_URL) ?>/admin/cauhoi.php"><?= $ciSvg('quaylai', 16) ?>Ngân hàng câu hỏi</a>
     </div>
   </div>
 
@@ -379,7 +372,7 @@ require __DIR__ . '/layout/header.php';
   </div>
 
   <details class="ci-khoi ci-quytac"<?= ($loi && !$kq) ? ' open' : '' ?>>
-    <summary><?= $svg('sach', 18) ?>Hướng dẫn định dạng file Word &amp; Excel (Hệ thống hỗ trợ tự động nhận diện)</summary>
+    <summary><?= $ciSvg('sach', 18) ?>Hướng dẫn định dạng file Word &amp; Excel (Hệ thống hỗ trợ tự động nhận diện)</summary>
     <div class="ci-quytac-than">
       <div>
         <p class="dam" style="font-weight:700;margin-bottom:8px">4 cách đánh dấu đáp án đúng trong Word đều được tự động hiểu:</p>
@@ -426,20 +419,20 @@ require __DIR__ . '/layout/header.php';
 
       <div class="ci-kq-dau">
         <div>
-          <h3 class="ci-tieude"><?= $svg('sua', 20) ?>Trợ lý Xem trước &amp; Chữa lỗi trực tiếp trên Web <?= $nguonTen !== '' ? '<span class="ci-file-badge">' . e($nguonTen) . '</span>' : '' ?></h3>
+          <h3 class="ci-tieude"><?= $ciSvg('sua', 20) ?>Trợ lý Xem trước &amp; Chữa lỗi trực tiếp trên Web <?= $nguonTen !== '' ? '<span class="ci-file-badge">' . e($nguonTen) . '</span>' : '' ?></h3>
           <p class="nhan-phu">
             Bạn có thể <b>click chọn đáp án A / B / C / D</b> hoặc <b>sửa chữ trực tiếp</b> ở các câu báo lỗi ngay bên dưới rồi bấm Lưu vào Ngân hàng câu hỏi.
           </p>
         </div>
         <div class="ci-kq-actions">
           <button type="submit" class="ci-nut ci-nut-vien" onclick="document.getElementById('hanhDongBang').value='kiem_tra_lai'">
-            <?= $svg('kq', 16) ?>Kiểm tra lại sau khi sửa
+            <?= $ciSvg('kq', 16) ?>Kiểm tra lại sau khi sửa
           </button>
           <button type="submit" class="ci-nut ci-nut-vien" onclick="document.getElementById('hanhDongBang').value='xuat_excel_bang'">
-            <?= $svg('xuong', 16) ?>Tải ra file Excel (.xlsx)
+            <?= $ciSvg('xuong', 16) ?>Tải ra file Excel (.xlsx)
           </button>
           <button type="submit" class="ci-nut ci-nut-chinh ci-nut-luu-ngay" id="btnLuuHopLe" onclick="document.getElementById('hanhDongBang').value='luu_hop_le'">
-            <?= $svg('xong', 17, 2.6) ?>Lưu ngay <span id="demHopLeNut"><?= (int) $soHopLe ?></span> câu vào Ngân hàng
+            <?= $ciSvg('xong', 17, 2.6) ?>Lưu ngay <span id="demHopLeNut"><?= (int) $soHopLe ?></span> câu vào Ngân hàng
           </button>
         </div>
       </div>
@@ -449,7 +442,7 @@ require __DIR__ . '/layout/header.php';
           <strong>💡 Hướng dẫn xử lý nhanh cho Admin:</strong>
           <ul>
             <?php if ($soThieuDA > 0): ?>
-              <li>Có <b><?= (int) $soThieuDA ?> câu chưa rõ đáp án đúng</b>: Hãy bấm trực tiếp vào nút tròn <b>A, B, C hoặc D</b> ở cột <em>"Đáp án đúng"</em> của dòng đó (hoặc dùng thanh <em>"Gán nhanh đáp án"</em> bên dưới).</li>
+              <li>Có <b><?= (int) $soThieuDA ?> câu chưa rõ đáp án đúng</b>: Hãy bấm trực tiếp vào nút tròn <b>A, B, C hoặc D</b> ở cột <em>"Đáp án đúng"</em> của dòng đó (hoặc dùng thanh <em>"Điền nhanh chuỗi đáp án"</em> bên dưới).</li>
             <?php endif; ?>
             <?php if ($soTrung > 0): ?>
               <li>Có <b><?= (int) $soTrung ?> câu bị trùng nội dung</b>: Nếu không muốn sửa, bạn cứ bấm <b>"Lưu ngay <?= (int) $soHopLe ?> câu vào Ngân hàng"</b> — hệ thống sẽ tự động lưu các câu hợp lệ và bỏ qua các câu trùng!</li>
@@ -509,10 +502,10 @@ require __DIR__ . '/layout/header.php';
           </thead>
           <tbody>
           <?php foreach ($kq as $idx => $r):
-            $tt   = (string) $r['trangThai'];
+            $tt       = (string) $r['trangThai'];
             $loaiDong = $tt === 'Hợp lệ' ? 'ok' : ($tt === 'Trùng' ? 'trung' : 'loi');
-            $daChon = strtoupper(trim((string) ($r['o'][8] ?? '')));
-            $dkDong = (string) ($r['o'][2] ?? 'Trung bình');
+            $daChon   = strtoupper(trim((string) ($r['o'][8] ?? '')));
+            $dkDong   = (string) ($r['o'][2] ?? 'Trung bình');
             if (!in_array($dkDong, CauHoiHelper::DO_KHO, true)) {
                 $dkDong = 'Trung bình';
             }
@@ -580,33 +573,6 @@ require __DIR__ . '/layout/header.php';
   </section>
   <?php endif; ?>
 
-  <div class="ci-khoi ci-thietlap">
-    <div>
-      <h3 class="ci-tieude"><?= $svg('word', 20) ?>Thiết lập Môn học &amp; Kỳ thi cho file Word</h3>
-      <p class="nhan-phu">Chọn môn học và kỳ thi áp dụng cho đề Word sắp tải lên. (Nếu trong file Word có ghi sẵn <code>[Dễ]</code>, <code>[Trung bình]</code>, <code>[Khó]</code> ở từng câu thì hệ thống sẽ tự ưu tiên theo từng câu).</p>
-    </div>
-    <div class="ci-luoi-2">
-      <div>
-        <label for="mon">Môn học <span style="color:#b3262c">*</span></label>
-        <select id="mon" name="mon" form="formWord" required>
-          <option value="0">-- Chọn môn học --</option>
-          <?php foreach ($dsMon as $m): ?>
-            <option value="<?= (int) $m['MaMon'] ?>"<?= (int) ($_POST['mon'] ?? 0) === (int) $m['MaMon'] ? ' selected' : '' ?>><?= e($m['TenMon']) ?></option>
-          <?php endforeach; ?>
-        </select>
-      </div>
-      <div>
-        <label for="loai">Loại kỳ thi</label>
-        <select id="loai" name="loai" form="formWord">
-          <option value="">Dùng được cho cả hai kỳ</option>
-          <?php foreach ($dsKT as $k): ?>
-            <option value="<?= (int) $k['MaLoaiKT'] ?>"<?= (string) ($_POST['loai'] ?? '') === (string) $k['MaLoaiKT'] ? ' selected' : '' ?>><?= e($k['TenLoaiKT']) ?></option>
-          <?php endforeach; ?>
-        </select>
-      </div>
-    </div>
-  </div>
-
   <div class="ci-hai-cot">
 
     <!-- ===== Thẻ 1: Đẩy file Word (.docx) -> Trợ lý Web hoặc Xuất Excel ===== -->
@@ -614,20 +580,45 @@ require __DIR__ . '/layout/header.php';
       <?= csrf_field() ?>
       <input type="hidden" name="buoc" value="word">
       <input type="hidden" name="che_do_word" id="cheDoWord" value="xem">
-      <h3 class="ci-tieude"><?= $svg('word', 20) ?>Cách 1: Nhập trực tiếp từ file Word (.docx)<span class="ci-nhan-tuy chinh">Khuyên dùng</span></h3>
+
+      <div class="ci-card-head">
+        <h3 class="ci-tieude"><?= $ciSvg('word', 20) ?><span>Cách 1: Nhập trực tiếp từ file Word (.docx)</span></h3>
+        <span class="ci-nhan-tuy chinh">Khuyên dùng</span>
+      </div>
       <p class="nhan-phu">
         Tự động bóc tách câu hỏi, nhận diện đáp án gạch chân/in đậm/tô đỏ hoặc bảng đáp án cuối đề. Mở <b>Bảng Trợ Lý Xem Trước trên Web</b> để bạn kiểm tra và bấm Lưu ngay chỉ trong 1 bước!
       </p>
 
+      <div class="ci-luoi-2">
+        <div>
+          <label for="mon">Môn học <span class="ci-sao-bb">*</span></label>
+          <select id="mon" name="mon" required>
+            <option value="0">-- Chọn môn học --</option>
+            <?php foreach ($dsMon as $m): ?>
+              <option value="<?= (int) $m['MaMon'] ?>"<?= (int) ($_POST['mon'] ?? 0) === (int) $m['MaMon'] ? ' selected' : '' ?>><?= e($m['TenMon']) ?></option>
+            <?php endforeach; ?>
+          </select>
+        </div>
+        <div>
+          <label for="loai">Loại kỳ thi</label>
+          <select id="loai" name="loai">
+            <option value="">Dùng được cho cả hai kỳ</option>
+            <?php foreach ($dsKT as $k): ?>
+              <option value="<?= (int) $k['MaLoaiKT'] ?>"<?= (string) ($_POST['loai'] ?? '') === (string) $k['MaLoaiKT'] ? ' selected' : '' ?>><?= e($k['TenLoaiKT']) ?></option>
+            <?php endforeach; ?>
+          </select>
+        </div>
+      </div>
+
       <div>
-        <label id="nhanDoKho">Độ khó mặc định (cho những câu không ghi riêng độ khó)</label>
+        <label id="nhanDoKho">Độ khó mặc định (cho những câu không ghi riêng <code>[Dễ]</code>/<code>[Khó]</code>)</label>
         <div class="ci-hang" role="radiogroup" aria-labelledby="nhanDoKho">
           <?php foreach (CauHoiHelper::DO_KHO as $d): ?>
             <?php $h = $hangDoKho[$d] ?? ['bac', '']; ?>
             <label class="ci-hang-o">
               <input type="radio" name="dokho" value="<?= e($d) ?>"<?= $dokhoChon === $d ? ' checked' : '' ?>>
               <span class="ci-hang-the hang-<?= e($h[0]) ?>">
-                <?= $svg('huyhieu', 26) ?>
+                <?= $ciSvg('huyhieu', 24) ?>
                 <strong><?= e($d) ?></strong>
                 <small>Hạng <?= e($h[1]) ?></small>
               </span>
@@ -638,22 +629,22 @@ require __DIR__ . '/layout/header.php';
 
       <label class="ci-tha" for="file_word" data-duoi="docx" data-max="<?= (int) NhapCauHoi::TOI_DA_BYTE ?>">
         <input type="file" id="file_word" name="file_word" accept=".docx" required>
-        <span class="ci-cong"><span class="ci-i-up"><?= $svg('tai', 30) ?></span><span class="ci-i-ok"><?= $svg('xong', 30, 2.6) ?></span></span>
+        <span class="ci-cong"><span class="ci-i-up"><?= $ciSvg('tai', 30) ?></span><span class="ci-i-ok"><?= $ciSvg('xong', 30, 2.6) ?></span></span>
         <span class="ci-tha-chu">Thả file Word (.docx) vào đây</span>
-        <span class="ci-tha-phu">hoặc bấm để chọn · .docx · tối đa 2 MB · <?= (int) NhapCauHoi::TOI_DA_DONG ?> câu</span>
+        <span class="ci-tha-phu">hoặc bấm để chọn · .docx · tối đa <?= (int) round(NhapCauHoi::TOI_DA_BYTE / 1048576) ?> MB · <?= (int) NhapCauHoi::TOI_DA_DONG ?> câu</span>
         <span class="ci-file-tt">
           <span class="ci-file-ten"></span><span class="ci-file-kt"></span>
-          <button type="button" class="ci-bo-chon" aria-label="Bỏ file đã chọn"><?= $svg('dong', 14, 2.4) ?></button>
+          <button type="button" class="ci-bo-chon" title="Bỏ file đã chọn" aria-label="Bỏ file đã chọn"><?= $ciSvg('dong', 14, 2.4) ?></button>
         </span>
         <span class="ci-nhac-loi" role="alert" hidden></span>
       </label>
 
       <div class="ci-nut-nhom">
         <button type="submit" class="ci-nut ci-nut-chinh ci-block" onclick="document.getElementById('cheDoWord').value='xem'">
-          <?= $svg('kq', 16) ?>Phân tích &amp; Xem trước trên Web (Lưu trực tiếp)
+          <?= $ciSvg('kq', 16) ?>Phân tích &amp; Xem trước trên Web (Lưu trực tiếp)
         </button>
         <button type="submit" class="ci-nut ci-nut-vien ci-block" onclick="document.getElementById('cheDoWord').value='xuat'" title="Tách câu hỏi và tải về file Excel (.xlsx) để chỉnh sửa ngoại tuyến">
-          <?= $svg('xuong', 16) ?>Hoặc chỉ tách câu &amp; tải về file Excel (.xlsx)
+          <?= $ciSvg('xuong', 16) ?>Hoặc chỉ tách câu &amp; tải về file Excel (.xlsx)
         </button>
       </div>
     </form>
@@ -662,15 +653,20 @@ require __DIR__ . '/layout/header.php';
     <form method="post" action="" enctype="multipart/form-data" class="ci-khoi" data-ci-form="excel">
       <?= csrf_field() ?>
       <input type="hidden" name="buoc" value="excel">
-      <h3 class="ci-tieude"><?= $svg('excel', 20) ?>Cách 2: Import từ file Excel (.xlsx)<span class="ci-nhan-tuy">Bảng tính</span></h3>
+
+      <div class="ci-card-head">
+        <h3 class="ci-tieude"><?= $ciSvg('excel', 20) ?><span>Cách 2: Import từ file Excel (.xlsx)</span></h3>
+        <span class="ci-nhan-tuy">Bảng tính</span>
+      </div>
       <p class="nhan-phu">
         Dành cho trường hợp bạn đã có sẵn <a href="?mau=1">file Excel theo mẫu</a> hoặc file Excel đã chỉnh sửa ngoại tuyến. Nếu file có dòng lỗi, hệ thống cũng sẽ mở Bảng Trợ Lý trên Web để bạn sửa nhanh.
       </p>
 
       <ul class="ci-quy">
-        <li><?= $svg('xong', 13, 3) ?>Kiểm tra tự động từng dòng</li>
-        <li><?= $svg('xong', 13, 3) ?>Hỗ trợ sửa lỗi trực tiếp trên Web</li>
-        <li><?= $svg('xong', 13, 3) ?>Chống trùng lặp câu hỏi</li>
+        <li><?= $ciSvg('xong', 13, 3) ?>Kiểm tra tự động từng dòng</li>
+        <li><?= $ciSvg('xong', 13, 3) ?>Hỗ trợ sửa lỗi trực tiếp trên Web</li>
+        <li><?= $ciSvg('xong', 13, 3) ?>Chống trùng lặp câu hỏi</li>
+        <li><?= $ciSvg('xong', 13, 3) ?>Môn học &amp; Kỳ thi đọc theo từng dòng</li>
       </ul>
 
       <label class="ci-checkbox-boqua">
@@ -680,17 +676,20 @@ require __DIR__ . '/layout/header.php';
 
       <label class="ci-tha" for="file_excel" data-duoi="xlsx" data-max="<?= (int) NhapCauHoi::TOI_DA_BYTE ?>">
         <input type="file" id="file_excel" name="file_excel" accept=".xlsx" required>
-        <span class="ci-cong"><span class="ci-i-up"><?= $svg('tai', 30) ?></span><span class="ci-i-ok"><?= $svg('xong', 30, 2.6) ?></span></span>
+        <span class="ci-cong"><span class="ci-i-up"><?= $ciSvg('tai', 30) ?></span><span class="ci-i-ok"><?= $ciSvg('xong', 30, 2.6) ?></span></span>
         <span class="ci-tha-chu">Thả file Excel (.xlsx) vào đây</span>
-        <span class="ci-tha-phu">hoặc bấm để chọn · .xlsx · tối đa 2 MB · <?= (int) NhapCauHoi::TOI_DA_DONG ?> dòng dữ liệu</span>
+        <span class="ci-tha-phu">hoặc bấm để chọn · .xlsx · tối đa <?= (int) round(NhapCauHoi::TOI_DA_BYTE / 1048576) ?> MB · <?= (int) NhapCauHoi::TOI_DA_DONG ?> dòng dữ liệu</span>
         <span class="ci-file-tt">
           <span class="ci-file-ten"></span><span class="ci-file-kt"></span>
-          <button type="button" class="ci-bo-chon" aria-label="Bỏ file đã chọn"><?= $svg('dong', 14, 2.4) ?></button>
+          <button type="button" class="ci-bo-chon" title="Bỏ file đã chọn" aria-label="Bỏ file đã chọn"><?= $ciSvg('dong', 14, 2.4) ?></button>
         </span>
         <span class="ci-nhac-loi" role="alert" hidden></span>
       </label>
 
-      <button type="submit" class="ci-nut ci-nut-chinh ci-block"><?= $svg('kq', 16) ?>Kiểm tra và Import Excel</button>
+      <div class="ci-nut-nhom">
+        <button type="submit" class="ci-nut ci-nut-chinh ci-block"><?= $ciSvg('kq', 16) ?>Kiểm tra và Import Excel</button>
+        <a class="ci-nut ci-nut-vien ci-block" href="?mau=1"><?= $ciSvg('xuong', 16) ?>Tải file Excel mẫu (.xlsx)</a>
+      </div>
     </form>
   </div>
 
