@@ -1,5 +1,5 @@
-// Trang Nhập câu hỏi từ Word/Excel (admin/cauhoi_nhap.php). Đặt tại: assets/js/admin/cauhoi_nhap.js
-// Chỉ làm đẹp và chặn lỗi sớm ở trình duyệt; mọi kiểm tra thật vẫn do máy chủ (NhapCauHoi.php) thực hiện.
+// Trang Nhập câu hỏi từ Word/Excel kèm Trợ lý Sửa lỗi trực tiếp trên Web (admin/cauhoi_nhap.php).
+// Đặt tại: assets/js/admin/cauhoi_nhap.js
 (function () {
   'use strict';
 
@@ -11,7 +11,7 @@
     return (byte / 1048576).toFixed(1).replace('.', ',') + ' MB';
   }
 
-  // ---------- Từng vùng thả file ----------
+  // ---------- 1. Từng vùng thả file ----------
   var vung = document.querySelectorAll('.ci-tha');
   Array.prototype.forEach.call(vung, function (el) {
     var input = el.querySelector('input[type=file]');
@@ -41,7 +41,13 @@
       if (d !== duoi) {
         input.value = '';
         el.classList.remove('co-file');
-        baoLoi('Chỉ nhận file .' + duoi + '.');
+        if (duoi === 'docx' && d === 'doc') {
+          baoLoi('File .doc là Word 97-2003 cũ. Hãy mở file trong Word -> Bấm F12 (Save As) -> Chọn "Word Document (*.docx)" rồi thả lại vào đây.');
+        } else if (duoi === 'xlsx' && (d === 'xls' || d === 'csv')) {
+          baoLoi('Hãy mở file trong Excel -> Bấm F12 (Save As) -> Chọn "Excel Workbook (*.xlsx)" rồi thả lại vào đây.');
+        } else {
+          baoLoi('Chỉ nhận file định dạng .' + duoi + '.');
+        }
       } else if (toiDa > 0 && f.size > toiDa) {
         input.value = '';
         el.classList.remove('co-file');
@@ -73,79 +79,49 @@
     }
   });
 
-  // ---------- Từng form: khóa nút khi thiếu dữ liệu, trạng thái đang xử lý ----------
+  // ---------- 2. Từng form upload Word / Excel ----------
   var forms = document.querySelectorAll('form[data-ci-form]');
   Array.prototype.forEach.call(forms, function (form) {
-    var nut = form.querySelector('button[type=submit]');
+    var nuts = form.querySelectorAll('button[type=submit]');
     var file = form.querySelector('input[type=file]');
-    var mon = form.elements['mon'] || null;   // select Môn học nằm ngoài thẻ nhưng gắn vào form bằng thuộc tính form
-    var htmlGoc = nut ? nut.innerHTML : '';   // giữ cả biểu tượng trong nút
+    var mon = form.elements['mon'] || null;
     var hen = null;
 
     function kiemTra() {
       var duDuLieu = !!(file && file.files && file.files.length);
       if (mon && parseInt(mon.value, 10) <= 0) { duDuLieu = false; }
-      if (nut && !nut.classList.contains('dang-xu-ly')) { nut.disabled = !duDuLieu; }
+      Array.prototype.forEach.call(nuts, function (n) {
+        if (!n.classList.contains('dang-xu-ly')) { n.disabled = !duDuLieu; }
+      });
     }
 
     function khoiPhuc() {
       if (hen) { clearTimeout(hen); hen = null; }
-      if (nut) {
-        nut.classList.remove('dang-xu-ly');
-        nut.innerHTML = htmlGoc;
-      }
+      Array.prototype.forEach.call(nuts, function (n) {
+        n.classList.remove('dang-xu-ly');
+      });
       kiemTra();
     }
 
     form.addEventListener('ci-doi', kiemTra);
     if (mon) { mon.addEventListener('change', kiemTra); }
 
-    // Bắt đầu trạng thái đang xử lý (gọi sau khi người dùng đã xác nhận)
-    function batDau() {
-      nut.classList.add('dang-xu-ly');
-      nut.textContent = 'Đang xử lý...';
-      // Bước Word trả về file tải xuống nên trang không tải lại: tự trả nút về trạng thái ban đầu
-      if (form.getAttribute('data-ci-form') === 'word') { hen = setTimeout(khoiPhuc, 4000); }
-    }
-
-    // Hỏi xác nhận một lần bằng modal chung của dự án (CosmicUI.confirm trong ui.js); không có thì dùng hộp thoại của trình duyệt
-    function hoiXacNhan(noiDung, nhanOk, dongY) {
-      if (window.CosmicUI && typeof window.CosmicUI.confirm === 'function') {
-        window.CosmicUI.confirm(noiDung, dongY, { nhanOk: nhanOk });
-      } else if (window.confirm(noiDung)) {
-        dongY();
+    form.addEventListener('submit', function () {
+      var cheDoWord = document.getElementById('cheDoWord');
+      if (form.getAttribute('data-ci-form') === 'word' && cheDoWord && cheDoWord.value === 'xuat') {
+        hen = setTimeout(khoiPhuc, 4000);
       }
-    }
-
-    form.addEventListener('submit', function (ev) {
-      if (!nut) { return; }
-      ev.preventDefault();   // gửi thật bằng form.submit() sau khi đồng ý (lúc đó trình duyệt đã kiểm tra xong các ô bắt buộc)
-      if (nut.classList.contains('dang-xu-ly')) { return; }   // chống bấm hai lần
-      var tenFile = file && file.files && file.files[0] ? file.files[0].name : '';
-      var noiDung, nhanOk;
-      if (form.getAttribute('data-ci-form') === 'word') {
-        var tenMon = mon && mon.selectedIndex >= 0 ? mon.options[mon.selectedIndex].text : '';
-        noiDung = 'Tách câu hỏi môn "' + tenMon + '" từ file "' + tenFile + '" và tải về file Excel để soát? Bước này chưa lưu gì vào hệ thống.';
-        nhanOk = 'Tách và tải Excel';
-      } else {
-        noiDung = 'Kiểm tra và import file "' + tenFile + '"? Nếu mọi dòng đều hợp lệ, hệ thống sẽ lưu tất cả câu hỏi vào ngân hàng ngay.';
-        nhanOk = 'Import';
-      }
-      hoiXacNhan(noiDung, nhanOk, function () {
-        batDau();
-        form.submit();
-      });
     });
 
-    // Quay lại bằng nút Back của trình duyệt (bfcache) thì bỏ trạng thái đang xử lý
     window.addEventListener('pageshow', function (ev) { if (ev.persisted) { khoiPhuc(); } });
-
     kiemTra();
   });
 
-  // ---------- Lưới ô soát câu: rê chuột hoặc focus để xem lỗi ----------
+  // ---------- 3. BẢNG TRỢ LÝ SỬA LỖI TRỰC TIẾP TRÊN WEB ----------
+  var bangSua = document.getElementById('bangSuaTrucTiep');
   var luoi = document.getElementById('luoi');
   var tin = document.getElementById('thongtin');
+
   if (luoi && tin) {
     var macDinh = luoi.getAttribute('data-mac-dinh') || '';
     var hien = function (ev) {
@@ -158,7 +134,212 @@
     luoi.addEventListener('focusout', function () { tin.textContent = macDinh; });
   }
 
-  // ---------- Có kết quả kiểm tra thì cuộn tới ----------
+  if (bangSua) {
+    var demHopLeNut = document.getElementById('demHopLeNut');
+    var btnLuuHopLe = document.getElementById('btnLuuHopLe');
+    var countOkEl = document.getElementById('countOk');
+    var countLoiEl = document.getElementById('countLoi');
+    var countTrungEl = document.getElementById('countTrung');
+
+    // Kiểm tra nhanh tại trình duyệt xem một dòng sau khi Admin click sửa đã đủ điều kiện Hợp lệ chưa
+    function danhGiaLaiDong(tr) {
+      if (!tr) { return; }
+      var idx = tr.getAttribute('data-idx');
+      var boQuaInput = tr.querySelector('.input-bo-qua');
+      var daBoQua = boQuaInput && boQuaInput.value === '1';
+      var oLuoi = luoi ? luoi.querySelector('.ci-o[data-idx="' + idx + '"]') : null;
+
+      if (daBoQua) {
+        tr.classList.add('da-bo-qua');
+        if (oLuoi) { oLuoi.classList.add('da-bo-qua'); }
+        capNhatBoDem();
+        return;
+      }
+      tr.classList.remove('da-bo-qua');
+      if (oLuoi) { oLuoi.classList.remove('da-bo-qua'); }
+
+      var nd = (tr.querySelector('.ci-input-nd').value || '').trim();
+      var paInputs = tr.querySelectorAll('.ci-input-pa');
+      var dsPA = [];
+      var mapPA = {};
+      Array.prototype.forEach.call(paInputs, function (inp) {
+        var v = (inp.value || '').trim();
+        var k = inp.getAttribute('data-pa');
+        mapPA[k] = v;
+        if (v !== '') { dsPA.push(v.toLowerCase()); }
+      });
+      var daDung = (tr.querySelector('.input-dap-an-dung').value || '').trim().toUpperCase();
+      var loi = [];
+
+      if (nd === '') { loi.push('Hãy nhập nội dung câu hỏi.'); }
+      if (dsPA.length < 2) { loi.push('Cần ít nhất 2 phương án trả lời.'); }
+      if (daDung === '' || ['A', 'B', 'C', 'D'].indexOf(daDung) === -1) {
+        loi.push('Hãy chọn đúng một đáp án đúng (A, B, C hoặc D).');
+      } else if (!mapPA[daDung] || mapPA[daDung] === '') {
+        loi.push('Phương án ' + daDung + ' được chọn làm đáp án đúng đang để trống.');
+      }
+
+      // Kiểm tra 2 phương án trùng nhau trong cùng 1 câu
+      var daThayPA = {};
+      for (var i = 0; i < dsPA.length; i++) {
+        if (daThayPA[dsPA[i]]) {
+          loi.push('Có hai phương án trả lời giống nhau.');
+          break;
+        }
+        daThayPA[dsPA[i]] = true;
+      }
+
+      var pill = tr.querySelector('[data-pill-idx]');
+      var loiBox = tr.querySelector('[data-loi-idx]');
+      var nhacDa = tr.querySelector('.ci-nhac-da');
+      if (nhacDa) { nhacDa.hidden = daDung !== ''; }
+
+      // Nếu dòng vốn bị Trùng từ máy chủ mà Admin chưa đổi nội dung câu hỏi thì giữ nguyên trạng thái Trùng
+      var trangThaiCu = tr.getAttribute('data-trang-thai');
+      if (loi.length > 0) {
+        tr.setAttribute('data-trang-thai', 'loi');
+        tr.className = 'ci-dong-sua dong-loi';
+        if (pill) { pill.className = 'ci-pill ci-pill-loi'; pill.textContent = 'Lỗi'; }
+        if (loiBox) { loiBox.textContent = loi.join('; '); loiBox.hidden = false; }
+        if (oLuoi) {
+          oLuoi.className = 'ci-o ci-o-loi';
+          oLuoi.setAttribute('data-tip', 'Câu ' + (parseInt(idx, 10) + 1) + ': ' + loi.join('; '));
+        }
+      } else if (trangThaiCu !== 'trung') {
+        tr.setAttribute('data-trang-thai', 'ok');
+        tr.className = 'ci-dong-sua dong-ok';
+        if (pill) { pill.className = 'ci-pill ci-pill-ok'; pill.textContent = 'Hợp lệ'; }
+        if (loiBox) { loiBox.textContent = ''; loiBox.hidden = true; }
+        if (oLuoi) {
+          oLuoi.className = 'ci-o ci-o-ok';
+          oLuoi.setAttribute('data-tip', 'Câu ' + (parseInt(idx, 10) + 1) + ': Hợp lệ - sẵn sàng lưu.');
+        }
+      }
+      capNhatBoDem();
+    }
+
+    function capNhatBoDem() {
+      var dongs = bangSua.querySelectorAll('tbody .ci-dong-sua');
+      var ok = 0, loi = 0, trung = 0;
+      Array.prototype.forEach.call(dongs, function (tr) {
+        var boQua = tr.querySelector('.input-bo-qua');
+        if (boQua && boQua.value === '1') { return; }
+        var tt = tr.getAttribute('data-trang-thai');
+        if (tt === 'ok') { ok++; }
+        else if (tt === 'trung') { trung++; }
+        else { loi++; }
+      });
+      if (countOkEl) { countOkEl.textContent = ok; }
+      if (countLoiEl) { countLoiEl.textContent = loi; }
+      if (countTrungEl) { countTrungEl.textContent = trung; }
+      if (demHopLeNut) { demHopLeNut.textContent = ok; }
+      if (btnLuuHopLe) { btnLuuHopLe.disabled = ok === 0; }
+    }
+
+    // Click nút A / B / C / D để chọn đáp án đúng trong 1 click
+    bangSua.addEventListener('click', function (ev) {
+      var nutDa = ev.target.closest ? ev.target.closest('.ci-nut-da') : null;
+      if (nutDa) {
+        var tr = nutDa.closest('.ci-dong-sua');
+        var da = nutDa.getAttribute('data-da');
+        var inputDung = tr.querySelector('.input-dap-an-dung');
+        inputDung.value = da;
+        Array.prototype.forEach.call(tr.querySelectorAll('.ci-nut-da'), function (b) {
+          b.classList.toggle('active', b === nutDa);
+        });
+        danhGiaLaiDong(tr);
+        return;
+      }
+
+      var nutBoQua = ev.target.closest ? ev.target.closest('.ci-nut-boqua') : null;
+      if (nutBoQua) {
+        var tr2 = nutBoQua.closest('.ci-dong-sua');
+        var inp = tr2.querySelector('.input-bo-qua');
+        var moi = inp.value === '1' ? '0' : '1';
+        inp.value = moi;
+        nutBoQua.textContent = moi === '1' ? 'Khôi phục' : 'Bỏ qua';
+        danhGiaLaiDong(tr2);
+      }
+    });
+
+    // Khi Admin gõ sửa nội dung câu hỏi hoặc phương án -> nếu dòng đang bị Trùng mà đổi nội dung thì cho phép xét lại
+    bangSua.addEventListener('input', function (ev) {
+      var tr = ev.target.closest ? ev.target.closest('.ci-dong-sua') : null;
+      if (!tr) { return; }
+      if (ev.target.classList.contains('ci-input-nd') && tr.getAttribute('data-trang-thai') === 'trung') {
+        tr.setAttribute('data-trang-thai', 'ok');
+      }
+      danhGiaLaiDong(tr);
+    });
+
+    // Bộ lọc Tab: Tất cả / Hợp lệ / Cần sửa / Trùng
+    var tabs = document.querySelectorAll('.ci-loc-tab');
+    Array.prototype.forEach.call(tabs, function (tab) {
+      tab.addEventListener('click', function () {
+        var loc = tab.getAttribute('data-loc');
+        Array.prototype.forEach.call(tabs, function (t) { t.classList.toggle('dang-chon', t === tab); });
+        var dongs = bangSua.querySelectorAll('tbody .ci-dong-sua');
+        Array.prototype.forEach.call(dongs, function (tr) {
+          var tt = tr.getAttribute('data-trang-thai');
+          tr.hidden = !(loc === 'all' || tt === loc);
+        });
+      });
+    });
+
+    // Điền nhanh chuỗi đáp án (VD: "1A 2B 3C 4D" hoặc "ABCD")
+    var btnChuoiDA = document.getElementById('btnApDungChuoiDA');
+    var inpChuoiDA = document.getElementById('inputChuoiDapAn');
+    if (btnChuoiDA && inpChuoiDA) {
+      btnChuoiDA.addEventListener('click', function () {
+        var raw = (inpChuoiDA.value || '').trim().toUpperCase();
+        if (!raw) { return; }
+        var dongs = bangSua.querySelectorAll('tbody .ci-dong-sua');
+        var capMatches = raw.match(/\d+\s*[\.\-:\)]?\s*[A-D]/g);
+        if (capMatches && capMatches.length > 0) {
+          capMatches.forEach(function (cap) {
+            var m = cap.match(/(\d+)\s*[\.\-:\)]?\s*([A-D])/);
+            if (m) {
+              var viTri = parseInt(m[1], 10) - 1;
+              var chu = m[2];
+              if (dongs[viTri]) {
+                var nut = dongs[viTri].querySelector('.ci-nut-da[data-da="' + chu + '"]');
+                if (nut) { nut.click(); }
+              }
+            }
+          });
+        } else {
+          // Chuỗi liền "ABCD..."
+          var chuCai = raw.replace(/[^A-D]/g, '').split('');
+          chuCai.forEach(function (chu, idx) {
+            if (dongs[idx]) {
+              var nut = dongs[idx].querySelector('.ci-nut-da[data-da="' + chu + '"]');
+              if (nut) { nut.click(); }
+            }
+          });
+        }
+      });
+    }
+
+    // Nút "Bỏ qua tất cả dòng lỗi/trùng"
+    var btnBoQuaLoi = document.getElementById('btnBoQuaTatCaLoi');
+    if (btnBoQuaLoi) {
+      btnBoQuaLoi.addEventListener('click', function () {
+        var dongs = bangSua.querySelectorAll('tbody .ci-dong-sua');
+        Array.prototype.forEach.call(dongs, function (tr) {
+          var tt = tr.getAttribute('data-trang-thai');
+          var inp = tr.querySelector('.input-bo-qua');
+          var nut = tr.querySelector('.ci-nut-boqua');
+          if (tt !== 'ok' && inp && inp.value === '0') {
+            inp.value = '1';
+            if (nut) { nut.textContent = 'Khôi phục'; }
+            danhGiaLaiDong(tr);
+          }
+        });
+      });
+    }
+  }
+
+  // ---------- 4. Có kết quả kiểm tra thì cuộn mượt tới ----------
   var kq = document.getElementById('ketqua');
   if (kq && kq.scrollIntoView) {
     kq.scrollIntoView({ behavior: giamChuyenDong ? 'auto' : 'smooth', block: 'start' });
