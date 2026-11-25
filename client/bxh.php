@@ -40,6 +40,12 @@ $phamVi = (string) ($_GET['pv'] ?? 'truong');
 if (!in_array($phamVi, ['truong', 'mon', 'loai', 'banbe'], true)) {
     $phamVi = 'truong';
 }
+// "Tất cả" môn: Toàn hệ thống vốn đã gộp mọi môn; riêng Bạn bè dùng mon=0 để xem mọi môn trong nhóm bạn bè
+$tatCaMon = $phamVi === 'banbe' && isset($_GET['mon']) && (string) $_GET['mon'] === '0';
+if ($tatCaMon) {
+    $mon = 0;
+}
+$gopMon = $phamVi === 'truong' || $tatCaMon;   // bảng gộp mọi môn (không gắn với một môn cụ thể)
 $ky = (string) ($_GET['ky'] ?? 'tong');
 if (!in_array($ky, ['tong', 'tuan', 'thang'], true)) {
     $ky = 'tong';
@@ -59,7 +65,7 @@ $taiBanBe = '(SELECT MaNguoiNhan FROM BANBE WHERE MaNguoiGui = ? AND TrangThai =
               UNION SELECT ?)';
 
 $canDangNhap = $phamVi === 'banbe' && $toi === null;
-$khongCoMon  = !in_array($phamVi, ['truong', 'loai'], true) && $mon === 0;
+$khongCoMon  = !in_array($phamVi, ['truong', 'loai'], true) && $mon === 0 && !$tatCaMon;
 $khongCoLoai = $phamVi === 'loai' && !$dsLoai;
 $core = null;
 $p = [];
@@ -87,7 +93,7 @@ if ($phamVi === 'loai') {
         $core .= ' GROUP BY u.MaND, u.HoTen, u.AnhDaiDien';
     }
 } elseif (!$canDangNhap && !$khongCoMon) {
-    if ($ky === 'tong' && $phamVi === 'truong') {
+    if ($ky === 'tong' && $gopMon) {
         // C-37: Elo trung bình các môn đã đạt tối thiểu N trận; môn chưa đủ N không được tính
         $kieu = 'truong';
         // MonChinh: môn người này đấu nhiều trận nhất (trong các môn đã đủ N trận, môn đang mở)
@@ -97,9 +103,13 @@ if ($phamVi === 'loai') {
                           WHERE x.MaND = u.MaND AND x.SoTran >= ? AND m.TrangThai = 'Đang mở'
                           ORDER BY x.SoTran DESC, x.DiemElo DESC LIMIT 1) AS MonChinh
                    FROM ELOMONHOC e JOIN NGUOIDUNG u ON u.MaND = e.MaND
-                  WHERE e.SoTran >= ? AND u.TrangThai = 'Hoạt động'
-                  GROUP BY u.MaND, u.HoTen, u.AnhDaiDien";
+                  WHERE e.SoTran >= ? AND u.TrangThai = 'Hoạt động'"
+              . ($tatCaMon ? " AND e.MaND IN $taiBanBe" : '')
+              . ' GROUP BY u.MaND, u.HoTen, u.AnhDaiDien';
         $p = [$nMin, $nMin];
+        if ($tatCaMon) {
+            array_push($p, $toi, $toi, $toi);
+        }
     } elseif ($ky === 'tong') {
         // C-36, C-38: theo môn, có thể giới hạn trong nhóm bạn bè
         $kieu = 'mon';
@@ -114,13 +124,17 @@ if ($phamVi === 'loai') {
     } else {
         // C-39: tổng mức thay đổi Elo trong kỳ; người không có trận trong kỳ không xuất hiện
         $kieu = 'ky';
-        if ($phamVi === 'truong') {
+        if ($gopMon) {
             $core = "SELECT u.MaND, u.HoTen, u.AnhDaiDien, SUM(l.ThayDoi) AS Diem, COUNT(*) AS SoTran,
                             (SELECT AVG(x.DiemElo) FROM ELOMONHOC x WHERE x.MaND = l.MaND AND x.SoTran >= ?) AS EloHienTai
                        FROM LICHSUELO l JOIN NGUOIDUNG u ON u.MaND = l.MaND
-                      WHERE l.ThoiGian >= ? AND u.TrangThai = 'Hoạt động'
-                      GROUP BY u.MaND, u.HoTen, u.AnhDaiDien";
+                      WHERE l.ThoiGian >= ? AND u.TrangThai = 'Hoạt động'"
+                  . ($tatCaMon ? " AND l.MaND IN $taiBanBe" : '')
+                  . ' GROUP BY u.MaND, u.HoTen, u.AnhDaiDien';
             $p = [$nMin, $tuNgay];
+            if ($tatCaMon) {
+                array_push($p, $toi, $toi, $toi);
+            }
         } else {
             $core = "SELECT u.MaND, u.HoTen, u.AnhDaiDien, SUM(l.ThayDoi) AS Diem, COUNT(*) AS SoTran, e.DiemElo AS EloHienTai
                        FROM LICHSUELO l
@@ -203,7 +217,7 @@ if ($kieu === 'truong') {
 } elseif ($kieu === 'loai') {
     $cot = ['Người chơi', 'Loại kỳ thi', 'Elo thay đổi', 'Số trận', 'Tỉ lệ thắng'];
 } else {
-    $cot = $phamVi === 'truong'
+    $cot = $gopMon
         ? ['Người chơi', 'Thay đổi Elo', 'Số trận trong kỳ', 'Elo hiện tại']
         : ['Người chơi', 'Môn học', 'Thay đổi Elo', 'Số trận trong kỳ', 'Elo hiện tại'];
 }
@@ -267,7 +281,7 @@ require __DIR__ . '/layout/header.php';
         <span class="bxh-nhan">Phạm vi</span>
         <div class="bxh-chips">
           <a class="bxh-chip<?= $phamVi === 'truong' ? ' dang-chon' : '' ?>" data-mem-truoc href="<?= e(bxhUrl(['pv' => 'truong'])) ?>">&#9734; Toàn hệ thống</a>
-          <a class="bxh-chip<?= $phamVi === 'banbe' ? ' dang-chon' : '' ?>" data-mem-truoc href="<?= e(bxhUrl(['pv' => 'banbe'])) ?>">&#128101; Bạn bè</a>
+          <a class="bxh-chip<?= $phamVi === 'banbe' ? ' dang-chon' : '' ?>" data-mem-truoc href="<?= e(bxhUrl($gopMon ? ['pv' => 'banbe', 'mon' => 0] : ['pv' => 'banbe'])) ?>">&#128101; Bạn bè</a>
         </div>
       </div>
 
@@ -280,6 +294,7 @@ require __DIR__ . '/layout/header.php';
         </div>
         <?php endif; ?>
         <div class="bxh-chips" id="bxhMonChips">
+          <a class="bxh-chip bxh-chip-tatca<?= $gopMon ? ' dang-chon' : '' ?>" data-mem-truoc href="<?= e(bxhUrl($phamVi === 'banbe' ? ['pv' => 'banbe', 'mon' => 0] : ['pv' => 'truong'])) ?>">&#127775; Tất cả</a>
           <?php foreach ($dsMon as $i => $m):
             $dangChon = in_array($phamVi, ['mon', 'banbe'], true) && (int) $m['MaMon'] === $mon;   // đang xem Bạn bè thì môn được chọn vẫn sáng
             $laThem   = $i >= $soMonHienSan && !$dangChon;   // môn đang chọn luôn hiện dù nằm ngoài 6 môn đầu
@@ -372,10 +387,10 @@ require __DIR__ . '/layout/header.php';
                   <td class="c-so"><?= (int) $r['SoTran'] ?></td>
                   <td class="c-so"><?= $tyLe ?>%</td>
                 <?php else: ?>
-                  <?php if ($phamVi !== 'truong'): ?><td class="c-so"><span class="bxh-mon"><?= e($tenMon) ?></span></td><?php endif; ?>
+                  <?php if (!$gopMon): ?><td class="c-so"><span class="bxh-mon"><?= e($tenMon) ?></span></td><?php endif; ?>
                   <td class="c-so"><strong class="<?= (int) $r['Diem'] < 0 ? 'giam' : 'tang' ?>"><?= dau((int) $r['Diem']) ?></strong></td>
                   <td class="c-so"><?= (int) $r['SoTran'] ?></td>
-                  <td class="c-so"><?= $r['EloHienTai'] === null ? '&ndash;' : e((string) round((float) $r['EloHienTai'], $phamVi === 'truong' ? 1 : 0)) ?></td>
+                  <td class="c-so"><?= $r['EloHienTai'] === null ? '&ndash;' : e((string) round((float) $r['EloHienTai'], $gopMon ? 1 : 0)) ?></td>
                 <?php endif; ?>
               </tr>
             <?php endforeach; ?>
@@ -389,7 +404,13 @@ require __DIR__ . '/layout/header.php';
     <p class="ghi-chu">
       <?php if ($phamVi === 'loai'): ?>
         Xếp theo tổng Elo thay đổi trong các trận đã kết thúc của loại kỳ thi này (mọi môn)<?= $ky !== 'tong' ? ' trong kỳ đã chọn' : '' ?>.
-      <?php elseif ($phamVi === 'truong'): ?>
+      <?php elseif ($tatCaMon): ?>
+        <?php if ($ky === 'tong'): ?>
+          Gồm bạn và những người bạn đã chấp nhận, xếp theo Elo trung bình của các môn đã đấu.
+        <?php else: ?>
+          Xếp theo tổng mức thay đổi Elo của mọi môn trong kỳ, chỉ trong nhóm bạn bè; Elo hiện tại là Elo trung bình các môn đã đấu.
+        <?php endif; ?>
+      <?php elseif ($gopMon): ?>
         <?php if ($ky === 'tong'): ?>
           Gồm toàn bộ người chơi đã đấu ít nhất 1 trận, xếp theo Elo trung bình của các môn đã đấu. Môn học chính là môn bạn đấu nhiều nhất.
         <?php else: ?>

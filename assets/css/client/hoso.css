@@ -1,13 +1,82 @@
 /* Trang Hồ sơ cá nhân (client/hoso.php) */
 .hoso-luoi { display:flex; flex-wrap:wrap; gap:16px; }
 .hoso-luoi > .card { flex:1 1 320px; min-width:0; max-width:100%; }
-.avatar, .avatar-mac-dinh { width:96px; height:96px; border-radius:50%; display:block; }
-.avatar { object-fit:cover; border:1px solid var(--mau-vien); }
-.avatar-mac-dinh { background:var(--mau-chinh); color:#fff; font-size:40px; font-weight:700;
+/* ===== Khối "Thông tin" (thẻ đầu tiên của lưới hồ sơ) ===== */
+.hoso-luoi > .card:first-child h3 { position:relative; margin:0 0 20px; padding-bottom:12px; }
+.hoso-luoi > .card:first-child h3::after {
+  content:""; position:absolute; left:0; bottom:0; width:52px; height:3px; border-radius:3px;
+  background:var(--gradient-neon);
+}
+
+/* Ảnh đại diện: căn giữa, vòng sáng cyan bên ngoài (dùng outline vì cosmic-fix.css đã chiếm box-shadow) */
+.avatar, .avatar-mac-dinh {
+  width:112px; height:112px; border-radius:50%; display:block; margin:6px auto 22px;
+  outline:2px solid var(--cyan); outline-offset:5px;
+}
+.avatar { object-fit:cover; border:0; box-shadow:var(--glow-cyan), 0 0 28px rgba(139,53,255,.35); }
+.avatar-mac-dinh { color:#fff; font-size:46px; font-weight:700; line-height:1;
                    display:flex; align-items:center; justify-content:center; }
-input[type=file] { margin-top:4px; }
-.ghichu { color:var(--mau-phu); font-size:13px; }
-input[readonly] { background:#f3f4f6; }
+
+/* Nhãn + ô nhập */
+.hoso-luoi > .card:first-child form label {
+  margin:18px 0 6px; font-size:12.5px; text-transform:uppercase; letter-spacing:.06em;
+}
+.hoso-luoi > .card:first-child form label:first-of-type { margin-top:0; }
+
+/* Ô chọn ảnh: viền nét đứt + nút "Chọn tệp" cùng tông gradient neon */
+input[type=file] { margin-top:0; padding:7px; border-style:dashed; cursor:pointer; }
+input[type=file]::file-selector-button {
+  margin-right:12px; padding:7px 16px; border:0; border-radius:8px; cursor:pointer;
+  font:inherit; font-size:14px; font-weight:600; color:#fff; background:var(--gradient-neon);
+  transition:filter .2s, box-shadow .2s;
+}
+input[type=file]::file-selector-button:hover { filter:brightness(1.15); box-shadow:var(--glow-purple); }
+
+.ghichu { margin-top:6px; color:var(--mau-phu); font-size:13px; line-height:1.5; }
+
+/* Email chỉ đọc: nét đứt, chữ mờ, con trỏ cấm sửa */
+input[readonly] { border-style:dashed; color:var(--mau-phu); cursor:not-allowed; }
+
+/* Hàng nút: xuống dòng gọn trên màn hình hẹp, hai nút bằng nhau */
+.hoso-luoi > .card:first-child form > p:last-child {
+  display:flex; flex-wrap:wrap; gap:10px; margin:26px 0 0;
+}
+.hoso-luoi > .card:first-child form > p:last-child .btn {
+  flex:1 1 150px; text-align:center; text-decoration:none;
+}
+
+/* Bảng Elo theo môn: gọn hơn để không tràn khỏi thẻ, tràn thì cuộn ngang trong thẻ */
+#elo-theo-mon { overflow-x:auto; }
+#elo-theo-mon table { font-size:14px; }
+#elo-theo-mon th, #elo-theo-mon td { padding:8px 6px; }
+#elo-theo-mon th:first-child, #elo-theo-mon td:first-child { padding-left:10px; }
+#elo-theo-mon th:not(:first-child), #elo-theo-mon td:not(:first-child) { text-align:center; white-space:nowrap; }
+#elo-theo-mon th:first-child, #elo-theo-mon td:first-child { min-width:120px; }
+@media (max-width:600px) {
+  #elo-theo-mon table { font-size:13px; }
+  #elo-theo-mon th, #elo-theo-mon td { padding:7px 4px; }
+}
+
+/* Xem trước + căn chỉnh ảnh đại diện (assets/js/client/hoso_avatar.js) */
+.av-panel { margin-top:14px; padding:14px; border:1px dashed rgba(138,245,255,.35); border-radius:12px; background:rgba(5,10,32,.45); }
+.av-panel[hidden], .av-loi[hidden] { display:none; }
+.av-loi { margin-top:10px; }
+.av-dau { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px;
+          color:var(--light-cyan); font-size:12.5px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; }
+.av-x { width:30px; height:30px; padding:0; border-radius:50%; cursor:pointer; font-size:20px; line-height:1;
+        border:1px solid rgba(255,157,184,.6); background:rgba(255,100,120,.12); color:#ff9db8;
+        transition:background .2s, box-shadow .2s, color .2s; }
+.av-x:hover { background:rgba(255,100,120,.3); color:#fff; box-shadow:0 0 14px rgba(255,100,120,.45); }
+.av-khung { position:relative; width:100%; max-width:260px; aspect-ratio:1; margin:0 auto;
+            border-radius:14px; overflow:hidden; background:#050a20; }
+.av-canvas { display:block; width:100%; height:100%; cursor:grab; touch-action:none; }
+.av-canvas:active { cursor:grabbing; }
+.av-mask { position:absolute; inset:0; border-radius:50%; border:2px solid var(--cyan);
+           box-shadow:0 0 0 400px rgba(5,8,23,.62); pointer-events:none; }
+.av-zoom { display:flex; align-items:center; gap:10px; max-width:260px; margin:14px auto 0; color:var(--mau-phu); font-weight:700; }
+.av-zoom input[type=range] { flex:1; width:auto; padding:0; accent-color:var(--cyan); }
+.av-datlai { display:block; margin:12px auto 0; padding:6px 14px; font-size:13px; }
+.av-panel .ghichu { margin-top:12px; text-align:center; }
 
 /* Chân trang Elo theo môn: dấu "…" báo có trang bị bỏ qua */
 .elo-dots { display:inline-block; padding:3px 4px; margin:0 2px 4px 0; color:var(--mau-phu); }

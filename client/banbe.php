@@ -233,14 +233,14 @@ require __DIR__ . '/layout/header.php';
                   <span class="bb-elo bb-elo-moi">Chưa có Elo</span>
                 <?php endif; ?>
                 <div class="bb-the-nut">
-                  <a href="<?= e(BASE_URL) ?>/client/timtran.php?che_do=pin&amp;moi_ban=<?= (int) $r['MaND'] ?>" class="bb-nut bb-nut-xanh">⚔️ Thách đấu</a>
+                  <a href="<?= e(BASE_URL) ?>/client/timtran.php?che_do=pin&amp;moi_ban=<?= (int) $r['MaND'] ?>" class="bb-nut bb-nut-xanh" title="Thách đấu" aria-label="Thách đấu <?= e($r['HoTen']) ?>">⚔️</a>
                   <?= nutBanBe('huyketban', (int) $r['MaND'], 'Hủy kết bạn', $q, $trangDangXem, 'bb-nut bb-nut-nguy',
                                'Hủy kết bạn với ' . $r['HoTen'] . '? Hai bạn sẽ không còn thấy nhau trong bảng xếp hạng bạn bè.') ?>
                 </div>
               </article>
             <?php endforeach; ?>
           </div>
-          <p class="bb-lienket"><a href="<?= e(BASE_URL) ?>/client/bxh.php?pv=banbe">Xem bảng xếp hạng bạn bè →</a></p>
+          <p class="bb-lienket"><a href="<?= e(BASE_URL) ?>/client/bxh.php?pv=banbe&amp;mon=0">Xem bảng xếp hạng bạn bè →</a></p>
         <?php endif; ?>
       </section>
     </div>

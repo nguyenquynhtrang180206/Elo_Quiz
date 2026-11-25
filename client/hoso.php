@@ -199,7 +199,7 @@ foreach ($bieuDo as $k => $b) {
 }
 
 $tieuDe = 'Hồ sơ cá nhân';
-$jsTrang = 'hoso_elo';
+$jsTrang = ['hoso_elo', 'hoso_avatar'];
 $cssTrang = 'hoso';
 require __DIR__ . '/layout/header.php';
 ?>

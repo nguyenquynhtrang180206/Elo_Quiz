@@ -326,10 +326,6 @@ require __DIR__ . '/layout/header.php';
               <div class="pet-mood-overlay" id="pet-mood-tag">✌️ Cún Tự Tin: 10 Điểm Về Tay</div>
             </div>
 
-            <!-- Chân khung: Gợi ý chạm & Đếm số linh vật -->
-            <div class="pet-card-footer">
-              <span class="pet-hint-txt">⚡ Chạm khung đổi Pet &amp; Mood (<span id="pet-num-indicator">1</span>/10)</span>
-            </div>
           </div>
         </div>
       </div>
