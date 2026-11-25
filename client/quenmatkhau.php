@@ -276,12 +276,22 @@ require __DIR__ . '/layout/header.php';
 
     <!-- ==================== BƯỚC 2: NHẬP OTP TỪ EMAIL & ĐẶT MẬT KHẨU MỚI ==================== -->
     <?php elseif ($buoc === 2): ?>
-      <?php $flow = $_SESSION['reset_flow'] ?? []; ?>
+      <?php
+        $flow          = $_SESSION['reset_flow'] ?? [];
+        $now           = time();
+        $otpConLai     = max(0, (int) ($flow['expire'] ?? 0) - $now);
+        $guiLaiConLai  = max(0, 60 - ($now - (int) ($flow['last_sent'] ?? 0)));
+      ?>
 
       <div class="thongbao-email-box">
         <span class="email-icon-pulse">✉️</span>
         <div>
-          <?= $daGuiLai ? 'Đã gửi lại mã OTP mới' : 'Mã OTP đã được gửi' ?> tới: <strong><?= e($flow['email'] ?? '') ?></strong> (kiểm tra cả mục <span class="email-spam-hint">Spam</span>).
+          <div>
+            <?= $daGuiLai ? 'Đã gửi lại mã OTP mới' : 'Mã OTP đã được gửi' ?> tới: <strong><?= e($flow['email'] ?? '') ?></strong> (kiểm tra cả mục <span class="email-spam-hint">Spam</span>).
+          </div>
+          <div class="otp-countdown-line">
+            ⏳ Mã OTP có hiệu lực trong <strong id="otpExpireTimer" data-seconds="<?= $otpConLai ?>"><?= sprintf('%02d:%02d', intdiv($otpConLai, 60), $otpConLai % 60) ?></strong>
+          </div>
         </div>
       </div>
 
@@ -289,14 +299,22 @@ require __DIR__ . '/layout/header.php';
         <?= csrf_field() ?>
         <input type="hidden" name="action" value="dat_lai_mat_khau">
 
-        <label for="otp">Mã xác thực OTP (6 số từ email)</label>
+        <div class="otp-label-row">
+          <label for="otp">Mã xác thực OTP (6 số từ email)</label>
+          <span class="otp-badge-expire" id="otpExpireBadge">Còn hiệu lực: <b><?= sprintf('%02d:%02d', intdiv($otpConLai, 60), $otpConLai % 60) ?></b></span>
+        </div>
         <input type="text" id="otp" name="otp" maxlength="6" inputmode="numeric" pattern="[0-9]{6}"
                placeholder="Nhập 6 số OTP" required autofocus autocomplete="off"
                style="letter-spacing: 5px; font-weight: 700; text-align: center; font-size: 18px;">
 
         <div class="hang-gui-lai">
           <span style="font-size: 12.5px; color: var(--mau-phu);">Chưa nhận được email?</span>
-          <a href="<?= e(BASE_URL) ?>/client/quenmatkhau.php?gui_lai=1" class="link-gui-lai">Gửi lại mã OTP</a>
+          <a href="<?= e(BASE_URL) ?>/client/quenmatkhau.php?gui_lai=1"
+             class="link-gui-lai<?= $guiLaiConLai > 0 ? ' is-disabled' : '' ?>"
+             id="btnGuiLaiOtp"
+             data-cooldown="<?= $guiLaiConLai ?>">
+            <?= $guiLaiConLai > 0 ? "Gửi lại mã sau ({$guiLaiConLai}s)" : 'Gửi lại mã OTP' ?>
+          </a>
         </div>
 
         <label for="mat_khau_moi">Mật khẩu mới</label>

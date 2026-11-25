@@ -155,5 +155,68 @@
   blockCopyPasteOnConfirm();
   window.blockCopyPasteOnConfirm = blockCopyPasteOnConfirm;
   window.showNoPasteToast = showNoPasteToast;
+
+  // 4. Đồng hồ đếm ngược thời hạn hiệu lực mã OTP (15 phút) và thời gian chờ Gửi lại (60 giây)
+  function formatMmSs(totalSec) {
+    var s = Math.max(0, parseInt(totalSec, 10) || 0);
+    var m = Math.floor(s / 60);
+    var r = s % 60;
+    return (m < 10 ? '0' + m : String(m)) + ':' + (r < 10 ? '0' + r : String(r));
+  }
+
+  var otpExpireTimer = document.getElementById('otpExpireTimer');
+  var otpExpireBadge = document.getElementById('otpExpireBadge');
+  var otpInput = document.getElementById('otp');
+
+  if (otpExpireTimer) {
+    var remainSec = parseInt(otpExpireTimer.getAttribute('data-seconds'), 10) || 0;
+    var otpItv = setInterval(function () {
+      remainSec--;
+      if (remainSec <= 0) {
+        clearInterval(otpItv);
+        otpExpireTimer.textContent = 'Đã hết hạn (00:00)';
+        otpExpireTimer.classList.add('is-expired');
+        if (otpExpireBadge) {
+          otpExpireBadge.innerHTML = '<b class="is-expired">Mã OTP đã hết hạn! Vui lòng bấm Gửi lại mã.</b>';
+        }
+        if (otpInput) {
+          otpInput.placeholder = 'Mã OTP đã hết hạn';
+        }
+      } else {
+        var formatted = formatMmSs(remainSec);
+        otpExpireTimer.textContent = formatted;
+        if (otpExpireBadge) {
+          var b = otpExpireBadge.querySelector('b');
+          if (b) b.textContent = formatted;
+        }
+        if (remainSec <= 60) {
+          otpExpireTimer.classList.add('is-warning');
+        }
+      }
+    }, 1000);
+  }
+
+  var btnGuiLaiOtp = document.getElementById('btnGuiLaiOtp');
+  if (btnGuiLaiOtp) {
+    var cdSec = parseInt(btnGuiLaiOtp.getAttribute('data-cooldown'), 10) || 0;
+    btnGuiLaiOtp.addEventListener('click', function (e) {
+      if (cdSec > 0) {
+        e.preventDefault();
+      }
+    });
+
+    if (cdSec > 0) {
+      var cdItv = setInterval(function () {
+        cdSec--;
+        if (cdSec <= 0) {
+          clearInterval(cdItv);
+          btnGuiLaiOtp.classList.remove('is-disabled');
+          btnGuiLaiOtp.textContent = 'Gửi lại mã OTP';
+        } else {
+          btnGuiLaiOtp.textContent = 'Gửi lại mã sau (' + cdSec + 's)';
+        }
+      }, 1000);
+    }
+  }
 })();
 

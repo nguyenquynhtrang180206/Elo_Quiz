@@ -133,13 +133,23 @@ require __DIR__ . '/layout/header.php';
     <?php endif; ?>
 
     <?php if ($dangCho2FA): ?>
+      <?php
+        $now2FA          = time();
+        $otpConLai2FA    = max(0, (int) ($flow2FA['expire'] ?? 0) - $now2FA);
+        $guiLaiConLai2FA = max(0, 60 - ($now2FA - (int) ($flow2FA['last_sent'] ?? 0)));
+      ?>
       <!-- ==================== GIAO DIỆN XÁC THỰC OTP 2FA CHO QUẢN TRỊ VIÊN ==================== -->
       <div class="thongbao-2fa-box">
         <span class="icon-2fa">🛡️</span>
         <div>
-          <?= $daGuiLaiOtp ? 'Đã gửi lại mã OTP mới' : 'Tài khoản Quản trị viên: Mã OTP 6 số đã được gửi' ?> tới
-          <strong><?= e(Auth::cheEmail((string) ($flow2FA['email'] ?? ''))) ?></strong>
-          (kiểm tra cả mục <span class="spam-tag">Spam</span>).
+          <div>
+            <?= $daGuiLaiOtp ? 'Đã gửi lại mã OTP mới' : 'Tài khoản Quản trị viên: Mã OTP 6 số đã được gửi' ?> tới
+            <strong><?= e(Auth::cheEmail((string) ($flow2FA['email'] ?? ''))) ?></strong>
+            (kiểm tra cả mục <span class="spam-tag">Spam</span>).
+          </div>
+          <div class="otp-countdown-line" style="margin-top: 4px; font-size: 12.5px; color: #cbd5e1;">
+            ⏳ Mã OTP có hiệu lực trong <strong id="otpExpireTimer" data-seconds="<?= $otpConLai2FA ?>" style="color: #FDE047;"><?= sprintf('%02d:%02d', intdiv($otpConLai2FA, 60), $otpConLai2FA % 60) ?></strong>
+          </div>
         </div>
       </div>
 
@@ -147,14 +157,22 @@ require __DIR__ . '/layout/header.php';
         <?= csrf_field() ?>
         <input type="hidden" name="action" value="xac_thuc_2fa">
 
-        <label for="otp">Mã xác thực OTP (6 chữ số từ Email)</label>
+        <div class="hang-mat-khau-header" style="margin-bottom: 6px;">
+          <label for="otp" style="margin-bottom: 0;">Mã xác thực OTP (6 chữ số từ Email)</label>
+          <span class="otp-badge-expire" id="otpExpireBadge" style="font-size: 12px; color: #38bdf8;">Còn hiệu lực: <b><?= sprintf('%02d:%02d', intdiv($otpConLai2FA, 60), $otpConLai2FA % 60) ?></b></span>
+        </div>
         <input type="text" id="otp" name="otp" maxlength="6" inputmode="numeric" pattern="[0-9]{6}"
                placeholder="Nhập 6 số OTP" required autofocus autocomplete="one-time-code"
                style="letter-spacing: 6px; font-weight: 800; text-align: center; font-size: 19px;">
 
         <div class="hang-mat-khau-header" style="margin-top: 4px; margin-bottom: 12px;">
           <span style="font-size: 12.5px; color: #94a3b8;">Chưa nhận được mã?</span>
-          <a href="<?= e(BASE_URL) ?>/client/dangnhap.php?gui_lai_otp=1" class="link-quen-mk">Gửi lại mã OTP</a>
+          <a href="<?= e(BASE_URL) ?>/client/dangnhap.php?gui_lai_otp=1"
+             class="link-quen-mk<?= $guiLaiConLai2FA > 0 ? ' is-disabled' : '' ?>"
+             id="btnGuiLaiOtp"
+             data-cooldown="<?= $guiLaiConLai2FA ?>">
+            <?= $guiLaiConLai2FA > 0 ? "Gửi lại mã sau ({$guiLaiConLai2FA}s)" : 'Gửi lại mã OTP' ?>
+          </a>
         </div>
 
         <label class="hang-ghi-nho" for="tin_cay_thiet_bi">
@@ -167,6 +185,7 @@ require __DIR__ . '/layout/header.php';
           <a href="<?= e(BASE_URL) ?>/client/dangnhap.php?huy_2fa=1" class="link-quen-mk">← Quay lại đăng nhập tài khoản khác</a>
         </p>
       </form>
+      <script src="<?= e(BASE_URL) ?>/assets/js/pw_helper.js"></script>
 
     <?php else: ?>
       <!-- ==================== GIAO DIỆN ĐĂNG NHẬP CHUNG (TỰ ĐỘNG PHÂN QUYỀN) ==================== -->
