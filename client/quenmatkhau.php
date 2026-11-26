@@ -49,7 +49,11 @@ if (isset($_GET['gui_lai']) && !empty($_SESSION['reset_flow'])) {
             $_SESSION['reset_flow']['expire']    = $now + 900; // 15 phút
             $_SESSION['reset_flow']['last_sent'] = $now;
 
-            Mailer::guiOtpQuenMatKhau($flow['email'], $flow['hoTen'], $otpMoi);
+            if (($flow['loai'] ?? '') === 'admin') {
+                Mailer::guiOtpQuenMatKhauAdmin($flow['email'], $flow['hoTen'], (string) ($flow['tenDangNhap'] ?? ''), $otpMoi);
+            } else {
+                Mailer::guiOtpQuenMatKhau($flow['email'], $flow['hoTen'], $otpMoi);
+            }
             $loi      = [];
             $daGuiLai = true;
         }
