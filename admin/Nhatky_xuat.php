@@ -1,27 +1,7 @@
 <?php
-// Xuất Nhật ký quản trị ra Excel hoặc PDF, nhiều sheet / nhiều trang. Đặt tại: elo_quiz/admin/nhatky_xuat.php
-// Được gọi (POST, có CSRF) từ hộp thoại "Xuất" ở admin/nhatky.php. Mỗi lần gọi trả MỘT file; khi người dùng chọn
-// định dạng "Cả hai", trình duyệt (nhatky.js) gọi lần lượt hai lần (Excel rồi PDF), không nén zip.
-//
-// Tham số:
-//   pham_vi : loc = đang lọc (q, ad, hd, nhom, tt, tu, den gửi kèm từ trang, dựng bằng NhatKy::dieuKien giống hệt trang danh sách),
-//             tatca = toàn bộ nhật ký (bỏ qua bộ lọc).
-//   noidung[]: ds = danh sách nhật ký (bảng), nhip = biểu đồ thao tác theo ngày, cocau = biểu đồ cơ cấu hành động.
-//   truong[]: các trường (cột) của danh sách: tg, hd, dt, mota (xem $COT). Thứ tự cột trong file luôn theo $COT.
-//   moc[]   : mốc thời gian, tích được nhiều: d7 = 7 ngày gần nhất, d30 = 30 ngày gần nhất (tính đến hôm nay, vẫn trong phạm vi đã lọc),
-//             tatca = toàn bộ phạm vi.
-//   chia    : moc  = theo MỐC (Excel: mỗi mốc một sheet "Nhật ký - 7 ngày" gồm ô số liệu, hai biểu đồ, danh sách;
-//                    PDF: A4 ngang, mỗi mốc một trang tóm tắt rồi danh sách nối phía sau),
-//             loai = theo LOẠI NỘI DUNG (Excel: sheet "Danh sách", "Biểu đồ theo ngày", "Cơ cấu hành động", các mốc xếp nối tiếp
-//                    từ trên xuống; PDF: A4 dọc, một luồng),
-//             ca   = cả hai nhóm trong cùng một file (nhóm theo mốc trước, nhóm theo loại sau).
-//   dinhdang: excel | pdf.
-//   sx      : asc = cũ nhất trước; mặc định mới nhất trước (giống thứ tự đang xem trên trang).
-//   anh_nhip_<mốc>, anh_cocau_<mốc>: ảnh JPEG (data URL) của hai biểu đồ ứng với từng mốc, do trình duyệt vẽ từ số liệu xem trước
-//             (cùng cách với admin/thongke_xuat.php), ví dụ anh_nhip_d7.
-//   buoc=xemtruoc: không xuất file mà trả JSON để dựng khung "Xem trước" (số liệu, biểu đồ và vài dòng đầu của từng mốc).
+// Xuất nhật ký quản trị ra Excel/PDF theo mốc thời gian hoặc loại nội dung, kèm JSON xem trước.
 require_once __DIR__ . '/../core/bootstrap.php';
-Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');   // A-04
+Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');
 
 function loi_xuat(string $thongBao, int $ma = 400): never
 {
@@ -30,7 +10,7 @@ function loi_xuat(string $thongBao, int $ma = 400): never
     exit($thongBao);
 }
 
-// Ảnh biểu đồ (data URL JPEG): chỉ nhận JPEG hợp lệ, tối đa 5 MB mỗi ảnh
+// Kiểm tra và giải mã ảnh biểu đồ JPEG (tối đa 5 MB).
 function anh_bieu_do(string $khoa): ?array
 {
     $v   = (string) ($_POST[$khoa] ?? '');
@@ -43,14 +23,14 @@ function anh_bieu_do(string $khoa): ?array
     return ['jpeg' => $b, 'rong' => $kt[0], 'cao' => $kt[1]];
 }
 
-// Ảnh dùng trong Excel, cao $cao pixel (giữ tỷ lệ) - để hai biểu đồ đặt ngang cạnh nhau cùng chiều cao; $x = pixel từ mép trái sheet
+// Tính kích thước ảnh theo chiều cao cố định (giữ tỷ lệ).
 function anh_theo_cao(?array $a, int $cao, int $x = 0): ?array
 {
     if (!$a) { return null; }
     return ['jpeg' => $a['jpeg'], 'rong' => (int) round($a['rong'] * $cao / $a['cao']), 'cao' => $cao, 'x' => $x];
 }
 
-// Ảnh dùng trong Excel, rộng $rong pixel (giữ tỷ lệ)
+// Tính kích thước ảnh theo chiều rộng cố định (giữ tỷ lệ).
 function anh_theo_rong(?array $a, int $rong, int $x = 0): ?array
 {
     if (!$a) { return null; }
@@ -63,18 +43,18 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 csrf_check();
 @set_time_limit(120);
 
-$TOI_DA_XLSX = 20000;   // số dòng tối đa của MỖI bảng danh sách (vượt quá thì yêu cầu lọc bớt, tránh làm treo máy chủ)
+$TOI_DA_XLSX = 20000;
 $TOI_DA_PDF  = 3000;
-$SO_DONG_XEM = 10;      // số dòng đầu của mỗi mốc đưa vào khung xem trước
+$SO_DONG_XEM = 10;
 
-// Các trường được phép xuất: khóa => [tiêu đề cột, tỉ lệ độ rộng cột trong PDF]
+// Cấu hình cột xuất và tỉ lệ độ rộng PDF.
 $COT = [
     'tg'    => ['Thời gian',  2.3],
     'hd'    => ['Hành động',  2.8],
     'dt'    => ['Đối tượng',  2.6],
     'mota'  => ['Mô tả',      6.0],
 ];
-// Mốc thời gian: khóa => [nhãn ngắn (tên sheet), nhãn đầy đủ, số ngày (0 = toàn bộ phạm vi)]
+// Mốc thời gian: khóa => [nhãn ngắn, nhãn đầy đủ, số ngày (0 = toàn bộ)].
 $MOC = [
     'd7'    => ['7 ngày',   '7 ngày gần nhất',            7],
     'd30'   => ['30 ngày',  '30 ngày gần nhất',           30],
@@ -86,23 +66,23 @@ $pdo = Database::pdo();
 NhatKy::damBaoCot($pdo);
 $coTT = NhatKy::coCotTrangThai($pdo);
 
-// Lấy các giá trị hợp lệ của một tham số dạng mảng (giữ thứ tự của danh sách $hopLe)
+// Lọc tham số mảng theo danh sách giá trị hợp lệ.
 $chon = static fn (string $khoa, array $hopLe): array => array_values(array_intersect(
     $hopLe, is_array($_POST[$khoa] ?? null) ? array_map('strval', $_POST[$khoa]) : []
 ));
 
-// ---- Tham số từ hộp thoại ----
+// Tham số từ hộp thoại xuất.
 $phamVi = (string) ($_POST['pham_vi'] ?? '');
 if (!in_array($phamVi, ['loc', 'tatca'], true)) {
     loi_xuat('Hãy chọn phạm vi cần xuất.');
 }
 $buoc = (string) ($_POST['buoc'] ?? '');
 $dinhDang = (string) ($_POST['dinhdang'] ?? '');
-if ($buoc === 'xemtruoc') { $dinhDang = 'excel'; }   // xem trước không cần định dạng
+if ($buoc === 'xemtruoc') { $dinhDang = 'excel'; }
 if (!in_array($dinhDang, ['excel', 'pdf'], true)) {
     loi_xuat('Hãy chọn định dạng Excel hoặc PDF.');
 }
-$truong   = $chon('truong', array_keys($COT));      // thứ tự cột trong file luôn cố định theo $COT
+$truong   = $chon('truong', array_keys($COT));
 $noiDung  = $chon('noidung', array_keys($NOI_DUNG));
 $moc      = $chon('moc', array_keys($MOC));
 $chia     = (string) ($_POST['chia'] ?? '');
@@ -118,7 +98,7 @@ if ($buoc !== 'xemtruoc') {
 $sx = (($_POST['sx'] ?? '') === 'asc') ? 'ASC' : 'DESC';
 $sapXepChu = $sx === 'ASC' ? 'cũ nhất trước' : 'mới nhất trước';
 
-// ---- Bộ lọc ----
+// Dựng điều kiện lọc.
 if ($phamVi === 'loc') {
     $kq = NhatKy::dieuKien($_POST);
     if ($kq['loi'] !== '') {
@@ -133,7 +113,7 @@ if ($phamVi === 'loc') {
     $loc   = [];
 }
 
-// Mô tả bộ lọc bằng chữ (ghi vào đầu file và vào nhật ký)
+// Mô tả bộ lọc dạng chữ.
 $ngayVN = static function (string $s): string {
     $d = DateTime::createFromFormat('Y-m-d', $s);
     return $d ? $d->format('d/m/Y') : $s;
@@ -156,7 +136,7 @@ if ($phamVi === 'tatca') {
     $moTaPhamVi = $phan ? 'Đang lọc: ' . implode(' · ', $phan) : 'Đang lọc: không có bộ lọc nào (toàn bộ nhật ký)';
 }
 
-// ---- Điều kiện theo mốc: 7 / 30 ngày gần nhất = thêm điều kiện thời gian vào bộ lọc; toàn bộ = giữ nguyên phạm vi ----
+// Giới hạn điều kiện truy vấn theo mốc thời gian.
 $gioiHanMoc = static function (string $m) use ($where, $tham, $MOC): array {
     $soNgay = $MOC[$m][2];
     if ($soNgay === 0) {
@@ -174,7 +154,7 @@ $khoangChu = static fn (array $g): string => $g['tu'] !== ''
     ? $ngayVN($g['tu']) . ' – ' . $ngayVN($g['den'])
     : 'Toàn bộ thời gian trong phạm vi';
 
-// Số liệu tổng quan của một mốc
+// Thống kê tổng bản ghi của một mốc.
 $thongKeMoc = static function (array $g) use ($pdo, $coTT): array {
     $st = $pdo->prepare(
         "SELECT COUNT(*) AS tong
@@ -186,7 +166,7 @@ $thongKeMoc = static function (array $g) use ($pdo, $coTT): array {
     return array_map('intval', $st->fetch());
 };
 
-// Lấy các dòng của một mốc (đã định dạng sẵn để dùng chung cho xem trước, Excel và PDF)
+// Lấy danh sách bản ghi của một mốc.
 $layDong = static function (array $g, int $gioiHan) use ($pdo, $sx, $coTT): array {
     $st = $pdo->prepare(
         "SELECT n.ThoiGian, n.HanhDong, n.DoiTuong, n.MoTa
@@ -209,9 +189,9 @@ $layDong = static function (array $g, int $gioiHan) use ($pdo, $sx, $coTT): arra
     return $ra;
 };
 
-// Số liệu hai biểu đồ của một mốc: [theoNgay => [ngay, tong]..., coCau => [nhan, so, mau]...]
+// Số liệu biểu đồ theo ngày và cơ cấu hành động của một mốc.
 $soLieuBieuDo = static function (array $g) use ($pdo, $coTT): array {
-    // 1) Số thao tác theo từng ngày (ngày không có thao tác được điền 0 để các cột liền nhau)
+    // Số thao tác theo ngày (điền 0 cho ngày không phát sinh).
     $st = $pdo->prepare(
         "SELECT DATE(n.ThoiGian) AS ngay, COUNT(*) AS tong
          FROM NHATKYQUANTRI n
@@ -234,7 +214,7 @@ $soLieuBieuDo = static function (array $g) use ($pdo, $coTT): array {
         }
     }
 
-    // 2) Cơ cấu hành động theo nhóm (cùng cách chia nhóm như chip lọc ở trang nhật ký)
+    // Cơ cấu hành động theo nhóm.
     $st = $pdo->prepare(
         "SELECT n.HanhDong, COUNT(*) AS so
          FROM NHATKYQUANTRI n
@@ -257,9 +237,7 @@ $soLieuBieuDo = static function (array $g) use ($pdo, $coTT): array {
     return ['theoNgay' => $theoNgay, 'coCau' => $coCau];
 };
 
-// =====================================================================================================
-// XEM TRƯỚC (JSON): số liệu của CẢ BA mốc (trình duyệt chỉ hiện các mốc đang tích; đổi mốc không phải gọi lại)
-// =====================================================================================================
+// Trả JSON xem trước cho cả 3 mốc.
 if ($buoc === 'xemtruoc') {
     $ra = [];
     foreach ($MOC as $m => $thongTin) {
@@ -289,9 +267,7 @@ if ($buoc === 'xemtruoc') {
     ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE));
 }
 
-// =====================================================================================================
-// XUẤT FILE
-// =====================================================================================================
+// Xuất file Excel/PDF.
 $tongPhamVi = $thongKeMoc($gioiHanMoc('tatca'))['tong'];
 if ($tongPhamVi === 0) {
     loi_xuat('Không có bản ghi nhật ký nào trong phạm vi đã chọn.');
@@ -330,7 +306,7 @@ $tieuDeCot = array_map(static fn (string $k): string => $COT[$k][0], $truong);
 $so        = static fn (int $n): string => number_format($n, 0, ',', '.');
 $dongPhu   = $moTaPhamVi . ' · Xếp ' . $sapXepChu;
 
-// Ghi vết việc xuất (chỉ đọc dữ liệu nên không ảnh hưởng nội dung file vừa lấy). Gọi trước khi gửi file vì file được gửi xong là kết thúc chương trình.
+// Ghi nhật ký thao tác xuất trước khi gửi file.
 NhatKy::ghi('Xuất nhật ký quản trị', null,
     ($dinhDang === 'pdf' ? 'PDF' : 'Excel') . ' · ' . $tongPhamVi . ' bản ghi trong phạm vi · Nội dung: '
     . implode(', ', array_map(static fn (string $k): string => $NOI_DUNG[$k], $noiDung))
@@ -338,15 +314,12 @@ NhatKy::ghi('Xuất nhật ký quản trị', null,
     . ' · Chia: ' . ['moc' => 'theo mốc', 'loai' => 'theo loại', 'ca' => 'cả hai'][$chia]
     . ($coDs ? ' · Cột: ' . implode(', ', $tieuDeCot) : '') . ' · ' . $moTaPhamVi . '.');
 
-$coNhomMoc  = $chia !== 'loai';   // có nhóm "theo mốc"
-$coNhomLoai = $chia !== 'moc';    // có nhóm "theo loại nội dung"
+$coNhomMoc  = $chia !== 'loai';
+$coNhomLoai = $chia !== 'moc';
 
 try {
-    // =================================================================================================
-    // EXCEL: nhiều sheet
-    // =================================================================================================
+    // Xuất Excel nhiều sheet.
     if ($dinhDang === 'excel') {
-        // Bảng danh sách của một mốc: dòng tiêu đề + các dòng dữ liệu
         $hangDs = static function (array $d) use ($truong, $tieuDeCot): array {
             $h = [['kieu' => 6, 'o' => $tieuDeCot]];
             foreach ($d['dong'] as $r) {
@@ -361,7 +334,7 @@ try {
         $ghiChuTrong = static fn (string $s): array => ['kieu' => 16, 'o' => [$s]];
         $sheets = [];
 
-        // ---- Nhóm 1: THEO MỐC - mỗi mốc một sheet: tiêu đề, ô số liệu, hai biểu đồ cạnh nhau, danh sách ----
+        // Nhóm theo mốc thời gian.
         if ($coNhomMoc) {
             foreach ($moc as $m) {
                 $d = $du[$m];
@@ -383,7 +356,7 @@ try {
             }
         }
 
-        // ---- Nhóm 2: THEO LOẠI NỘI DUNG - mỗi loại một sheet, các mốc xếp nối tiếp từ trên xuống ----
+        // Nhóm theo loại nội dung.
         if ($coNhomLoai) {
             if ($coDs) {
                 $h = [['kieu' => 2, 'o' => ['Nhật ký quản trị - Danh sách']], $ghiChuTrong($luc . ' · ' . $dongPhu)];
@@ -434,12 +407,9 @@ try {
         XlsxWriter::taiNhieuSheet($tenFile . '.xlsx', $sheets);
     }
 
-    // =================================================================================================
-    // PDF
-    // =================================================================================================
+    // Xuất PDF.
     $pdf = new PdfWriter(__DIR__ . '/../assets/fonts');
 
-    // Bảng danh sách của một mốc
     $veDs = static function (array $d) use ($pdf, $truong, $tieuDeCot, $COT): void {
         $dongPdf = [];
         foreach ($d['dong'] as $r) {
@@ -451,8 +421,7 @@ try {
         $pdf->bang($tieuDeCot, $dongPdf, $tyLe);
     };
 
-    // ---- Nhóm 1: THEO MỐC - khổ A4 NGANG. Mỗi mốc một trang tóm tắt (tiêu đề + khoảng ngày, ô số liệu, hai biểu đồ cạnh nhau),
-    //      danh sách nối phía sau; mốc tiếp theo bắt đầu ở trang mới.
+    // Nhóm theo mốc (A4 ngang).
     if ($coNhomMoc) {
         $pdf->khoTrang(true);
         foreach ($moc as $i => $m) {
@@ -478,7 +447,7 @@ try {
         }
     }
 
-    // ---- Nhóm 2: THEO LOẠI NỘI DUNG - khổ A4 DỌC, một luồng dọc (Danh sách, rồi Thao tác theo ngày, rồi Cơ cấu hành động) ----
+    // Nhóm theo loại nội dung (A4 dọc).
     if ($coNhomLoai) {
         $pdf->khoTrang(false);
         $pdf->tieuDe('NHẬT KÝ QUẢN TRỊ - THEO LOẠI NỘI DUNG', 18);

@@ -1,20 +1,16 @@
 <?php
-// Quản lý mật khẩu siêu bảo mật (OWASP ASVS / NIST Guidelines)
-// Hỗ trợ Argon2id, Fallback Bcrypt (cost 12), Dummy Hash chống Timing Attack, và Bộ kiểm tra độ mạnh toàn diện.
+// Băm mật khẩu (Argon2id / Bcrypt cost 12), dummy verify chống timing attack và kiểm tra độ mạnh.
 class BaoMatMatKhau
 {
-    // Cấu hình Argon2id chuẩn OWASP
     private const ARGON2_MEMORY_COST = 65536; // 64 MB
-    private const ARGON2_TIME_COST   = 4;     // 4 iterations
-    private const ARGON2_THREADS     = 2;     // 2 threads
-
-    // Cấu hình Bcrypt cost cao (chống GPU brute-force offline)
+    private const ARGON2_TIME_COST   = 4;
+    private const ARGON2_THREADS     = 2;
     private const BCRYPT_COST        = 12;
 
-    // Dummy hash cố định (Argon2id hoặc Bcrypt) dùng để giả lập verify khi user không tồn tại, chống Timing Attack
+    // Dummy hash dùng verify giả lập khi tài khoản không tồn tại (chống timing attack)
     private const DUMMY_HASH = '$2y$12$e8wVf0fG0V5cR4yM3qH.eOG4O5F1f.F9Z6Z6Z6Z6Z6Z6Z6Z6Z6Z6.';
 
-    // Danh sách các mật khẩu phổ biến / yếu bị cấm hoàn toàn
+    // Danh sách mật khẩu phổ biến bị chặn
     private const MAT_KHAU_YEU = [
         '123456', '12345678', '123456789', '1234567890', 'password', 'Password',
         'Password123', 'Password@123', 'admin123', 'Admin123', 'Admin@123',
@@ -24,9 +20,7 @@ class BaoMatMatKhau
         'Eloquiz', 'Eloquiz123', 'Eloquiz@123', 'Quizup123', 'Quizup@123'
     ];
 
-    /**
-     * Băm mật khẩu với thuật toán bảo mật mạnh nhất hiện có (Argon2id hoặc Bcrypt cost 12).
-     */
+    /** Băm mật khẩu (ưu tiên Argon2id, fallback Bcrypt cost 12). */
     public static function hash(string $password): string
     {
         if (defined('PASSWORD_ARGON2ID')) {
@@ -41,26 +35,19 @@ class BaoMatMatKhau
         ]);
     }
 
-    /**
-     * Xác thực mật khẩu với hash.
-     */
+    /** Xác thực mật khẩu với hash. */
     public static function verify(string $password, string $hash): bool
     {
         return password_verify($password, $hash);
     }
 
-    /**
-     * Chống Timing Attack: Chạy verify giả lập khi tài khoản không tồn tại,
-     * đảm bảo thời gian máy chủ xử lý tài khoản tồn tại và không tồn tại là như nhau.
-     */
+    /** Verify giả lập khi tài khoản không tồn tại để cân bằng thời gian xử lý (chống timing attack). */
     public static function dummyVerify(string $password): void
     {
         password_verify($password, self::DUMMY_HASH);
     }
 
-    /**
-     * Kiểm tra xem hash hiện tại có cần được nâng cấp (re-hash) lên chuẩn mới hay không.
-     */
+    /** Kiểm tra hash hiện tại có cần nâng cấp cấu hình mới hay không. */
     public static function needsRehash(string $hash): bool
     {
         if (defined('PASSWORD_ARGON2ID')) {
@@ -75,9 +62,7 @@ class BaoMatMatKhau
         ]);
     }
 
-    /**
-     * Tự động nâng cấp hash trong CSDL nếu hash cũ đã lỗi thời.
-     */
+    /** Nâng cấp hash trong CSDL nếu hash cũ đã lỗi thời. */
     public static function rehashIfNecessary(
         PDO $pdo,
         string $table,
@@ -94,17 +79,8 @@ class BaoMatMatKhau
     }
 
     /**
-     * Bộ kiểm tra độ mạnh mật khẩu siêu bảo mật:
-     * - Độ dài từ 8 đến 72 ký tự.
-     * - Phải có chữ thường [a-z].
-     * - Phải có chữ hoa [A-Z].
-     * - Phải có chữ số [0-9].
-     * - Phải có ký tự đặc biệt [!@#$%^&*()_\-+=\[\]{};:,.<>?/~`|\\].
-     * - Không chứa ký tự lặp liên tiếp >= 3 lần (vd: aaa, 111).
-     * - Không thuộc danh sách mật khẩu yếu phổ biến.
-     * - Không chứa tên tài khoản / email của người dùng.
-     *
-     * @return array Danh sách các thông báo lỗi (nếu có). Rỗng = hợp lệ.
+     * Kiểm tra độ mạnh mật khẩu (8-72 ký tự, thường/hoa/số/đặc biệt, không lặp/tuần tự/trùng tài khoản).
+     * @return array Danh sách thông báo lỗi (rỗng nếu hợp lệ).
      */
     public static function kiemTraDoManh(string $password, array $context = []): array
     {
@@ -176,9 +152,7 @@ class BaoMatMatKhau
         return array_unique($loi);
     }
 
-    /**
-     * Tính khoảng cách thời gian thân thiện (tiếng Việt).
-     */
+    /** Định dạng khoảng thời gian tiếng Việt. */
     public static function tinhKhoangCachThoiGian(string|int $time): string
     {
         $timestamp = is_numeric($time) ? (int) $time : strtotime($time);
@@ -198,12 +172,7 @@ class BaoMatMatKhau
 
     /**
      * Kiểm tra mật khẩu mới với mật khẩu hiện tại và 3 mật khẩu gần nhất.
-     * Áp dụng tiêu chuẩn NIST SP 800-63B & OWASP ASVS:
-     * - Chặn mật khẩu hiện tại (kèm thông tin thời gian và gợi ý đăng nhập).
-     * - Chặn 3 mật khẩu gần nhất trong lịch sử.
-     * - Cho phép các mật khẩu cũ hơn 3 lần đổi (tránh gây ức chế cho người dùng).
-     *
-     * @return array|null Trả về mảng thông tin cảnh báo nếu trùng, hoặc null nếu hợp lệ.
+     * @return array|null Thông tin cảnh báo nếu trùng, hoặc null nếu hợp lệ.
      */
     public static function kiemTraLichSu(PDO $pdo, int $maND, string $matKhauMoi, ?array $nd = null): ?array
     {
@@ -220,9 +189,7 @@ class BaoMatMatKhau
         );
     }
 
-    /**
-     * Kiểm tra mật khẩu mới của Quản trị viên với mật khẩu hiện tại và 3 mật khẩu gần nhất.
-     */
+    /** Kiểm tra lịch sử mật khẩu quản trị (hiện tại và 3 lần gần nhất). */
     public static function kiemTraLichSuAdmin(PDO $pdo, int $maAdmin, string $matKhauMoi, ?array $ad = null): ?array
     {
         return self::kiemTraLichSuChung(
@@ -238,9 +205,7 @@ class BaoMatMatKhau
         );
     }
 
-    /**
-     * Logic dùng chung để kiểm tra mật khẩu hiện tại và 3 mật khẩu gần nhất trong lịch sử.
-     */
+    /** Logic dùng chung kiểm tra mật khẩu hiện tại và 3 mật khẩu gần nhất. */
     private static function kiemTraLichSuChung(
         PDO $pdo,
         string $bangTaiKhoan,
@@ -262,7 +227,7 @@ class BaoMatMatKhau
             return null;
         }
 
-        // 1. Kiểm tra trùng mật khẩu hiện tại
+        // Trùng mật khẩu hiện tại
         if (self::verify($matKhauMoi, $dongHienTai['MatKhau'])) {
             $thoiDiem   = $dongHienTai['NgayDoiMatKhau'] ?: ($dongHienTai['NgayTao'] ?: date('Y-m-d H:i:s'));
             $khoangCach = self::tinhKhoangCachThoiGian($thoiDiem);
@@ -277,7 +242,7 @@ class BaoMatMatKhau
             ];
         }
 
-        // 2. Kiểm tra trùng 3 mật khẩu gần nhất trong lịch sử (NIST recommendation)
+        // Trùng 3 mật khẩu gần nhất trong lịch sử
         try {
             $st = $pdo->prepare(
                 "SELECT MatKhauHash, NgayTao FROM {$bangLichSu} WHERE {$cotId} = ? ORDER BY NgayTao DESC, MaLS DESC LIMIT 3"
@@ -306,25 +271,19 @@ class BaoMatMatKhau
         return null;
     }
 
-    /**
-     * Ghi nhận đổi mật khẩu an toàn cho sinh viên.
-     */
+    /** Ghi nhận đổi mật khẩu cho sinh viên. */
     public static function ghiNhanDoiMatKhau(PDO $pdo, int $maND, string $hashMoi): void
     {
         self::ghiNhanDoiMatKhauChung($pdo, 'nguoidung', 'MaND', 'lichsu_matkhau', $maND, $hashMoi);
     }
 
-    /**
-     * Ghi nhận đổi/khôi phục mật khẩu an toàn cho quản trị viên (kèm cập nhật Email nếu có).
-     */
+    /** Ghi nhận đổi/khôi phục mật khẩu cho quản trị viên (kèm cập nhật Email nếu có). */
     public static function ghiNhanDoiMatKhauAdmin(PDO $pdo, int $maAdmin, string $hashMoi, ?string $emailCapNhat = null): void
     {
         self::ghiNhanDoiMatKhauChung($pdo, 'ADMIN', 'MaAdmin', 'LICHSU_MATKHAU_ADMIN', $maAdmin, $hashMoi, $emailCapNhat);
     }
 
-    /**
-     * Lưu hash mật khẩu cũ vào lịch sử (tối đa 5 bản ghi) và cập nhật mật khẩu mới.
-     */
+    /** Lưu hash mật khẩu cũ vào lịch sử (tối đa 5 bản ghi) và cập nhật mật khẩu mới. */
     private static function ghiNhanDoiMatKhauChung(
         PDO $pdo,
         string $bangTaiKhoan,
@@ -369,7 +328,7 @@ class BaoMatMatKhau
     }
 }
 
-// Tương thích ngược: Định danh PasswordSecurity trỏ tới BaoMatMatKhau
+// Alias giữ tương thích tên lớp cũ
 if (!class_exists('PasswordSecurity', false)) {
     class_alias('BaoMatMatKhau', 'PasswordSecurity');
 }

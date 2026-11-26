@@ -1,5 +1,5 @@
 <?php
-// Hệ thống Thể Thức Thi Đấu (Match Format / Rules)
+// Cấu hình thể thức thi đấu
 class DotBien
 {
     public const DANH_SACH = [
@@ -22,7 +22,7 @@ class DotBien
 
     public static function ngauNhien(): string
     {
-        // Mặc định luôn là Đấu Trường Tiêu Chuẩn (Chuẩn mực học thuật, không biến dạng luật lung tung)
+        // Mặc định dùng thể thức tiêu chuẩn
         return 'chuan';
     }
 }

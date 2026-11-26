@@ -1,18 +1,13 @@
 <?php
-// Ghép đôi và tạo trận (C-20, C-21, C-23, C-30). Đặt tại: elo_quiz/core/GhepDoi.php
-//
-// thuGhep() được gọi mỗi lần trang chờ tải lại (polling). Ai gọi trước thì tìm đối thủ trong hàng đợi.
-// Tìm đối thủ trước, rồi khóa dòng chờ của cả hai theo thứ tự mã tăng dần và kiểm tra lại cả hai còn đó.
-// Hai người gọi cùng lúc thì chỉ một bên tạo được trận, bên kia thấy dòng đã bị xóa và bỏ qua,
-// nên một người không thể vào hai trận. Không cần SKIP LOCKED, chạy được trên MariaDB.
+// Ghép đôi hàng đợi và tạo trận đấu.
+// Khóa dòng chờ theo MaND tăng dần để tránh deadlock khi nhiều người gọi cùng lúc (chạy được trên MariaDB).
 
 class GhepDoi
 {
-    // Cứ chờ thêm bấy nhiêu giây thì ngưỡng Elo được nới thêm một lần bằng NGUONG_ELO_GHEP_DOI.
-    // (Chưa có tham số trong CAUHINH; muốn chỉnh được thì thêm một dòng cấu hình rồi đọc ở đây.)
+    // Khoảng giây mỗi lần nới rộng ngưỡng Elo ghép đôi thêm 1 bậc
     public const BUOC_NOI_GIAY = 10;
 
-    // Điều kiện câu hỏi hợp lệ cho (môn, loại kỳ thi), dùng chung cho đếm và chọn câu (C-18, C-23)
+    // Điều kiện câu hỏi hợp lệ cho (môn, loại kỳ thi)
     private const DK_CAU_HOP_LE =
         "c.MaMon = ? AND c.TrangThai = 'Hiển thị'
          AND (c.MaLoaiKT = ? OR c.MaLoaiKT IS NULL)
@@ -45,24 +40,13 @@ class GhepDoi
     }
 
     /**
-     * Cơ chế bốc câu hỏi ngẫu nhiên chuyên nghiệp chuẩn Esports / Khảo thí trực tuyến:
-     * 1. Lọc toàn bộ câu hỏi hợp lệ của môn & kỳ thi đã chọn (chính xác đáp án, hiển thị).
-     * 2. Chống lặp câu hỏi (Anti-fatigue / Recency Bias):
-     *    - Truy vấn các câu hỏi mà người chơi đã làm trong 24h qua hoặc các trận gần nhất.
-     *    - Ưu tiên bốc các câu hỏi mới (Fresh Pool), chỉ dùng câu cũ khi kho câu thiếu hụt.
-     * 3. Cân bằng kỳ thi:
-     *    - Nếu chọn "Cả 2" (maLoaiKT = 3 hoặc 0), cân bằng đều tỷ lệ giữa Giữa kỳ và Cuối kỳ.
-     * 4. Phân bổ độ khó chuẩn & Thứ tự leo thang (Difficulty Progression & Pacing):
-     *    - Phân bổ theo tỷ lệ chuẩn: ~35% Dễ (khởi động), ~40% Trung bình (giằng co), ~25% Khó (quyết định).
-     *    - Cơ chế bù trừ thông minh (Graceful Fallback) tự động điều chuyển hạn ngạch nếu kho môn thiếu một độ khó nào đó.
-     *    - Sắp xếp trận đấu leo thang: Dễ (đầu trận) -> Trung bình (giữa trận) -> Khó (cuối trận), tạo cao trào kịch tính.
-     *    - Xáo trộn ngẫu nhiên nội bộ trong từng nhóm độ khó để đảm bảo không trận nào giống trận nào.
+     * Bốc câu hỏi cân bằng độ khó (Dễ -> Trung bình -> Khó), ưu tiên câu chưa làm trong 24h và cân bằng kỳ thi.
      */
     public static function bocCauHoiChuyenNghiep(PDO $pdo, int $maMon, int $maLoaiKT, int $soCau, array $danhSachNguoiChoi = []): array
     {
         $soCau = max(1, $soCau);
 
-        // 1. Thu thập toàn bộ ứng viên câu hỏi hợp lệ trong môn
+        // Thu thập câu hỏi hợp lệ trong môn
         if ($maLoaiKT === 3 || $maLoaiKT === 0) {
             $sql = "SELECT c.MaCauHoi, c.DoKho, COALESCE(c.MaLoaiKT, 1) AS MaLoaiKT
                     FROM CAUHOI c
@@ -83,7 +67,7 @@ class GhepDoi
             return [];
         }
 
-        // 2. Chống lặp câu hỏi: Thu thập các câu người chơi đã làm trong 24 giờ gần đây
+        // Thu thập câu đã làm trong 24h gần đây để ưu tiên câu mới
         $cacCauDaLamGanDay = [];
         $ndHopLe = array_values(array_filter(array_map('intval', $danhSachNguoiChoi), fn($id) => $id > 0 && !self::laBot($pdo, $id)));
         if (!empty($ndHopLe)) {
@@ -104,7 +88,7 @@ class GhepDoi
             } catch (Throwable $e) {}
         }
 
-        // 3. Phân nhóm theo Độ khó và trạng thái Mới (Fresh) / Vừa làm (Recent)
+        // Phân nhóm theo độ khó và trạng thái fresh / recent
         $nhomDoKho = [
             'De'  => ['fresh' => [], 'recent' => []],
             'TB'  => ['fresh' => [], 'recent' => []],
@@ -135,7 +119,7 @@ class GhepDoi
         }
         unset($nhom);
 
-        // 4. Tính toán số lượng mục tiêu cho từng độ khó theo nhịp độ trận đấu
+        // Phân bổ số câu mục tiêu cho từng độ khó
         if ($soCau >= 10) {
             $mucTieuDe = (int) round($soCau * 0.30);
             $mucTieuKho = (int) round($soCau * 0.30);
@@ -206,7 +190,7 @@ class GhepDoi
         $danhSachTB  = $rutCau('TB', $mucTieuTB);
         $danhSachKho = $rutCau('Kho', $mucTieuKho);
 
-        // Bù trừ thông minh nếu kho câu của môn thiếu câu ở một độ khó nào đó
+        // Bù từ độ khó khác nếu kho câu không đủ ở một mức độ khó
         $soConThieu = $soCau - (count($danhSachDe) + count($danhSachTB) + count($danhSachKho));
         if ($soConThieu > 0) {
             $thuTuBu = ['TB', 'De', 'Kho'];
@@ -231,10 +215,7 @@ class GhepDoi
         shuffle($danhSachTB);
         shuffle($danhSachKho);
 
-        // 5. Ghép thứ tự trận đấu leo thang (Difficulty Progression Pacing):
-        // - Đầu trận: Câu Dễ (nhập cuộc, khởi động nhịp bấm)
-        // - Giữa trận: Câu Trung bình (giằng co, kiểm tra kiến thức)
-        // - Cuối trận: Câu Khó (then chốt quyết định, bứt phá lật kèo)
+        // Sắp xếp từ Dễ -> Trung bình -> Khó
         $danhSachCuoi = array_merge($danhSachDe, $danhSachTB, $danhSachKho);
 
         if (count($danhSachCuoi) > $soCau) {
@@ -271,7 +252,7 @@ class GhepDoi
         $buoc     = self::BUOC_NOI_GIAY;
 
         try {
-            // 1. Đọc dòng chờ của mình (chưa khóa)
+            // Đọc dòng chờ của mình (chưa khóa)
             $st = $pdo->prepare(
                 'SELECT MaMon, MaLoaiKT, EloTaiThoiDiemCho,
                         TIMESTAMPDIFF(SECOND, ThoiGianVaoHang, NOW()) AS DaCho
@@ -287,8 +268,7 @@ class GhepDoi
             $elo   = (int) $toi['EloTaiThoiDiemCho'];
             $nguong = $base * (1 + intdiv(max(0, (int) $toi['DaCho']), $buoc));
 
-            // 2. Tìm đối thủ cùng môn, cùng loại kỳ thi, Elo gần nhau (lấy ngưỡng rộng hơn trong hai bên),
-            //    bỏ qua dòng đã quá hạn chờ
+            // Tìm đối thủ cùng môn/kỳ thi trong ngưỡng Elo rộng hơn của hai bên, bỏ qua quá hạn chờ
             $st = $pdo->prepare(
                 'SELECT h.MaND, h.EloTaiThoiDiemCho FROM HANGDOIGHEPDOI h
                   WHERE h.MaMon = ? AND h.MaLoaiKT = ? AND h.MaND <> ?
@@ -302,8 +282,7 @@ class GhepDoi
             $st->execute([$maMon, $maKT, $maND, $choToiDa, $elo, $nguong, $base, $buoc, $elo]);
             $kia = $st->fetch();
             if (!$kia) {
-                // Nếu người chơi cho phép ghép với máy (Bot AI) và thời gian chờ đạt mốc 30 giây:
-                // Tự động ghép với Đấu Thần Máy để bắt đầu trận đấu
+                // Nếu hết thời gian chờ tối đa và cho phép Bot thì ghép với máy
                 if ($choPhepBot && (int) $toi['DaCho'] >= $choToiDa) {
                     return self::ghepVoiBot($pdo, $maND, $maMon, $maKT, $elo, $soCau);
                 }
@@ -312,9 +291,7 @@ class GhepDoi
             $maKia  = (int) $kia['MaND'];
             $eloKia = (int) $kia['EloTaiThoiDiemCho'];
 
-            // 2b. Khóa dòng chờ của cả hai theo thứ tự mã tăng dần (hai bên ghép nhau cùng lúc sẽ khóa cùng thứ tự
-            //     nên không deadlock; ai khóa sau sẽ thấy dòng đã bị xóa và bỏ qua). Không dùng SKIP LOCKED
-            //     để chạy được cả trên MariaDB của XAMPP.
+            // Khóa dòng chờ theo MaND tăng dần để tránh deadlock và không cần SKIP LOCKED trên MariaDB
             $pdo->beginTransaction();
             $st = $pdo->prepare(
                 'SELECT MaND, MaMon, MaLoaiKT FROM HANGDOIGHEPDOI WHERE MaND IN (?, ?) ORDER BY MaND FOR UPDATE'
@@ -332,7 +309,7 @@ class GhepDoi
                 return null;
             }
 
-            // 3. C-21: khóa dòng người dùng theo thứ tự mã tăng dần, rồi chắc chắn không ai đang có trận
+            // Khóa NGUOIDUNG theo MaND tăng dần để đảm bảo không ai đang có trận dở dang
             $st = $pdo->prepare('SELECT MaND FROM NGUOIDUNG WHERE MaND IN (?, ?) ORDER BY MaND FOR UPDATE');
             $st->execute([$maND, $maKia]);
             $st = $pdo->prepare(
@@ -345,21 +322,20 @@ class GhepDoi
                 return null;
             }
 
-            // 4. Bốc câu hỏi ngẫu nhiên chuyên nghiệp (cân bằng độ khó, chống lặp câu, xếp leo thang)
             $dsCau = self::bocCauHoiChuyenNghiep($pdo, $maMon, $maKT, $soCau, [$maND, $maKia]);
             if (count($dsCau) < $soCau) {
                 $pdo->rollBack();
                 return null;
             }
 
-            // 5. Tạo trận, hai người chơi, bộ câu hỏi (chụp luật chơi vào từng câu, C-28), rồi rút cả hai khỏi hàng đợi
+            // Tạo trận, lưu snapshot luật vào từng câu rồi xóa khỏi hàng đợi
             $dotBienKey  = DotBien::ngauNhien();
             $dotBienInfo = DotBien::layDotBien($dotBienKey);
             $pdo->prepare('INSERT INTO TRANDAU (MaMon, MaLoaiKT, DotBien) VALUES (?, ?, ?)')
                 ->execute([$maMon, $maKT, $dotBienKey]);
             $maTran = (int) $pdo->lastInsertId();
 
-            // LanHoatDongCuoi lúc tạo = mốc tạo trận; dùng để tính hạn vào phòng của người chưa vào (C-30)
+            // LanHoatDongCuoi = mốc tạo trận để tính hạn vào phòng
             $ins = $pdo->prepare('INSERT INTO NGUOICHOITRANDAU (MaTran, MaND, EloTruoc, LanHoatDongCuoi) VALUES (?, ?, ?, NOW(3))');
             $ins->execute([$maTran, $maND, $elo]);
             $ins->execute([$maTran, $maKia, $eloKia]);
@@ -389,8 +365,7 @@ class GhepDoi
         }
     }
 
-    // Người chơi vào phòng (C-23, C-30). Gọi mỗi lần trang phòng tải lại.
-    // Cả hai đã vào thì trận chuyển sang "Đang diễn ra"; có người quá hạn chưa vào thì hủy trận, không đổi Elo.
+    // Người chơi vào phòng: cả hai đã vào thì bắt đầu trận; quá hạn có người chưa vào thì hủy trận.
     public static function vaoPhong(PDO $pdo, int $maTran, int $maND): void
     {
         $hanVao = max(1, Config::int('THOI_GIAN_CHO_VAO_PHONG', 30));
@@ -518,14 +493,12 @@ class GhepDoi
 
         $pdo->beginTransaction();
         try {
-            // Bốc câu hỏi ngẫu nhiên chuyên nghiệp (cân bằng độ khó, chống lặp câu, xếp leo thang)
             $dsCau = self::bocCauHoiChuyenNghiep($pdo, $maMon, $maKT, $soCau, [$maND]);
             if (count($dsCau) < $soCau) {
                 $pdo->rollBack();
                 return null;
             }
 
-            // Tạo trận
             $dotBienKey  = DotBien::ngauNhien();
             $dotBienInfo = DotBien::layDotBien($dotBienKey);
             $pdo->prepare('INSERT INTO TRANDAU (MaMon, MaLoaiKT, TrangThai, ThoiGianBatDau, DotBien) VALUES (?, ?, "Đang diễn ra", NOW(3), ?)')
@@ -536,13 +509,10 @@ class GhepDoi
             $heSo = Config::int('HE_SO_THUONG', 50);
             $tg   = $dotBienInfo['thoiGian'];
 
-            // Người chơi: trạng thái đang chơi
             $ins = $pdo->prepare('INSERT INTO NGUOICHOITRANDAU (MaTran, MaND, EloTruoc, LanHoatDongCuoi, TrangThaiThamGia) VALUES (?, ?, ?, NOW(3), "Đang chơi")');
             $ins->execute([$maTran, $maND, $elo]);
-            // Bot: trạng thái đang chơi
             $ins->execute([$maTran, $maBot, $eloBot]);
 
-            // Thêm các câu hỏi
             $insQ = $pdo->prepare(
                 'INSERT INTO CAUHOITRANDAU (MaTran, MaCauHoi, ThuTu, DiemCoBan, HeSoThuong, ThoiGianQuyDinh) VALUES (?, ?, ?, ?, ?, ?)'
             );
@@ -550,7 +520,6 @@ class GhepDoi
                 $insQ->execute([$maTran, (int) $maCau, $i + 1, $diem, $heSo, $tg]);
             }
 
-            // Xóa người chơi khỏi hàng đợi
             $pdo->prepare('DELETE FROM HANGDOIGHEPDOI WHERE MaND = ?')->execute([$maND]);
             $pdo->commit();
 
@@ -563,9 +532,7 @@ class GhepDoi
         }
     }
 
-    /**
-     * Đưa người chơi trở lại hàng đợi ưu tiên (Priority Queue) khi đối thủ AFK không bấm sẵn sàng.
-     */
+    /** Đưa người chơi lại hàng đợi ưu tiên (lùi mốc chờ 30s) khi đối thủ AFK. */
     public static function vaoHangUuTien(PDO $pdo, int $maND, int $maMon, int $maLoaiKT, int $elo): void
     {
         $st = $pdo->prepare(
@@ -580,9 +547,7 @@ class GhepDoi
         $st->execute([$maND, $maMon, $maLoaiKT, $elo]);
     }
 
-    /**
-     * Tạo trận đấu 1v1 trực tiếp giữa 2 người chơi (dành cho phòng thách đấu bạn bè / Custom Match).
-     */
+    /** Tạo trận đấu 1v1 trực tiếp giữa 2 người chơi (dùng cho phòng thách đấu). */
     public static function taoTranTrucTiep(PDO $pdo, int $nd1, int $nd2, int $maMon, int $maKT): ?int
     {
         $soCau = max(1, Config::int('SO_CAU', 10));
@@ -604,7 +569,6 @@ class GhepDoi
         $st->execute([$nd2, $maMon]);
         $elo2 = (int) ($st->fetchColumn() ?: 1000);
 
-        // Bốc câu hỏi ngẫu nhiên chuyên nghiệp (cân bằng độ khó, chống lặp câu, xếp leo thang)
         $dsCau = self::bocCauHoiChuyenNghiep($pdo, $maMon, $maKT, $soCau, [$nd1, $nd2]);
         if (count($dsCau) < $soCau) {
             return null;

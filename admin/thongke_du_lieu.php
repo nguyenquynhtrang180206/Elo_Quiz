@@ -1,8 +1,7 @@
 <?php
-// Trả JSON số liệu thống kê theo từng mốc thời gian (chỉ đọc) cho hộp thoại xem trước khi xuất báo cáo.
-// Gọi: thongke_du_lieu.php?ngay[]=7&ngay[]=30  (mốc hợp lệ: 7, 30, 90, 365)
+// API trả về JSON số liệu thống kê theo mốc thời gian cho hộp thoại xem trước.
 require_once __DIR__ . '/../core/bootstrap.php';
-Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');   // A-04
+Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');
 
 $ds = ThongKe::locKhoang($_GET['ngay'] ?? []);
 header('Content-Type: application/json; charset=utf-8');

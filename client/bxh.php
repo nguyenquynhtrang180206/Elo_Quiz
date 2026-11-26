@@ -1,13 +1,10 @@
 <?php
-// Bảng xếp hạng (C-36 đến C-39). Đặt tại: elo_quiz/client/bxh.php
-// Bộ lọc duy nhất ở cột trái: Phạm vi (Toàn hệ thống C-37, Bạn bè C-38), Theo môn học (C-36), Theo loại kỳ thi, Thời gian.
-// Ba kỳ: tất cả, tuần này, tháng này (C-39): kỳ tuần/tháng xếp theo tổng ThayDoi trong LICHSUELO của kỳ.
-// Xem BXH không bắt buộc đăng nhập (C-12); riêng tab Bạn bè cần đăng nhập. Phân trang 10 dòng/trang (3.8).
+// Bảng xếp hạng theo toàn hệ thống, môn học, loại kỳ thi và bạn bè
 require_once __DIR__ . '/../core/bootstrap.php';
 
 $pdo  = Database::pdo();
-$toi  = Auth::clientId();   // có thể null: khách vẫn xem được
-$nMin = 1;   // "Tất cả" tính toàn bộ người chơi, không đặt ngưỡng số trận tối thiểu (trước đây lấy từ cấu hình SO_TRAN_TOI_THIEU_BXH)
+$toi  = Auth::clientId();   // Có thể null nếu khách chưa đăng nhập
+$nMin = 1;                  // Tính toàn bộ người chơi có ít nhất 1 trận
 
 $dsMon = $pdo->query("SELECT MaMon, TenMon FROM MONHOC WHERE TrangThai = 'Đang mở' ORDER BY TenMon")->fetchAll();
 $mon = (int) ($_GET['mon'] ?? 0);
@@ -21,7 +18,6 @@ if (!$monHopLe) {
     $mon = $dsMon ? (int) $dsMon[0]['MaMon'] : 0;
 }
 
-// Mặc định mở tab "Tổng thể" giống bản thiết kế
 $dsLoai = $pdo->query('SELECT MaLoaiKT, TenLoaiKT FROM LOAIKYTHI ORDER BY MaLoaiKT')->fetchAll();
 $loai = (int) ($_GET['loai'] ?? 0);
 $loaiHopLe = $loai === 0;
@@ -40,18 +36,18 @@ $phamVi = (string) ($_GET['pv'] ?? 'truong');
 if (!in_array($phamVi, ['truong', 'mon', 'loai', 'banbe'], true)) {
     $phamVi = 'truong';
 }
-// "Tất cả" môn: Toàn hệ thống vốn đã gộp mọi môn; riêng Bạn bè dùng mon=0 để xem mọi môn trong nhóm bạn bè
+// Toàn hệ thống gộp mọi môn; Bạn bè dùng mon=0 để gộp mọi môn
 $tatCaMon = $phamVi === 'banbe' && isset($_GET['mon']) && (string) $_GET['mon'] === '0';
 if ($tatCaMon) {
     $mon = 0;
 }
-$gopMon = $phamVi === 'truong' || $tatCaMon;   // bảng gộp mọi môn (không gắn với một môn cụ thể)
+$gopMon = $phamVi === 'truong' || $tatCaMon;
 $ky = (string) ($_GET['ky'] ?? 'tong');
 if (!in_array($ky, ['tong', 'tuan', 'thang'], true)) {
     $ky = 'tong';
 }
 
-// Mốc đầu kỳ: tuần bắt đầu từ thứ Hai, tháng bắt đầu từ ngày 1
+// Mốc đầu kỳ: tuần tính từ thứ Hai, tháng tính từ ngày 1
 $tuNgay = null;
 if ($ky === 'tuan') {
     $tuNgay = date('Y-m-d 00:00:00', strtotime('monday this week'));
@@ -59,7 +55,7 @@ if ($ky === 'tuan') {
     $tuNgay = date('Y-m-01 00:00:00');
 }
 
-// Tập "tôi và bạn bè đã chấp nhận": cần 3 tham số là mã người dùng
+// Subquery tập bản thân và bạn bè đã chấp nhận (cần 3 tham số MaND)
 $taiBanBe = '(SELECT MaNguoiNhan FROM BANBE WHERE MaNguoiGui = ? AND TrangThai = \'Đã chấp nhận\'
               UNION SELECT MaNguoiGui FROM BANBE WHERE MaNguoiNhan = ? AND TrangThai = \'Đã chấp nhận\'
               UNION SELECT ?)';
@@ -69,10 +65,10 @@ $khongCoMon  = !in_array($phamVi, ['truong', 'loai'], true) && $mon === 0 && !$t
 $khongCoLoai = $phamVi === 'loai' && !$dsLoai;
 $core = null;
 $p = [];
-$kieu = '';   // quyết định các cột hiển thị
+$kieu = '';
 
 if ($phamVi === 'loai') {
-    // Theo loại kỳ thi: xếp theo tổng Elo đã thắng/thua được trong các trận đã kết thúc của loại kỳ thi này
+    // Theo loại kỳ thi: xếp theo tổng thay đổi Elo của loại kỳ thi đó
     if (!$khongCoLoai) {
         $kieu = 'loai';
         $core = "SELECT u.MaND, u.HoTen, u.AnhDaiDien, SUM(n.EloSau - n.EloTruoc) AS Diem,
@@ -94,9 +90,9 @@ if ($phamVi === 'loai') {
     }
 } elseif (!$canDangNhap && !$khongCoMon) {
     if ($ky === 'tong' && $gopMon) {
-        // C-37: Elo trung bình các môn đã đạt tối thiểu N trận; môn chưa đủ N không được tính
+        // Toàn hệ thống: xếp theo Elo trung bình các môn đủ số trận tối thiểu
         $kieu = 'truong';
-        // MonChinh: môn người này đấu nhiều trận nhất (trong các môn đã đủ N trận, môn đang mở)
+        // Môn chính là môn đấu nhiều trận nhất
         $core = "SELECT u.MaND, u.HoTen, u.AnhDaiDien, AVG(e.DiemElo) AS Diem, COUNT(*) AS SoMon,
                         SUM(e.SoTran) AS SoTran, SUM(e.SoThang) AS SoThang,
                         (SELECT m.TenMon FROM ELOMONHOC x JOIN MONHOC m ON m.MaMon = x.MaMon
@@ -111,7 +107,7 @@ if ($phamVi === 'loai') {
             array_push($p, $toi, $toi, $toi);
         }
     } elseif ($ky === 'tong') {
-        // C-36, C-38: theo môn, có thể giới hạn trong nhóm bạn bè
+        // Theo môn học (tất cả hoặc nhóm bạn bè)
         $kieu = 'mon';
         $core = "SELECT u.MaND, u.HoTen, u.AnhDaiDien, e.DiemElo AS Diem, e.SoTran, e.SoThang
                    FROM ELOMONHOC e JOIN NGUOIDUNG u ON u.MaND = e.MaND
@@ -122,7 +118,7 @@ if ($phamVi === 'loai') {
             array_push($p, $toi, $toi, $toi);
         }
     } else {
-        // C-39: tổng mức thay đổi Elo trong kỳ; người không có trận trong kỳ không xuất hiện
+        // Theo kỳ tuần/tháng: xếp theo tổng thay đổi Elo trong kỳ
         $kieu = 'ky';
         if ($gopMon) {
             $core = "SELECT u.MaND, u.HoTen, u.AnhDaiDien, SUM(l.ThayDoi) AS Diem, COUNT(*) AS SoTran,
@@ -157,7 +153,7 @@ if ($core !== null) {
     $st = $pdo->prepare("SELECT COUNT(*) FROM ($core) d");
     $st->execute($p);
     $phanTrang = new Paginator((int) $st->fetchColumn(), 10);
-    // Cùng điểm thì cùng hạng (RANK); trong cùng hạng ưu tiên người nhiều trận hơn
+    // Cùng điểm xếp cùng hạng, ưu tiên người nhiều trận hơn
     $st = $pdo->prepare(
         "SELECT r.* FROM (SELECT d.*, RANK() OVER (ORDER BY d.Diem DESC) AS Hang FROM ($core) d) r
           ORDER BY r.Hang, r.SoTran DESC, r.MaND
@@ -186,14 +182,13 @@ function dau(int $n): string
     return ($n > 0 ? '+' : '') . $n;
 }
 
-// Link giữ lại các lựa chọn hiện tại, chỉ đổi tham số truyền vào (đổi bộ lọc thì về trang 1)
+// Giữ lại các bộ lọc hiện tại khi đổi tham số
 function bxhUrl(array $doi): string
 {
     $q = array_merge(['pv' => $GLOBALS['phamVi'], 'mon' => $GLOBALS['mon'], 'loai' => $GLOBALS['loai'], 'ky' => $GLOBALS['ky']], $doi);
     return '?' . http_build_query($q);
 }
 
-// Ảnh đại diện; chưa có ảnh thì hiện chữ cái đầu của tên
 function bxhAvatar(array $r): string
 {
     if (!empty($r['AnhDaiDien'])) {
@@ -209,7 +204,6 @@ const BXH_VUONG_MIEN = '<svg class="bxh-vuongmien" viewBox="0 0 24 24" aria-hidd
 $tabs = ['truong' => 'Toàn hệ thống', 'mon' => 'Theo môn học', 'loai' => 'Theo loại kỳ thi', 'banbe' => 'Bạn bè'];
 $kyTen = ['tong' => 'Tất cả', 'tuan' => 'Tuần này', 'thang' => 'Tháng này'];
 
-// Danh sách cột theo kiểu bảng
 if ($kieu === 'truong') {
     $cot = ['Người chơi', 'Môn học chính', 'Elo trung bình', 'Số trận', 'Tỉ lệ thắng'];
 } elseif ($kieu === 'mon') {
@@ -222,7 +216,7 @@ if ($kieu === 'truong') {
         : ['Người chơi', 'Môn học', 'Thay đổi Elo', 'Số trận trong kỳ', 'Elo hiện tại'];
 }
 
-// Thống kê nổi bật (số liệu thật từ CSDL)
+// Thống kê nhanh cho thanh bên
 function bxhRutGon(int $n): string
 {
     if ($n >= 1000000) { return rtrim(rtrim(number_format($n / 1000000, 1), '0'), '.') . 'M'; }
@@ -235,19 +229,18 @@ try {
     $thongKe['thanhvien'] = (int) $pdo->query("SELECT COUNT(*) FROM NGUOIDUNG WHERE TrangThai = 'Hoạt động'")->fetchColumn();
     $thongKe['tran']      = (int) $pdo->query("SELECT COUNT(*) FROM TRANDAU WHERE TrangThai = 'Kết thúc'")->fetchColumn();
     $thongKe['cauhoi']    = (int) $pdo->query("SELECT COUNT(*) FROM CAUHOI WHERE TrangThai = 'Hiển thị'")->fetchColumn();
-    // Top môn học: môn có nhiều trận đã kết thúc nhất (môn đang mở)
     $topMon = $pdo->query("SELECT m.MaMon, m.TenMon, COUNT(*) AS SoTran
                              FROM TRANDAU t JOIN MONHOC m ON m.MaMon = t.MaMon
                             WHERE t.TrangThai = 'Kết thúc' AND m.TrangThai = 'Đang mở'
                             GROUP BY m.MaMon, m.TenMon ORDER BY SoTran DESC, m.TenMon LIMIT 3")->fetchAll();
 } catch (Throwable $ex) {
-    // lỗi truy vấn thì hiện 0 / danh sách rỗng, không làm hỏng bảng xếp hạng
+    // Trả về dữ liệu rỗng nếu truy vấn lỗi để không làm gián đoạn BXH
 }
 $maxTranMon = $topMon ? max(1, (int) $topMon[0]['SoTran']) : 1;
 
 $tieuDe = 'Bảng xếp hạng';
 $cssTrang = 'bxh';
-$jsTrang  = ['capnhat_mem'];   // đổi bộ lọc / tab không tải lại cả trang, giữ vị trí cuộn
+$jsTrang  = ['capnhat_mem'];   // Cập nhật mềm không tải lại trang
 $bodyClass = 'trang-bxh';
 require __DIR__ . '/layout/header.php';
 ?>
@@ -272,7 +265,7 @@ require __DIR__ . '/layout/header.php';
 
 <div class="bxh-bocuc" data-mem-vung="bxh" data-mem-links>
 
-  <!-- ===== Cột trái: bộ lọc + lời mời thi đấu ===== -->
+  <!-- Bộ lọc bên trái -->
   <aside class="bxh-trai">
     <div class="bxh-hop">
       <h3 class="bxh-hop-tieude">&#127942; Bộ lọc</h3>
@@ -296,8 +289,8 @@ require __DIR__ . '/layout/header.php';
         <div class="bxh-chips" id="bxhMonChips">
           <a class="bxh-chip bxh-chip-tatca<?= $gopMon ? ' dang-chon' : '' ?>" data-mem-truoc href="<?= e(bxhUrl($phamVi === 'banbe' ? ['pv' => 'banbe', 'mon' => 0] : ['pv' => 'truong'])) ?>">&#127775; Tất cả</a>
           <?php foreach ($dsMon as $i => $m):
-            $dangChon = in_array($phamVi, ['mon', 'banbe'], true) && (int) $m['MaMon'] === $mon;   // đang xem Bạn bè thì môn được chọn vẫn sáng
-            $laThem   = $i >= $soMonHienSan && !$dangChon;   // môn đang chọn luôn hiện dù nằm ngoài 6 môn đầu
+            $dangChon = in_array($phamVi, ['mon', 'banbe'], true) && (int) $m['MaMon'] === $mon;
+            $laThem   = $i >= $soMonHienSan && !$dangChon;   // Môn đang chọn luôn hiển thị dù nằm ngoài danh sách rút gọn
           ?>
             <a class="bxh-chip bxh-chip-mon<?= $dangChon ? ' dang-chon' : '' ?><?= $laThem ? ' is-extra' : '' ?>" data-ten="<?= e(mb_strtolower($m['TenMon'])) ?>" href="<?= e(bxhUrl(['pv' => $phamVi === 'banbe' ? 'banbe' : 'mon', 'mon' => (int) $m['MaMon']])) ?>"<?= $laThem ? ' hidden' : '' ?>><?= e($m['TenMon']) ?></a>
           <?php endforeach; ?>
@@ -335,7 +328,7 @@ require __DIR__ . '/layout/header.php';
     </div>
   </aside>
 
-  <!-- ===== Cột giữa: bảng xếp hạng ===== -->
+  <!-- Bảng xếp hạng -->
   <section class="bxh-giua">
     <div class="bxh-khung">
       <?php if ($khongCoLoai): ?>
@@ -424,7 +417,7 @@ require __DIR__ . '/layout/header.php';
     </p>
   </section>
 
-  <!-- ===== Cột phải: thống kê nổi bật + top môn học ===== -->
+  <!-- Thống kê nổi bật và top môn học -->
   <aside class="bxh-phai">
     <div class="bxh-hop">
       <h3 class="bxh-hop-tieude">&#128202; Thống kê nổi bật</h3>
@@ -459,8 +452,8 @@ require __DIR__ . '/layout/header.php';
 </div>
 <script>
 (function () {
-  var tt = { moRong: false, q: '' };   // giữ trạng thái "Xem thêm" và ô tìm qua các lần làm mới nội dung
-  function bo(t) {   // bỏ dấu tiếng Việt để tìm "toan" ra "Toán"
+  var tt = { moRong: false, q: '' };   // Giữ trạng thái mở rộng và ô tìm kiếm sau cập nhật mềm
+  function bo(t) {   // Chuẩn hóa tiếng Việt không dấu để tìm kiếm
     return t.toLowerCase().replace(/đ/g, 'd').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   }
   function khoiTao() {
@@ -481,7 +474,7 @@ require __DIR__ . '/layout/header.php';
       });
       if (khong) khong.hidden = !(q !== '' && thay === 0);
       if (btn) {
-        btn.hidden = q !== '';   // đang tìm thì hiện mọi kết quả khớp, không cần nút
+        btn.hidden = q !== '';   // Ẩn nút xem thêm khi đang lọc theo từ khóa
         btn.textContent = btn.getAttribute(tt.moRong ? 'data-thu' : 'data-an');
         btn.setAttribute('aria-expanded', tt.moRong ? 'true' : 'false');
       }

@@ -1,5 +1,4 @@
-/* Nạp SAU CÙNG: chuyển các màu sáng cố định trong CSS riêng của từng trang sang tông Cosmic.
-   Chỉ chứa phần ghi đè; không thêm logic. */
+/* Ghi đè màu sáng cố định sang tông Cosmic (nạp sau cùng) */
 .khung-xemthu { background:rgba(255,180,60,.10) !important; border-color:rgba(255,190,80,.6) !important; }
 .mau-nau, .tt-an, .tt-daghep { color:#ffd08a !important; }
 .tt-hien, .tt-ketthuc, .dap-an.dung { color:#8dffe0 !important; }

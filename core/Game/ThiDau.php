@@ -1,8 +1,6 @@
 <?php
-// Diễn biến trận đấu (C-23 đến C-31). Đặt tại: elo_quiz/core/ThiDau.php
-// Mọi thao tác trong một trận đều khóa dòng TRANDAU trước (cùng một thứ tự khóa ở mọi nơi nên không deadlock),
-// và mọi mốc thời gian lấy từ giờ máy chủ (NOW(3)); đồng hồ trên trình duyệt chỉ để hiển thị.
-// Elo sau trận: xem core/Elo.php (C-32, C-33). Chưa làm: màn xem lại (C-34).
+// Diễn biến trận đấu: luôn khóa dòng TRANDAU trước ở mọi thao tác để tránh deadlock.
+// Mốc thời gian lấy theo giờ máy chủ NOW(3); đồng hồ trình duyệt chỉ để hiển thị.
 class ThiDau
 {
     public const DEM_NGUOC_GIAY = 3;   // đếm ngược trước khi câu 1 hiện, để hai người bắt đầu gần như cùng lúc
@@ -57,8 +55,7 @@ class ThiDau
         )->execute([$thoiGian, $maTran, $maND, $maCau]);
     }
 
-    // Trận kết thúc sớm (xử thua, hủy): chốt các câu đang làm dở là hết giờ, tạo bù dòng "Không làm" cho
-    // các câu chưa được gửi để màn xem lại không thiếu câu (ghi chú 4.3.2)
+    // Trận kết thúc sớm: chốt câu đang làm dở là hết giờ và tạo bù dòng "Không làm" cho màn xem lại
     private static function chotVaTaoBu(PDO $pdo, int $maTran): void
     {
         $pdo->prepare(
@@ -77,8 +74,7 @@ class ThiDau
         )->execute([$maTran]);
     }
 
-    // C-29, C-30, C-31: ai không có hoạt động quá thời gian cho phép thì bị xử thua;
-    // cả hai cùng mất kết nối thì hủy trận, không đổi Elo
+    // Quá hạn mất kết nối thì xử thua; cả hai cùng mất kết nối thì hủy trận, không đổi Elo
     private static function kiemTraBoTran(PDO $pdo, int $maTran): void
     {
         $han = max(1, Config::int('THOI_GIAN_CHO_PHEP_MAT_KET_NOI', 30));
@@ -110,7 +106,7 @@ class ThiDau
         self::congExpSauTran($pdo, $maTran);
     }
 
-    // C-31: cả hai đã xong mọi câu thì kết thúc; điểm cao hơn thắng, bằng điểm thì hòa
+    // Cả hai đã xong mọi câu thì kết thúc trận và tính Elo
     private static function ketThucNeuXong(PDO $pdo, int $maTran): void
     {
         $st = $pdo->prepare("SELECT COUNT(*) FROM NGUOICHOITRANDAU WHERE MaTran = ? AND TrangThaiThamGia <> 'Đã xong'");
@@ -149,7 +145,7 @@ class ThiDau
                     continue;
                 }
                 $laThang = ($r['KetQua'] === 'Thắng');
-                // Quy tắc nâng cấp: Chỉ khi chiến thắng mới được cộng EXP để lên hạng Đấu Thần (Thua hoặc Hòa: +0 EXP)
+                // Chỉ cộng EXP khi thắng trận
                 $exp = $laThang ? 160 : 0;
                 $stT = $pdo->prepare('SELECT TuongChon FROM NGUOIDUNG WHERE MaND = ?');
                 $stT->execute([$nd]);
@@ -161,7 +157,7 @@ class ThiDau
         }
     }
 
-    // Đẩy tiến trình của một người: chốt câu quá hạn, gửi câu kế tiếp, đánh dấu xong khi hết câu (C-24, C-25)
+    // Đẩy tiến trình: chốt câu quá hạn, gửi câu kế tiếp, đánh dấu xong khi hết câu
     private static function tienTrinh(PDO $pdo, int $maTran, int $maND): void
     {
         $dungSai = max(0, Config::int('DUNG_SAI_DO_TRE', 1));
@@ -195,8 +191,7 @@ class ThiDau
         self::ketThucNeuXong($pdo, $maTran);
     }
 
-    // Trạng thái trận cho trình duyệt (polling): cũng là lúc ghi hoạt động cuối (C-29) và đẩy tiến trình của người gọi.
-    // Không bao giờ có đáp án đúng trong kết quả trả về (C-27).
+    // Polling trạng thái trận: ghi nhận hoạt động cuối, đẩy tiến trình (không trả về đáp án đúng).
     public static function trangThai(PDO $pdo, int $maTran, int $maND): array
     {
         $pdo->beginTransaction();
@@ -283,8 +278,7 @@ class ThiDau
                 $st = $pdo->prepare('SELECT NoiDung FROM CAUHOI WHERE MaCauHoi = ?');
                 $st->execute([(int) $dong['MaCauHoi']]);
                 $noiDung = (string) $st->fetchColumn();
-                // Chỉ lấy mã và nội dung đáp án, không lấy LaDapAnDung
-                // Trộn ngẫu nhiên đáp án A, B, C, D công bằng & đồng bộ cho cả hai đấu thủ theo mã trận
+                // Không lấy LaDapAnDung; xáo trộn đáp án đồng bộ cho cả 2 người theo MaTran
                 $st = $pdo->prepare("SELECT MaDapAn, NoiDungDapAn FROM DAPAN WHERE MaCauHoi = ? ORDER BY MD5(CONCAT(?, '_', MaDapAn))");
                 $st->execute([(int) $dong['MaCauHoi'], $maTran]);
                 $dapAn = [];
@@ -374,7 +368,7 @@ class ThiDau
         }
     }
 
-    // Người chơi gửi đáp án (C-24, C-25, C-27, C-28). Trả về chỉ đúng/sai và điểm của câu vừa chốt.
+    // Người chơi gửi đáp án; chỉ trả về đúng/sai và điểm của câu vừa chốt.
     public static function traLoi(PDO $pdo, int $maTran, int $maND, int $maCau, int $maDapAn): array
     {
         $dungSai = max(0, Config::int('DUNG_SAI_DO_TRE', 1));
@@ -425,7 +419,7 @@ class ThiDau
             $conLai = max(0.0, $gioiHan - $daDung);
             $dung   = ((int) $la === 1);
 
-            // C-28: đúng được điểm cơ bản + hệ số thưởng x (thời gian còn lại / thời gian câu), làm tròn xuống
+            // Điểm cơ bản + thưởng tốc độ theo thời gian còn lại, làm tròn xuống
             $diem = $dung ? (int) floor((int) $dong['DiemCoBan'] + (int) $dong['HeSoThuong'] * $conLai / $gioiHan) : 0;
 
             $pdo->prepare(
@@ -490,10 +484,7 @@ class ThiDau
         }
     }
 
-    // A-26: Admin hủy trận chưa kết thúc (Đã ghép hoặc Đang diễn ra). Trả về false nếu trận đã kết thúc/hủy.
-    // Gọi BÊN TRONG giao dịch của người gọi để việc hủy và ghi nhật ký quản trị nằm chung một giao dịch.
-    // Khóa dòng TRANDAU trước (cùng thứ tự khóa như mọi thao tác khác) nên không xung đột với việc trận vừa kết thúc.
-    // Không gọi Elo::capNhatSauTran: trận Hủy không đổi Elo.
+    // Admin hủy trận chưa kết thúc trong cùng transaction của nơi gọi; trận Hủy không đổi Elo.
     public static function huyBoiQuanTri(PDO $pdo, int $maTran): bool
     {
         $tt = self::khoaTran($pdo, $maTran);
@@ -507,21 +498,19 @@ class ThiDau
         return true;
     }
 
-    // Tự động xử lý lượt chơi, tiến trình và đáp án của Đấu Thần Máy (Bot AI)
+    // Tự động xử lý lượt chơi của Bot
     public static function xuLyBot(PDO $pdo, int $maTran, int $botId, ?float $daTroi): void
     {
-        // 1. Luôn cập nhật hoạt động của Bot để không bị xử thua do bỏ trận
+        // Cập nhật hoạt động để Bot không bị xử thua bỏ trận
         $pdo->prepare("UPDATE NGUOICHOITRANDAU SET LanHoatDongCuoi = NOW(3) WHERE MaTran = ? AND MaND = ? AND TrangThaiThamGia = 'Đang chơi'")
             ->execute([$maTran, $botId]);
 
-        // 2. Nếu qua thời gian đếm ngược, đẩy tiến trình câu hỏi cho Bot
         if ($daTroi === null || $daTroi < self::DEM_NGUOC_GIAY) {
             return;
         }
 
         self::tienTrinh($pdo, $maTran, $botId);
 
-        // 3. Kiểm tra câu Bot đang làm dở
         $dong = self::dongDangLam($pdo, $maTran, $botId);
         if (!$dong) {
             return;
@@ -551,7 +540,7 @@ class ThiDau
             $stD->execute([$maCau]);
             $dapAnDung = (int) $stD->fetchColumn();
 
-            // Tỉ lệ phản ứng thông minh của Bot khoảng 75%
+            // Tỉ lệ Bot trả lời đúng khoảng 75%
             $seed = ((int) $dong['MaCauHoi'] * 13 + $maTran * 17) % 100;
             if ($seed < 75 && $dapAnDung > 0) {
                 $dapAnChon = $dapAnDung;

@@ -1,7 +1,4 @@
-// Trang Đổi mật khẩu của Admin (admin/doimatkhau.php): chỉ xử lý giao diện.
-//  - Nút con mắt: hiện / ẩn nội dung ô mật khẩu tương ứng.
-//  - Hộp gợi ý: tick xanh theo thời gian thực khi mật khẩu mới đạt 6-72 ký tự, khác mật khẩu hiện tại, trùng ô xác nhận.
-// Việc kiểm tra thật vẫn do máy chủ làm khi gửi form (xem doimatkhau.php).
+// Trang Đổi mật khẩu Admin: ẩn/hiện mật khẩu và kiểm tra điều kiện theo thời gian thực.
 (function () {
   'use strict';
   var form = document.querySelector('.dmk-form');

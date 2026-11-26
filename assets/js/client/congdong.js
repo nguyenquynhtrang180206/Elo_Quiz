@@ -1,7 +1,6 @@
-/* Trang Cộng đồng (client/congdong.php) - Theme Cosmic Esports Arena */
+// Trang Cộng đồng (client/congdong.php): lọc mềm, kiểm tra form, chọn môn, thả lửa và kết bạn AJAX.
 (function () {
-  // 1. Lọc môn / loại bài / từ khóa: mở mềm bằng capnhat_mem.js (chỉ thay nội dung, không tải lại trang, không nhảy lên banner)
-  //    Dùng ủy quyền sự kiện vì vùng bộ lọc được thay mới sau mỗi lần bấm
+  // Lọc mềm bằng capnhat_mem.js; ủy quyền sự kiện vì vùng bộ lọc bị thay mới sau mỗi lần lọc
   function locMem(form) {
     var qs = new URLSearchParams();
     new FormData(form).forEach(function (v, k) {
@@ -24,7 +23,7 @@
     if (f && f.id === 'formLocCD') { e.preventDefault(); locMem(f); }
   });
 
-  // Đăng bài xong hoặc gặp lỗi: cuộn trực tiếp tới bài vừa đăng / thông báo lỗi và hiện Toast nổi trực tiếp
+  // Cuộn tới bài vừa đăng hoặc lỗi sau khi cập nhật
   function cuonToiBaiVuaDang() {
     var tbThanhCong = document.getElementById('cdThongBaoThanhCong');
     var tbLoi = document.getElementById('cdThongBaoLoi');
@@ -57,7 +56,7 @@
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', cuonToiBaiVuaDang); }
   else { setTimeout(cuonToiBaiVuaDang, 50); }
 
-  // 1b. Kiểm tra trực tiếp tại chỗ (Real-time Validation) khi người dùng nhập hoặc bấm Đăng bài
+  // Kiểm tra hợp lệ form đăng bài theo thời gian thực
   function khoiTaoKiemTraFormDangBai() {
     var form = document.getElementById('formDangBai');
     if (!form || form.dataset.daGanKiemTra === '1') { return; }
@@ -221,8 +220,7 @@
   khoiTaoKiemTraFormDangBai();
   document.addEventListener('mem:capnhat', khoiTaoKiemTraFormDangBai);
 
-  // 2. Thu gọn / Mở rộng form Viết bài mới mượt mà
-  // Tra cứu phần tử lúc dùng (không giữ tham chiếu) vì vùng nội dung có thể được thay mới sau khi gửi form
+  // Đóng/mở form viết bài (tra cứu phần tử lúc dùng vì vùng nội dung có thể bị thay mới)
   function layCard() { return document.getElementById('khung-dang-bai'); }
   function layToggle() { return document.getElementById('cd-write-toggle'); }
 
@@ -295,8 +293,7 @@
     moFormDangBai(true);
   }
 
-  // Khi bấm nút "✏️ Bài đăng mới" trên Sidebar nếu đang ở tab 'moi' -> tự động bung form
-  // (ủy quyền ở pha bắt sự kiện để chạy trước bộ mở mềm, vì nút trong sidebar bị thay mới sau mỗi lần bấm)
+  // Chạy ở pha capture để mở form trước khi bộ mở mềm xử lý
   document.addEventListener('click', function (e) {
     var b = e.target.closest ? e.target.closest('.cd-tab-btn.active[href*="tab=moi"]') : null;
     if (!b) { return; }
@@ -307,7 +304,6 @@
     }
   }, true);
 
-  // Bấm nút "Viết bài ngay" trên Hero Banner -> bung form và cuộn xuống
   var btnHeroDangBai = document.getElementById('btnHeroDangBai');
   if (btnHeroDangBai) {
     btnHeroDangBai.addEventListener('click', function (e) {
@@ -316,7 +312,6 @@
     });
   }
 
-  // Floating Toast thông báo hiệu ứng Cyber Esports
   function hienThiToast(noiDung, bieuTuong) {
     var oldToast = document.getElementById('cd-floating-toast');
     if (oldToast) { oldToast.remove(); }
@@ -332,13 +327,7 @@
     }, 4500);
   }
 
-  // 2b. Bộ chọn môn học tương tác: hiện 5 môn + tìm kiếm nhanh + xem thêm (tối ưu 20+ môn)
-  // Quy tắc để chọn môn, tìm kiếm và thu gọn không xung đột nhau:
-  //  - "Không gắn môn" luôn hiện (để bỏ chọn bất cứ lúc nào), không tính vào kết quả tìm kiếm.
-  //  - Đang tìm: hiện môn khớp từ khóa, cộng với môn đang chọn (giữ viền sáng) để người dùng luôn thấy mình đang chọn gì.
-  //    Bấm chọn một môn thì xóa từ khóa và quay lại danh sách thường.
-  //  - Không tìm: hiện 5 môn đầu; môn đang chọn luôn hiện dù nằm ngoài 5 môn đầu, kể cả khi đang thu gọn.
-  //  - Nhấn Enter trong ô tìm kiếm không được gửi form đăng bài: chỉ chọn môn nếu còn đúng 1 kết quả.
+  // Bộ chọn môn có tìm kiếm (luôn giữ môn đang chọn và "Không gắn môn", Enter chỉ chọn khi còn 1 kết quả)
   function khoiTaoMonPicker() {
     var monHiddenInput = document.getElementById('mon');
     var monSelectedDisplay = document.getElementById('monSelectedDisplay');
@@ -405,7 +394,6 @@
       }
     }
 
-    // Chọn môn học khi click vào pill
     cdMonGrid.addEventListener('click', function (e) {
       var pill = e.target.closest('.cd-mon-pill');
       if (!pill) { return; }
@@ -429,7 +417,6 @@
       hienThi();
     });
 
-    // Toggle xem thêm môn
     if (btnXemThemMon) {
       btnXemThemMon.addEventListener('click', function () {
         isExpanded = !isExpanded;
@@ -465,7 +452,7 @@
   khoiTaoMonPicker();
   document.addEventListener('mem:capnhat', khoiTaoMonPicker);   // vùng bài đăng vừa được thay mới sau khi gửi form
 
-  // 3. Tương tác Thẻ Ngôi Sao Tri Thức Tuần (Weekly MVP)
+  // Điều hướng khi bấm vào thẻ MVP hoặc khung bài đăng
   var cdMvpCard = document.getElementById('cdMvpCard');
   if (cdMvpCard) {
     cdMvpCard.addEventListener('click', function (e) {
@@ -477,8 +464,6 @@
     });
   }
 
-  // 3b. Bấm vào bất kỳ chỗ nào trên khung bài đăng thì mở bài và nhảy tới phần bình luận
-  //     (bỏ qua khi bấm link, nút, form, ô nhập, widget bạn bè, hoặc đang bôi đen chữ)
   document.addEventListener('click', function (e) {
     var the = e.target.closest ? e.target.closest('.cd-the[data-href]') : null;
     if (!the) { return; }
@@ -492,7 +477,6 @@
     window.location.href = the.getAttribute('data-href');
   });
 
-  // 4. Hiệu ứng nhấp nháy / nảy vui nhộn khi click vào Chibi Faker ở Sidebar
   var fakerBtn = document.getElementById('cd-faker-btn');
   if (fakerBtn) {
     fakerBtn.addEventListener('click', function () {
@@ -502,7 +486,7 @@
     });
   }
 
-  // 5. AJAX Thả Lửa 🔥 Không Giật Lag / Không Tải Lại Trang
+  // Thả lửa AJAX
   document.addEventListener('submit', function (e) {
     var form = e.target;
     if (!form || !form.classList.contains('cd-like-form')) { return; }
@@ -593,7 +577,7 @@
     });
   }
 
-  // 6. AJAX Kết bạn trực tiếp & Đồng bộ toàn trang (MVP, Thành viên, Bảng tin)
+  // Kết bạn AJAX và đồng bộ các widget cùng người dùng
   document.addEventListener('click', function (e) {
     var btn = e.target.closest ? e.target.closest('[data-friend-action]') : null;
     if (!btn) { return; }

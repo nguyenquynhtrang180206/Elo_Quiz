@@ -1,7 +1,7 @@
 <?php
-// Đổi mật khẩu quản trị khi đã đăng nhập (A-03; mật khẩu lưu dạng băm A-02). Đặt tại: elo_quiz/admin/doimatkhau.php
+// Đổi mật khẩu quản trị viên khi đã đăng nhập.
 require_once __DIR__ . '/../core/bootstrap.php';
-$maAdmin = Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');   // A-04
+$maAdmin = Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');
 
 $pdo       = Database::pdo();
 $loi       = [];
@@ -19,7 +19,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $ad = $st->fetch();
 
     if (!$ad) {
-        // Tài khoản không còn tồn tại: kết thúc phiên
+        // Tài khoản không còn tồn tại: kết thúc phiên.
         unset($_SESSION['admin_id']);
         redirect(BASE_URL . '/admin/dangnhap.php');
     }
@@ -49,7 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (!$loi) {
-        // Băm mật khẩu mới bằng chuẩn siêu bảo mật (Argon2id hoặc Bcrypt cost 12) & lưu lịch sử 5 mật khẩu gần nhất.
+        // Băm mật khẩu mới và lưu lịch sử 5 mật khẩu gần nhất.
         $hashMoi = PasswordSecurity::hash($moi);
         PasswordSecurity::ghiNhanDoiMatKhauAdmin($pdo, $maAdmin, $hashMoi);
         NhatKy::ghi('Đổi mật khẩu', 'ADMIN #' . $maAdmin);
@@ -60,21 +60,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $tieuDe      = 'Đổi mật khẩu';
 $mucChon     = 'doimatkhau';
-// Không bật $giaoDienMoi: giữ nền tối + sidebar như các trang khác, chỉ khối nội dung bên trong là nền trắng
 $cssTrang    = 'doimatkhau';
-$jsTrang     = ['doimatkhau'];       // nút hiện/ẩn mật khẩu + tick gợi ý theo thời gian thực (chỉ là giao diện, máy chủ vẫn kiểm tra lại)
+$jsTrang     = ['doimatkhau'];
 require __DIR__ . '/layout/header.php';
 ?>
 <link rel="stylesheet" href="<?= e(BASE_URL) ?>/assets/css/pw_security.css">
 <div class="card dmk">
-  <!-- Cột trái: ảnh ổ khóa + khẩu hiệu -->
+  <!-- Cột trái: hình minh họa -->
   <aside class="dmk-trai">
     <img class="dmk-anh" src="<?= e(BASE_URL) ?>/assets/images/lock.jpg" alt="Bảo mật tài khoản">
     <p class="dmk-cau">“Bảo mật tài khoản<br>– Vững bước chinh phục!”</p>
     <span class="dmk-gach" aria-hidden="true"></span>
   </aside>
 
-  <!-- Cột phải: tiêu đề + form -->
+  <!-- Cột phải: form đổi mật khẩu -->
   <div class="dmk-phai">
     <div class="dmk-dau">
       <span class="dmk-icon" aria-hidden="true">
@@ -100,7 +99,7 @@ require __DIR__ . '/layout/header.php';
       <?= csrf_field() ?>
 
       <?php
-      // Ba ô nhập (name/id giữ nguyên như code gốc): [id, nhãn, gợi ý trong ô]
+      // Cấu hình các ô nhập mật khẩu.
       $oNhap = [
           ['mat_khau_cu',   'Mật khẩu hiện tại',                'Mật khẩu hiện tại'],
           ['mat_khau_moi',  'Mật khẩu mới (tối thiểu 8 ký tự)', 'Mật khẩu mới'],

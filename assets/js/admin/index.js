@@ -1,5 +1,4 @@
-// Trang Tổng quan (admin/index.php): vẽ 2 biểu đồ bằng Chart.js (assets/vendor/chart.umd.js)
-// Hai hàm dựng biểu đồ được dùng chung với hộp thoại xem trước khi xuất báo cáo (thongke_xuat.js).
+// Trang Tổng quan Admin: vẽ biểu đồ Chart.js (dùng chung với thongke_xuat.js).
 (function () {
   if (typeof Chart === 'undefined') { return; }
 

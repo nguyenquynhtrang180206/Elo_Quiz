@@ -1,22 +1,16 @@
 <?php
-// Kiểm duyệt cộng đồng (UC15: A-32, A-33, A-34). Đặt tại: elo_quiz/admin/congdong.php
-// Giao diện chia đôi: 4 biểu đồ ở đầu trang, danh sách bên trái, xem trước + xử lý bên phải.
-// Hai tab: ?loai=bai (bài đăng), ?loai=bl (bình luận). Chỉ ẩn/hiện, không xóa cứng; mọi lần ẩn/hiện đều bắt buộc lý do và ghi nhật ký.
-// A-33: bài sinh viên đã tự xóa ("Đã xóa") không được hiện lại. Admin chỉ chuyển qua lại Hiển thị <-> Bị ẩn.
-// Logic ẩn/hiện dùng chung CongDongHelper::kiemDuyet (cùng trang Cộng đồng phía client và congdong_baidang.php).
+// Kiểm duyệt bài đăng và bình luận cộng đồng (chỉ ẩn/hiện kèm lý do và nhật ký; bài đã xóa không hiện lại).
 require_once __DIR__ . '/../core/bootstrap.php';
-// CongDongHelper, ThongBaoHelper, NhatKy, Paginator được bootstrap.php tự nạp (autoloader); KHÔNG require_once tay
-// core/CongDongHelper.php hay core/ThongBaoHelper.php ở đây: dễ nạp trùng lớp và báo "Cannot declare class ThongBaoHelper".
-Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');   // A-04
+Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');
 
 $pdo = Database::pdo();
 
-// ---- Cấu hình nhỏ (sửa tại đây nếu muốn đổi) ----
+// Lý do gợi ý và danh sách từ nhạy cảm (chỉ gợi ý, không tự động ẩn).
 $LY_DO_AN  = ['Spam / quảng cáo', 'Sai nội dung học thuật', 'Ngôn từ không phù hợp', 'Lộ đề thi / gian lận'];
 $LY_DO_HIEN = ['Đã xem xét lại, nội dung phù hợp', 'Ẩn nhầm'];
-$TU_NHAY_CAM = ['vcl', 'vkl', 'đéo', 'óc chó', 'mất dạy', 'đồ ngu', 'đm'];   // chỉ để GỢI Ý cho admin, không tự động ẩn
+$TU_NHAY_CAM = ['vcl', 'vkl', 'đéo', 'óc chó', 'mất dạy', 'đồ ngu', 'đm'];
 
-// ---- Tham số lọc ----
+// Tham số lọc.
 $loai = (string) ($_GET['loai'] ?? 'bai');
 if (!in_array($loai, ['bai', 'bl'], true)) {
     $loai = 'bai';
@@ -47,19 +41,19 @@ if (!in_array($sx, $loai === 'bai' ? ['moi', 'cu', 'nhieu'] : ['moi', 'cu'], tru
 }
 $chon = (int) ($_GET['chon'] ?? 0);
 
-// ---- Xử lý ẩn / hiện (một mục hoặc hàng loạt) ----
+// Xử lý ẩn/hiện (đơn lẻ hoặc hàng loạt).
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_check();
     $hd  = (string) ($_POST['hanh_dong'] ?? '');
     $ly  = (string) ($_POST['ly_do'] ?? '');
-    // Gửi từ trang xem bài (congdong_baidang.php) thì sau khi xử lý quay lại đúng trang đó
+    // Quay lại trang chi tiết bài nếu thao tác từ congdong_baidang.php.
     $veBai = (int) ($_POST['ve_bai'] ?? 0);
     $ids   = array_slice(array_values(array_unique(array_filter(array_map('intval', (array) ($_POST['ids'] ?? [])), static fn ($v) => $v > 0))), 0, 50);
 
     $giu = $_GET;
     unset($giu['kq'], $giu['n'], $giu['t']);
     if ($ids) {
-        // Hàng loạt: cùng một lý do cho mọi mục; mục nào đã đổi trạng thái (hoặc không đúng loại) thì bị bỏ qua
+        // Hàng loạt: bỏ qua mục đã đổi trạng thái hoặc không khớp loại.
         $ok = 0;
         $kq = 'ok';
         foreach ($ids as $i => $id) {
@@ -100,7 +94,7 @@ $loiBao = [
     'khong'   => 'Không thực hiện được: trạng thái đã thay đổi (hoặc bài đã bị sinh viên tự xóa). Hãy kiểm tra lại danh sách.',
 ][$kqGet] ?? '';
 
-// ---- Danh sách có phân trang (20 dòng/trang) ----
+// Danh sách có phân trang (20 dòng/trang).
 $dk   = [];
 $tham = [];
 if ($tt !== '') {
@@ -159,14 +153,14 @@ $ds = $st->fetchAll();
 $soBai = (int) $pdo->query('SELECT COUNT(*) FROM BAIDANG')->fetchColumn();
 $soBL  = (int) $pdo->query('SELECT COUNT(*) FROM BINHLUAN')->fetchColumn();
 
-// ---- Hàm dựng link giữ nguyên bộ lọc hiện tại ----
+// Tạo link giữ nguyên bộ lọc hiện tại.
 $thamUrl = ['loai' => $loai, 'tt' => $tt, 'q' => $q, 'mon' => $mon, 'lb' => $lb, 'sx' => $sx === 'moi' ? '' : $sx];
 $lienKet = static function (array $doi) use ($thamUrl): string {
     $kq = array_filter(array_merge($thamUrl, $doi), static fn ($v) => $v !== '' && $v !== null && $v !== 0 && $v !== false);
     return '?' . http_build_query($kq);
 };
 
-// ---- Mục đang chọn (mặc định: mục đầu của trang) ----
+// Mục đang chọn xem trước (mặc định mục đầu trang).
 $maChon = $chon;
 if ($maChon <= 0 && $ds) {
     $maChon = (int) $ds[0]['ma'];
@@ -217,7 +211,7 @@ if ($sel) {
         $conBL = count($binhLuanBai) > 30;
         $binhLuanBai = array_slice($binhLuanBai, 0, 30);
     }
-    // Lịch sử kiểm duyệt của chính mục này (đọc từ nhật ký quản trị)
+    // Lịch sử kiểm duyệt của mục từ nhật ký.
     $st = $pdo->prepare(
         'SELECT n.HanhDong, n.MoTa, n.ThoiGian, a.HoTen FROM NHATKYQUANTRI n JOIN ADMIN a ON a.MaAdmin = n.MaAdmin
           WHERE n.DoiTuong = ? ORDER BY n.ThoiGian DESC, n.MaNhatKy DESC LIMIT 5'
@@ -225,7 +219,7 @@ if ($sel) {
     $st->execute([($loai === 'bai' ? 'BAIDANG #' : 'BINHLUAN #') . $maChon]);
     $lichSu = $st->fetchAll();
 
-    // Số nội dung của người này đang bị ẩn (bài + bình luận)
+    // Số nội dung của tác giả đang bị quản trị ẩn.
     $sqlA = "SELECT (SELECT COUNT(*) FROM BAIDANG WHERE MaND = ? AND TrangThai = 'Bị ẩn'"
         . (CongDongHelper::coCotNguoiAn() ? " AND NguoiAn = 'Quản trị'" : '') . ")
         + (SELECT COUNT(*) FROM BINHLUAN WHERE MaND = ? AND TrangThai = 'Bị ẩn'"
@@ -234,7 +228,7 @@ if ($sel) {
     $st->execute([(int) $sel['MaND'], (int) $sel['MaND']]);
     $soAnTacGia = (int) $st->fetchColumn();
 
-    // Elo của người đăng (môn của bài; bài không gắn môn thì lấy môn cao nhất), chỉ khi đã đủ số trận tối thiểu
+    // Elo của tác giả (ưu tiên môn của bài).
     $eloNguoi = CongDongHelper::layElo($pdo, [(int) $sel['MaND']])[(int) $sel['MaND']] ?? [];
     if ($eloNguoi) {
         $maMonSel = $sel['MaMon'] !== null ? (int) $sel['MaMon'] : null;
@@ -254,11 +248,11 @@ if ($sel) {
     }
 }
 
-// ---- Gợi ý từ ngữ nhạy cảm (chỉ gợi ý, admin tự quyết) ----
+// Gợi ý phát hiện từ nhạy cảm.
 $mauNhayCam = '/(?<![\p{L}\p{N}])(' . implode('|', array_map(static fn ($t) => preg_quote($t, '/'), $TU_NHAY_CAM)) . ')(?![\p{L}\p{N}])/iu';
 $coTuNhay = static fn (string $s): bool => $TU_NHAY_CAM && preg_match($mauNhayCam, $s) === 1;
 
-// ---- Dữ liệu 4 biểu đồ ----
+// Dữ liệu 4 biểu đồ thống kê.
 $bieuDo = ['ngay' => [], 'bai' => [], 'bl' => [], 'an' => [], 'hien' => [], 'trangThai' => [0, 0, 0], 'tongMuc' => 0,
           'phanLoai' => ['tieuDe' => '', 'nhan' => [], 'so' => []]];
 $mocNgay = [];
@@ -311,10 +305,10 @@ foreach ($rows as $k => $v) {
     $bieuDo['phanLoai']['so'][]   = (int) $v;
 }
 
-// ---- Hàm hiển thị ----
+// Hàm định dạng hiển thị.
 $cat = static fn (string $s, int $n = 150): string => mb_strlen($s) > $n ? mb_substr($s, 0, $n) . '…' : $s;
 $chuCai = static function (string $hoTen): string {
-    // Lấy chữ/số đầu của từ cuối; tên kết thúc bằng emoji thì lùi về các từ trước, không có thì lấy chữ/số đầu tiên trong tên
+    // Lấy chữ/số đầu của từ cuối hợp lệ (bỏ qua emoji).
     $tu = preg_split('/\s+/u', trim($hoTen)) ?: [];
     for ($i = count($tu) - 1; $i >= 0; $i--) {
         if (preg_match('/[\p{L}\p{N}]/u', (string) $tu[$i], $m)) {
@@ -331,7 +325,7 @@ $nhanTT = static function (array $r): string {
 };
 $lopLoai = ['Thảo luận' => 'cdm-l1', 'Hỏi đáp' => 'cdm-l2', 'Chia sẻ mẹo' => 'cdm-l3', 'Tìm bạn ôn thi' => 'cdm-l4', 'Khác' => 'cdm-l5'];
 
-// Liên kết "bỏ qua, xem mục tiếp"
+// Liên kết chuyển sang mục tiếp theo.
 $lkTiep = null;
 if ($viTri !== null && isset($ds[$viTri + 1])) {
     $lkTiep = $lienKet(['chon' => (int) $ds[$viTri + 1]['ma'], 'page' => $p->trang()]);
@@ -345,7 +339,7 @@ $cssTrang = 'congdong';
 $jsTrang  = 'congdong';
 require __DIR__ . '/layout/header.php';
 
-// Phân trang: không giữ tham số chon trong link trang
+// Không giữ tham số chọn khi chuyển trang.
 $maChonHienTai = $maChon;
 unset($_GET['chon'], $_GET['kq'], $_GET['n'], $_GET['t']);
 ?>
@@ -411,7 +405,7 @@ unset($_GET['chon'], $_GET['kq'], $_GET['n'], $_GET['t']);
     <?php endif; ?>
     </div>
     <button type="submit" class="cdm-nut cdm-nut-chinh cdm-nut-tim">Tìm</button>
-    <!-- Chỉ hiện trên điện thoại: mở / đóng cụm ô lọc (Môn, Trạng thái, Loại bài, Sắp xếp) -->
+    <!-- Nút mở bộ lọc trên di động -->
     <button type="button" class="cdm-nut cdm-nut-loc" id="cdmNutLoc" aria-expanded="false" aria-controls="cdmBoLoc">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5h18M6 12h12M10 19h4"/></svg>
       Bộ lọc<?php if ($soLocBat > 0): ?><i class="cdm-loc-dem"><?= $soLocBat ?></i><?php endif; ?>
@@ -421,7 +415,7 @@ unset($_GET['chon'], $_GET['kq'], $_GET['n'], $_GET['t']);
   </div>
 
   <div class="cdm-chia">
-    <!-- ===== BÊN TRÁI: DANH SÁCH ===== -->
+    <!-- Cột trái: danh sách -->
     <section class="cdm-ds">
       <div class="cdm-ds-dau">
         <label class="cdm-cb"><input type="checkbox" id="cdmChonTatCa"<?= $ds ? '' : ' disabled' ?>><span></span></label>
@@ -430,7 +424,7 @@ unset($_GET['chon'], $_GET['kq'], $_GET['n'], $_GET['t']);
         <?php if ($ds): ?><button type="button" class="cdm-nut cdm-nut-nho cdm-nut-chon" id="cdmCheDoChon" aria-pressed="false">Chọn</button><?php endif; ?>
       </div>
 
-      <!-- Thanh xử lý hàng loạt: hiện khi có mục được tích; dùng cùng một lý do cho mọi mục -->
+      <!-- Thanh xử lý hàng loạt -->
       <form method="post" action="" id="formHangLoat" class="cdm-hl" hidden>
         <?= csrf_field() ?>
         <strong><span id="cdmSoChon">0</span> mục đã chọn</strong>
@@ -478,7 +472,7 @@ unset($_GET['chon'], $_GET['kq'], $_GET['n'], $_GET['t']);
       <div class="cdm-phantrang"><?= $p->links() ?></div>
     </section>
 
-    <!-- ===== BÊN PHẢI: XEM TRƯỚC + XỬ LÝ ===== -->
+    <!-- Cột phải: xem trước và xử lý -->
     <aside class="cdm-pv" id="cdmPv">
       <?php if (!$sel): ?>
         <p class="cdm-trong">Chọn một mục ở bên trái để xem nội dung và xử lý.</p>
@@ -559,7 +553,7 @@ unset($_GET['chon'], $_GET['kq'], $_GET['n'], $_GET['t']);
           <?php endif; ?>
         <?php endif; ?>
 
-        <!-- Khung xử lý: mặc định nhắm vào mục đang chọn; bấm "Ẩn" ở một bình luận thì chuyển mục tiêu sang bình luận đó -->
+        <!-- Khung xử lý: mặc định nhắm vào mục đang chọn hoặc bình luận vừa chọn -->
         <?php if ($hd0 !== ''): ?>
           <form method="post" action="" class="cdm-xuly<?= $hd0 === 'an_' . $loai ? '' : ' la-hien' ?>" id="cdmFormXuLy"
                 data-hd0="<?= e($hd0) ?>" data-ma0="<?= (int) $sel['ma'] ?>"

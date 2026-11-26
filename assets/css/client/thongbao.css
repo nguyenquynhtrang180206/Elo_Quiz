@@ -1,7 +1,4 @@
-/* =====================================================================
-   TRANG TRUNG TÂM THÔNG BÁO (client/thongbao.php)
-   Theme Cosmic Esports Glassmorphism đồng bộ với hệ thống QuizUp Arena
-   ===================================================================== */
+/* Trang Trung tâm thông báo (client/thongbao.php) */
 
 .tb-page-container {
   max-width: 920px;
@@ -9,7 +6,7 @@
   padding: 0 16px;
 }
 
-/* Header Card */
+/* Tiêu đề trang */
 .tb-header-card {
   display: flex;
   align-items: center;
@@ -113,7 +110,7 @@
   transform: translateY(-1px);
 }
 
-/* Tabs */
+/* Tab lọc */
 .tb-nav-tabs {
   display: flex;
   align-items: center;
@@ -167,7 +164,7 @@
   box-shadow: 0 0 8px rgba(239, 68, 68, 0.8);
 }
 
-/* List Wrapper */
+/* Danh sách thông báo */
 .tb-list-wrapper {
   background: rgba(6, 12, 34, 0.85);
   border: 1.5px solid rgba(0, 217, 255, 0.25);
@@ -339,7 +336,7 @@
   background: rgba(239, 68, 68, 0.15);
 }
 
-/* Empty State */
+/* Trạng thái trống */
 .tb-empty-state {
   display: flex;
   flex-direction: column;
@@ -408,7 +405,7 @@
   }
 }
 
-/* ===== Phân biệt thông báo ĐÃ ĐỌC / CHƯA ĐỌC (cả hai đều hiển thị ở tab "Tất cả") ===== */
+/* Phân biệt thông báo đã đọc và chưa đọc */
 .tb-item-card { border-left: 3.5px solid transparent; }          /* chừa chỗ viền để hai loại thẳng hàng */
 
 /* Chưa đọc: nền sáng, viền xanh (có sẵn ở trên), chữ nổi bật, có chấm */

@@ -1,7 +1,4 @@
-/* =====================================================================
-   TRANG QUÊN MẬT KHẨU (client/quenmatkhau.php)
-   Thiết kế tinh gọn, chuẩn mực, đồng bộ với Đăng nhập & Đăng ký
-   ===================================================================== */
+/* Trang Quên mật khẩu (client/quenmatkhau.php) */
 
 .container.khung-quenmk {
   max-width: 480px;
@@ -14,7 +11,7 @@
   font-size: 14px;
 }
 
-/* Stepper tiến trình tối giản */
+/* Thanh tiến trình các bước */
 .quenmk-stepper {
   display: flex;
   align-items: center;
@@ -93,7 +90,7 @@
   color: #34d399;
 }
 
-/* Hộp thông báo gửi OTP siêu gọn (1 hộp duy nhất) */
+/* Hộp thông báo gửi OTP */
 .thongbao-email-box {
   display: flex;
   align-items: center;

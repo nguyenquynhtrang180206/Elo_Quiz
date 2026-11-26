@@ -1,4 +1,4 @@
-/* Nút + hộp thoại "Xuất báo cáo" của trang Trận đấu (admin/trandau.php). Giao diện sáng, không phụ thuộc style của hộp thoại tối. */
+/* Hộp thoại xuất báo cáo trận đấu (nền sáng riêng, admin/trandau.php) */
 .td-xuat-btn { display:inline-flex; align-items:center; gap:8px; padding:9px 16px; border:0; border-radius:10px; background:#1e5cf0; color:#fff; font:inherit; font-size:13.5px; font-weight:700; cursor:pointer; box-shadow:0 4px 12px rgba(30,92,240,.3); }
 .td-xuat-btn:hover { background:#1a4fd6; }
 .tx-nen { position:fixed; inset:0; z-index:200; display:flex; align-items:center; justify-content:center; padding:16px; background:rgba(15,23,42,.55); }
@@ -50,7 +50,7 @@
 .admin-noidung .tx-ngay input[type=date] { width:auto; padding:6px 9px; border:1px solid #cfd9f0; border-radius:8px; background:#fff; color:#26334d; font:inherit; font-size:13.5px; }
 .tx-bd canvas { display:block; width:100%; height:auto; border-radius:8px; background:#fff; }
 
-/* ===== Điện thoại: hộp thoại Xuất báo cáo ===== */
+/* Responsive điện thoại */
 @media (max-width:768px) {
   .tx-nen { padding:8px; }
   .tx-hop { max-height:96vh; padding:14px; border-radius:14px; }

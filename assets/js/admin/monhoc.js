@@ -1,6 +1,5 @@
-/* Trang Môn học, loại kỳ thi (admin/monhoc.php) */
+// Trang Môn học và loại kỳ thi (admin/monhoc.php).
 
-// Hỏi xác nhận trước khi thực hiện nút có thuộc tính data-xac-nhan
 document.addEventListener('click', function (e) {
   var nut = e.target.closest('[data-xac-nhan]');
   if (nut && !confirm(nut.getAttribute('data-xac-nhan'))) { e.preventDefault(); }
@@ -9,7 +8,7 @@ document.addEventListener('click', function (e) {
 (function () {
   'use strict';
 
-  // ---------- Popup thêm / sửa ----------
+  // Popup thêm/sửa
   function $(id) { return document.getElementById(id); }
 
   function mo(hop, o) {
@@ -55,7 +54,6 @@ document.addEventListener('click', function (e) {
   var nutThemKt = $('nutThemKt');
   if (nutThemKt) { nutThemKt.addEventListener('click', function () { moPopup('kt', null); }); }
 
-  // Nút Sửa trên từng dòng (dùng ủy quyền sự kiện)
   document.addEventListener('click', function (e) {
     var nut = e.target.closest('[data-sua-mon], [data-sua-kt]');
     if (!nut) { return; }
@@ -66,7 +64,6 @@ document.addEventListener('click', function (e) {
     });
   });
 
-  // Nút Hủy và bấm ra ngoài popup thì đóng (Esc đã được trình duyệt xử lý)
   document.querySelectorAll('.mh-hop').forEach(function (hop) {
     hop.addEventListener('click', function (e) {
       if (e.target === hop || e.target.closest('[data-dong-hop]')) { dong(hop); }

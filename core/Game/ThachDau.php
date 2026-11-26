@@ -1,6 +1,5 @@
 <?php
-// Quản lý phòng thách đấu 1v1 riêng tư (Custom Match / Mã PIN 2.0)
-// Hỗ trợ: tạo mã PIN, giữ trạng thái F5, xem trước phòng, vào phòng bằng PIN/link, mời bạn bè 1 chạm.
+// Phòng thách đấu 1v1 riêng tư bằng mã PIN 6 số (tạo phòng, khôi phục khi F5, vào phòng, mời bạn bè).
 class ThachDau
 {
     public const THOI_GIAN_HET_HAN_GIAY = 600; // 10 phút hiệu lực mỗi mã PIN
@@ -336,7 +335,7 @@ class ThachDau
             return ['ok' => false, 'loi' => 'Hai bạn chưa kết bạn hoặc tài khoản này không khả dụng.'];
         }
 
-        // Xóa lời mời thách đấu chưa đọc trước đó từ cùng người gửi để tránh spam trùng
+        // Xóa lời mời chưa đọc trước đó từ cùng người gửi để tránh spam trùng
         $pdo->prepare("DELETE FROM THONGBAO WHERE MaND = ? AND MaNguoiGui = ? AND Loai = 'thach_dau' AND DaDoc = 0")
             ->execute([$banND, $chuND]);
 

@@ -1,21 +1,7 @@
 <?php
-// Xuất Ngân hàng câu hỏi ra Excel hoặc PDF.
-// Đặt tại: elo_quiz/admin/cauhoi_xuat.php
-// Được gọi (POST, có CSRF) từ hộp thoại "Xuất" ở admin/cauhoi.php. Mỗi lần gọi trả MỘT file; khi người dùng chọn
-// định dạng "Cả hai", trình duyệt (cauhoi.js) gọi lần lượt hai lần (Excel rồi PDF).
-//
-// Phạm vi (pham_vi): loc = đang lọc (q, mon, kt, dk, tt, loc gửi kèm từ trang), chon = các câu đã tích (ids[]),
-//                    lech = chỉ câu lệch độ khó, tatca = toàn bộ ngân hàng.
-// Nội dung (noidung[]): danhsach = danh sách câu hỏi (kèm đáp án đúng, giải thích, tỉ lệ đúng thực tế),
-//                       hieuchinh = báo cáo hiệu chỉnh độ khó (ngưỡng, phân bố tỉ lệ đúng, các câu lệch),
-//                       bando = bản đồ phủ câu hỏi. Hai mục hieuchinh và bando chọn độc lập, có thể chọn cả hai.
-// buoc=xemtruoc: không xuất file mà trả JSON số liệu xem trước của phạm vi (tổng quan, vài dòng đầu, câu lệch, bản đồ phủ,
-//                phân bố tỉ lệ đúng). Trình duyệt dùng để dựng khung "Xem trước" và vẽ biểu đồ Chart.js giống hệt trên trang,
-//                rồi gửi ảnh JPEG lại trong trường anh_phanbo khi xuất.
-//
-// Các ngưỡng và công thức tỉ lệ đúng dưới đây phải khớp với admin/cauhoi.php để số trong file giống số trên màn hình.
+// Xuất ngân hàng câu hỏi ra Excel/PDF và trả JSON xem trước.
 require_once __DIR__ . '/../core/bootstrap.php';
-Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');   // A-04
+Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');
 
 function loi_xuat(string $thongBao, int $ma = 400): never
 {
@@ -30,12 +16,12 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 csrf_check();
 @set_time_limit(180);
 
-$TOI_DA_CAU = 3000;   // vượt quá thì yêu cầu lọc bớt (tránh làm treo máy chủ)
+$TOI_DA_CAU = 3000;   // Giới hạn mỗi lần xuất để tránh quá tải máy chủ.
 $TOI_DA_LECH_PDF = 300;
 
 $pdo = Database::pdo();
 
-// ---- Tham số từ hộp thoại ----
+// Tham số lọc và nội dung từ hộp thoại.
 $phamVi = (string) ($_POST['pham_vi'] ?? '');
 if (!in_array($phamVi, ['loc', 'chon', 'lech', 'tatca'], true)) {
     loi_xuat('Hãy chọn phạm vi cần xuất.');
@@ -47,36 +33,36 @@ if (!$noiDung) {
 }
 $coDS = in_array('danhsach', $noiDung, true);
 $coHC = in_array('hieuchinh', $noiDung, true);
-$coBD = in_array('bando', $noiDung, true);   // bản đồ phủ do người dùng tự tích (hộp thoại tự gợi ý tích khi chọn báo cáo hiệu chỉnh)
+$coBD = in_array('bando', $noiDung, true);
 $buoc = (string) ($_POST['buoc'] ?? '');
 $dinhDang = (string) ($_POST['dinhdang'] ?? '');
-if ($buoc === 'xemtruoc') { $dinhDang = 'excel'; }   // xem trước không cần định dạng
+if ($buoc === 'xemtruoc') { $dinhDang = 'excel'; }
 if (!in_array($dinhDang, ['excel', 'pdf'], true)) {
     loi_xuat('Hãy chọn định dạng Excel hoặc PDF.');
 }
 
-// ---- Ngưỡng (khớp với cauhoi.php) ----
+// Ngưỡng đánh giá độ khó (đồng bộ với cauhoi.php).
 $MIN_LUOT   = min(200, max(1, Config::int('MIN_LUOT_DO_KHO', 2)));
 $NGUONG_DE  = 70;
 $NGUONG_KHO = 40;
 $PHU_DU     = 20;
 $PHU_TOT    = 40;
 $NGUONG_DO  = min($PHU_DU, max(1, Config::int('SO_CAU', 10)));
-$DO_KHO     = CauHoiHelper::DO_KHO;   // ['Dễ', 'Trung bình', 'Khó']
+$DO_KHO     = CauHoiHelper::DO_KHO;
 
 $hangTheoTyLe = static function (int $dung, int $luot) use ($NGUONG_DE, $NGUONG_KHO): string {
     if ($dung * 100 >= $NGUONG_DE * $luot) { return 'Dễ'; }
     if ($dung * 100 < $NGUONG_KHO * $luot) { return 'Khó'; }
     return 'Trung bình';
 };
-// Mức lệch (điểm phần trăm so với khoảng đúng của nhãn): như $sqlMucLech trong cauhoi.php
+// Mức lệch (điểm %) so với khoảng chuẩn của nhãn.
 $mucLech = static function (string $nhan, float $ty) use ($NGUONG_DE, $NGUONG_KHO): float {
     if ($nhan === 'Dễ')  { return $NGUONG_DE - $ty; }
     if ($nhan === 'Khó') { return $ty - $NGUONG_KHO; }
     return $ty >= $NGUONG_DE ? $ty - $NGUONG_DE : $NGUONG_KHO - $ty;
 };
 
-// ---- Mảnh SQL dùng chung (khớp với cauhoi.php) ----
+// Truy vấn phụ thống kê lượt trả lời và câu lệch độ khó.
 $tlSub = "(SELECT t.MaCauHoi, COUNT(*) AS luot, SUM(d.LaDapAnDung = 1) AS dung
            FROM CHITIETTRALOI t LEFT JOIN DAPAN d ON d.MaDapAn = t.MaDapAn
            WHERE t.TrangThai IN ('Đã trả lời', 'Hết giờ') GROUP BY t.MaCauHoi)";
@@ -87,11 +73,11 @@ $sqlLech = "(tl.luot >= $MIN_LUOT AND (
            OR (c.DoKho = 'Khó' AND tl.dung * 100 >= $NGUONG_KHO * tl.luot)
            OR (c.DoKho = 'Trung bình' AND (tl.dung * 100 >= $NGUONG_DE * tl.luot OR tl.dung * 100 < $NGUONG_KHO * tl.luot))))";
 
-// ---- Điều kiện theo phạm vi ----
+// Điều kiện lọc theo phạm vi xuất.
 $dieuKien = [];
 $tham     = [];
 $moTaPhamVi = '';
-$monLoc = 0;   // môn đang lọc (để bản đồ phủ chỉ hiện môn đó)
+$monLoc = 0;
 $tenMonLoc = '';
 
 if ($phamVi === 'loc') {
@@ -162,7 +148,7 @@ if ($phamVi === 'loc') {
 }
 $where = $dieuKien ? 'WHERE ' . implode(' AND ', $dieuKien) : '';
 
-// ---- Lấy câu hỏi trong phạm vi ----
+// Lấy danh sách câu hỏi trong phạm vi.
 $st = $pdo->prepare(
     "SELECT c.MaCauHoi, c.NoiDung, c.GiaiThich, c.DoKho, c.TrangThai, m.TenMon, k.TenLoaiKT,
             COALESCE(tl.luot, 0) AS luot, COALESCE(tl.dung, 0) AS dung,
@@ -184,7 +170,7 @@ if (!$cau && ($coDS || $coHC) && $buoc !== 'xemtruoc') {
     loi_xuat('Không có câu hỏi nào trong phạm vi đã chọn.');
 }
 
-// ---- Tính số liệu từng câu ----
+// Tính tỉ lệ đúng và phân loại câu lệch độ khó.
 $tong = count($cau);
 $duDL = 0; $soLech = 0;
 $theoNhan = array_fill_keys($DO_KHO, 0);
@@ -211,7 +197,7 @@ foreach ($cau as $i => $r) {
 }
 usort($lechDs, static fn (array $a, array $b): int => [$b['_muc'], $a['MaCauHoi']] <=> [$a['_muc'], $b['MaCauHoi']]);
 
-// ---- Ảnh biểu đồ do trình duyệt vẽ (giống biểu đồ trên trang), nếu có ----
+// Ảnh biểu đồ JPEG do trình duyệt gửi lên.
 $anhPhanBo = null; $anhRong = 0; $anhCao = 0;
 $du = (string) ($_POST['anh_phanbo'] ?? '');
 if ($du !== '' && strlen($du) < 4000000 && preg_match('#^data:image/jpeg;base64,([A-Za-z0-9+/=]+)$#', $du, $mm)) {
@@ -222,7 +208,7 @@ if ($du !== '' && strlen($du) < 4000000 && preg_match('#^data:image/jpeg;base64,
     }
 }
 
-// ---- Đáp án của từng câu (chỉ khi xuất danh sách) ----
+// Lấy đáp án khi xuất danh sách.
 $dapAn = [];
 if ($coDS && $cau) {
     $maDs = array_map(static fn (array $r): int => (int) $r['MaCauHoi'], $cau);
@@ -237,7 +223,7 @@ if ($coDS && $cau) {
         }
     }
 }
-// Trả về [4 phương án (A-D, rỗng nếu thiếu), chữ cái đáp án đúng, nội dung đáp án đúng]
+// Trả về [4 phương án A-D, chữ cái đáp án đúng, nội dung đáp án đúng].
 $phuongAn = static function (int $ma) use ($dapAn): array {
     $ds = $dapAn[$ma] ?? [];
     $pa = ['', '', '', ''];
@@ -249,7 +235,7 @@ $phuongAn = static function (int $ma) use ($dapAn): array {
     return [$pa, $dungChu, $dungND];
 };
 
-// ---- Bản đồ phủ: số câu đang hiển thị của từng môn đang mở theo từng độ khó ----
+// Bản đồ phủ các môn đang mở theo độ khó.
 $bando = [];
 $oThieu = 0;
 if ($coBD || $buoc === 'xemtruoc') {
@@ -272,17 +258,17 @@ if ($coBD || $buoc === 'xemtruoc') {
         }
         $bando[] = $dong;
     }
-    usort($bando, static fn (array $a, array $b): int => $b['thieu'] <=> $a['thieu']);   // môn thiếu nhiều nhất lên đầu
+    usort($bando, static fn (array $a, array $b): int => $b['thieu'] <=> $a['thieu']);
 }
-// Màu ô theo số câu: 0 đỏ, 1 vàng, 2 xanh nhạt, 3 xanh đậm (khớp lopOBando trong cauhoi.php)
+// Bậc màu ô bản đồ phủ (đồng bộ với cauhoi.php).
 $bacO = static function (int $n) use ($NGUONG_DO, $PHU_DU, $PHU_TOT): int {
     if ($n < $NGUONG_DO) { return 0; }
     if ($n < $PHU_DU)    { return 1; }
     if ($n < $PHU_TOT)   { return 2; }
     return 3;
 };
-$kieuXlsxO = [8, 9, 10, 11];                                   // kiểu ô Excel theo bậc
-$mauPdfO   = ['#fddde2', '#fdecc4', '#d9f3e5', '#a9e5c8'];     // màu nền PDF theo bậc
+$kieuXlsxO = [8, 9, 10, 11];
+$mauPdfO   = ['#fddde2', '#fdecc4', '#d9f3e5', '#a9e5c8'];
 $nhanBac   = [
     'Dưới ' . $NGUONG_DO . ' câu (thiếu nghiêm trọng)',
     $NGUONG_DO . ' – ' . ($PHU_DU - 1) . ' câu (chưa đủ ' . $PHU_DU . ')',
@@ -290,21 +276,21 @@ $nhanBac   = [
     $PHU_TOT . ' câu trở lên (dư)',
 ];
 
-// ---- Chuỗi dùng chung ----
+// Chuỗi mô tả dùng chung.
 $bayGio  = date('d/m/Y H:i');
 $ghiChuXuat = 'Xuất lúc ' . $bayGio . ' · Phạm vi: ' . $moTaPhamVi . ' · ' . $tong . ' câu hỏi';
 $nguongChu  = 'Ngưỡng: Dễ khi tỉ lệ đúng ≥ ' . $NGUONG_DE . '%, Khó khi < ' . $NGUONG_KHO . '%, ở giữa là Trung bình. '
             . 'Chỉ xét câu có từ ' . $MIN_LUOT . ' lượt trả lời trở lên (hết giờ tính là sai).';
 $nhanKhoang = [];
 for ($i = 0; $i < 10; $i++) { $nhanKhoang[] = ($i * 10) . '–' . ($i * 10 + 10) . '%'; }
-$mauKhoang = [];   // theo nhãn mà dữ liệu gợi ý cho từng khoảng
+$mauKhoang = [];
 $goiYKhoang = [];
 for ($i = 0; $i < 10; $i++) {
     if ($i * 10 >= $NGUONG_DE)            { $mauKhoang[] = '#22a06b'; $goiYKhoang[] = 'Dễ'; }
     elseif ($i * 10 + 10 <= $NGUONG_KHO)  { $mauKhoang[] = '#ef4444'; $goiYKhoang[] = 'Khó'; }
     else                                  { $mauKhoang[] = '#e3a93b'; $goiYKhoang[] = 'Trung bình'; }
 }
-// ---- Xem trước: trả JSON gọn cho hộp thoại (không tạo file) ----
+// Trả JSON xem trước.
 if ($buoc === 'xemtruoc') {
     $dauDs = array_slice($cau, 0, 5);
     $dapDung = [];
@@ -357,9 +343,7 @@ $ghiNhatKy = static function (string $dd) use ($moTaNoiDung, $moTaPhamVi, $tong)
         $dd . ' · ' . $tong . ' câu · Nội dung: ' . $moTaNoiDung . ' · Phạm vi: ' . $moTaPhamVi . '.');
 };
 
-// =====================================================================================================
-// EXCEL
-// =====================================================================================================
+// Xuất Excel.
 if ($dinhDang === 'excel') {
     $sheets = [];
 
@@ -407,7 +391,6 @@ if ($dinhDang === 'excel') {
         $dong[] = ['kieu' => 0, 'o' => ['']];
         $dong[] = ['kieu' => 1, 'o' => ['2. Phân bố tỉ lệ đúng (mỗi câu hỏi tính một lần, chỉ câu đủ dữ liệu)']];
         if ($anhPhanBo !== null) {
-            // Biểu đồ chụp từ trình duyệt: giống hệt biểu đồ trên trang
             $rongAnh = min(720, $anhRong);
             $dong[] = ['anh' => [['jpeg' => $anhPhanBo, 'rong' => $rongAnh, 'cao' => (int) round($anhCao * $rongAnh / $anhRong), 'x' => 0]]];
             $dong[] = ['kieu' => 6, 'o' => ['Khoảng tỉ lệ đúng', 'Số câu', 'Độ khó theo dữ liệu']];
@@ -472,9 +455,7 @@ if ($dinhDang === 'excel') {
     XlsxWriter::taiNhieuSheet($tenFile . '.xlsx', $sheets);
 }
 
-// =====================================================================================================
-// PDF (A4 ngang)
-// =====================================================================================================
+// Xuất PDF (A4 ngang).
 $pdf = new PdfWriter(__DIR__ . '/../assets/fonts');
 $pdf->khoTrang(true);
 $daVe = false;
@@ -496,7 +477,7 @@ if ($coHC || $coBD) {
         $pdf->tieuDe('Phân bố tỉ lệ đúng (số câu theo từng khoảng)', 12);
         if ($duDL > 0) {
             if ($anhPhanBo !== null) {
-                $pdf->anhHang([$anhPhanBo], 215);   // biểu đồ chụp từ trình duyệt: giống hệt trên trang
+                $pdf->anhHang([$anhPhanBo], 215);
             } else {
                 $pdf->bieuDoCot($nhanKhoang, $phanBo, $mauKhoang, 120);
                 $pdf->doan('Đỏ: Khó (dưới ' . $NGUONG_KHO . '% đúng)   Vàng: Trung bình   Xanh: Dễ (từ ' . $NGUONG_DE . '% đúng trở lên).', 8.5, false, '#5b6b8c');

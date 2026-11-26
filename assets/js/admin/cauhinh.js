@@ -1,6 +1,4 @@
-// Trang Cấu hình hệ thống: đánh dấu hàng đã đổi, kiểm tra khoảng giá trị ngay khi gõ, hoàn tác, cảnh báo khi rời trang.
-// Máy chủ (admin/cauhinh.php) vẫn là nơi kiểm tra cuối cùng; file này chỉ giúp người dùng thấy lỗi sớm.
-// Đặt tại: assets/js/admin/cauhinh.js
+// Trang Cấu hình hệ thống: kiểm tra đầu vào ngay khi gõ, hoàn tác và cảnh báo khi rời trang.
 (function () {
   'use strict';
   var form = document.getElementById('chForm');
@@ -12,7 +10,7 @@
   var mucMenu = Array.prototype.slice.call(form.querySelectorAll('.ch-menu-muc'));
   var daGui = false;
 
-  // Trả về câu lỗi ngắn, hoặc chuỗi rỗng nếu hợp lệ (cùng quy tắc với PHP).
+  // Cùng quy tắc kiểm tra với máy chủ (admin/cauhinh.php).
   function kiemTra(o) {
     var v = o.value.trim();
     var min = parseInt(o.getAttribute('data-min'), 10);
@@ -120,7 +118,7 @@
   document.addEventListener('click', function () { dongHet(null); });
   document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape') { dongHet(null); } });
 
-  // Menu nhóm: tô nhóm đang xem khi cuộn, và tô ngay khi bấm.
+  // Tô nhóm đang xem theo cuộn hoặc khi bấm.
   function chonMuc(ma) {
     mucMenu.forEach(function (m) { m.classList.toggle('dang-chon', m.getAttribute('data-nhom') === ma); });
   }

@@ -1,11 +1,4 @@
-/**
- * Quizora Admin - Sidebar Toggle & Responsive Persistence Controller
- * Quản lý ẩn/hiện thanh Sidebar menu trên toàn bộ hệ thống Admin:
- * - MÁY TÍNH: ẩn/hiện Sidebar, lưu trạng thái vào localStorage (ghi nhớ xuyên suốt mọi trang)
- * - ĐIỆN THOẠI (<= 768px): Sidebar là menu trượt, mở bằng nút 3 gạch (#adminHamburger),
- *   đóng bằng nền mờ / nút thu gọn / chọn một mục / phím Esc. Không dùng localStorage.
- * - Hỗ trợ phím tắt tiện lợi: Ctrl + B (hoặc Cmd + B)
- */
+// Điều khiển ẩn/hiện Sidebar Admin (localStorage trên desktop, menu trượt trên mobile).
 (function () {
   'use strict';
 
@@ -16,7 +9,7 @@
     return localStorage.getItem(STORAGE_KEY) === '1';
   }
 
-  // Chỉ bật chế độ menu trượt khi trang có nút 3 gạch (các trang khung giao diện mới không bị ảnh hưởng)
+  // Chỉ bật menu trượt khi trang có nút #adminHamburger
   function coNutBaGach() {
     return !!document.getElementById('adminHamburger');
   }
@@ -24,7 +17,7 @@
     return coNutBaGach() && MOBILE_MQ.matches;
   }
 
-  /* ---------- Điện thoại: menu trượt ---------- */
+  // Menu trượt trên điện thoại
   function isMobileOpen() {
     return document.body.classList.contains('sidebar-open');
   }
@@ -37,7 +30,7 @@
     }
   }
 
-  /* ---------- Máy tính: ẩn/hiện Sidebar ---------- */
+  // Ẩn/hiện Sidebar trên máy tính
   function setSidebarState(hidden) {
     if (hidden) {
       document.documentElement.classList.add('sidebar-hidden');
@@ -49,25 +42,22 @@
       localStorage.setItem(STORAGE_KEY, '0');
     }
 
-    // Cập nhật thuộc tính aria-expanded cho khả năng truy cập
     const collapseBtn = document.getElementById('sidebarCollapseBtn');
     const expandBtn = document.getElementById('sidebarExpandBtn');
     if (collapseBtn) collapseBtn.setAttribute('aria-expanded', !hidden);
     if (expandBtn) expandBtn.setAttribute('aria-expanded', !hidden);
 
-    // Bắn sự kiện window resize nhẹ để các biểu đồ Chart / Bảng biểu tự điều chỉnh layout
+    // Kích hoạt resize để biểu đồ và bảng tự điều chỉnh kích thước
     setTimeout(function () {
       window.dispatchEvent(new Event('resize'));
     }, 300);
   }
 
   function initSidebar() {
-    // Áp dụng trạng thái đã lưu (chỉ cho máy tính)
     if (isHidden() && !laDienThoai()) {
       setSidebarState(true);
     }
 
-    // Nút 3 gạch (điện thoại): mở menu
     const burger = document.getElementById('adminHamburger');
     if (burger) {
       burger.addEventListener('click', function (e) {
@@ -76,7 +66,6 @@
       });
     }
 
-    // Nền mờ: đóng menu
     const overlay = document.getElementById('sidebarOverlay');
     if (overlay) {
       overlay.addEventListener('click', function () {
@@ -84,7 +73,6 @@
       });
     }
 
-    // Chọn một mục trong menu -> đóng menu (phòng khi trang không tải lại)
     const sidebar = document.getElementById('adminSidebar');
     if (sidebar) {
       sidebar.addEventListener('click', function (e) {
@@ -94,8 +82,6 @@
       });
     }
 
-    // Bắt sự kiện tất cả các nút Thu gọn trên Sidebar
-    // (trên điện thoại nút này đóng menu trượt)
     document.querySelectorAll('.sidebar-toggle-btn').forEach(function (btn) {
       btn.addEventListener('click', function (e) {
         e.preventDefault();
@@ -107,7 +93,6 @@
       });
     });
 
-    // Bắt sự kiện tất cả các nút Mở nổi khi Sidebar ẩn (máy tính)
     document.querySelectorAll('.sidebar-expand-btn').forEach(function (btn) {
       btn.addEventListener('click', function (e) {
         e.preventDefault();
@@ -119,14 +104,13 @@
       });
     });
 
-    // Phím Esc: đóng menu trượt
     document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape' && isMobileOpen()) {
         setMobileOpen(false);
       }
     });
 
-    // Phím tắt Ctrl + B (hoặc Cmd + B)
+    // Phím tắt Ctrl+B / Cmd+B
     document.addEventListener('keydown', function (e) {
       if ((e.ctrlKey || e.metaKey) && (e.key === 'b' || e.key === 'B')) {
         // Tránh can thiệp khi đang gõ text trong input/textarea
@@ -143,7 +127,7 @@
       }
     });
 
-    // Xoay ngang màn hình / đổi kích thước qua mốc 768px: đóng menu trượt, trả lại trạng thái máy tính
+    // Đóng menu trượt khi đổi kích thước qua mốc 768px
     const onMqChange = function () {
       setMobileOpen(false);
       if (!laDienThoai() && isHidden()) {
@@ -157,7 +141,6 @@
     }
   }
 
-  // Khởi tạo khi DOM sẵn sàng
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initSidebar);
   } else {

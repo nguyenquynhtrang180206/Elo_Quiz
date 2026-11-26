@@ -1,8 +1,5 @@
 <?php
-// API cho phòng thi đấu (trả JSON). Đặt tại: elo_quiz/client/api_thi.php
-//   GET  ?tran=ID                      -> trạng thái trận (trình duyệt gọi định kỳ, C-26)
-//   POST ?tran=ID  macau, dapan, csrf  -> gửi đáp án của câu đang làm
-//   POST ?tran=ID  hanhdong=chiuthua, csrf -> chịu thua (người bấm thua, đối thủ thắng)
+// API phòng thi đấu (GET trạng thái trận, POST gửi đáp án / chịu thua / phá rối)
 require_once __DIR__ . '/../core/bootstrap.php';
 
 header('Content-Type: application/json; charset=utf-8');
@@ -15,7 +12,7 @@ function traJson(array $d, int $ma = 200): never
     exit;
 }
 
-if (Auth::laAdminSinhVien()) {   // admin không đấu trận
+if (Auth::laAdminSinhVien()) {   // Tài khoản quản trị không tham gia thi đấu
     traJson(['loi' => 'Tài khoản quản trị không thi đấu.'], 403);
 }
 

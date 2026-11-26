@@ -1,4 +1,4 @@
-/* Trang Chi tiết trận đấu (admin/trandau_chitiet.php). Dùng chung nền .td và bảng .td-bang của trandau.css */
+/* Trang Chi tiết trận đấu (admin/trandau_chitiet.php) */
 .tc-dau { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap; }
 .tc-dau h2 { display:flex; align-items:center; gap:10px; }
 .td .thanhcong, .td .loi { margin:0 0 14px; padding:10px 14px; border-radius:10px; font-size:13.5px; }
@@ -41,7 +41,7 @@
 .tc-het { background:#fff1d6; color:#b45309; }
 .td-bang td .nhan-phu { display:block; margin-top:3px; font-size:12px; }
 
-/* ===== Điện thoại: trang Chi tiết trận đấu ===== */
+/* Responsive điện thoại */
 @media (max-width:768px) {
   .tc-dau { gap:10px; margin-bottom:12px; }
   .tc-dau h2 { flex-wrap:wrap; gap:6px 10px; font-size:20px; }

@@ -1,13 +1,5 @@
 <?php
-// Header của Site Admin (sidebar bên trái). Cách dùng ở mỗi trang:
-//   require_once __DIR__ . '/../core/bootstrap.php';
-//   Auth::requireAdmin();                  (mọi trang quản trị đều phải gọi - A-04)
-//   $tieuDe = 'Tên trang'; $mucChon = 'nguoidung';   ($mucChon: mã mục sidebar đang mở)
-//   $cssTrang = 'tenfile';   (nạp assets/css/admin/tenfile.css; có thể là mảng)
-//   $jsTrang  = 'tenfile';   (nạp assets/js/admin/tenfile.js ở cuối trang; có thể là mảng)
-//   require __DIR__ . '/layout/header.php';
-//   ... nội dung ...
-//   require __DIR__ . '/layout/footer.php';
+// Khung giao diện quản trị (sidebar trái), yêu cầu Auth::requireAdmin() trước khi nạp.
 $tieuDe   = $tieuDe  ?? 'Quản trị';
 $mucChon  = $mucChon ?? '';
 $cssTrang = (array) ($cssTrang ?? []);
@@ -23,7 +15,7 @@ $menu = [
     'doimatkhau' => ['Đổi mật khẩu',       '/admin/doimatkhau.php'],
 ];
 
-// Biểu tượng (SVG nội tuyến, kiểu Lucide, không cần mạng). Khóa trùng với $menu.
+// Biểu tượng SVG nội tuyến (khóa khớp với $menu).
 $bieuTuong = [
     'dashboard'  => '<path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
     'nguoidung'  => '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
@@ -44,7 +36,7 @@ $svg = static fn (string $k, int $px = 20): string =>
     '<svg class="bt" width="' . $px . '" height="' . $px . '" viewBox="0 0 24 24" fill="none" stroke="currentColor" '
     . 'stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' . ($bieuTuong[$k] ?? '') . '</svg>';
 
-// Tên quản trị viên (cùng nguồn với trang Tổng quan: cột ADMIN.HoTen) và số thông báo chưa đọc của chuông
+// Tên quản trị viên và số thông báo chưa đọc.
 $maAdminKhung = (int) Auth::adminId();
 if (!isset($tenAdmin)) {
     $stAd = Database::pdo()->prepare('SELECT HoTen FROM ADMIN WHERE MaAdmin = ?');
@@ -81,17 +73,17 @@ $chuCaiAdmin = mb_strtoupper(mb_substr(trim($tenAdmin), 0, 1)) ?: 'A';
   <script src="<?= e(BASE_URL) ?>/assets/js/admin/sidebar_toggle.js?v=<?= (int) @filemtime(__DIR__ . '/../../assets/js/admin/sidebar_toggle.js') ?>" defer></script>
 </head>
 <body class="admin-body">
-<!-- Nút nổi mở thanh điều hướng khi Sidebar bị ẩn -->
+<!-- Nút mở sidebar khi đang ẩn -->
 <button type="button" class="sidebar-expand-btn" id="sidebarExpandBtn" title="Mở thanh điều hướng (Ctrl+B)" aria-label="Mở thanh điều hướng">
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/><path d="m13 15 3-3-3-3"/></svg>
   <span>Menu</span>
 </button>
-<!-- Nút 3 gạch: chỉ hiện trên điện thoại, bấm để mở menu -->
+<!-- Nút mở menu trên di động -->
 <button type="button" class="admin-hamburger" id="adminHamburger" aria-label="Mở menu điều hướng" aria-controls="adminSidebar" aria-expanded="false">
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
 </button>
 <div class="admin-khung">
-  <!-- Lớp nền mờ phía sau menu trượt (điện thoại); bấm vào để đóng menu -->
+  <!-- Lớp nền mờ đóng menu trên di động -->
   <div class="sidebar-overlay" id="sidebarOverlay" aria-hidden="true"></div>
   <nav class="sidebar" id="adminSidebar" aria-label="Menu quản trị">
     <div class="logo">

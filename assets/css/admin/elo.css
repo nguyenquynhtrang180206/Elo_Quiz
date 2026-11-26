@@ -1,4 +1,4 @@
-/* Trang Elo và xếp hạng (admin/elo.php) - thẻ nền trắng giống trang Tổng quan, nền ngoài giữ nguyên */
+/* Trang Elo và xếp hạng (admin/elo.php) */
 .admin-noidung .elo-arena {
   --ea-chu:#0f172a; --ea-phu:#64748b; --ea-vien:#e2e8f0; --ea-nhat:#f1f5f9; --ea-nen:#f8fafc;
   --ea-xanh:#2563eb; --ea-vang:#f59e0b; --ea-len:#059669; --ea-xuong:#dc2626;
@@ -233,8 +233,7 @@
   .admin-noidung .elo-arena .ea-kv b { font-size:14px; }
 }
 
-/* ---------- Hộp thoại Xuất (Excel / PDF) ----------
-   Cùng giao diện hộp thoại Xuất của trang Người dùng / Tổng quan (modal-nen, modal xuat-hop, xuat-* trong thongke_xuat.css). */
+/* Hộp thoại xuất báo cáo (bổ sung trên nền thongke_xuat.css) */
 .xuat-hop.ex-xuat-hop { width:min(1040px, 100%); }
 .ex-xuat-hop .xuat-luoi { grid-template-columns:280px minmax(0, 1fr); align-items:stretch; }
 .ex-xuat-hop .xuat-phu { opacity:.65; font-size:13px; }
@@ -260,7 +259,7 @@
 .xuat-the .xuat-canhbao { margin:8px 0 0; padding:6px 10px; border-radius:8px; font-size:12.5px; background:#fff0d6; color:#a86400; }
 .ex-xuat-hop .xuat-ghichu { margin:8px 0 0; }
 
-/* ---------- Hộp thoại Xuất: nền trắng, chữ đen rõ ràng (ghi đè nền tối mặc định của .modal) ---------- */
+/* Nền trắng cho hộp thoại xuất (ghi đè .modal tối) */
 .modal-nen:has(.ex-xuat-hop) { background:rgba(8,20,70,.55); backdrop-filter:none; -webkit-backdrop-filter:none; }
 .xuat-hop.ex-xuat-hop { background:#fff; color:#12235e; border:1px solid #dfe6f6; border-radius:16px; box-shadow:0 24px 60px rgba(10,25,80,.35); }
 .ex-xuat-hop h3 { color:#12235e; text-shadow:none; font-size:20px; margin:0 0 12px; }
@@ -284,13 +283,13 @@
 .ex-xuat-hop .btn:disabled { opacity:.6; cursor:default; }
 @media (max-width:760px) { .ex-xuat-hop .xuat-xem { inset:auto; } }
 
-/* ---------- Sơ đồ trong khung xem trước của hộp thoại Xuất ---------- */
+/* Biểu đồ xem trước khi xuất */
 .ex-xuat-hop .ex-xb-bieudo { display:grid; grid-template-columns:minmax(0, 2fr) minmax(0, 1fr); gap:12px; margin:10px 0; }
 .ex-xuat-hop .ex-xb-bd { position:relative; height:230px; background:#fff; border:1px solid #e2e7f6; border-radius:10px; padding:8px; }
 .ex-xuat-hop .ex-xb-bieudo.ex-xb-mot { grid-template-columns:1fr; }
 @media (max-width:700px) { .ex-xuat-hop .ex-xb-bieudo { grid-template-columns:1fr; } }
 
-/* ---------- Hộp thoại Xuất: responsive (máy tính bảng → điện thoại) ---------- */
+/* Responsive hộp thoại xuất */
 .modal-nen:has(.ex-xuat-hop) { overflow-y:auto; -webkit-overflow-scrolling:touch; }
 .xuat-hop.ex-xuat-hop { box-sizing:border-box; max-height:92vh; max-height:92dvh; overflow-y:auto; overflow-x:hidden; }
 .ex-xuat-hop .xuat-luoi > * { min-width:0; }
@@ -340,7 +339,7 @@
   .ex-xuat-hop .hanh-dong { position:static; box-shadow:none; }
 }
 
-/* ---------- Hộp thoại Xuất: bảng xem trước vừa khung, không phải kéo ngang ---------- */
+/* Bảng xem trước trong hộp thoại xuất */
 .xuat-hop.ex-xuat-hop { width:min(1200px, 100%); }
 .ex-xuat-hop .xuat-the .ex-xb-cuon { overflow-x:auto; }   /* chỉ cuộn ngang khi quá nhiều cột */
 .ex-xuat-hop .xuat-the .ex-xb { table-layout:auto; width:100%; font-size:12px; }
@@ -348,8 +347,7 @@
 .ex-xuat-hop .xuat-the .ex-xb td { padding:6px 6px; overflow-wrap:anywhere; word-break:normal; line-height:1.35; }
 .ex-xuat-hop .xuat-the .ex-xb .ex-xb-nowrap { white-space:normal; }
 .ex-xuat-hop .xuat-the .ex-xb-tt { padding:2px 7px; font-size:11px; }
-/* ---------- Bảng xem trước trong hộp thoại Xuất (cột Mã, Tên...): nền trắng, gọn, đọc được trên điện thoại ----------
-   style_admin.css ép th/td của .admin-noidung bằng !important (chữ HOA, padding 13px 16px...) nên phải ghi đè lại bằng !important. */
+/* Bảng xem trước: ghi đè !important của style_admin.css */
 .ex-xuat-hop .xuat-the .ex-xb-cuon { background:#fff; border:1px solid #dfe6f6; border-radius:10px; overflow-x:auto; -webkit-overflow-scrolling:touch; }
 .ex-xuat-hop .xuat-the table.ex-xb { margin:0 !important; width:100% !important; min-width:max-content; border-collapse:collapse !important; border-spacing:0 !important; background:#fff !important; display:table !important; }
 .ex-xuat-hop .xuat-the .ex-xb th { background:#f3f6fd !important; color:#33415f !important; font-size:12px !important; font-weight:700 !important; text-transform:none !important; letter-spacing:0 !important;

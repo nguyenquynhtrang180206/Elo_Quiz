@@ -1,10 +1,9 @@
-/* Trang Kiểm duyệt cộng đồng (admin/congdong.php) - giao diện chia đôi + 4 biểu đồ.
-   Mọi lớp bắt đầu bằng "cdm-" để không đụng CSS client (cd-) và CSS admin khác. */
+/* Trang Kiểm duyệt cộng đồng (admin/congdong.php); dùng tiền tố cdm- */
 .admin-noidung { overflow: visible !important; }
 
 .cdm { min-width: 0; --x: #1e5cf0; --navy: #12235e; --phu: #6b7694; --vien: #dfe6f6; --do: #e5484d; --luc: #16a34a; }
 
-/* ----- Đầu trang ----- */
+/* Đầu trang */
 .cdm-dau { display: flex; align-items: center; gap: 16px; margin: 0 0 18px; flex-wrap: wrap; }
 .cdm-icon {
   width: 52px; height: 52px; display: flex; align-items: center; justify-content: center; border-radius: 14px;
@@ -15,7 +14,7 @@
 .cdm-tieude p { margin: 6px 0 0; color: #94a3b8; font-size: 15px; font-weight: 500; }
 .cdm-dau-phai { margin-left: auto; display: flex; gap: 10px; flex-wrap: wrap; }
 
-/* ----- Nút dùng chung ----- */
+/* Nút dùng chung */
 .cdm-nut {
   display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 9px 16px; border-radius: 10px;
   border: 1px solid var(--vien); background: #fff; color: var(--navy); font: 600 13px/1.2 inherit; font-family: inherit;
@@ -30,7 +29,7 @@
 .cdm-nut-nho { padding: 4px 11px; font-size: 12px; }
 .cdm-nut[disabled] { opacity: .5; cursor: not-allowed; }
 
-/* ----- 4 biểu đồ ----- */
+/* 4 biểu đồ */
 .cdm-bd { display: grid; grid-template-columns: 1.5fr 1fr 1fr 1.1fr; gap: 14px; margin-bottom: 18px; }
 .cdm-bd-the {
   background: #fff; border: 1px solid var(--vien); border-radius: 14px; padding: 12px 14px 10px;
@@ -41,7 +40,7 @@
 .cdm-cv { position: relative; height: 150px; margin-top: 6px; }
 .cdm-cv-trong { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #8a94b3; font-size: 12.5px; background: rgba(255,255,255,.85); }
 
-/* ----- Tab + tìm kiếm + bộ lọc ----- */
+/* Tab và bộ lọc */
 .cdm-loc { display: flex; align-items: stretch; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
 .cdm-tab { display: flex; flex: 0 0 auto; background: #fff; border: 1px solid var(--vien); border-radius: 12px; padding: 4px; }
 .cdm-tab a { display: flex; align-items: center; justify-content: center; white-space: nowrap; padding: 8px 16px; border-radius: 9px; font-weight: 700; color: var(--phu); text-decoration: none; }
@@ -67,7 +66,7 @@
 /* Vạch ngăn giữa nhóm "trạng thái" và nhóm "loại bài" */
 .cdm-chip-cach { flex: 0 0 auto; width: 1px; height: 22px; margin: 0 4px; background: rgba(255,255,255,.35); }
 
-/* ----- Chia đôi ----- */
+/* Chia đôi danh sách và xem trước */
 .cdm-chia { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: 16px; align-items: start; }
 .cdm-ds, .cdm-pv { background: #fff; border: 1px solid var(--vien); border-radius: 16px; box-shadow: 0 6px 20px rgba(30,60,140,.08); color: var(--navy); }
 .cdm-ds { overflow: hidden; }
@@ -125,7 +124,7 @@
 .cdm-phantrang { padding: 10px 16px; }
 .cdm-phantrang a, .cdm-phantrang strong { padding: 0 3px; }
 
-/* ----- Khung xem trước ----- */
+/* Khung xem trước */
 .cdm-pv-tag { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .cdm-pv-lk { margin-left: auto; color: var(--x); font-weight: 700; font-size: 13px; text-decoration: none; }
 .cdm-pv h3 { font-size: 19px; margin: 10px 0 8px; color: var(--navy); overflow-wrap: anywhere; }
@@ -146,7 +145,7 @@
 .cdm-bl-nd em { margin-left: 6px; }
 .cdm-bl.dang-chon-bl { background: #fff7f7; }
 
-/* ----- Khung xử lý ----- */
+/* Khung xử lý */
 .cdm-xuly { border: 1.5px solid #ffd0d3; background: #fff7f7; border-radius: 14px; padding: 14px; margin-top: 14px; }
 .cdm-xuly.la-hien { border-color: #c7d9ff; background: #f3f7ff; }
 .cdm-xuly-dau span { color: var(--phu); font-size: 13px; }
@@ -159,7 +158,7 @@
 .cdm-ls { font-size: 12.5px; color: var(--phu); line-height: 1.6; margin: 0 0 6px; }
 .cdm-ls span { color: #8a94b3; }
 
-/* ----- Màn hình hẹp ----- */
+/* Responsive */
 @media (max-width: 1250px) { .cdm-bd { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 1050px) {
   .cdm-chia { grid-template-columns: minmax(0, 1fr); }
@@ -205,7 +204,7 @@
 .cdm-dd-rong { margin: 0; padding: 12px; color: var(--phu); font-size: 13px; text-align: center; }
 .cdm-dd-rong[hidden] { display: none; }
 
-/* ----- Bộ lọc: co theo bề rộng THỰC của khung (đã trừ sidebar), không theo bề rộng cửa sổ ----- */
+/* Bộ lọc theo chiều rộng thực của khung */
 .cdm-boloc { container: cdmloc / inline-size; }
 
 /* Hàng 1: tab + ô tìm + nút Tìm. Hàng 2: các ô lọc (Môn, Trạng thái, Loại bài, Sắp xếp) chia đều bề ngang, thiếu chỗ thì tự xuống dòng */
@@ -240,7 +239,7 @@
   .cdm-tab a { padding: 8px 10px; font-size: 14px; }
 }
 
-/* ----- Điện thoại: đầu trang, danh sách, thanh xử lý hàng loạt ----- */
+/* Responsive điện thoại */
 @media (max-width: 700px) {
   .cdm-dau-phai { margin-left: 0; width: 100%; }
   .cdm-dau-phai .cdm-nut { flex: 1 1 100%; }

@@ -13,17 +13,8 @@ $goc  = str_replace('\\', '/', (string) realpath($_SERVER['DOCUMENT_ROOT'] ?? ''
 $duan = str_replace('\\', '/', (string) realpath(__DIR__ . '/..'));
 define('BASE_URL', ($goc !== '' && stripos($duan, $goc) === 0) ? rtrim(substr($duan, strlen($goc)), '/') : '');
 
-// =========================================================================
-// AUTOLOADER CHUẨN PSR-4 NHẸ (Zero-dependency Lazy Loading)
-// Tự động nhận diện và tải class theo cấu trúc module phân tầng:
-// - Database: Kết nối CSDL, Schema Migration, Cấu hình DB
-// - Security: Xác thực, Mã hóa mật khẩu, Giới hạn tần suất, Phạt AFK
-// - Game:     Ghép đội, Thi đấu, Tính Elo, Thách đấu, Đột biến, Tướng LoL
-// - Services: Cộng đồng, Bạn bè, Thông báo, Quản lý câu hỏi, Thống kê, Nhật ký
-// - Support:  Hàm trợ giúp chung, Phân trang, Nhập/Xuất Excel, PDF, Word
-// =========================================================================
+// Autoloader tải class theo module (Database, Security, Game, Services, Support)
 spl_autoload_register(function (string $class): void {
-    // 1. Ánh xạ trực tiếp các Class vào thư mục Module
     static $classMap = [
         // Database
         'Database'         => __DIR__ . '/Database/Database.php',
@@ -81,7 +72,7 @@ spl_autoload_register(function (string $class): void {
         return;
     }
 
-    // 2. Tìm kiếm dự phòng linh hoạt trong các phân vùng module
+    // Dự phòng tìm theo tên class trong các thư mục module
     foreach (['Database', 'Security', 'Game', 'Services', 'Support'] as $mod) {
         $candidate = __DIR__ . '/' . $mod . '/' . $class . '.php';
         if (file_exists($candidate)) {

@@ -1,8 +1,5 @@
 <?php
-// =========================================================================
-// CỔNG KHÔI PHỤC MẬT KHẨU QUẢN TRỊ -> HỢP NHẤT VỀ CỔNG CHUNG (SSO)
-// Đặt tại: elo_quiz/admin/quenmatkhau.php
-// =========================================================================
+// Chuyển hướng cổng khôi phục mật khẩu quản trị về cổng chung.
 require_once __DIR__ . '/../core/bootstrap.php';
 
 if (Auth::adminId() !== null) {

@@ -1,9 +1,9 @@
 <?php
-// Bạn bè: tìm sinh viên, gửi / chấp nhận / từ chối / hủy lời mời, hủy kết bạn (C-41). Đặt tại: elo_quiz/client/banbe.php
+// Quản lý bạn bè và lời mời kết bạn
 require_once __DIR__ . '/../core/bootstrap.php';
 
 $maND = Auth::requireClient(BASE_URL . '/client/dangnhap.php');
-if (Auth::laAdminSinhVien()) {   // tài khoản quản trị không thi đấu, không có lịch sử trận và bạn bè
+if (Auth::laAdminSinhVien()) {   // Tài khoản quản trị không tham gia thi đấu và không có bạn bè
     redirect(BASE_URL . '/client/hoso.php');
 }
 $pdo  = Database::pdo();
@@ -11,7 +11,7 @@ $pdo  = Database::pdo();
 $q    = mb_substr(trim((string) ($_GET['q'] ?? '')), 0, 100);
 $trang = (int) ($_GET['page'] ?? 1);
 
-// ---- Xử lý thao tác (POST), xong thì quay lại đúng trang tìm kiếm ----
+// Xử lý thao tác kết bạn
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_check();
     $hanhDong = (string) ($_POST['hanh_dong'] ?? '');
@@ -45,8 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $thongBao = BanBeHelper::flash();
 
-// Nút bấm nhỏ gửi một thao tác (kèm CSRF, giữ nguyên từ khóa tìm kiếm và trang).
-// $xacNhan khác rỗng thì hiện modal hỏi lại trước khi gửi (dùng cho thao tác khó hoàn tác như hủy kết bạn).
+// Form nút thao tác bạn bè (kèm CSRF; $xacNhan != '' để bật hộp thoại xác nhận)
 function nutBanBe(string $hanhDong, int $nguoi, string $nhan, string $q, int $trang, string $lop = 'btn', string $xacNhan = ''): string
 {
     return '<form method="post" action="" class="form-dong"' . ($xacNhan !== '' ? ' data-xacnhan="' . e($xacNhan) . '"' : '') . '>'
@@ -58,7 +57,7 @@ function nutBanBe(string $hanhDong, int $nguoi, string $nhan, string $q, int $tr
         . '<button type="submit" class="' . e($lop) . '">' . e($nhan) . '</button></form> ';
 }
 
-// ---- Tìm sinh viên theo họ tên (không tìm theo email để khỏi lộ email nào đã đăng ký) ----
+// Tìm sinh viên theo họ tên (không tìm theo email để tránh lộ tài khoản đã đăng ký)
 $ketQua = [];
 $p = null;
 if ($q !== '') {
@@ -69,7 +68,7 @@ if ($q !== '') {
     $st->execute([$maND, $mau]);
     $p = new Paginator((int) $st->fetchColumn(), 10);
 
-    // Quan hệ giữa mình và từng người tìm được: một dòng BANBE duy nhất cho mỗi cặp
+    // Mỗi cặp chỉ có tối đa 1 dòng BANBE theo CapNho/CapLon
     $st = $pdo->prepare(
         "SELECT u.MaND, u.HoTen, u.AnhDaiDien, b.MaNguoiGui, b.TrangThai AS TrangThaiBan
            FROM NGUOIDUNG u
@@ -84,7 +83,7 @@ if ($q !== '') {
 }
 $trangDangXem = $p ? $p->trang() : 1;
 
-// ---- Lời mời đã nhận, đã gửi, danh sách bạn bè (chỉ hiện tài khoản còn hoạt động) ----
+// Danh sách lời mời đã nhận, đã gửi và bạn bè đang hoạt động
 $st = $pdo->prepare(
     "SELECT u.MaND, u.HoTen, u.AnhDaiDien, b.NgayGui
        FROM BANBE b JOIN NGUOIDUNG u ON u.MaND = b.MaNguoiGui
@@ -114,7 +113,7 @@ $st->execute([$maND, $maND, $maND]);
 $banBe = $st->fetchAll();
 
 
-// Ảnh đại diện (chưa có ảnh thì hiện chữ cái đầu tên)
+// Avatar mặc định theo chữ cái đầu nếu chưa có ảnh
 function bbAva(array $r): string
 {
     if (!empty($r['AnhDaiDien'])) {
@@ -124,7 +123,6 @@ function bbAva(array $r): string
         . e(mb_strtoupper(mb_substr((string) $r['HoTen'], 0, 1))) . '</span>';
 }
 
-// Khối "ảnh + tên + dòng phụ" dùng chung cho mọi danh sách
 function bbNguoi(array $r, string $phu = ''): string
 {
     if ($phu === '' && isset($r['EloCao'])) {
@@ -150,7 +148,7 @@ require __DIR__ . '/layout/header.php';
 ?>
 <div class="container bb-trang">
 
-  <!-- ===== Banner đầu trang + số liệu nhanh ===== -->
+  <!-- Tiêu đề và thống kê nhanh -->
   <header class="bb-hero">
     <div class="bb-hero-chu">
       <span class="bb-tag"><i aria-hidden="true"></i> KẾT NỐI ĐỒNG ĐỘI</span>
@@ -170,7 +168,7 @@ require __DIR__ . '/layout/header.php';
 
   <div class="bb-luoi<?= $soNhan ? ' co-loi-moi' : '' ?>">
 
-    <!-- ===== Cột chính: tìm kiếm + danh sách bạn bè ===== -->
+    <!-- Tìm kiếm và danh sách bạn bè -->
     <div class="bb-chinh">
 
       <section class="bb-hop" id="timban">
@@ -203,7 +201,7 @@ require __DIR__ . '/layout/header.php';
                     <span class="bb-nhan bb-nhan-tim">Đã gửi lời mời cho bạn</span>
                     <?= nutBanBe('chapnhan', $id, 'Chấp nhận', $q, $trangDangXem, 'bb-nut bb-nut-chinh') ?>
                     <?= nutBanBe('tuchoi', $id, 'Từ chối', $q, $trangDangXem, 'bb-nut bb-nut-phu') ?>
-                  <?php else: /* chưa có dòng, hoặc đã "Từ chối" thì được gửi lại */ ?>
+                  <?php else: /* Chưa có quan hệ hoặc đã từ chối thì cho phép gửi lại */ ?>
                     <?= nutBanBe('gui', $id, '+ Kết bạn', $q, $trangDangXem, 'bb-nut bb-nut-chinh') ?>
                   <?php endif; ?>
                 </div>
@@ -245,7 +243,7 @@ require __DIR__ . '/layout/header.php';
       </section>
     </div>
 
-    <!-- ===== Cột phụ: lời mời ===== -->
+    <!-- Danh sách lời mời -->
     <aside class="bb-phu">
       <section class="bb-hop<?= $soNhan ? ' bb-hop-moi' : '' ?>" id="loimoi">
         <h3 class="bb-tieude">Lời mời đã nhận <span class="bb-dem"><?= $soNhan ?></span></h3>

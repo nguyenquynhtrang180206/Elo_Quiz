@@ -1,11 +1,10 @@
 <?php
-// API xem nhanh một câu hỏi (AJAX, ngăn "Xem nhanh" ở admin/cauhoi.php). Chỉ đọc, không ghi gì.
-// Đặt tại: elo_quiz/admin/cauhoi_api.php     Gọi: cauhoi_api.php?id=<MaCauHoi>
+// API xem nhanh chi tiết câu hỏi (chỉ đọc).
 require_once __DIR__ . '/../core/bootstrap.php';
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
 
-// A-04: chỉ quản trị viên đã đăng nhập
+// Yêu cầu phiên đăng nhập quản trị.
 if (Auth::adminId() === null) {
     http_response_code(401);
     echo json_encode(['ok' => false, 'msg' => 'Chưa đăng nhập'], JSON_UNESCAPED_UNICODE);
@@ -37,7 +36,7 @@ if (!$c) {
     exit;
 }
 
-// Đáp án theo thứ tự lưu (A, B, C, D); thứ tự xáo trộn trong trận không ảnh hưởng màn này
+// Đáp án theo thứ tự lưu.
 $st = $pdo->prepare('SELECT NoiDungDapAn, LaDapAnDung FROM DAPAN WHERE MaCauHoi = ? ORDER BY MaDapAn');
 $st->execute([$id]);
 $dapAn = [];
@@ -58,6 +57,6 @@ echo json_encode([
     'mamon'     => (int) $c['MaMon'],
     'tenmon'    => (string) $c['TenMon'],
     'loaikt'    => $c['TenLoaiKT'] === null ? 'Cả hai kỳ' : (string) $c['TenLoaiKT'],
-    'so_tran'   => (int) $c['so_tran'],   // > 0: câu đã dùng trong trận, chỉ xem và ẩn/hiện (A-21)
+    'so_tran'   => (int) $c['so_tran'],   // > 0: câu đã dùng trong trận
     'dapan'     => $dapAn,
 ], JSON_UNESCAPED_UNICODE);

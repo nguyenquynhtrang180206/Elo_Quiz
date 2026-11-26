@@ -1,7 +1,4 @@
-/* ==========================================================================
-   QUIZUP ARENA - PHONG.CSS
-   League of Legends 1 vs 1 Esports Combat Arena Styling
-   ========================================================================== */
+/* Phòng đấu 1v1 (client/phong.php) */
 
 .phong-container {
   max-width: 1200px;
@@ -12,7 +9,7 @@
   position: relative;
 }
 
-/* --- Arena Match Header Bar --- */
+/* Thanh tiêu đề trận đấu */
 .arena-match-header {
   display: flex;
   align-items: center;
@@ -82,9 +79,7 @@
   transform: translateY(-1px);
 }
 
-/* ==========================================================================
-   VERSUS LOBBY CARD (WAITING FOR OPPONENT)
-   ========================================================================== */
+/* Phòng chờ đối thủ */
 .vs-lobby-card {
   position: relative;
   background: linear-gradient(135deg, rgba(8, 20, 54, 0.92) 0%, rgba(4, 10, 28, 0.98) 100%);
@@ -210,7 +205,7 @@
   border-radius: 9999px;
 }
 
-/* VS Center Emblem */
+/* Biểu tượng VS ở giữa */
 .vs-center-emblem {
   position: relative;
   display: flex;
@@ -256,9 +251,7 @@
   50% { opacity: 1; transform: scale(1.2); }
 }
 
-/* ==========================================================================
-   1 VS 1 COMBAT STAGE (TOP BATTLE VIEW)
-   ========================================================================== */
+/* Sân đấu 1v1 */
 .arena-combat-stage {
   position: relative;
   background: linear-gradient(135deg, rgba(8, 20, 54, 0.95) 0%, rgba(4, 10, 28, 0.98) 100%);
@@ -282,7 +275,7 @@
   }
 }
 
-/* Baron Steal Mode */
+/* Chế độ Baron */
 .arena-combat-stage.baron-mode {
   border-color: #EF4444;
   box-shadow: 0 16px 50px rgba(0, 0, 0, 0.8), 0 0 40px rgba(239, 68, 68, 0.35);
@@ -295,7 +288,7 @@
   50% { border-color: #A855F7; box-shadow: 0 0 50px rgba(168, 85, 247, 0.4); }
 }
 
-/* Combat FX Layer */
+/* Lớp hiệu ứng chiến đấu */
 .combat-fx-layer {
   position: absolute;
   inset: 0;
@@ -303,7 +296,7 @@
   z-index: 20;
 }
 
-/* Fighter Podiums */
+/* Bục đấu thủ */
 .combat-fighter {
   position: relative;
   z-index: 10;
@@ -387,7 +380,7 @@
   40%, 60% { transform: translate3d(4px, 0, 0); }
 }
 
-/* Fighter Info & Bars */
+/* Thông tin đấu thủ */
 .fighter-info-col {
   flex: 1;
   display: flex;
@@ -437,7 +430,7 @@
   font-weight: 700;
 }
 
-/* Health Bar & Mana Bar */
+/* Thanh máu và mana */
 .bar-container {
   display: flex;
   flex-direction: column;
@@ -506,7 +499,7 @@
   box-shadow: 0 0 8px rgba(244, 114, 182, 0.6);
 }
 
-/* Center Combat Lane & Timer */
+/* Làn giữa và đồng hồ */
 .combat-center-lane {
   display: flex;
   flex-direction: column;
@@ -599,9 +592,7 @@
   box-shadow: 0 0 10px rgba(212, 175, 55, 0.4);
 }
 
-/* ==========================================================================
-   COMBAT PROJECTILES & DAMAGE NUMBERS
-   ========================================================================== */
+/* Hiệu ứng đòn đánh và sát thương */
 .combat-projectile {
   position: absolute;
   top: 50%;
@@ -661,9 +652,7 @@
   100% { transform: translateY(-55px) scale(0.9); opacity: 0; }
 }
 
-/* ==========================================================================
-   LOL ANNOUNCER FLOATING BANNER
-   ========================================================================== */
+/* Banner thông báo trận */
 .lol-announcer-banner {
   position: absolute;
   top: 18px;
@@ -722,7 +711,7 @@
   text-transform: uppercase;
 }
 
-/* Baron Steal Alert Banner */
+/* Banner cảnh báo Baron */
 .baron-alert-banner {
   position: absolute;
   top: 10px;
@@ -744,9 +733,7 @@
   animation: liveRedPulse 1.2s infinite;
 }
 
-/* ==========================================================================
-   QUESTION & SKILLS CONSOLE (Q - W - E - R)
-   ========================================================================== */
+/* Khu vực câu hỏi và đáp án */
 .arena-question-console {
   position: relative;
   background: linear-gradient(135deg, rgba(8, 20, 54, 0.9) 0%, rgba(4, 10, 28, 0.95) 100%);
@@ -783,7 +770,7 @@
   line-height: 1.5;
 }
 
-/* 4 Answer Skills Grid */
+/* Lưới 4 đáp án */
 .quiz-answers-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -830,7 +817,7 @@
   box-shadow: 0 0 20px rgba(212, 175, 55, 0.4);
 }
 
-/* --- Choice Result States (Highlighting correct vs wrong answers) --- */
+/* Trạng thái đúng/sai của lựa chọn */
 .quiz-skill-btn.choice-correct {
   border-color: #10B981 !important;
   background: linear-gradient(135deg, rgba(16, 185, 129, 0.28) 0%, rgba(6, 78, 59, 0.45) 100%) !important;
@@ -869,7 +856,7 @@
   40%, 80% { transform: translateX(6px); }
 }
 
-/* Badge attached inside the choice button */
+/* Nhãn kết quả trong nút đáp án */
 .choice-result-badge {
   margin-left: auto;
   font-size: 0.76rem;
@@ -898,7 +885,7 @@
   box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
 }
 
-/* --- Answer Reveal Banner (Between Question and Choices) --- */
+/* Banner công bố đáp án */
 .answer-reveal-banner {
   padding: 14px 20px;
   border-radius: 12px;
@@ -1010,7 +997,7 @@
   line-height: 1.4;
 }
 
-/* Feedback Boxes */
+/* Khung phản hồi */
 .quiz-feedback-box {
   padding: 24px;
   border-radius: 14px;
@@ -1054,7 +1041,7 @@
   color: #CBD5E1;
 }
 
-/* Waiting / Loading Prompt */
+/* Trạng thái chờ */
 .waiting-prompt {
   display: flex;
   flex-direction: column;
@@ -1077,7 +1064,7 @@
   to { transform: rotate(360deg); }
 }
 
-/* Intro Countdown Box */
+/* Đếm ngược mở màn */
 .arena-intro-countdown {
   display: flex;
   flex-direction: column;
@@ -1108,7 +1095,7 @@
   color: #CBD5E1;
 }
 
-/* Hotkey Hint Bar */
+/* Thanh gợi ý phím tắt */
 .hotkey-hint-bar {
   text-align: center;
   padding: 10px;
@@ -1123,9 +1110,7 @@
   color: #FDE047;
 }
 
-/* ==========================================================================
-   POST MATCH CEREMONY (VICTORY / DEFEAT / DRAW)
-   ========================================================================== */
+/* Màn hình tổng kết sau trận */
 .post-match-ceremony {
   position: relative;
   background: linear-gradient(135deg, rgba(8, 20, 54, 0.95) 0%, rgba(4, 10, 28, 0.98) 100%);
@@ -1205,7 +1190,7 @@
   margin: 0;
 }
 
-/* Podium Grid */
+/* Lưới bục xếp hạng */
 .ceremony-podium-grid {
   display: flex;
   align-items: center;
@@ -1307,7 +1292,7 @@
   color: #D4AF37;
 }
 
-/* Ceremony Actions */
+/* Nút hành động sau trận */
 .ceremony-actions {
   display: flex;
   align-items: center;
@@ -1351,7 +1336,7 @@
   transform: translateY(-2px);
 }
 
-/* Cancelled Card */
+/* Thẻ trận bị hủy */
 .match-cancelled-card {
   position: relative;
   background: linear-gradient(135deg, rgba(8, 20, 54, 0.92) 0%, rgba(4, 10, 28, 0.98) 100%);
@@ -1384,9 +1369,7 @@
   justify-content: center;
 }
 
-/* ==========================================================================
-   PLANTS VS ZOMBIES IN-GAME BUFF STYLES
-   ========================================================================== */
+/* Buff PvZ trong trận */
 .pvz-ice-bonus-badge {
   display: inline-flex;
   align-items: center;
@@ -1424,9 +1407,7 @@
   margin-left: 6px;
 }
 
-/* ==========================================================================
-   VÒNG QUAY ĐỘT BIẾN LUẬT CHƠI (MUTATOR MATCH BANNER & LOBBY CUES)
-   ========================================================================== */
+/* Vòng quay đột biến luật chơi */
 .lobby-mutator-badge {
   display: inline-flex;
   align-items: center;
@@ -1578,9 +1559,7 @@
   94%, 98% { transform: translateX(3px); }
 }
 
-/* ==========================================================================
-   CHIÊU TRÒ PHÁ RỐI & TÍCH NỘ HUD (SABOTAGE CONTROLS)
-   ========================================================================== */
+/* Chiêu phá rối và thanh nộ */
 .sabotage-deck-container {
   background: linear-gradient(135deg, rgba(8, 20, 54, 0.9) 0%, rgba(4, 10, 28, 0.96) 100%);
   border: 1px solid rgba(212, 175, 55, 0.3);
@@ -1737,9 +1716,7 @@
   white-space: nowrap;
 }
 
-/* ==========================================================================
-   DEBUFF SCREEN OVERLAYS (KHI BỊ ĐỐI THỦ PHÁ RỐI)
-   ========================================================================== */
+/* Lớp phủ hiệu ứng phá rối */
 .debuff-overlay-layer {
   position: absolute;
   top: 0;
@@ -1751,7 +1728,7 @@
   border-radius: 20px;
 }
 
-/* Sương Mù (Fog of War) */
+/* Sương mù */
 .fog-overlay {
   pointer-events: auto !important;
   cursor: grab;
@@ -1801,7 +1778,7 @@
   color: #94A3B8;
 }
 
-/* Đóng Băng (Ice Freeze) */
+/* Đóng băng */
 .freeze-overlay {
   box-shadow: inset 0 0 80px rgba(56, 189, 248, 0.8), inset 0 0 160px rgba(14, 165, 233, 0.5);
   border: 3px solid #38BDF8;
@@ -1854,7 +1831,7 @@
   transform: scale(0.98);
 }
 
-/* Lốc Xoáy (Tornado Key Inversion) */
+/* Lốc xoáy */
 .tornado-overlay {
   display: flex;
   align-items: center;
@@ -1909,9 +1886,7 @@
   100% { transform: rotate(0deg) scale(1); filter: blur(0); }
 }
 
-/* ==========================================================================
-   HỆ THỐNG THÔNG THẠO & TIẾN HÓA ĐẤU THẦN (CHAMPION MASTERY & EVOLUTION)
-   ========================================================================== */
+/* Hệ thống thông thạo tướng */
 .fighter-mastery-tag {
   display: inline-flex;
   align-items: center;
@@ -1962,7 +1937,7 @@
   100% { box-shadow: 0 0 30px rgba(236, 72, 153, 0.7); }
 }
 
-/* Post-Match Champion Mastery & Evolution Card */
+/* Thẻ thông thạo sau trận */
 .post-match-mastery-card {
   background: linear-gradient(135deg, rgba(8, 20, 54, 0.85) 0%, rgba(4, 10, 28, 0.95) 100%);
   border: 1px solid rgba(212, 175, 55, 0.35);

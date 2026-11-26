@@ -1,8 +1,7 @@
 <?php
-// Chi tiết một trận đấu + hủy trận (UC14: A-24, A-26).
-// Đặt tại: elo_quiz/admin/trandau_chitiet.php?id=<MaTran>. Danh sách: admin/trandau.php
+// Chi tiết trận đấu và thao tác hủy trận.
 require_once __DIR__ . '/../core/bootstrap.php';
-Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');   // A-04
+Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');
 
 $pdo = Database::pdo();
 $id  = (int) ($_GET['id'] ?? 0);
@@ -35,7 +34,7 @@ if (!$tran) {
     exit;
 }
 
-// ---- A-26: hủy trận chưa kết thúc. Hủy và ghi nhật ký nằm chung một giao dịch; bắt buộc có lý do ----
+// Hủy trận chưa kết thúc kèm lý do và ghi nhật ký trong cùng giao dịch.
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_check();
     if ((string) ($_POST['hanh_dong'] ?? '') === 'huy') {
@@ -65,7 +64,7 @@ $canhBao  = [
     'khonghuy' => 'Trận đã kết thúc hoặc đã bị hủy trước đó nên không thể hủy nữa.',
 ][$kq] ?? '';
 
-// ---- Người chơi ----
+// Danh sách người chơi.
 $st = $pdo->prepare(
     'SELECT p.MaND, n.HoTen, n.Email, p.DiemSo, p.KetQua, p.EloTruoc, p.EloSau, p.TrangThaiThamGia
        FROM NGUOICHOITRANDAU p JOIN NGUOIDUNG n ON n.MaND = p.MaND
@@ -74,7 +73,7 @@ $st = $pdo->prepare(
 $st->execute([$id]);
 $nguoi = $st->fetchAll();
 
-// ---- Câu hỏi và bài làm từng người ----
+// Câu hỏi và bài làm từng người.
 $st = $pdo->prepare(
     'SELECT c.ThuTu, c.MaCauHoi, q.NoiDung, c.DiemCoBan, c.ThoiGianQuyDinh
        FROM CAUHOITRANDAU c JOIN CAUHOI q ON q.MaCauHoi = c.MaCauHoi

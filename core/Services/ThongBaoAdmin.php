@@ -1,8 +1,6 @@
 <?php
-// Thông báo cho quản trị viên (chuông ở trang Tổng quan). Đặt tại: core/ThongBaoAdmin.php
-// Nguồn thông báo: CHỈ môn học do sinh viên đề xuất và đang chờ duyệt (MONHOC.TrangThai = 'Chờ duyệt').
-// Bài đăng và bình luận của cộng đồng không còn tạo thông báo. Duyệt hoặc từ chối đề xuất thì thông báo tự biến mất.
-// Trạng thái đã đọc lưu riêng cho từng admin ở bảng THONGBAO_ADMIN_DADOC (không có dòng = chưa đọc).
+// Thông báo cho quản trị viên về các môn học đang chờ duyệt (MONHOC.TrangThai = 'Chờ duyệt').
+// Trạng thái đã đọc lưu riêng cho từng admin ở THONGBAO_ADMIN_DADOC.
 class ThongBaoAdmin
 {
     public const LOAI_MON = 3;   // đề xuất môn học mới (giữ số 3 để không trùng dữ liệu "đã đọc" cũ của bài đăng/bình luận)

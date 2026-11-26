@@ -1,5 +1,5 @@
 <?php
-// Hàm dùng chung cho cộng đồng học tập (C-42 đến C-44). Đặt tại: elo_quiz/core/CongDongHelper.php
+// Hàm dùng chung cho cộng đồng học tập (bài đăng, ảnh đính kèm, bình luận, huy hiệu Elo, kiểm duyệt).
 class CongDongHelper
 {
     public const TIEU_DE_TOI_DA   = 200;
@@ -295,8 +295,7 @@ class CongDongHelper
         return $m;
     }
 
-    // ================= BÌNH LUẬN: thích, sửa (15 phút), ẩn, mở lại, xóa =================
-    // Cần chạy migration_binhluan.sql (cột BINHLUAN.NguoiAn, trạng thái "Đã xóa", bảng LUOTTHICH_BL)
+    // Thao tác bình luận: thích, sửa (15 phút), ẩn, mở lại, xóa.
 
     // Cột BINHLUAN.NguoiAn đã được DbSchema::damBao bảo đảm tồn tại
     public static function coCotNguoiAnBL(): bool
@@ -406,7 +405,7 @@ class CongDongHelper
         return $st->rowCount() === 1;
     }
 
-    // ================= HUY HIỆU ELO CẠNH TÊN (không thêm bảng, đọc từ ELOMONHOC) =================
+    // Huy hiệu Elo cạnh tên (đọc từ ELOMONHOC)
     // Chỉ hiện huy hiệu khi người đó đã đấu từ ngần này trận trở lên ở môn tương ứng (tránh nhãn ảo cho người mới)
     public const HUY_HIEU_TOI_THIEU_TRAN = 5;
     // [Elo tối thiểu, tên hạng, lớp CSS], xếp từ cao xuống thấp; điểm khởi đầu là 1000
@@ -532,11 +531,8 @@ class CongDongHelper
              . self::iconHang($hang[2]) . ' ' . e($hang[1]) . ' · ' . number_format($d['elo']) . '</span>';
     }
 
-    // ================= KIỂM DUYỆT CỦA QUẢN TRỊ (dùng chung: trang admin và trang Cộng đồng) =================
-    // Chỉ ẩn/hiện, không xóa cứng. Bắt buộc lý do, ghi nhật ký, gửi thông báo kèm lý do cho chủ bài / chủ bình luận.
-    // Bài sinh viên đã tự xóa ("Đã xóa") không khớp điều kiện trạng thái cũ nên không hiện lại được (A-33).
-    // Trả về: 'ok' | 'khong' (trạng thái đã đổi) | 'thieuly' | 'sai' (hành động không hợp lệ).
-    // Nơi gọi phải tự kiểm tra quyền admin trước (Auth::requireAdmin hoặc Auth::laQuanTriKiemDuyet).
+    // Kiểm duyệt quản trị (dùng chung cho admin và Cộng đồng): ẩn/hiện có lý do, ghi nhật ký và gửi thông báo.
+    // Bài sinh viên đã tự xóa ("Đã xóa") không mở lại được. Trả về 'ok'|'khong'|'thieuly'|'sai'.
     private const KIEM_DUYET = [
         // hành động => [bảng, cột khóa, trạng thái mới, trạng thái cũ bắt buộc, tên nhật ký, tiền tố đối tượng]
         'an_bai'   => ['BAIDANG', 'MaBaiDang', 'Bị ẩn',    'Hiển thị', 'Ẩn bài đăng',    'BAIDANG'],

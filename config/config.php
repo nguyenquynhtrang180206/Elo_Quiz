@@ -24,7 +24,7 @@ $baseConfig = [
     'db' => [
         'host'    => getenv('DB_HOST') ?: $dbHost,
         'port'    => (int) (getenv('DB_PORT') ?: detectMysqlPort($dbHost, [3307, 3306])),
-        'name'    => getenv('DB_NAME') ?: 'elo_quiz',   // tên database (import file csdl_elo_quiz.sql để tạo)
+        'name'    => getenv('DB_NAME') ?: 'elo_quiz',
         'user'    => getenv('DB_USER') ?: 'root',
         'pass'    => getenv('DB_PASS') !== false ? (string) getenv('DB_PASS') : '',
         'charset' => 'utf8mb4',
@@ -34,7 +34,7 @@ $baseConfig = [
     'upload_dir' => __DIR__ . '/../uploads',
     'app_secret' => getenv('APP_SECRET') ?: 'quizup-arena-hmac-secret-key-2026-v2',
 
-    // Cấu hình gửi Email thực tế qua SMTP (VD: Gmail SMTP / Amazon SES / SendGrid / Brevo)
+    // Cấu hình gửi Email qua SMTP
     'smtp' => [
         'enabled'    => getenv('SMTP_ENABLED') !== false ? filter_var(getenv('SMTP_ENABLED'), FILTER_VALIDATE_BOOLEAN) : true,
         'host'       => getenv('SMTP_HOST') ?: 'smtp.gmail.com',
@@ -47,7 +47,7 @@ $baseConfig = [
     ],
 ];
 
-// Cho phép ghi đè cấu hình thực tế (Production / Cloud) từ config.local.php (đã nằm trong .gitignore)
+// Ghi đè cấu hình từ config.local.php nếu có
 if (is_file(__DIR__ . '/config.local.php')) {
     $localConfig = require __DIR__ . '/config.local.php';
     if (is_array($localConfig)) {

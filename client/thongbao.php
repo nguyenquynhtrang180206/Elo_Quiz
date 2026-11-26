@@ -1,5 +1,5 @@
 <?php
-// Trang Trung tâm Thông báo (client/thongbao.php)
+// Trang trung tâm thông báo
 require_once __DIR__ . '/../core/bootstrap.php';
 
 $maND = Auth::clientId();
@@ -34,7 +34,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Đếm tổng số để phân trang
 $dkWhere = "WHERE MaND = " . (int) $maND;
 if ($tab === 'chuadoc') {
     $dkWhere .= " AND DaDoc = 0";
@@ -51,7 +50,7 @@ require __DIR__ . '/layout/header.php';
 ?>
 
 <div class="tb-page-container">
-  <!-- Header trang thông báo -->
+  <!-- Tiêu đề trung tâm thông báo -->
   <div class="tb-header-card">
     <div class="tb-header-left">
       <div class="tb-icon-badge" aria-hidden="true">
@@ -66,7 +65,7 @@ require __DIR__ . '/layout/header.php';
       </div>
     </div>
 
-    <!-- Nhóm nút hành động nhanh -->
+    <!-- Thao tác nhanh -->
     <div class="tb-header-actions">
       <?php if ($soChuaDoc > 0): ?>
         <form method="post" action="?tab=<?= e($tab) ?>" class="form-inline">
@@ -94,7 +93,7 @@ require __DIR__ . '/layout/header.php';
     <div class="thanhcong" style="margin-bottom: 18px;"><?= e($thongBaoMsg) ?></div>
   <?php endif; ?>
 
-  <!-- Bộ lọc Tabs: Tất cả & Chưa đọc -->
+  <!-- Tab lọc thông báo -->
   <div class="tb-nav-tabs">
     <a href="?tab=tatca" class="tb-tab-btn <?= $tab === 'tatca' ? 'active' : '' ?>">
       <span>Tất cả thông báo</span>
@@ -132,7 +131,6 @@ require __DIR__ . '/layout/header.php';
           $letter = mb_strtoupper(mb_substr($item['TenNguoiGui'] ?? 'U', 0, 1));
         ?>
           <div class="tb-item-card <?= $chuaDoc ? 'is-unread' : 'is-read' ?>">
-            <!-- Cột Avatar -->
             <div class="tb-item-avatar-col">
               <?php if (!empty($item['AnhNguoiGui'])): ?>
                 <img src="<?= e(BASE_URL . '/' . ltrim($item['AnhNguoiGui'], '/')) ?>" alt="<?= e($item['TenNguoiGui']) ?>" class="tb-avatar-img">
@@ -144,7 +142,6 @@ require __DIR__ . '/layout/header.php';
               <span class="tb-type-mini-icon"><?= $iconLoai ?></span>
             </div>
 
-            <!-- Cột Nội dung -->
             <div class="tb-item-content-col">
               <div class="tb-item-head">
                 <a href="<?= e($item['LienKet']) ?>" class="tb-item-link" onclick="fetch('thongbao_api.php?action=doc_mot', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: 'ma_tb=<?= (int) $item['MaTB'] ?>' });">
@@ -159,7 +156,6 @@ require __DIR__ . '/layout/header.php';
               <?php endif; ?>
             </div>
 
-            <!-- Cột thao tác xóa -->
             <div class="tb-item-actions-col">
               <?php if ($chuaDoc): ?>
                 <span class="tb-unread-dot" title="Chưa đọc"></span>

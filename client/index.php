@@ -1,7 +1,5 @@
 <?php
-// Trang chủ QUIZUP ARENA (C-11, C-12). Đặt tại: elo_quiz/client/index.php
-// Đăng nhập rồi: lời chào, nút Tìm trận, tóm tắt thành tích, trận gần đây, BXH nổi bật, Tin tức & Sự kiện.
-// Khách chưa đăng nhập vẫn xem được BXH nổi bật và Tin tức & Sự kiện (C-12).
+// Trang chủ QUIZUP ARENA
 require_once __DIR__ . '/../core/bootstrap.php';
 
 $pdo = Database::pdo();
@@ -38,7 +36,7 @@ if ($maND !== null) {
     $st->execute([$maND]);
     $eloCaoNhat = $st->fetch() ?: null;
 
-    // Vài trận gần nhất đã xong hoặc đã hủy
+    // Các trận gần nhất đã kết thúc hoặc hủy
     $st = $pdo->prepare(
         "SELECT t.MaTran, t.TrangThai, t.LyDoKetThuc, t.ThoiGianKetThuc, m.TenMon,
                 n.DiemSo, n.KetQua, n.EloTruoc, n.EloSau, u.HoTen AS DoiThu, o.DiemSo AS DiemDoiThu
@@ -53,13 +51,13 @@ if ($maND !== null) {
     $st->execute([$maND]);
     $tranGanDay = $st->fetchAll();
 
-    // Môn người này đấu nhiều nhất, dùng cho BXH rút gọn
+    // Môn đấu nhiều nhất để hiển thị BXH rút gọn
     $st = $pdo->prepare('SELECT MaMon FROM ELOMONHOC WHERE MaND = ? AND SoTran > 0 ORDER BY SoTran DESC, MaMon LIMIT 1');
     $st->execute([$maND]);
     $monUaThich = (int) $st->fetchColumn();
 }
 
-// BXH rút gọn: môn người này đấu nhiều nhất; khách (hoặc chưa đấu) thì lấy môn có nhiều lượt đấu nhất
+// Khách hoặc người chưa đấu trận nào thì lấy môn có nhiều lượt đấu nhất
 if ($monUaThich === 0) {
     $monUaThich = (int) $pdo->query(
         "SELECT e.MaMon FROM ELOMONHOC e JOIN MONHOC m ON m.MaMon = e.MaMon
@@ -86,10 +84,10 @@ if ($monUaThich > 0) {
     }
 }
 
-// Top 3 cho bục vinh quang: chỉ lấy người thật trong BXH, chưa đủ 3 người thì để trống
+// Top 3 bục vinh quang lấy từ BXH
 $podium = array_slice($bxh, 0, 3);
 
-// Chuỗi thắng hiện tại của từng người trong Top 3 (đếm các trận thắng liên tiếp gần nhất đã kết thúc)
+// Chuỗi thắng liên tiếp gần nhất của từng người trong Top 3
 $stChuoi = $pdo->prepare(
     "SELECT n.KetQua FROM NGUOICHOITRANDAU n JOIN TRANDAU t ON t.MaTran = n.MaTran
       WHERE n.MaND = ? AND t.TrangThai = 'Kết thúc' AND n.KetQua IS NOT NULL
@@ -107,7 +105,7 @@ foreach ($podium as $i => $r) {
     $podium[$i]['ChuoiThang'] = $chuoi;
 }
 
-// Dải tin nóng: 3 trận gần nhất đã kết thúc có người thắng
+// 3 trận gần nhất đã kết thúc có người thắng
 $tinNong = $pdo->query(
     "SELECT m.TenMon, uw.HoTen AS Thang, ul.HoTen AS Thua, w.DiemSo AS DiemThang, l.DiemSo AS DiemThua
        FROM TRANDAU t
@@ -120,7 +118,7 @@ $tinNong = $pdo->query(
       ORDER BY t.MaTran DESC LIMIT 3"
 )->fetchAll();
 
-// Bài đăng mới (chỉ bài đang hiển thị), 3 thẻ trong Báo Đấu Trường Gen Z
+// 3 bài đăng mới nhất đang hiển thị
 $baiMoi = $pdo->query(
     "SELECT b.MaBaiDang, b.TieuDe, b.NoiDung, b.NgayDang, u.HoTen, m.TenMon,
             (SELECT COUNT(*) FROM BINHLUAN c WHERE c.MaBaiDang = b.MaBaiDang AND c.TrangThai = 'Hiển thị') AS SoBinhLuan
@@ -131,7 +129,7 @@ $baiMoi = $pdo->query(
 
 $tyLe = (int) $tong['SoTran'] > 0 ? round($tong['SoThang'] * 100 / $tong['SoTran'], 1) : 0;
 
-// Thống kê nhanh hiển thị trên Hero Banner
+// Thống kê nhanh trên banner
 $soMonMo = (int) $pdo->query("SELECT COUNT(*) FROM MONHOC WHERE TrangThai = 'Đang mở'")->fetchColumn();
 $soCauHoi = (int) $pdo->query("SELECT COUNT(*) FROM CAUHOI c JOIN MONHOC m ON m.MaMon = c.MaMon WHERE c.TrangThai = 'Hiển thị' AND m.TrangThai = 'Đang mở'")->fetchColumn();
 $soTuyenThu = (int) $pdo->query("SELECT COUNT(*) FROM NGUOIDUNG WHERE TrangThai = 'Hoạt động'")->fetchColumn();
@@ -146,7 +144,7 @@ $cssTrang = 'index';
 require __DIR__ . '/layout/header.php';
 ?>
 
-<!-- ==================== HERO BANNER CAROUSEL ==================== -->
+<!-- Banner chính -->
 <section class="card hero-arena" id="hero-arena" aria-label="Giới thiệu QUIZUP ARENA">
   <div class="hero-tia-sang" aria-hidden="true"></div>
   <div class="hero-luoi-nen" aria-hidden="true"></div>
@@ -159,10 +157,8 @@ require __DIR__ . '/layout/header.php';
   </button>
 
   <div class="hero-khung">
-    <!-- Cột trái: Tiêu đề & CTA theo từng slide -->
     <div class="hero-noi-dung">
       <div class="hero-slides-stack">
-        <!-- Slide 1 -->
         <div class="hero-slide dang-hien" data-slide="0">
           <div class="hero-chao">
             <span class="cham-live" aria-hidden="true"></span>
@@ -190,7 +186,6 @@ require __DIR__ . '/layout/header.php';
           </div>
         </div>
 
-        <!-- Slide 2 -->
         <div class="hero-slide" data-slide="1" aria-hidden="true">
           <div class="hero-chao">
             <span class="cham-live" aria-hidden="true"></span>
@@ -210,7 +205,6 @@ require __DIR__ . '/layout/header.php';
           </div>
         </div>
 
-        <!-- Slide 3 -->
         <div class="hero-slide" data-slide="2" aria-hidden="true">
           <div class="hero-chao">
             <span class="cham-live" aria-hidden="true"></span>
@@ -233,7 +227,7 @@ require __DIR__ . '/layout/header.php';
         </div>
       </div>
 
-      <!-- Thanh chỉ số nhanh trên Banner -->
+      <!-- Thống kê nhanh -->
       <div class="hero-thong-ke" aria-label="Thông số đấu trường">
         <div class="hero-chip">
           <span class="chip-icon">
@@ -256,26 +250,21 @@ require __DIR__ . '/layout/header.php';
       </div>
     </div>
 
-    <!-- Cột phải: Khung Hologram Linh Vật Thi Cử Tương Tác Siêu Cấp (Đổi Pet & Mood khi chạm) -->
+    <!-- Khung linh vật tương tác -->
     <div class="hero-minh-hoa" aria-hidden="true">
       <div class="hero-san-khau hero-faker-stage" id="faker-stage">
-        <!-- Vầng hào quang vô địch phát sáng phía sau -->
         <div class="hero-faker-aura" aria-hidden="true"></div>
 
-        <!-- Bệ ánh sáng chân đế -->
         <div class="hero-faker-pedestal" aria-hidden="true"></div>
 
-        <!-- Bong bóng hội thoại tương tác của Linh vật -->
         <div class="faker-speech-bubble" id="faker-bubble" role="status" aria-live="polite">
           <span class="bubble-icon" id="pet-bubble-icon">✌️</span>
           <span class="bubble-text" id="faker-quote">&ldquo;Đề thi này dễ, 10 điểm trong tầm tay! Tự tin lên người anh em! ✌️🐶&rdquo;</span>
           <span class="bubble-tail" aria-hidden="true"></span>
         </div>
 
-        <!-- Huy hiệu Easter Egg khi click -->
         <div class="faker-toast-badge" id="faker-toast">+100 ELO TỰ TIN! 🌟</div>
 
-        <!-- Các huy hiệu HUD danh giá nổi 3D đa tầng trong không gian -->
         <div class="hud-badge hud-1">
           <span class="cham-live"></span>
           <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path d="M2 3l4 4-4 4M14 3l-4 4 4 4" stroke="#00F5A0" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>
@@ -290,16 +279,13 @@ require __DIR__ . '/layout/header.php';
           15s / Thử Thách
         </div>
 
-        <!-- KHUNG TRANH HOLOGRAPHIC LINH VẬT THI CỬ (Sang trọng, viền neon, góc dát vàng) -->
         <div class="hero-pet-card" id="faker-character">
           <div class="pet-card-glass">
-            <!-- 4 góc dát vàng phong cách Cyber Esports -->
             <span class="pet-corner tl" aria-hidden="true"></span>
             <span class="pet-corner tr" aria-hidden="true"></span>
             <span class="pet-corner bl" aria-hidden="true"></span>
             <span class="pet-corner br" aria-hidden="true"></span>
 
-            <!-- Thanh trạng thái trên đỉnh khung -->
             <div class="pet-card-header">
               <div class="pet-status-pill">
                 <span class="cham-live"></span>
@@ -319,7 +305,6 @@ require __DIR__ . '/layout/header.php';
               </div>
             </div>
 
-            <!-- Khung ảnh chính -->
             <div class="pet-photo-wrapper">
               <img id="pet-image" src="<?= e(BASE_URL) ?>/assets/images/pets/pet-1-peace.jpg" alt="Linh vật thi cử vui nhộn" class="pet-photo" width="340" height="420" loading="eager">
               <div class="pet-photo-shine" aria-hidden="true"></div>
@@ -332,7 +317,7 @@ require __DIR__ . '/layout/header.php';
     </div>
   </div>
 
-  <!-- Thanh điều khiển dưới cùng (hiển thị đẹp trên cả Desktop, Tablet và Mobile) -->
+  <!-- Điều khiển slide -->
   <div class="hero-dieu-khien">
     <button type="button" class="hero-nut-nho" data-hero-prev aria-label="Slide trước">‹</button>
     <div class="hero-dots" role="tablist" aria-label="Chọn slide">
@@ -344,9 +329,9 @@ require __DIR__ . '/layout/header.php';
   </div>
 </section>
 
-<!-- ==================== KHỐI 2 CỘT: BÁO ĐẤU TRƯỜNG GEN Z + TAM ĐẠI THẦN BÀI 3D ==================== -->
+<!-- Khối 2 cột: Báo Đấu Trường và Top 3 -->
 <div class="arena-hai-cot">
-  <!-- Cột trái: Báo Đấu Trường Gen Z (Daily Arena Meme Chronicles) -->
+  <!-- Báo Đấu Trường Gen Z -->
   <section class="card arena-panel genz-board">
     <header class="panel-dau">
       <h3 class="panel-tieu-de">
@@ -358,7 +343,7 @@ require __DIR__ . '/layout/header.php';
       <a class="panel-xem-them" href="<?= e(BASE_URL) ?>/client/congdong.php">Xem tất cả <span>&rarr;</span></a>
     </header>
 
-    <!-- Dải Ticker Hóng Biến -->
+    <!-- Dải tin nóng -->
     <div class="arena-ticker ticker-genz" aria-label="Điểm tin hóng biến">
       <span class="ticker-pill pill-genz"><span class="cham-live yellow"></span> 🔥 HÓNG BIẾN</span>
       <div class="ticker-track">
@@ -414,7 +399,6 @@ require __DIR__ . '/layout/header.php';
                 <a class="tin-link-doc" href="<?= e(BASE_URL) ?>/client/baidang.php?id=<?= (int) $b['MaBaiDang'] ?>">Đọc tiếp &rarr;</a>
               </div>
 
-              <!-- Số bình luận thật từ bảng BINHLUAN -->
               <div class="genz-reactions">
                 <a class="react-btn" href="<?= e(BASE_URL) ?>/client/baidang.php?id=<?= (int) $b['MaBaiDang'] ?>">
                   <span class="r-icon">💬</span> <span class="r-count"><?= (int) $b['SoBinhLuan'] ?></span> <span class="r-label">Bình luận</span>
@@ -427,7 +411,7 @@ require __DIR__ . '/layout/header.php';
     </div>
   </section>
 
-  <!-- Cột phải: Tam Đại Thần Bài Top 3 (Challenger Cards 3D) -->
+  <!-- Top 3 chiến thần -->
   <section class="card arena-panel challenger-panel">
     <header class="panel-dau">
       <h3 class="panel-tieu-de">
@@ -440,8 +424,7 @@ require __DIR__ . '/layout/header.php';
     </header>
 
     <?php
-      // 3 Thẻ Bài Thách Đấu Xếp Rẻ Quạt 3D
-      // Thứ tự trên sân khấu: Thẻ 2 (trái, xoay -7deg), Thẻ 1 (giữa, thẳng đứng, to nhất), Thẻ 3 (phải, xoay +7deg)
+      // Thứ tự hiển thị trên bục: Hạng 2 (trái), Hạng 1 (giữa), Hạng 3 (phải)
       $theChienThan = [
           [
               'idx' => 1,
@@ -474,7 +457,6 @@ require __DIR__ . '/layout/header.php';
     ?>
 
     <div class="challenger-deck-stage" id="deck-stage">
-      <!-- Tia sáng hào quang huyền ảo phía sau bộ thẻ -->
       <div class="deck-aurora" aria-hidden="true"></div>
 
       <div class="deck-cards-row">
@@ -489,16 +471,13 @@ require __DIR__ . '/layout/header.php';
           $chuCai = mb_strtoupper(mb_substr((string) end($tu), 0, 1));
         ?>
           <div class="tc-card <?= e($tc['lop']) ?><?= $laToi ? ' la-toi-card' : '' ?>" data-card-hang="<?= $hang ?>">
-            <!-- Lớp phản quang Hologram Foil khi nghiêng -->
             <div class="tc-foil <?= e($tc['foil']) ?>" aria-hidden="true"></div>
 
-            <!-- Huy hiệu Rank đỉnh thẻ -->
             <div class="tc-top-badge">
               <span class="tc-crown-mini"><?= $tc['crown'] ?></span>
               <span class="tc-rank-title"><?= e($tc['rankName']) ?></span>
             </div>
 
-            <!-- Khung ảnh đại diện chiến thần -->
             <div class="tc-avatar-wrapper">
               <div class="tc-avatar-glow" aria-hidden="true"></div>
               <?php if (!empty($ng['AnhDaiDien'])): ?>
@@ -511,21 +490,17 @@ require __DIR__ . '/layout/header.php';
               <?php endif; ?>
             </div>
 
-            <!-- Tên tuyển thủ -->
             <div class="tc-player-name" title="<?= e($ten) ?>"><?= e($ten) ?></div>
 
-            <!-- Chip Elo dập nổi -->
             <div class="tc-elo-pill">
               <span class="tc-elo-gem"><?= $tc['icon'] ?></span>
               <strong class="tc-elo-num"><?= $elo !== null ? number_format($elo) : '—' ?></strong> <small>ELO</small>
             </div>
 
-            <!-- Chỉ số chiến đấu (Combat Stats) -->
             <div class="tc-stats-badge">
               <span class="tc-stat-val"><?= $ng ? ($chuoiThang > 0 ? '🔥 Chuỗi ' . $chuoiThang . ' thắng' : (int) $ng['SoTran'] . ' trận đã đấu') : 'Đang chờ chiến thần' ?></span>
             </div>
 
-            <!-- Danh hiệu (không còn link thách đấu) -->
             <div class="tc-action-btn tc-title-tag">
               <span class="tc-btn-icon"><?= $tc['crown'] ?></span>
               <span class="tc-btn-text"><?= $hang === 1 ? 'Vô Địch' : ($hang === 2 ? 'Á Quân' : 'Hạng Ba') ?></span>
@@ -557,7 +532,7 @@ require __DIR__ . '/layout/header.php';
     dots.forEach((d, i) => {
       d.classList.remove('dang-chon');
       if (i === cur) {
-        void d.offsetWidth; // khởi động lại thanh tiến độ
+        void d.offsetWidth; // Khởi động lại thanh tiến độ
         d.classList.add('dang-chon');
       }
     });
@@ -574,7 +549,7 @@ require __DIR__ . '/layout/header.php';
   hero.querySelectorAll('[data-hero-next]').forEach((b) => b.addEventListener('click', () => { go(cur + 1); start(); }));
   dots.forEach((d) => d.addEventListener('click', () => { go(Number(d.dataset.heroDot || 0)); start(); }));
 
-  // Vuốt cảm ứng (Touch / Pointer swipe) cho điện thoại & máy tính bảng
+  // Hỗ trợ vuốt ngang trên thiết bị cảm ứng
   hero.addEventListener('pointerdown', (e) => {
     if (e.target.closest('a,button')) return;
     startX = e.clientX;
@@ -590,7 +565,7 @@ require __DIR__ . '/layout/header.php';
     }
   }, { passive: true });
 
-  // Hiệu ứng nghiêng 3D & đèn chiếu theo chuột trên máy tính
+  // Hiệu ứng nghiêng 3D theo vị trí chuột
   hero.addEventListener('pointermove', (e) => {
     if (e.pointerType === 'touch') return;
     const r = hero.getBoundingClientRect();
@@ -610,7 +585,7 @@ require __DIR__ . '/layout/header.php';
   });
   start();
 
-  // ==================== TƯƠNG TÁC LINH VẬT THI CỬ (5 PETS & VIRAL QUOTES) ====================
+  // Tương tác đổi linh vật và phát âm thanh
   const petCard          = document.getElementById('faker-character');
   const petImage         = document.getElementById('pet-image');
   const petBubble        = document.getElementById('faker-bubble');
@@ -730,7 +705,7 @@ require __DIR__ . '/layout/header.php';
     let currentPetIdx = 0;
     let bubbleTimer = 0;
 
-    // Âm thanh tương tác mô phỏng qua Web Audio API
+    // Mô phỏng âm thanh qua Web Audio API
     function playPetSound(notes, type) {
       try {
         const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -754,7 +729,7 @@ require __DIR__ . '/layout/header.php';
       } catch (e) {}
     }
 
-    // Hiệu ứng tia hạt sáng (Sparks) bùng nổ khi đổi Pet
+    // Hiệu ứng hạt sáng khi đổi linh vật
     function spawnSparks(originX, originY) {
       if (!petStage) return;
       const rect = petStage.getBoundingClientRect();
@@ -779,7 +754,6 @@ require __DIR__ . '/layout/header.php';
       }
     }
 
-    // Hiển thị câu thoại
     function showPetQuote(text) {
       petQuote.textContent = text;
       petBubble.classList.add('dang-hien');
@@ -789,36 +763,28 @@ require __DIR__ . '/layout/header.php';
       }, 5000);
     }
 
-    // Chuyển linh vật
     function switchPet(idx, originX, originY) {
       currentPetIdx = (idx + petData.length) % petData.length;
       const pet = petData[currentPetIdx];
 
-      // 1. Hiệu ứng flash & pop trên khung
       petCard.classList.remove('pet-switching');
       void petCard.offsetWidth;
       petCard.classList.add('pet-switching');
       setTimeout(() => petCard.classList.remove('pet-switching'), 500);
 
-      // 2. Đổi ảnh và nhãn
       petImage.src = pet.img;
       if (petMoodTag) petMoodTag.textContent = pet.name;
       if (petTitleTag) petTitleTag.textContent = pet.title;
       if (petNumIndicator) petNumIndicator.textContent = currentPetIdx + 1;
       if (petIcon) petIcon.textContent = pet.icon;
 
-      // 3. Đổi trạng thái dots
       petDots.forEach((dot, i) => {
         dot.classList.toggle('active', i === currentPetIdx);
       });
 
-      // 4. Âm thanh tương ứng
       playPetSound(pet.notes, pet.soundType);
-
-      // 5. Bắn hạt sáng
       spawnSparks(originX, originY);
 
-      // 6. Bắn Toast Badge
       if (petToast) {
         petToast.textContent = pet.toast;
         petToast.classList.remove('dang-bay');
@@ -827,16 +793,13 @@ require __DIR__ . '/layout/header.php';
         setTimeout(() => petToast.classList.remove('dang-bay'), 1700);
       }
 
-      // 7. Hiển thị câu thoại hài hước
       showPetQuote(pet.quote);
     }
 
-    // Chạm vào khung ảnh -> chuyển sang linh vật kế tiếp
     petCard.addEventListener('click', function (e) {
       switchPet(currentPetIdx + 1, e.clientX, e.clientY);
     });
 
-    // Bấm trực tiếp vào các chấm điều hướng
     petDots.forEach((dot) => {
       dot.addEventListener('click', function (e) {
         e.stopPropagation();
@@ -845,13 +808,13 @@ require __DIR__ . '/layout/header.php';
       });
     });
 
-    // Tự động chào mừng người dùng 1.2s sau khi vào trang
+    // Tự động hiển thị câu thoại sau 1.2s
     setTimeout(() => {
       showPetQuote(petData[0].quote);
     }, 1200);
   }
 
-  // ==================== TƯƠNG TÁC OPTION 2: BÁO GEN Z REACTIONS & THẺ BÀI CHIẾN THẦN ====================
+  // Âm thanh và hiệu ứng tương tác bảng tin & thẻ bài
   let soundCtx = null;
   function getAudioCtx() {
     try {
@@ -865,7 +828,6 @@ require __DIR__ . '/layout/header.php';
     }
   }
 
-  // 1. Âm thanh Bong bóng Pop khi thả cảm xúc
   function playPopSound() {
     const ctx = getAudioCtx();
     if (!ctx) return;
@@ -886,13 +848,11 @@ require __DIR__ . '/layout/header.php';
     osc.stop(now + 0.09);
   }
 
-  // 2. Âm thanh Kiếm chém Shiiing khi click Thẻ bài
   function playSwordSlashSound() {
     const ctx = getAudioCtx();
     if (!ctx) return;
     const now = ctx.currentTime;
 
-    // Kim loại va chạm (Metallic clang)
     [1320, 2640].forEach((freq, i) => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
@@ -910,24 +870,20 @@ require __DIR__ . '/layout/header.php';
     });
   }
 
-  // Xử lý Click Reactions trên Báo Gen Z
   document.querySelectorAll('.react-btn[data-emoji]').forEach(btn => {
     btn.addEventListener('click', function (e) {
       e.preventDefault();
       const countEl = this.querySelector('.r-count');
       const emoji = this.dataset.emoji || '🔥';
 
-      // 1. Tăng số đếm
       if (countEl) {
         let cur = parseInt(countEl.textContent, 10) || 0;
         countEl.textContent = cur + 1;
       }
       this.classList.add('reacted');
 
-      // 2. Âm thanh pop
       playPopSound();
 
-      // 3. Emoji bay vút lên
       const floatEl = document.createElement('span');
       floatEl.className = 'floating-react';
       floatEl.textContent = emoji;
@@ -941,16 +897,13 @@ require __DIR__ . '/layout/header.php';
     });
   });
 
-  // Xử lý Click Thẻ bài Chiến thần 3D
   const deckStage = document.getElementById('deck-stage');
   if (deckStage) {
     deckStage.querySelectorAll('.tc-card').forEach(card => {
       card.addEventListener('click', function (e) {
-        // Nếu không click trực tiếp vào nút link chuyển trang
         if (!e.target.closest('.tc-action-btn')) {
           playSwordSlashSound();
 
-          // Hiệu ứng flash lóe sáng trên thẻ
           card.style.filter = 'brightness(1.35)';
           setTimeout(() => { card.style.filter = ''; }, 250);
         }

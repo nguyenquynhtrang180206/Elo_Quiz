@@ -1,8 +1,8 @@
 <?php
-// Danh sách Đấu Thần Plants vs Zombies trong Đấu Trường QuizUp Arena (Màu Sắc Nhã Nhặn, Cân Đối)
+// Danh sách Đấu Thần Plants vs Zombies trong đấu trường
 class LoLChampions
 {
-    // Mapping tương thích ngược cho session hoặc dữ liệu cũ
+    // Alias tên tướng cũ để tương thích session và dữ liệu cũ
     private const ALIASES = [
         'faker'  => 'sunflower',
         'yasuo'  => 'snowpea',
@@ -157,9 +157,7 @@ class LoLChampions
         return self::DANH_SACH[$k];
     }
 
-    // =========================================================================
-    // HỆ THỐNG THÔNG THẠO & TIẾN HÓA ĐẤU THẦN (CHAMPION MASTERY & EVOLUTION)
-    // =========================================================================
+    // Thông thạo và EXP tướng
     public const MOC_EXP = [
         1 => 0,
         2 => 200,

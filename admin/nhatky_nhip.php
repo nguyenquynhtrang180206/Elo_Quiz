@@ -1,9 +1,7 @@
 <?php
-// Trả về số hoạt động theo từng ngày (JSON) cho biểu đồ ở trang Nhật ký quản trị. Chỉ đọc.
-// Gọi: nhatky_nhip.php?den=YYYY-MM-DD&so=7|30   (den bỏ trống hoặc sai thì lấy hôm nay; so khác 30 thì lấy 7)
-// Đặt tại: elo_quiz/admin/nhatky_nhip.php
+// API trả về số hoạt động quản trị theo từng ngày (JSON).
 require_once __DIR__ . '/../core/bootstrap.php';
-Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');   // A-04
+Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');
 
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');

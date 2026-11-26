@@ -1,18 +1,7 @@
 <?php
-// Xuất báo cáo thống kê (Excel hoặc PDF) cho Thống kê tổng quan và Thống kê theo môn học, theo nhiều mốc thời gian.
-// Được gọi (POST, có CSRF) từ hộp thoại "Xuất" ở admin/index.php sau khi người dùng đã xem trước và bấm xác nhận.
-// Mỗi lần gọi trả MỘT file. Khi người dùng chọn định dạng "Cả hai", trình duyệt (thongke_xuat.js) gọi lần lượt hai lần
-// (một Excel, một PDF) rồi tải về liên tiếp, nên ở đây dinhdang chỉ là excel hoặc pdf.
-//
-// Hai cách chia (tham số chia = ngay | loai | ca):
-//   ngay : theo MỐC NGÀY. Excel: mỗi mốc một sheet "Ngày - 7 ngày" (tiêu đề kèm khoảng ngày, 4 ô số liệu, hai biểu đồ cạnh nhau,
-//          bảng chi tiết). PDF: A4 NGANG, mỗi mốc một trang tóm tắt rồi bảng chi tiết nối phía sau.
-//   loai : theo LOẠI BIỂU ĐỒ. Excel: sheet "Loại - Tổng quan", "Loại - Theo môn học", trong sheet các mốc xếp nối tiếp từ trên
-//          xuống, mỗi biểu đồ kèm bảng số liệu. PDF: A4 DỌC, một luồng dọc.
-//   ca   : cả hai nhóm trong cùng một file, nhóm theo mốc ngày trước, nhóm theo loại sau (PDF: trang ngang rồi trang dọc).
-// Ảnh biểu đồ do trình duyệt chụp từ chính biểu đồ trong phần xem trước (JPEG, nền trắng) nên file xuất có màu giống màn hình.
+// Xuất báo cáo thống kê tổng quan và theo môn học ra Excel hoặc PDF.
 require_once __DIR__ . '/../core/bootstrap.php';
-Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');   // A-04
+Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');
 
 function loi_xuat(string $thongBao, int $ma = 400): never
 {
@@ -26,7 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 csrf_check();
 
-// ---- Hộp thoại: trang nào, mốc thời gian nào, định dạng nào, cách chia nào ----
+// Tham số từ hộp thoại xuất.
 $trang = (string) ($_POST['trang'] ?? '');
 if (!in_array($trang, ['tongquan', 'mon', 'ca'], true)) {
     loi_xuat('Hãy chọn trang thống kê cần xuất.');
@@ -50,7 +39,7 @@ if (!in_array($chia, ['ngay', 'loai', 'ca'], true)) {
 $coNgay = $chia !== 'loai';   // có nhóm "theo mốc ngày"
 $coLoai = $chia !== 'ngay';   // có nhóm "theo loại biểu đồ"
 
-// Ảnh biểu đồ (data URL JPEG): chỉ nhận JPEG hợp lệ, tối đa 5 MB mỗi ảnh
+// Kiểm tra và giải mã ảnh biểu đồ JPEG (tối đa 5 MB).
 function anh_bieu_do(string $khoa): ?array
 {
     $v   = (string) ($_POST[$khoa] ?? '');
@@ -63,14 +52,14 @@ function anh_bieu_do(string $khoa): ?array
     return ['jpeg' => $b, 'rong' => $kt[0], 'cao' => $kt[1]];
 }
 
-// Ảnh dùng trong Excel, rộng $rong pixel (giữ tỷ lệ); $x là vị trí pixel tính từ mép trái sheet
+// Tính kích thước ảnh theo chiều rộng cố định (giữ tỷ lệ).
 function anh_theo_rong(?array $a, int $rong, int $x = 0): ?array
 {
     if (!$a) { return null; }
     return ['jpeg' => $a['jpeg'], 'rong' => $rong, 'cao' => (int) round($a['cao'] * $rong / $a['rong']), 'x' => $x];
 }
 
-// Ảnh dùng trong Excel, cao $cao pixel (giữ tỷ lệ) - để hai biểu đồ đặt ngang cạnh nhau cùng chiều cao
+// Tính kích thước ảnh theo chiều cao cố định (giữ tỷ lệ).
 function anh_theo_cao(?array $a, int $cao, int $x = 0): ?array
 {
     if (!$a) { return null; }
@@ -93,14 +82,14 @@ $tenFile = 'thongke_' . date('Ymd_His');
 
 try {
     if ($dinhDang === 'excel') {
-        // Kiểu dòng: 0 thường, 1 đậm, 2 tiêu đề lớn, 3-5 ô số liệu (nhãn / giá trị / ghi chú), 6 tiêu đề bảng
+        // Mã định dạng dòng Excel: 0 thường, 1 đậm, 2 tiêu đề lớn, 3-5 ô số liệu, 6 tiêu đề bảng.
         $t  = static fn (array $o): array => ['kieu' => 0, 'o' => $o];
         $b  = static fn (array $o): array => ['kieu' => 1, 'o' => $o];
         $th = static fn (array $o): array => ['kieu' => 6, 'o' => $o];
         $tdl = static fn (string $o): array => ['kieu' => 2, 'o' => [$o]];
         $trong = ['kieu' => 0, 'o' => []];
 
-        // Các khối bảng dùng chung cho cả hai cách chia
+        // Khối bảng dùng chung.
         $bangChiSo = static function (array $tq) use ($t, $th, $trong): array {
             $d = [$th(['Chỉ số', 'Giá trị', 'So với kỳ trước'])];
             foreach ($tq['the'] as $r) { $d[] = $t($r); }
@@ -128,7 +117,7 @@ try {
 
         $sheets = [];
 
-        // ---- Nhóm 1: THEO MỐC NGÀY - mỗi mốc một sheet "Ngày - 7 ngày" ----
+        // Nhóm 1: Sheet theo mốc ngày.
         if ($coNgay) {
             foreach ($khoang as $n) {
                 $tq = $du[$n]['tq'];
@@ -136,26 +125,24 @@ try {
                 $d = [$tdl('Báo cáo thống kê - ' . ThongKe::nhanKhoang($n) . ' (' . ThongKe::khoangNgay($n) . ')'),
                       $t([$luc]), $trong];
                 if ($tq) {
-                    // 4 ô số liệu chính kèm % so với kỳ trước (mỗi ô một cột A-D)
                     $d[] = ['kieu' => 3, 'o' => array_column($tq['the'], 0)];
                     $d[] = ['kieu' => 4, 'o' => array_column($tq['the'], 1)];
                     $d[] = ['kieu' => 5, 'o' => array_map(static fn ($r) => 'So với kỳ trước: ' . $r[2], $tq['the'])];
                     $d[] = $trong;
                 }
-                // Biểu đồ cột + đường (trái) và biểu đồ tròn (phải) cùng chiều cao, đặt ngang cạnh nhau
+                // Đặt hai biểu đồ ngang cạnh nhau cùng chiều cao.
                 $anhTq  = anh_theo_cao($du[$n]['anhTq'], 240);
                 $anhMon = ($mon && $mon['ds']) ? anh_theo_cao($du[$n]['anhMon'], 240) : null;
                 if ($anhTq && $anhMon) { $anhMon['x'] = $anhTq['rong'] + 16; }
                 $anh = array_values(array_filter([$anhTq, $anhMon]));
                 if ($anh) { $d[] = ['anh' => $anh]; }
-                // Bảng chi tiết
                 if ($tq)  { $d = array_merge($d, $bangChiSo($tq), $bangTheoMoc($tq), $bangTrangThai($tq)); }
                 if ($mon) { $d = array_merge($d, $bangMon($mon, $n)); }
                 $sheets[] = ['ten' => 'Ngày - ' . ThongKe::nhanKhoang($n), 'rongToiThieu' => 16, 'dong' => $d];
             }
         }
 
-        // ---- Nhóm 2: THEO LOẠI BIỂU ĐỒ - mỗi loại một sheet, các mốc xếp nối tiếp từ trên xuống ----
+        // Nhóm 2: Sheet theo loại biểu đồ.
         if ($coLoai) {
             if ($coTq) {
                 $d = [$tdl('Thống kê tổng quan - theo loại biểu đồ'), $t([$luc . ' · Mốc: '
@@ -185,11 +172,10 @@ try {
         XlsxWriter::taiNhieuSheet($tenFile . '.xlsx', $sheets);
     }
 
-    // ---- PDF ----
+    // Xuất PDF.
     $pdf = new PdfWriter(__DIR__ . '/../assets/fonts');
 
-    // Nhóm 1: THEO MỐC NGÀY - khổ A4 NGANG. Mỗi mốc một trang tóm tắt (tiêu đề + khoảng ngày, ô số liệu, hai biểu đồ cạnh nhau),
-    // bảng chi tiết nối phía sau; mốc tiếp theo bắt đầu ở trang mới.
+    // Nhóm 1: Theo mốc ngày (A4 ngang).
     if ($coNgay) {
         $pdf->khoTrang(true);
         foreach ($khoang as $i => $n) {
@@ -207,7 +193,7 @@ try {
             if ($mon && $mon['ds']) { $pdf->chuThich($mon['ds']); }
             elseif ($mon)           { $pdf->doan('Chưa có trận nào trong ' . ThongKe::nhanKhoang($n) . ' gần nhất.'); }
 
-            // Bảng chi tiết nối phía sau trang tóm tắt
+            // Bảng chi tiết nối tiếp sau trang tóm tắt.
             $pdf->trangMoi();
             $pdf->tieuDe('Chi tiết - ' . ThongKe::nhanKhoang($n) . ' (' . ThongKe::khoangNgay($n) . ')', 15, '#2f6bff');
             $pdf->khoang(4);
@@ -236,7 +222,7 @@ try {
         }
     }
 
-    // Nhóm 2: THEO LOẠI BIỂU ĐỒ - khổ A4 DỌC, một luồng dọc (phần "Tổng quan" rồi phần "Theo môn học")
+    // Nhóm 2: Theo loại biểu đồ (A4 dọc).
     if ($coLoai) {
         $pdf->khoTrang(false);
         $pdf->tieuDe('BÁO CÁO THỐNG KÊ - THEO LOẠI BIỂU ĐỒ', 18);

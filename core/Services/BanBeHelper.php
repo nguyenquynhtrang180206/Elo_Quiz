@@ -1,13 +1,6 @@
 <?php
-// Xử lý kết bạn (C-41). Đặt tại: elo_quiz/core/BanBeHelper.php
-//
-// Bảng BANBE: mỗi cặp người dùng chỉ có MỘT dòng, bất kể ai gửi cho ai
-// (chỉ mục duy nhất trên cặp CapNho/CapLon do MySQL tự tính từ LEAST/GREATEST).
-//   - hủy lời mời: xóa dòng
-//   - từ chối: giữ dòng, trạng thái "Từ chối"
-//   - gửi lại sau khi bị từ chối: cập nhật dòng cũ (đổi chiều gửi nếu người gửi lại là phía kia)
-//   - hủy kết bạn: xóa dòng (hai bên có thể kết bạn lại từ đầu)
-// Thông báo (bảng THONGBAO): người nhận được báo khi có lời mời; người gửi được báo khi lời mời được chấp nhận.
+// Xử lý kết bạn qua bảng BANBE (chỉ mục duy nhất CapNho/CapLon tính từ LEAST/GREATEST).
+// Thông báo kết bạn được đồng bộ qua THONGBAO.
 class BanBeHelper
 {
     // Kết quả của guiLoiMoi()

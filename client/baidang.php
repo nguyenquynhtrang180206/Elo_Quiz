@@ -1,15 +1,15 @@
 <?php
-// Chi tiết bài đăng, bình luận, xóa bài của mình (C-43, C-44). Đặt tại: elo_quiz/client/baidang.php
+// Chi tiết bài đăng, bình luận và kiểm duyệt
 require_once __DIR__ . '/../core/bootstrap.php';
 
-$maND = Auth::clientId();   // khách chưa đăng nhập vẫn xem được bài; bình luận/xóa/sửa cần đăng nhập
-$laQT = Auth::laQuanTriKiemDuyet();   // admin đang ở khu sinh viên: kiểm duyệt (ẩn/hiện kèm lý do) ngay tại đây
+$maND = Auth::clientId();   // Khách xem được bài; bình luận, xóa hoặc sửa cần đăng nhập
+$laQT = Auth::laQuanTriKiemDuyet();   // Quản trị viên được phép ẩn/hiện bài và bình luận kèm lý do
 $pdo  = Database::pdo();
 DbSchema::damBaoCot($pdo, 'BINHLUAN', 'AnhDinhKem', 'VARCHAR(255) NULL DEFAULT NULL');
 $id   = (int) ($_POST['id'] ?? $_GET['id'] ?? 0);
 $coLoai = CongDongHelper::coCotLoaiBai();
 
-// Bảng LUOTTHICH có thể chưa được tạo (chạy migration_luotthich.sql); chưa có thì ẩn nút thích
+// Kiểm tra bảng LUOTTHICH tồn tại trước khi hiển thị nút thích
 $coLike = true;
 try {
     $pdo->query('SELECT 1 FROM LUOTTHICH LIMIT 1');
@@ -17,7 +17,7 @@ try {
     $coLike = false;
 }
 
-// C-44: mọi người chỉ thấy bài "Hiển thị"; riêng chủ bài vẫn xem được bài của mình khi đang "Bị ẩn" (chỉ đọc, để xem thông báo và lý do); quản trị viên xem được cả bài bị ẩn để hiện lại
+// Hiển thị bài 'Hiển thị'; chủ bài hoặc quản trị viên vẫn xem được bài 'Bị ẩn'
 $st = $pdo->prepare(
     "SELECT b.MaBaiDang, b.MaND, b.MaMon, b.TieuDe, b.NoiDung, b.AnhDinhKem, b.NgayDang, b.TrangThai, u.HoTen, u.AnhDaiDien, m.TenMon,
             " . (CongDongHelper::coCotNguoiAn() ? 'b.NguoiAn' : 'NULL AS NguoiAn') . ",
@@ -34,15 +34,15 @@ $st = $pdo->prepare(
 );
 $st->execute([$id, (int) $maND, (int) $laQT]);
 $bai = $st->fetch();
-$baiAn = $bai && $bai['TrangThai'] === 'Bị ẩn';   // chủ bài đang xem bài của mình bị ẩn: chỉ đọc
+$baiAn = $bai && $bai['TrangThai'] === 'Bị ẩn';   // Chủ bài chỉ được xem và xóa bài đang bị ẩn
 
 $loi = [];
 $noiDungBL = '';
-$loiSua = [];          // lỗi khi sửa bình luận
-$dangSua = (int) ($_GET['sua'] ?? 0);   // bình luận đang mở khung sửa
+$loiSua = [];
+$dangSua = (int) ($_GET['sua'] ?? 0);
 $noiDungSua = null;
 
-// Bình luận hiện trong danh sách: bình luận "Hiển thị" của mọi người, cộng bình luận đang ẩn của chính mình
+// Hiện bình luận 'Hiển thị' và bình luận 'Bị ẩn' của chính mình hoặc cho quản trị viên
 $dkBL = "c.MaBaiDang = :id AND (c.TrangThai = 'Hiển thị' OR (c.TrangThai = 'Bị ẩn' AND (c.MaND = :me OR :qt = 1)))";
 $coLikeBL = CongDongHelper::coLikeBL();
 $coAnBL   = CongDongHelper::coCotNguoiAnBL();
@@ -75,7 +75,7 @@ if ($bai && $_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    // Bài đang bị ẩn: không bình luận, không thả lửa; chủ bài chỉ còn xóa được
+    // Bài đang bị ẩn: chỉ cho phép xóa hoặc thao tác quản trị
     if ($baiAn && $hanhDong !== 'xoa' && strpos($hanhDong, 'qt_') !== 0) {
         redirect(BASE_URL . '/client/baidang.php?id=' . $id);
     }
@@ -102,7 +102,6 @@ if ($bai && $_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if (!$loi) {
-            // Lấy ID bình luận cha nếu có (Trả lời bình luận)
             $rep_bl_id = (int) ($_POST['rep_bl_id'] ?? 0);
             $maBinhLuanCha = $rep_bl_id > 0 ? $rep_bl_id : null;
 
@@ -113,19 +112,18 @@ if ($bai && $_SERVER['REQUEST_METHOD'] === 'POST') {
             $linkBL = BASE_URL . '/client/baidang.php?id=' . $id . '#bl-' . $maBLMoi;
             $trichDoan = $noiDungBL !== '' ? mb_substr(strip_tags($noiDungBL), 0, 120) : '[Hình ảnh đính kèm]';
 
-            // Tên người gửi bình luận
             $stUser = $pdo->prepare('SELECT HoTen FROM NGUOIDUNG WHERE MaND = ?');
             $stUser->execute([$maND]);
             $tenNguoiGui = (string) ($stUser->fetchColumn() ?: 'Một thành viên');
 
-            // 1. Thông báo cho chủ bài viết
+            // Thông báo cho chủ bài viết
             $chuBaiMaND = (int) $bai['MaND'];
             if ($chuBaiMaND > 0 && $chuBaiMaND !== $maND) {
                 $tieuDeTB = $tenNguoiGui . ' đã bình luận bài viết của bạn: "' . mb_substr($bai['TieuDe'], 0, 60) . '"';
                 ThongBaoHelper::taoThongBao($pdo, $chuBaiMaND, $maND, $id, $maBLMoi, 'binhluan', $tieuDeTB, $trichDoan, $linkBL);
             }
 
-            // 2. Thông báo cho người được trả lời
+            // Thông báo cho người được trả lời hoặc nhắc tên (@)
             $repMaND = (int) ($_POST['rep_mand'] ?? 0);
             if ($repMaND <= 0 && preg_match('/@([^\s,:;!?\n\r]+)/u', $noiDungBL, $khop)) {
                 $tenTag = trim($khop[1]);
@@ -144,7 +142,7 @@ if ($bai && $_SERVER['REQUEST_METHOD'] === 'POST') {
             redirect($linkBL);
         }
     } elseif ($hanhDong === 'thich') {
-        // ---- Thả lửa / dập lửa bài đăng này ----
+        // Thả lửa hoặc bỏ thả lửa bài viết
         $daThich = false;
         if ($coLike) {
             $st = $pdo->prepare('INSERT IGNORE INTO LUOTTHICH (MaBaiDang, MaND) VALUES (?, ?)');
@@ -158,7 +156,7 @@ if ($bai && $_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
         if ($daThich) {
-            ThongBaoHelper::thaLuaBai($pdo, $id, $maND);   // báo cho chủ bài (không báo khi bỏ thả lửa)
+            ThongBaoHelper::thaLuaBai($pdo, $id, $maND);   // Chỉ gửi thông báo khi thả lửa
         }
 
         $stCount = $pdo->prepare('SELECT COUNT(*) FROM LUOTTHICH WHERE MaBaiDang = ?');
@@ -177,7 +175,7 @@ if ($bai && $_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         redirect(BASE_URL . '/client/baidang.php?id=' . $id);
     } elseif (in_array($hanhDong, ['qt_an_bai', 'qt_hien_bai', 'qt_an_bl', 'qt_hien_bl'], true)) {
-        // ---- Quản trị viên kiểm duyệt ngay tại trang Cộng đồng (bắt buộc lý do, ghi nhật ký, báo cho chủ bài/bình luận) ----
+        // Quản trị viên ẩn/hiện bài hoặc bình luận kèm lý do
         if (!$laQT) {
             redirect(BASE_URL . '/client/baidang.php?id=' . $id);
         }
@@ -194,7 +192,7 @@ if ($bai && $_SERVER['REQUEST_METHOD'] === 'POST') {
         CongDongHelper::flash($msg, $laBL ? 'flash_bl' : 'flash_cd');
         redirect(BASE_URL . '/client/baidang.php?id=' . $id . ($laBL ? '#bl-' . $ma : ''));
     } elseif (in_array($hanhDong, ['like_bl', 'an_bl', 'mo_bl', 'xoa_bl', 'sua_bl'], true)) {
-        // ---- Bình luận: thích, ẩn, mở lại, xóa, sửa ----
+        // Thao tác bình luận: thích, ẩn, mở lại, xóa, sửa
         $maBL     = (int) ($_POST['ma_bl'] ?? 0);
         $veLai = static fn () => redirect(BASE_URL . '/client/baidang.php?id=' . $id . '#bl-' . $maBL);
 
@@ -207,7 +205,7 @@ if ($bai && $_SERVER['REQUEST_METHOD'] === 'POST') {
             $stDaThich->execute([$maBL, $maND]);
             $daThichBL = ((int) $stDaThich->fetchColumn()) > 0;
             if ($daThichBL) {
-                ThongBaoHelper::thaLuaBL($pdo, $maBL, $maND);   // báo cho chủ bình luận (không báo khi bỏ thả lửa)
+                ThongBaoHelper::thaLuaBL($pdo, $maBL, $maND);   // Chỉ gửi thông báo khi thả lửa bình luận
             }
 
             if ($isAjax) {
@@ -304,12 +302,11 @@ $mapBanBe = [];
 $soBLHienThi = 0;
 
 if ($bai) {
-    // Số bình luận ghi trên tiêu đề
     $st = $pdo->prepare("SELECT COUNT(*) FROM BINHLUAN WHERE MaBaiDang = ? AND TrangThai = 'Hiển thị'");
     $st->execute([$id]);
     $soBLHienThi = (int) $st->fetchColumn();
 
-    // Lấy TOÀN BỘ bình luận (Bỏ phân trang để xây dựng cây)
+    // Lấy toàn bộ bình luận để dựng cây phân cấp
     $subLike = $coLikeBL
         ? '(SELECT COUNT(*) FROM LUOTTHICH_BL l WHERE l.MaBinhLuan = c.MaBinhLuan) AS SoThich,
            (SELECT COUNT(*) FROM LUOTTHICH_BL l2 WHERE l2.MaBinhLuan = c.MaBinhLuan AND l2.MaND = :nd) AS DaThich'
@@ -334,7 +331,7 @@ if ($bai) {
     $eloMap = CongDongHelper::layElo($pdo, array_merge([(int) $bai['MaND']], array_column($allBinhLuan, 'MaND')));
     $mapBanBe = $maND ? BanBeHelper::layTrangThaiCacNguoi($pdo, (int) $maND, array_merge([(int) $bai['MaND']], array_column($allBinhLuan, 'MaND'))) : [];
 
-    // Xây dựng cấu trúc cây (Tree) cho bình luận
+    // Dựng cây bình luận cha - con
     $binhLuanMap = [];
     foreach ($allBinhLuan as $bl) {
         $bl['children'] = [];
@@ -347,12 +344,10 @@ if ($bai) {
             $binhLuanTree[] = &$bl;
         }
     }
-    unset($bl); // Giải phóng tham chiếu
+    unset($bl);
 }
 
-/**
- * Hàm đệ quy hiển thị bình luận phân cấp
- */
+// Hiển thị đệ quy cây bình luận phân cấp
 function renderBinhLuan($c, $level, $maND, $coAnBL, $coLikeBL, $bai, $eloMap, $coLike, $id, $dangSua, $loiSua, $noiDungSua, &$loiSuaDaHien, array $mapBanBe = []) {
     $laChu   = $maND !== null && (int) $c['MaND'] === $maND;
     $laQT    = Auth::laQuanTriKiemDuyet();
@@ -360,7 +355,7 @@ function renderBinhLuan($c, $level, $maND, $coAnBL, $coLikeBL, $bai, $eloMap, $c
     $conSua  = $laChu && !$dangAn && CongDongHelper::conHanSua((int) $c['GiayTuLuc']);
     $moSua   = $conSua && $dangSua === (int) $c['MaBinhLuan'];
     
-    // Thiết lập class thụt lề (giới hạn tối đa 3 cấp giống FB để không bị tràn viền)
+    // Giới hạn thụt lề tối đa 3 cấp để tránh tràn giao diện
     $levelClass = '';
     if ($level > 0) {
         $visualLevel = min($level, 3);
@@ -515,7 +510,6 @@ function renderBinhLuan($c, $level, $maND, $coAnBL, $coLikeBL, $bai, $eloMap, $c
         <?php endif; ?>
     </div>
     <?php
-    // Đệ quy hiển thị bình luận con
     if (!empty($c['children'])) {
         foreach ($c['children'] as $child) {
             renderBinhLuan($child, $level + 1, $maND, $coAnBL, $coLikeBL, $bai, $eloMap, $coLike, $id, $dangSua, $loiSua, $noiDungSua, $loiSuaDaHien, $mapBanBe);
@@ -528,7 +522,7 @@ $cssTrang = 'baidang';
 $jsTrang  = ['capnhat_mem', 'baidang'];
 require __DIR__ . '/layout/header.php';
 ?>
-<!-- Reusable Cyber Gradients for Community SVG Icons -->
+<!-- Gradient dùng chung cho biểu tượng SVG -->
 <svg width="0" height="0" style="position: absolute; width: 0; height: 0; overflow: hidden; pointer-events: none;" aria-hidden="true" focusable="false">
   <defs>
     <linearGradient id="cdGradGold" x1="0" y1="0" x2="0" y2="1">
@@ -551,11 +545,11 @@ require __DIR__ . '/layout/header.php';
 </svg>
 
 <style>
-/* CSS cho Bình luận phân cấp (Nested Comments) */
+/* Phân cấp bình luận tối đa 3 cấp */
 .bl-reply-level-1, .bl-reply-level-2, .bl-reply-level-3 {
     margin-left: 35px;
     padding-left: 12px;
-    border-left: 2px solid rgba(56, 189, 248, 0.4); /* Đường kẻ xanh giống FB */
+    border-left: 2px solid rgba(56, 189, 248, 0.4);
     position: relative;
     margin-top: 12px;
 }
@@ -563,7 +557,6 @@ require __DIR__ . '/layout/header.php';
 .bl-reply-level-2 { margin-left: 70px; }
 .bl-reply-level-3 { margin-left: 100px; }
 
-/* Responsive cho điện thoại để không bị tràn màn hình */
 @media (max-width: 600px) {
     .bl-reply-level-1 { margin-left: 15px; padding-left: 8px; }
     .bl-reply-level-2 { margin-left: 30px; padding-left: 8px; }
@@ -651,7 +644,7 @@ require __DIR__ . '/layout/header.php';
       <?php if ((int) $bai['MaND'] === $maND): ?>
         <div class="thao-tac-chu-bai">
           <?php if ($baiAn): ?>
-            <?php /* bài đang ẩn: không sửa, không ẩn lại */ ?>
+            <?php /* Bài đang ẩn: không sửa và không ẩn lại */ ?>
           <?php elseif (CongDongHelper::conHanSua((int) $bai['GiayTuDang'])): ?>
             <a class="btn btn-phu" href="<?= e(BASE_URL) ?>/client/suabai.php?id=<?= (int) $id ?>">
               <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="vertical-align: -1.5px; margin-right: 3px;" aria-hidden="true"><path d="M11 2.5l2.5 2.5-8 8H3v-2.5l8-8z"/></svg>
@@ -707,7 +700,6 @@ require __DIR__ . '/layout/header.php';
       
       <?php 
       $loiSuaDaHien = false;
-      // Bắt đầu vẽ cây bình luận đệ quy
       foreach ($binhLuanTree as $rootBl) {
           renderBinhLuan($rootBl, 0, $maND, $coAnBL, $coLikeBL, $bai, $eloMap, $coLike, $id, $dangSua, $loiSua, $noiDungSua, $loiSuaDaHien, $mapBanBe);
       }
@@ -741,7 +733,7 @@ require __DIR__ . '/layout/header.php';
           <label for="noi_dung">Viết bình luận</label>
           <textarea id="noi_dung" name="noi_dung" maxlength="1000" placeholder="Chia sẻ lời giải hoặc trả lời thảo luận (có thể đính kèm ảnh)..."><?= e($noiDungBL) ?></textarea>
 
-          <!-- Khung hiển thị ảnh xem trước ngay khi chọn kèm dấu X xóa ảnh -->
+          <!-- Xem trước ảnh bình luận -->
           <div class="cd-img-preview-box bl-preview-box" id="previewBoxBL" style="display:none;">
             <div class="cd-img-preview-wrap">
               <img class="bl-preview-img" id="previewImgBL" src="" alt="Xem trước ảnh bình luận">

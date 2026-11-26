@@ -1,6 +1,5 @@
 <?php
-// Đọc sheet đầu tiên của file Excel (.xlsx) mà không cần thư viện ngoài (chỉ cần extension zip và dom).
-// Dùng cho A-22 (import câu hỏi).
+// Đọc sheet đầu tiên của file Excel (.xlsx) bằng ZipArchive và DOMDocument.
 class DocFileXlsx
 {
     private const NS = 'http://schemas.openxmlformats.org/spreadsheetml/2006/main';
@@ -130,7 +129,7 @@ class DocFileXlsx
     }
 }
 
-// Tương thích ngược: Định danh XlsxReader trỏ tới DocFileXlsx
+// Alias giữ tương thích tên lớp cũ
 if (!class_exists('XlsxReader', false)) {
     class_alias('DocFileXlsx', 'XlsxReader');
 }

@@ -1,11 +1,5 @@
 <?php
-// Đọc chữ trong file Word (.docx) mà không cần thư viện ngoài (chỉ cần extension zip và dom của PHP,
-// XAMPP bật sẵn). Dùng cho A-43 (tách câu hỏi từ file Word).
-// Nâng cấp:
-//  1. Tự động giải mã Auto-Numbering (word/numbering.xml) khi người dùng dùng danh sách tự động 1. 2. 3. hoặc A. B. C. D.
-//  2. Tự động nhận diện đáp án được đánh dấu bằng Gạch chân (<u>), In đậm (<b>), Tô màu đỏ/xanh hoặc Tô sáng (Highlight).
-//  3. Tự động tách các ô trong Bảng (Table <w:tc>) thành các đoạn rõ ràng để không bị dính chữ khi đề thi kẻ bảng 2x2.
-//  4. Cung cấp hàm taiMau() để sinh file Word mẫu (.docx) chuẩn cho Admin tải về sử dụng ngay.
+// Đọc chữ từ file Word (.docx) bằng ZipArchive và DOMDocument (hỗ trợ auto-numbering, bảng và định dạng đáp án).
 class DocFileDocx
 {
     private const W = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
@@ -438,7 +432,7 @@ class DocFileDocx
     }
 }
 
-// Tương thích ngược: Định danh DocxReader trỏ tới DocFileDocx
+// Alias giữ tương thích tên lớp cũ
 if (!class_exists('DocxReader', false)) {
     class_alias('DocFileDocx', 'DocxReader');
 }

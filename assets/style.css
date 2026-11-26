@@ -1,8 +1,4 @@
-/* =====================================================================
-   COSMIC NEBULA - giao diện chung (Client + Admin)
-   Quản lý màu bằng CSS Variables. Các biến --mau-* cũ được giữ lại để
-   các file CSS riêng của từng trang tiếp tục hoạt động.
-   ===================================================================== */
+/* Giao diện chung Client và Admin; giữ các biến --mau-* để tương thích CSS từng trang */
 :root {
   --bg:#050817; --navy:#081A3A; --blue:#087BFF; --cyan:#00D9FF;
   --purple:#8B35FF; --magenta:#E044FF; --light-cyan:#8AF5FF; --white:#F5F8FF;
@@ -30,7 +26,7 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
-  /* Nền dự phòng (hiện khi WebGL/JS không chạy): ảnh tinh vân + nhiều lớp gradient */
+  /* Nền dự phòng khi WebGL/JS tắt */
   background:
     radial-gradient(60% 50% at 15% 10%, rgba(0,217,255,.28), transparent 70%),
     radial-gradient(55% 45% at 85% 35%, rgba(139,53,255,.32), transparent 70%),
@@ -46,29 +42,28 @@ h1,h2,h3,h4 { line-height:1.35; text-shadow:0 0 22px rgba(0,217,255,.25); }
 ::selection { background:rgba(139,53,255,.55); color:#fff; }
 :focus-visible { outline:2px solid var(--cyan); outline-offset:2px; }
 
-/* Canvas hiệu ứng (do assets/js/effects/cosmic-bg.js tạo ra) */
+/* Canvas hiệu ứng nền */
 .cosmic-canvas { position:fixed; inset:0; width:100%; height:100%; z-index:-1; pointer-events:none; display:block; }
 #cosmic-nebula { z-index:-2; }
 html.cosmic-on body { background:transparent; }
 
 .container { max-width:1120px; margin:0 auto; padding:16px; }
 
-/* Chiều cao tối thiểu 1 màn hình: trang ngắn thì footer nằm sát đáy màn hình, chỉ lướt xuống mới thấy khi trang dài */
+/* Giữ footer sát đáy màn hình khi trang ngắn */
 body { display:flex; flex-direction:column; min-height:100vh; min-height:100dvh; }
 body > main.container { flex:1 0 auto; width:100%; }
 body > header, body > footer { flex:none; }
 
-/* ---- Card (glassmorphism) ---- */
+/* Thẻ nội dung */
 .card {
-  background:#0a1430;                       /* nền đặc, không trong suốt */
+  background:#0a1430;                       /* nền đặc */
   border:1.5px solid var(--cyan); border-radius:var(--radius);
   padding:18px; margin-bottom:16px;
-  /* viền xanh lơ phát sáng: vòng sáng ngoài + sáng nhẹ bên trong */
   box-shadow:0 0 6px rgba(0,217,255,.7), 0 0 20px rgba(0,217,255,.35), inset 0 0 14px rgba(0,217,255,.12);
 }
 .card .card { background:#0e1b3d; box-shadow:0 0 8px rgba(0,217,255,.3); }
 
-/* ---- Button ---- */
+/* Nút */
 .btn {
   display:inline-block; padding:9px 18px; border:0; border-radius:10px; cursor:pointer;
   font-size:15px; font-weight:600; color:#fff; background:var(--gradient-neon);
@@ -80,13 +75,13 @@ body > header, body > footer { flex:none; }
 .btn-phu { background:transparent; color:var(--light-cyan); border:1px solid var(--cyan); box-shadow:none; }
 .btn-phu:hover { background:rgba(0,217,255,.12); box-shadow:var(--glow-cyan); color:#fff; }
 
-/* ---- Table ---- */
+/* Bảng */
 table { width:100%; border-collapse:collapse; background:transparent; }
 th, td { padding:9px 12px; border-bottom:1px solid rgba(138,245,255,.12); text-align:left; }
 th { background:rgba(8,123,255,.16); color:var(--light-cyan); font-weight:600; letter-spacing:.02em; }
 tbody tr:hover td { background:rgba(139,53,255,.10); }
 
-/* ---- Form ---- */
+/* Biểu mẫu */
 input[type=text], input[type=email], input[type=password], input[type=number], input[type=search],
 input[type=date], input[type=file], select, textarea {
   width:100%; padding:9px 12px; border:1px solid rgba(138,245,255,.28); border-radius:10px;
@@ -100,7 +95,7 @@ input[readonly] { opacity:.7; }
 input[type=checkbox], input[type=radio] { accent-color:var(--magenta); }
 label { display:block; margin:10px 0 4px; font-weight:600; color:var(--light-cyan); }
 
-/* ---- Thông báo ---- */
+/* Thông báo */
 .loi, .thanhcong {
   padding:10px 14px; border-radius:10px; margin-bottom:12px; border:1px solid;
   backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
@@ -108,7 +103,7 @@ label { display:block; margin:10px 0 4px; font-weight:600; color:var(--light-cya
 .loi { background:rgba(255,60,110,.14); color:#ffb3c8; border-color:rgba(255,80,130,.5); box-shadow:0 0 16px rgba(255,60,110,.18); }
 .thanhcong { background:rgba(0,255,200,.12); color:#9dffe6; border-color:rgba(0,255,200,.45); box-shadow:0 0 16px rgba(0,255,200,.15); }
 
-/* ---- Phân trang ---- */
+/* Phân trang */
 .phantrang { margin:12px 0; }
 .phantrang a, .phantrang strong {
   display:inline-block; padding:3px 10px; margin:0 2px 4px 0; border:1px solid var(--mau-vien);
@@ -117,7 +112,7 @@ label { display:block; margin:10px 0 4px; font-weight:600; color:var(--light-cya
 .phantrang a:hover { border-color:var(--cyan); box-shadow:var(--glow-cyan); }
 .phantrang strong { background:var(--gradient-neon); color:#fff; border-color:transparent; box-shadow:var(--glow-purple); }
 
-/* ---- Site Client: thanh điều hướng ---- */
+/* Thanh điều hướng */
 .topnav {
   position:sticky; top:0; z-index:50; background:#08112b;
   border-bottom:1.5px solid var(--cyan);
@@ -197,7 +192,7 @@ label { display:block; margin:10px 0 4px; font-weight:600; color:var(--light-cya
 .topnav .phai { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
 .topnav .phai a { margin-left:0; }
 
-/* ---- Dropdown menu Hồ sơ trên Topnav ---- */
+/* Menu hồ sơ thả xuống */
 .nav-dropdown { position:relative; display:inline-block; }
 .nav-drop-btn {
   display:inline-flex; align-items:center; gap:6px;
@@ -261,9 +256,7 @@ label { display:block; margin:10px 0 4px; font-weight:600; color:var(--light-cya
 }
 .topnav .nav-nut-chinh:hover { filter:brightness(1.12); box-shadow:0 0 24px rgba(0,217,255,.8) !important; }
 
-/* =====================================================================
-   TOPNAV NOTIFICATION BELL & DROPDOWN (REALTIME ESPORTS CYBER HUD)
-   ===================================================================== */
+/* Chuông thông báo trên thanh điều hướng */
 .nav-notif-wrap {
   position: relative;
   display: inline-flex;
@@ -336,7 +329,7 @@ label { display:block; margin:10px 0 4px; font-weight:600; color:var(--light-cya
   100% { transform: scale(1); box-shadow: 0 0 6px rgba(239, 68, 68, 0.6); }
 }
 
-/* Dropdown Menu Thông Báo */
+/* Danh sách thông báo thả xuống */
 .notif-dropdown {
   position: absolute;
   right: 0;
@@ -580,7 +573,7 @@ label { display:block; margin:10px 0 4px; font-weight:600; color:var(--light-cya
   text-decoration: underline;
 }
 
-/* Nút Trả Lời & Thẻ Tag Rep trên chi tiết bài đăng */
+/* Nút trả lời và nhãn phản hồi bình luận */
 .btn-rep-bl {
   background: rgba(0, 217, 255, 0.09) !important;
   border-color: rgba(0, 217, 255, 0.35) !important;
@@ -626,9 +619,7 @@ label { display:block; margin:10px 0 4px; font-weight:600; color:var(--light-cya
   color: #EF4444;
 }
 
-/* =====================================================================
-   MEGA HYBRID FOOTER: ESPORTS COMMAND HUB & HIGH-TECH TELEMETRY
-   ===================================================================== */
+/* Chân trang */
 .site-mega-footer {
   margin-top:50px;
   background:linear-gradient(180deg, #071026 0%, #030714 100%);
@@ -643,7 +634,7 @@ label { display:block; margin:10px 0 4px; font-weight:600; color:var(--light-cya
 }
 .footer-container { padding:36px 16px 28px; }
 
-/* 1. Holographic Telemetry Dashboard (Ý tưởng 3) */
+/* Hàng thẻ thống kê chân trang */
 .footer-dashboard-row {
   display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:14px; margin-bottom:22px;
 }
@@ -702,7 +693,7 @@ label { display:block; margin:10px 0 4px; font-weight:600; color:var(--light-cya
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
 }
 
-/* 2. Thân chân trang 3 cột điều hướng & Thông tin liên hệ */
+/* Thân chân trang */
 .footer-main-grid {
   display:grid; grid-template-columns:1.5fr 1fr 1fr; gap:36px;
   padding-bottom:26px; margin-bottom:20px;
@@ -728,7 +719,7 @@ label { display:block; margin:10px 0 4px; font-weight:600; color:var(--light-cya
   font-size:12.5px; color:#94a3b8; line-height:1.6; margin:0 0 14px;
 }
 
-/* Khối Thông Tin Liên Hệ & Kênh Mạng Xã Hội (Mẫu Hotline / Social) */
+/* Thông tin liên hệ và mạng xã hội */
 .ft-contact-box {
   margin:0 0 16px; display:flex; flex-direction:column; gap:6px;
 }
@@ -757,7 +748,6 @@ label { display:block; margin:10px 0 4px; font-weight:600; color:var(--light-cya
 .ft-social-btn:hover {
   transform:translateY(-3px) scale(1.08);
 }
-/* Facebook */
 .ft-social-btn.ft-fb {
   background:#1877F2;
   box-shadow:0 3px 12px rgba(24,119,242,.35);
@@ -765,7 +755,6 @@ label { display:block; margin:10px 0 4px; font-weight:600; color:var(--light-cya
 .ft-social-btn.ft-fb:hover {
   box-shadow:0 6px 20px rgba(24,119,242,.7); filter:brightness(1.1);
 }
-/* Instagram */
 .ft-social-btn.ft-insta {
   background:linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
   box-shadow:0 3px 12px rgba(220,39,67,.35);
@@ -773,7 +762,6 @@ label { display:block; margin:10px 0 4px; font-weight:600; color:var(--light-cya
 .ft-social-btn.ft-insta:hover {
   box-shadow:0 6px 20px rgba(220,39,67,.7); filter:brightness(1.1);
 }
-/* Threads */
 .ft-social-btn.ft-threads {
   background:#101216; border:1px solid rgba(255,255,255,.24);
   box-shadow:0 3px 12px rgba(0,0,0,.5);
@@ -783,7 +771,7 @@ label { display:block; margin:10px 0 4px; font-weight:600; color:var(--light-cya
   box-shadow:0 6px 20px rgba(255,255,255,.35); filter:brightness(1.2);
 }
 
-/* Navigation columns */
+/* Cột điều hướng */
 .ft-col-heading {
   font-size:14px; font-weight:900; color:#fff; margin:0 0 14px;
   display:flex; align-items:center; gap:8px; text-transform:uppercase; letter-spacing:.04em;
@@ -820,7 +808,7 @@ label { display:block; margin:10px 0 4px; font-weight:600; color:var(--light-cya
   background:linear-gradient(135deg, #EF4444, #F59E0B); color:#fff;
 }
 
-/* 3. Dải đáy Chân trang (Bottom Bar) */
+/* Dải đáy chân trang */
 .footer-bottom-bar {
   display:flex; align-items:center; justify-content:center;
   text-align:center; padding-top:4px;
@@ -832,7 +820,7 @@ label { display:block; margin:10px 0 4px; font-weight:600; color:var(--light-cya
 .ft-copyright strong { color:#cbd8f0; }
 .ft-dev-credit { color:#94a3b8; font-size:11.5px; }
 
-/* Responsive cho Mega Footer */
+/* Responsive chân trang */
 @media (max-width: 960px) {
   .footer-dashboard-row { grid-template-columns:repeat(2, 1fr); }
   .footer-main-grid { grid-template-columns:1fr 1fr; gap:24px; }
@@ -843,7 +831,7 @@ label { display:block; margin:10px 0 4px; font-weight:600; color:var(--light-cya
   .footer-bottom-bar { padding-top:6px; }
 }
 
-/* ---- Nút bật/tắt hiệu ứng ---- */
+/* Nút bật/tắt hiệu ứng */
 .fx-toggle {
   position:fixed; right:14px; bottom:14px; z-index:60; padding:7px 13px; border-radius:999px; cursor:pointer;
   font:600 13px 'Segoe UI',Arial,sans-serif; color:var(--light-cyan); background:var(--glass-dam);
@@ -851,7 +839,7 @@ label { display:block; margin:10px 0 4px; font-weight:600; color:var(--light-cya
 }
 .fx-toggle:hover { box-shadow:var(--glow-cyan); color:#fff; }
 
-/* ---- Modal / Dropdown / Toast (dùng bởi assets/js/ui.js) ---- */
+/* Modal, dropdown, toast (assets/js/ui.js) */
 .modal-nen { position:fixed; inset:0; z-index:100; display:flex; align-items:center; justify-content:center; padding:16px;
   background:rgba(3,5,18,.65); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); }
 .modal-nen[hidden] { display:none; }
@@ -930,7 +918,7 @@ label { display:block; margin:10px 0 4px; font-weight:600; color:var(--light-cya
 
 .btn-do { border-color:rgba(255,100,120,.6); color:#ff9aa8; }
 
-/* VIP Subject Picker Flex Search Input Reset */
+/* Reset ô tìm kiếm bộ chọn môn */
 .vip-mon-search-box input,
 .vip-mon-search-input {
   width: auto !important;

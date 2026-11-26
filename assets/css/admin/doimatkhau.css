@@ -1,4 +1,4 @@
-/* Trang Đổi mật khẩu (admin/doimatkhau.php) - Giao diện Enterprise High-Contrast */
+/* Trang Đổi mật khẩu (admin/doimatkhau.php) */
 .card.dmk {
   --d-navy: #0f172a;
   --d-xanh: #2563eb;
@@ -123,7 +123,7 @@
   border: 1px solid #fecaca;
 }
 
-/* Ô nhập kiểu thanh mảnh bo góc hiện đại */
+/* Ô nhập mật khẩu */
 .dmk .dmk-an {
   position: absolute;
   width: 1px;

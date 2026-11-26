@@ -1,5 +1,5 @@
 <?php
-// Đăng xuất sinh viên (C-03). Đặt tại: elo_quiz/client/dangxuat.php
+// Đăng xuất tài khoản sinh viên
 require_once __DIR__ . '/../core/bootstrap.php';
 
 Auth::dangXuat('client');

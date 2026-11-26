@@ -1,10 +1,6 @@
 <?php
-// Kiểm tra và ghi câu hỏi + đáp án. Dùng chung cho thêm/sửa câu hỏi (A-18) và sau này cho
-// import Excel (A-22), tách Word (A-43), kiểm tra trùng (A-44).
-// Đặt tại: elo_quiz/core/CauHoiHelper.php
-//
-// Quy ước: kiemTra() không ghi gì vào CSDL. chen() và ghiDapAn() KHÔNG tự mở giao dịch,
-// để nơi gọi (ví dụ import nhiều dòng) gói tất cả vào một giao dịch (6.5).
+// Kiểm tra và ghi câu hỏi + đáp án (dùng chung cho thêm/sửa câu hỏi và import hàng loạt).
+// kiemTra() không ghi CSDL; chen() và ghiDapAn() không tự mở transaction để bên gọi gom batch.
 class CauHoiHelper
 {
     public const DO_KHO       = ['Dễ', 'Trung bình', 'Khó'];
@@ -18,8 +14,7 @@ class CauHoiHelper
         return trim(str_replace(["\r\n", "\r"], "\n", $s));
     }
 
-    // Tìm câu hỏi trùng nội dung trong cùng môn (A-44). Trả về mã câu trùng hoặc null.
-    // So sánh theo collation của cột (không phân biệt hoa thường). $boQuaId để bỏ qua chính câu đang sửa.
+    // Tìm câu hỏi trùng nội dung trong cùng môn ($boQuaId để bỏ qua câu đang sửa).
     public static function timTrung(PDO $pdo, int $maMon, string $noiDung, int $boQuaId = 0): ?int
     {
         $st = $pdo->prepare('SELECT MaCauHoi FROM CAUHOI WHERE MaMon = ? AND NoiDung = ? AND MaCauHoi <> ? LIMIT 1');
@@ -109,7 +104,7 @@ class CauHoiHelper
             $loi[] = 'Có hai phương án trả lời giống nhau.';
         }
 
-        // A-44: trùng nội dung với câu khác trong cùng môn
+        // Kiểm tra trùng nội dung với câu khác trong cùng môn
         if (!$boQuaTrungCSDL && $noiDung !== '' && $maMon > 0 && !$loi) {
             $trung = self::timTrung($pdo, $maMon, $noiDung, $boQuaId);
             if ($trung !== null) {

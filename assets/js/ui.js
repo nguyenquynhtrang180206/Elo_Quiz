@@ -1,8 +1,4 @@
-/* Tiện ích giao diện dùng chung.
-   - CosmicUI.toast(thongBao, loai)   loai: 'thanhcong' | 'loi'
-   - Thêm data-xacnhan="Nội dung hỏi" vào <form> hoặc <a> để hiện modal xác nhận trước khi gửi/đi tiếp.
-   - Muốn xác nhận 2 lớp: thêm data-xacnhan2="Câu hỏi lớp 2" (tùy chọn data-xacnhan2-nut="Chữ trên nút lớp 2").
-   - [data-dropdown] > nút [data-dropdown-nut] + .dropdown-menu: đóng/mở menu thả xuống. */
+// Tiện ích giao diện dùng chung: toast, modal xác nhận nhiều lớp và dropdown.
 (function () {
   "use strict";
 

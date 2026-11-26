@@ -1,15 +1,9 @@
 <?php
-// =====================================================================
-// DỊCH VỤ GỬI EMAIL CHUYÊN NGHIỆP QUA SMTP (GMAIL / LOCAL RELAY)
-// Đặt tại: core/Services/Mailer.php
-// Tự vận hành qua Socket thuần PHP, không cần thư viện ngoài (Zero-dependency)
-// =====================================================================
+// Gửi email HTML qua SMTP socket thuần PHP (hỗ trợ STARTTLS/SSL và log local khi debug).
 
 class Mailer
 {
-    /**
-     * Gửi mã OTP xác thực khôi phục mật khẩu đến email người dùng
-     */
+    /** Gửi mã OTP khôi phục mật khẩu đến email người dùng. */
     public static function guiOtpQuenMatKhau(string $toEmail, string $hoTen, string $otp): array
     {
         return self::guiOtpEmail(
@@ -23,9 +17,7 @@ class Mailer
         );
     }
 
-    /**
-     * Gửi mã OTP xác thực đăng ký tài khoản mới đến email người dùng
-     */
+    /** Gửi mã OTP xác thực đăng ký tài khoản mới. */
     public static function guiOtpDangKy(string $toEmail, string $hoTen, string $otp): array
     {
         return self::guiOtpEmail(
@@ -39,9 +31,7 @@ class Mailer
         );
     }
 
-    /**
-     * Gửi mã OTP xác thực khôi phục mật khẩu Quản trị viên
-     */
+    /** Gửi mã OTP khôi phục mật khẩu Quản trị viên. */
     public static function guiOtpQuenMatKhauAdmin(string $toEmail, string $hoTen, string $tenDangNhap, string $otp): array
     {
         return self::guiOtpEmail(
@@ -55,9 +45,7 @@ class Mailer
         );
     }
 
-    /**
-     * Gửi mã OTP xác thực đăng nhập 2 lớp (2FA) cho Quản trị viên trên thiết bị mới
-     */
+    /** Gửi mã OTP xác thực 2FA cho Quản trị viên trên thiết bị mới. */
     public static function guiOtpDangNhapAdmin(string $toEmail, string $hoTen, string $tenDangNhap, string $otp): array
     {
         $ip = substr((string) ($_SERVER['REMOTE_ADDR'] ?? '127.0.0.1'), 0, 45);
@@ -72,9 +60,7 @@ class Mailer
         );
     }
 
-    /**
-     * Dùng chung template Esports để gửi Email chứa mã OTP 6 số
-     */
+    /** Template email HTML chứa mã OTP 6 số. */
     private static function guiOtpEmail(
         string $toEmail,
         string $hoTen,
@@ -246,7 +232,7 @@ class Mailer
         }
         [$local, $domain] = $parts;
 
-        // 1. Các tên miền thử nghiệm / nội bộ
+        // Tên miền thử nghiệm / nội bộ
         $tenMienThuNghiem = ['test.com', 'example.com', 'localhost', 'local', 'elo.local', 'quizup.arena', 'invalid', 'test'];
         foreach ($tenMienThuNghiem as $d) {
             if ($domain === $d || str_ends_with($domain, '.' . $d)) {
@@ -254,12 +240,12 @@ class Mailer
             }
         }
 
-        // 2. Các tài khoản đặt tên kiểu demo / kiểm thử phổ biến (vd: nguoikiemtra@..., test1@..., demo@..., sv1@...)
+        // Tài khoản demo / kiểm thử
         if (preg_match('/^(test|demo|nguoikiemtra|kiemtra|sinhvien|sv|user|acc|fake|clone|abc|xyz)[0-9_]*$/i', $local)) {
             return true;
         }
 
-        // 3. Kiểm tra DNS MX Record của tên miền (nếu tên miền không có máy chủ mail thật)
+        // Kiểm tra DNS MX Record của tên miền
         if (function_exists('checkdnsrr') && !in_array($domain, ['gmail.com', 'outlook.com', 'hotmail.com', 'yahoo.com', 'icloud.com'], true)) {
             if (!@checkdnsrr($domain, 'MX') && !@checkdnsrr($domain, 'A')) {
                 return true;
@@ -324,13 +310,9 @@ class Mailer
             return $docPhanHoi($maKyVong);
         };
 
-        // 1. Đón lời chào từ máy chủ
         $docPhanHoi(220);
-
-        // 2. Bắt tay EHLO
         $guiLenh('EHLO ' . gethostname(), 250);
 
-        // 3. Nâng cấp STARTTLS nếu dùng cổng 587 hoặc TLS
         if ($encryption === 'tls' || $port === 587) {
             $guiLenh('STARTTLS', 220);
             $crypto = @stream_socket_enable_crypto(
@@ -344,23 +326,20 @@ class Mailer
             $guiLenh('EHLO ' . gethostname(), 250);
         }
 
-        // 4. Đăng nhập xác thực AUTH LOGIN
         $guiLenh('AUTH LOGIN', 334);
         $guiLenh(base64_encode($username), 334);
         $guiLenh(base64_encode($password), 235);
 
-        // 5. Khai báo người gửi & người nhận (kèm BCC về hộp thư chủ nếu có)
         $guiLenh("MAIL FROM:<{$fromEmail}>", 250);
         $guiLenh("RCPT TO:<{$toEmail}>", 250);
         if ($bccEmail !== null && $bccEmail !== '' && strcasecmp($bccEmail, $toEmail) !== 0) {
             try {
                 $guiLenh("RCPT TO:<{$bccEmail}>", 250);
             } catch (Throwable) {
-                // Nếu RCPT TO phụ gặp lỗi vẫn tiếp tục gửi thư chính
+                // Bỏ qua nếu RCPT TO phụ lỗi
             }
         }
 
-        // 6. Gửi nội dung thư DATA
         $guiLenh('DATA', 354);
 
         $subEncoded  = '=?UTF-8?B?' . base64_encode($subject) . '?=';
@@ -382,7 +361,6 @@ class Mailer
         // Kết thúc DATA bằng dấu chấm trên dòng riêng
         $guiLenh($payload . "\r\n.", 250);
 
-        // 7. Thoát phiên
         $guiLenh('QUIT', 221);
         fclose($socket);
     }

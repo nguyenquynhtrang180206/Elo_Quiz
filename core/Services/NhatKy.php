@@ -1,9 +1,5 @@
 <?php
-// Ghi nhật ký quản trị (A-40) và dựng điều kiện lọc dùng chung (A-41). Chỉ ghi, không sửa/xóa (A-42).
-// Cách dùng: NhatKy::ghi('Khóa người dùng', 'NGUOIDUNG #15', 'Lý do: spam bài đăng');
-//            NhatKy::ghiThatBai('Import câu hỏi từ Excel', 'CAUHOI', 'Lỗi dòng 5');   // hoặc ghi(..., 'Thất bại')
-// Chỉ gọi cho các thao tác ở A-40: khóa/mở khóa người dùng, ẩn/hiện câu hỏi, import Excel,
-// hủy trận, ẩn/hiện nội dung cộng đồng, đổi cấu hình.
+// Ghi nhật ký quản trị (chỉ ghi, không sửa/xóa) và dựng điều kiện lọc dùng chung.
 class NhatKy
 {
     // Chỉ giữ nhật ký trong số tháng này; bản ghi cũ hơn bị xóa tự động mỗi lần có thao tác mới được ghi (xem donCu).
@@ -98,10 +94,7 @@ class NhatKy
         self::donCu();
     }
 
-    // Xóa bản ghi cũ hơn GIU_THANG tháng (tính theo giờ của máy chủ CSDL, cùng đồng hồ với cột ThoiGian).
-    // Đây là dọn dẹp tự động của hệ thống, không phải thao tác xóa của quản trị viên (A-42 vẫn giữ nguyên: giao diện không có nút sửa/xóa).
-    // Chạy sau mỗi lần ghi: thao tác quản trị ít khi xảy ra, và cột ThoiGian đã có chỉ mục nên câu lệnh nhẹ.
-    // Lỗi khi dọn không được làm hỏng việc ghi nhật ký, nên chỉ ghi vào error_log.
+    // Xóa bản ghi cũ hơn GIU_THANG tháng (chạy tự động sau mỗi lần ghi, không phải thao tác xóa thủ công).
     private static function donCu(): void
     {
         try {

@@ -1,10 +1,9 @@
-/* Trang Bạn bè (client/banbe.php) - giao diện Cosmic Esports (thiết kế lại)
-   Tiền tố bb-. Đặt tại: assets/css/client/banbe.css */
+/* Trang Bạn bè (client/banbe.php) */
 
 .bb-trang { max-width: 1120px; }
 :target { scroll-margin-top: 90px; }   /* mốc #loimoi, #danhsach không bị thanh menu che */
 
-/* ---------- Banner đầu trang ---------- */
+/* Banner đầu trang */
 .bb-hero {
   position: relative; overflow: hidden;
   display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px 28px;
@@ -47,12 +46,12 @@
 
 .bb-tb { max-width: none; margin: 0 0 18px; }
 
-/* ---------- Bố cục 2 cột ---------- */
+/* Bố cục 2 cột */
 .bb-luoi { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; align-items: start; }
 .bb-chinh { display: grid; gap: 20px; min-width: 0; }
 .bb-phu { display: grid; gap: 20px; position: sticky; top: 88px; min-width: 0; }
 
-/* ---------- Khung nội dung ---------- */
+/* Khung nội dung */
 .bb-hop {
   position: relative; overflow: hidden; padding: 22px 22px 20px;
   border-radius: 18px; border: 1px solid rgba(0, 217, 255, .3);
@@ -81,7 +80,7 @@
 }
 .bb-hop-moi .bb-dem { background: rgba(224, 68, 255, .25); border-color: rgba(224, 68, 255, .6); }
 
-/* ---------- Ô tìm kiếm ---------- */
+/* Ô tìm kiếm */
 .bb-tim { position: relative; display: flex; gap: 10px; }
 .bb-tim-ico { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--cyan); pointer-events: none; }
 .bb-tim input[type="text"] {
@@ -94,7 +93,7 @@
 .bb-ketqua { margin-top: 16px; display: grid; gap: 8px; }
 .bb-ketqua .phantrang { text-align: center; margin-top: 8px; }
 
-/* ---------- Nút ---------- */
+/* Nút */
 .form-dong { display: inline; }
 .bb-nut {
   display: inline-flex; align-items: center; justify-content: center; gap: 6px;
@@ -113,7 +112,7 @@
 .bb-nut-nguy:hover { color: #ff9db8; border-color: rgba(255, 100, 130, .75); background: rgba(255, 60, 110, .10); box-shadow: 0 0 14px rgba(255, 60, 110, .25); }
 .bb-nut-nhom { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 
-/* ---------- Người: ảnh + tên ---------- */
+/* Người dùng */
 .bb-nguoi { display: flex; align-items: center; gap: 12px; min-width: 0; }
 .bb-ten { min-width: 0; }
 .bb-ten b { display: block; font-size: 15px; font-weight: 600; overflow-wrap: anywhere; line-height: 1.35; }
@@ -140,7 +139,7 @@
 .bb-nhan-ok { color: #6EE7B7; border-color: rgba(16, 185, 129, .5); background: rgba(16, 185, 129, .1); }
 .bb-nhan-tim { color: #f3b6ff; border-color: rgba(224, 68, 255, .5); background: rgba(224, 68, 255, .1); }
 
-/* ---------- Dòng (kết quả tìm kiếm) và lời mời ---------- */
+/* Dòng kết quả và lời mời */
 .bb-dong, .bb-loimoi {
   display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px 14px;
   padding: 12px 14px; border-radius: 14px; border: 1px solid var(--mau-vien); background: rgba(5, 10, 32, .45);
@@ -155,7 +154,7 @@
 .bb-loimoi .bb-nut-nhom .form-dong { flex: 1; display: flex; }
 .bb-loimoi .bb-nut { flex: 1; }
 
-/* ---------- Lưới thẻ bạn bè ---------- */
+/* Lưới thẻ bạn bè */
 .bb-luoi-the { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; }
 .bb-the {
   display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px;
@@ -175,7 +174,7 @@
 .bb-lienket a { color: var(--light-cyan); font-weight: 600; text-decoration: none; }
 .bb-lienket a:hover { color: #fff; text-decoration: underline; }
 
-/* ---------- Trạng thái trống ---------- */
+/* Trạng thái trống */
 .bb-rong {
   display: flex; flex-direction: column; align-items: center; gap: 10px;
   padding: 30px 16px; text-align: center; color: var(--mau-phu);
@@ -189,7 +188,7 @@
   .bb-the, .bb-so-o, .bb-nut { transition: none; }
 }
 
-/* ---------- Máy tính bảng / điện thoại ---------- */
+/* Responsive */
 @media (max-width: 900px) {
   .bb-luoi { grid-template-columns: 1fr; }
   .bb-phu { position: static; }

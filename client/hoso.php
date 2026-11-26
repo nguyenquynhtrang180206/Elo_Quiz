@@ -1,13 +1,12 @@
 <?php
-// Hồ sơ cá nhân (C-13, C-14). Đặt tại: elo_quiz/client/hoso.php
-// C-15: biểu đồ biến động Elo theo môn (Chart.js, dữ liệu từ LICHSUELO), chuyển môn và khoảng trận ngay trên trang.
+// Hồ sơ cá nhân và biểu đồ biến động Elo theo môn
 require_once __DIR__ . '/../core/bootstrap.php';
 
 $maND = Auth::requireClient(BASE_URL . '/client/dangnhap.php');
 $pdo  = Database::pdo();
 
-const AVATAR_TOI_DA = 2 * 1024 * 1024;       // 2 MB (mục 3.9)
-const AVATAR_THU_MUC = 'uploads/avatars';    // đường dẫn lưu trong cột AnhDaiDien, tính từ thư mục gốc dự án
+const AVATAR_TOI_DA = 2 * 1024 * 1024;       // Giới hạn 2 MB
+const AVATAR_THU_MUC = 'uploads/avatars';    // Đường dẫn lưu trong cột AnhDaiDien
 
 function layNguoiDung(PDO $pdo, int $maND)
 {
@@ -17,7 +16,7 @@ function layNguoiDung(PDO $pdo, int $maND)
 }
 
 $nd = layNguoiDung($pdo, $maND);
-if (!$nd) {                                   // tài khoản không còn tồn tại
+if (!$nd) {                                   // Tài khoản không còn tồn tại
     unset($_SESSION['nd_id']);
     redirect(BASE_URL . '/client/dangnhap.php');
 }
@@ -36,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $loi[] = 'Họ tên tối đa 100 ký tự.';
     }
 
-    // ---- Ảnh đại diện (3.9): chỉ JPG/PNG, tối đa 2 MB, kiểm tra loại file thật ----
+    // Kiểm tra ảnh đại diện: chỉ nhận JPG/PNG, tối đa 2 MB
     $duongDanMoi = null;
     $tepTam = null;
     $duoi = null;
@@ -50,7 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif ($f['size'] > AVATAR_TOI_DA) {
             $loi[] = 'Ảnh quá lớn, tối đa 2 MB.';
         } else {
-            // Đọc loại ảnh thật từ nội dung file, không tin tên file hay loại do trình duyệt gửi
+            // Đọc định dạng ảnh thật từ nội dung file, không tin MIME trình duyệt gửi
             $thongTin = @getimagesize($f['tmp_name']);
             $kieu = $thongTin[2] ?? null;
             if ($kieu === IMAGETYPE_JPEG)     { $duoi = 'jpg'; }
@@ -66,7 +65,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($tepTam !== null && $duoi !== null) {
             $thuMuc = rtrim($cfg['upload_dir'], '/\\') . '/avatars';
             if (!is_dir($thuMuc)) { @mkdir($thuMuc, 0775, true); }
-            $ten = bin2hex(random_bytes(16)) . '.' . $duoi;       // tên ngẫu nhiên
+            $ten = bin2hex(random_bytes(16)) . '.' . $duoi;
             if (move_uploaded_file($tepTam, $thuMuc . '/' . $ten)) {
                 $duongDanMoi = AVATAR_THU_MUC . '/' . $ten;
             } else {
@@ -84,7 +83,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $maND,
         ]);
 
-        // Xóa ảnh cũ sau khi đã thay ảnh mới (chỉ xóa file nằm trong uploads/avatars)
+        // Xóa ảnh cũ trong uploads/avatars sau khi thay ảnh mới
         if ($duongDanMoi !== null && !empty($anhCu) && strpos($anhCu, AVATAR_THU_MUC . '/') === 0) {
             $tepCu = rtrim($cfg['upload_dir'], '/\\') . '/avatars/' . basename($anhCu);
             if (is_file($tepCu)) { @unlink($tepCu); }
@@ -96,16 +95,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $laAdminSV = Auth::laAdminSinhVien();
-$emailHienThi = $laAdminSV ? 'Tài khoản quản trị' : $nd['Email'];   // tài khoản liên kết của admin dùng email nội bộ
+$emailHienThi = $laAdminSV ? 'Tài khoản quản trị' : $nd['Email'];   // Tài khoản liên kết của admin dùng email nội bộ
 $thanhCong = $_SESSION['flash_hoso'] ?? null;
 unset($_SESSION['flash_hoso']);
 
-// ---- C-14: Elo từng môn, số trận, thắng/thua/hòa, tỷ lệ thắng (phân trang: 4 môn/trang) ----
+// Elo từng môn phân trang 4 môn/trang
 const ELO_MOI_TRANG = 4;
 
 $st = $pdo->prepare('SELECT COUNT(*) FROM ELOMONHOC WHERE MaND = ?');
 $st->execute([$maND]);
-$pElo = new Paginator((int) $st->fetchColumn(), ELO_MOI_TRANG, 'elo_page');   // tham số riêng: ?elo_page=2
+$pElo = new Paginator((int) $st->fetchColumn(), ELO_MOI_TRANG, 'elo_page');
 
 $st = $pdo->prepare(
     'SELECT m.TenMon, e.DiemElo, e.SoTran, e.SoThang, e.SoThua, e.SoHoa
@@ -118,10 +117,7 @@ $st = $pdo->prepare(
 $st->execute([$maND]);
 $elo = $st->fetchAll();
 
-// Chân trang Elo (ví dụ 10 trang): luôn hiện trang đầu và trang cuối, ở giữa là trang trước - hiện tại - sau,
-// chỗ nào bị bỏ qua thì có dấu "…".
-//   trang 1: 1 2 … 10 | trang 2: 1 2 3 … 10 | trang 3: 1 2 3 4 … 10 | trang 4: 1 … 3 4 5 … 10
-//   trang 5: 1 … 4 5 6 … 10 | trang 6: 1 … 5 6 7 … 10 | trang 8: 1 … 7 8 9 10 | trang 9: 1 … 8 9 10
+// Phân trang Elo dạng rút gọn: luôn hiện trang đầu, trang cuối và vùng lân cận trang hiện tại
 function chanTrangElo(Paginator $p): string
 {
     $so = $p->soTrang();
@@ -132,7 +128,7 @@ function chanTrangElo(Paginator $p): string
     $url = function (int $n): string {
         $q = $_GET;
         $q['elo_page'] = $n;
-        return '?' . http_build_query($q) . '#elo-theo-mon';   // giữ nguyên vị trí ở khung Elo
+        return '?' . http_build_query($q) . '#elo-theo-mon';
     };
     $mucTrang = function (int $i) use ($hienTai, $url): string {
         return $i === $hienTai
@@ -145,25 +141,25 @@ function chanTrangElo(Paginator $p): string
     $den = min($so, $hienTai + 1);
 
     $h = '<nav class="phantrang elo-phantrang" aria-label="Phân trang Elo theo môn">';
-    if ($tu > 1) {                                  // trang đầu luôn hiện
+    if ($tu > 1) {
         $h .= $mucTrang(1);
         if ($tu > 2) {
-            $h .= $dau;                             // có trang bị bỏ qua giữa trang đầu và cửa sổ
+            $h .= $dau;
         }
     }
     for ($i = $tu; $i <= $den; $i++) {
         $h .= $mucTrang($i);
     }
-    if ($den < $so) {                               // trang cuối luôn hiện
+    if ($den < $so) {
         if ($den < $so - 1) {
-            $h .= $dau;                             // có trang bị bỏ qua giữa cửa sổ và trang cuối
+            $h .= $dau;
         }
         $h .= $mucTrang($so);
     }
     return $h . '</nav>';
 }
 
-// ---- C-15: dữ liệu biểu đồ biến động Elo (LICHSUELO), gom theo môn, mỗi môn giữ tối đa 200 trận gần nhất ----
+// Dữ liệu biểu đồ biến động Elo, giữ tối đa 200 trận gần nhất mỗi môn
 const BIEUDO_TOI_DA = 200;
 $st = $pdo->prepare(
     'SELECT l.MaMon, m.TenMon, l.MaTran, l.EloTruoc, l.EloSau, l.ThayDoi, l.ThoiGian
@@ -191,7 +187,7 @@ foreach ($st->fetchAll() as $r) {
 foreach ($bieuDo as $k => $b) {
     $bieuDo[$k]['tran'] = array_slice($b['tran'], -BIEUDO_TOI_DA);
 }
-// Môn vừa đấu gần nhất đứng đầu danh sách (và là môn được chọn sẵn)
+// Đưa môn vừa đấu gần nhất lên đầu danh sách
 uasort($bieuDo, fn($a, $b) => strcmp($b['cuoi'], $a['cuoi']));
 $bieuDoJson = [];
 foreach ($bieuDo as $k => $b) {

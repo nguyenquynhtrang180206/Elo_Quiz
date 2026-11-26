@@ -1,10 +1,10 @@
-/* Trang Tổng quan (admin/index.php) - Giao diện Enterprise Professional */
+/* Trang Tổng quan (admin/index.php) */
 .form-ngay label { display:inline; margin-right:8px; }
 .form-ngay select { width:auto; }
 .cot-so { width:40px; }
 .cot-thanh { width:35%; }
 
-/* ===== Phần 1: Bố cục Thẻ Đảo Nổi (Modular Floating Cards) ===== */
+/* Bố cục thẻ tổng quan */
 .dash {
   display: flex;
   flex-direction: column;
@@ -17,7 +17,7 @@
   margin-bottom: 24px;
 }
 
-/* Thẻ Hero Đảo Nổi (Chứa Header + 4 Thẻ KPI + Meta Strip) */
+/* Thẻ đầu trang và KPI */
 .dash-hero-card {
   background: #ffffff;
   color: #0f172a;
@@ -27,7 +27,7 @@
   box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(0, 0, 0, 0.04);
 }
 
-/* Header Pro: Căn chỉnh 1 hàng cân đối */
+/* Thanh tiêu đề */
 .dash-thanhtren-pro {
   display: flex; align-items: center; justify-content: space-between; gap: 16px;
   margin-bottom: 18px; padding-bottom: 16px; border-bottom: 1px solid #f1f5f9;
@@ -91,7 +91,7 @@
 .dash-admin-chip .dash-admin-info b { font-size: 12.5px; color: #0f172a; }
 .dash-admin-chip .dash-admin-info span { font-size: 10.5px; color: #64748b; font-weight: 500; }
 
-/* ===== 4 Thẻ KPI Chuẩn Professional SaaS (Khóa 4 cột ngang trên Desktop) ===== */
+/* Lưới 4 thẻ KPI */
 .dash-the {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -173,7 +173,7 @@
 
 .dash-so-ghi { color: #94a3b8; font-size: 11px; white-space: nowrap; }
 
-/* Thanh tóm tắt meta tinh tế */
+/* Dải thông số tóm tắt */
 .dash-meta-strip {
   display: flex; align-items: center; gap: 12px;
   background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 9px;
@@ -185,7 +185,7 @@
 .dash-meta-strip .meta-item b { color: #0f172a; font-weight: 600; }
 .dash-phu { margin: 12px 0 0; font-size: 12.5px; color: #64748b; }
 
-/* ===== Phần 2: Hai biểu đồ & Segmented Controls ===== */
+/* Khu vực biểu đồ */
 .dash h3 { margin:0; font-size:15px; font-weight:700; color:#0f172a; text-shadow:none; display:flex; align-items:center; gap:8px; }
 .dash h3 svg.tieude-icon { color:#2563eb; flex-shrink:0; }
 .dash-luoi { display:grid; grid-template-columns:2fr 1fr; gap:18px; margin-top:0; }
@@ -197,7 +197,7 @@
 }
 .dash-khung-dau { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:12px; }
 
-/* Segmented Control phong cách Apple / macOS */
+/* Bộ lọc dạng segmented */
 .dash-loc { display:flex; gap:2px; background:#f1f5f9; border:1px solid #e2e8f0; border-radius:8px; padding:2px; }
 .dash .dash-loc a { padding:4px 12px; border-radius:6px; font-size:12px; font-weight:600; color:#64748b; text-shadow:none; text-decoration:none; transition:all .15s ease; }
 .dash .dash-loc a:hover { color:#0f172a; text-shadow:none; }
@@ -217,7 +217,7 @@
 
 @media (max-width:1000px) { .dash-luoi { grid-template-columns:1fr; } }
 
-/* ===== Phần 3: Hoạt động gần đây + Top người chơi + Thao tác nhanh ===== */
+/* Hoạt động gần đây, top người chơi và thao tác nhanh */
 .dash-hang3 {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -324,7 +324,7 @@
 @media (max-width:1050px) { .dash-hang3 { grid-template-columns:1fr; } }
 
 
-/* ===== Điện thoại: tinh chỉnh trang Tổng quan ===== */
+/* Responsive điện thoại */
 @media (max-width: 768px) {
   .dash-hero-card { padding: 16px 14px 14px; border-radius: 14px; }
   .dash-thanhtren-pro { gap: 12px; margin-bottom: 14px; padding-bottom: 12px; }
@@ -347,8 +347,7 @@
   .adm-tb-ds { max-height: 55vh; }
 }
 
-/* ===== Điện thoại (<= 720px): bổ sung cho khối 768px phía trên =====
-   Sidebar -> nút 3 gạch đã có sẵn ở style_admin.css + sidebar_toggle.js */
+/* Responsive <= 720px */
 @media (max-width: 720px) {
   .dash { gap:14px; }
   .dash-khung { padding:14px; }

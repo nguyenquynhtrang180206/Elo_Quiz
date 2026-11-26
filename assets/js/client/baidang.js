@@ -1,8 +1,8 @@
-/* Trang Bài đăng (client/baidang.php) */
+// Trang Bài đăng (client/baidang.php).
 (function () {
   'use strict';
 
-  // 1. Hỏi xác nhận trước khi gửi form có data-xac-nhan
+  // Xác nhận form và chuyển form thả lửa sang AJAX
   document.addEventListener('submit', function (e) {
     var form = e.target;
     if (!form) return;
@@ -20,8 +20,7 @@
     }
   });
 
-  // 2. Bắt trực tiếp sự kiện CLICK trên nút Thả Lửa 🔥
-  // Đảm bảo dù người dùng bấm vào icon ngọn lửa, số đếm hay padding viền nút đều phản hồi lập tức, không bị bôi đen
+  // Chặn bôi đen khi bấm nhanh nút thả lửa
   document.addEventListener('selectstart', function (e) {
     if (e.target.closest && e.target.closest('.cd-tha-lua, .cd-chi-so')) {
       e.preventDefault();
@@ -54,7 +53,7 @@
     thucHienThaLua(form, btn);
   });
 
-  // 3. Trả lời bình luận: tra cứu phần tử lúc dùng vì vùng bình luận có thể được thay mới sau khi gửi form
+  // Tra cứu phần tử lúc dùng vì vùng bình luận có thể được thay mới sau khi gửi form
   function $(id) { return document.getElementById(id); }
 
   document.addEventListener('click', function (e) {
@@ -148,7 +147,7 @@
       btn.style.pointerEvents = '';
     });
   }
-  // 3. AJAX Kết bạn trực tiếp cạnh tên tác giả bài đăng & từng bình luận (đồng bộ tất cả bình luận của cùng user)
+  // Kết bạn AJAX và đồng bộ các widget của cùng người dùng trên trang
   document.addEventListener('click', function (e) {
     var btn = e.target.closest ? e.target.closest('[data-friend-action]') : null;
     if (!btn) return;
@@ -206,7 +205,7 @@
       });
   });
 
-  // 4. Xem trước ảnh trực tiếp & nút dấu × xóa ảnh cho Bình luận (form viết mới & form sửa bình luận)
+  // Xem trước và xóa ảnh đính kèm bình luận
   document.addEventListener('change', function (e) {
     var input = e.target;
     if (!input || !input.classList || !input.classList.contains('input-anh-bl')) return;

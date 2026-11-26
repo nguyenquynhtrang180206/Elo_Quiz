@@ -1,5 +1,4 @@
-// Trang Nhập câu hỏi từ Word/Excel kèm Trợ lý Sửa lỗi trực tiếp trên Web (admin/cauhoi_nhap.php).
-// Đặt tại: assets/js/admin/cauhoi_nhap.js
+// Trang Nhập câu hỏi từ Word/Excel và bảng sửa lỗi trực tiếp (admin/cauhoi_nhap.php).
 (function () {
   'use strict';
 
@@ -11,7 +10,7 @@
     return (byte / 1048576).toFixed(1).replace('.', ',') + ' MB';
   }
 
-  // ---------- 1. Từng vùng thả file ----------
+  // Vùng kéo thả file
   var vung = document.querySelectorAll('.ci-tha');
   Array.prototype.forEach.call(vung, function (el) {
     var input = el.querySelector('input[type=file]');
@@ -79,7 +78,7 @@
     }
   });
 
-  // ---------- 2. Từng form upload Word / Excel ----------
+  // Form upload Word/Excel
   var forms = document.querySelectorAll('form[data-ci-form]');
   Array.prototype.forEach.call(forms, function (form) {
     var nuts = form.querySelectorAll('button[type=submit]');
@@ -135,7 +134,7 @@
     kiemTra();
   });
 
-  // ---------- 3. BẢNG TRỢ LÝ SỬA LỖI TRỰC TIẾP TRÊN WEB ----------
+  // Bảng sửa lỗi trực tiếp trên trang
   var bangSua = document.getElementById('bangSuaTrucTiep');
   var luoi = document.getElementById('luoi');
   var tin = document.getElementById('thongtin');
@@ -348,7 +347,6 @@
     }
   }
 
-  // ---------- 4. Có kết quả kiểm tra thì cuộn mượt tới ----------
   var kq = document.getElementById('ketqua');
   if (kq && kq.scrollIntoView) {
     kq.scrollIntoView({ behavior: giamChuyenDong ? 'auto' : 'smooth', block: 'start' });

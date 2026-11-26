@@ -1,9 +1,8 @@
-// Trang Kiểm duyệt cộng đồng (admin/congdong.php): 4 biểu đồ Chart.js + chọn hàng loạt + khung xử lý.
-// Dữ liệu biểu đồ đọc từ <script id="du-lieu-congdong" type="application/json"> do PHP in ra.
+// Trang Kiểm duyệt cộng đồng (admin/congdong.php): biểu đồ Chart.js, chọn hàng loạt và khung xử lý.
 (function () {
   'use strict';
 
-  /* ================= 1) Biểu đồ ================= */
+  // Biểu đồ thống kê cộng đồng
   var nguon = document.getElementById('du-lieu-congdong');
   var d = null;
   if (nguon && typeof Chart !== 'undefined') {
@@ -115,13 +114,12 @@
     }
   }
 
-  /* ================= 2) Lọc: đổi môn / sắp xếp thì gửi luôn ================= */
+  // Bộ lọc tự gửi form khi thay đổi
   document.querySelectorAll('select[data-tu-gui]').forEach(function (s) {
     s.addEventListener('change', function () { s.form.submit(); });
   });
 
-  /* Ô chọn môn: chỉ hiện khoảng 5 môn một lúc (cuộn để xem tiếp) và có ô tìm môn, dùng cho cả máy tính lẫn điện thoại.
-     Vẫn giữ <select name="mon"> thật (ẩn đi) để gửi form; chọn xong thì đổi giá trị select rồi gửi luôn. */
+  // Ô chọn môn có tìm kiếm, đồng bộ giá trị với <select name="mon"> ẩn để gửi form.
   (function () {
     var goc = document.querySelector('select[name="mon"]');
     if (!goc) { return; }
@@ -202,7 +200,7 @@
     veNhan();
   })();
 
-  /* ================= 3) Chọn hàng loạt ================= */
+  // Chọn hàng loạt
   var tatCa = document.getElementById('cdmChonTatCa');
   var hl = document.getElementById('formHangLoat');
   var soChon = document.getElementById('cdmSoChon');
@@ -256,7 +254,7 @@
     });
   }
 
-  /* ================= 4) Khung xử lý bên phải ================= */
+  // Khung xử lý bên phải
   var form = document.getElementById('cdmFormXuLy');
   if (form) {
     var inHd = document.getElementById('cdmHd'), inMa = document.getElementById('cdmMa');
@@ -325,8 +323,7 @@
   });
 })();
 
-/* Điện thoại / máy tính bảng: bấm một mục ở danh sách thì trang tải lại và cuộn thẳng tới khung xem nội dung,
-   không phải lướt xuống. Có nút "Về danh sách" để quay lại đúng mục vừa bấm. */
+// Điện thoại/tablet: tự cuộn tới khung xem nội dung khi chọn mục.
 (function () {
   'use strict';
   var pv = document.getElementById('cdmPv');

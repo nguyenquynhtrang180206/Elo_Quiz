@@ -1,17 +1,7 @@
 <?php
-// Xuất danh sách người dùng ra Excel hoặc PDF. Đặt tại: elo_quiz/admin/nguoidung_xuat.php
-// Được gọi (POST, có CSRF) từ hộp thoại "Xuất" ở admin/nguoidung.php (cùng giao diện với hộp thoại Xuất của trang Tổng quan).
-// Mỗi lần gọi trả MỘT file; khi người dùng chọn "Cả hai", trình duyệt (nguoidung_xuat.js) gọi lần lượt hai lần.
-//
-// Tham số:
-//   pham_vi : loc = đang lọc (q, tt gửi kèm từ trang, dựng điều kiện giống hệt trang danh sách), tatca = toàn bộ người dùng.
-//   truong[]: các trường (cột): ma, ten, email, tt, sotran, ngay, elo (elo = thêm một cột điểm Elo cho từng môn). Thứ tự cột luôn theo $COT.
-//   noidung[]: ds = danh sách người dùng (bảng), tk = sơ đồ trạng thái tài khoản, ngay = sơ đồ tài khoản mới 30 ngày gần nhất.
-//   dinhdang: excel | pdf.
-//   anh_tk, anh_ngay: ảnh JPEG (data URL) của hai sơ đồ, do trình duyệt vẽ từ số liệu xem trước (cùng cách với admin/nhatky_xuat.php).
-//   buoc=xemtruoc: không xuất file mà trả JSON để dựng khung "Xem trước" (số liệu và vài dòng đầu).
+// Xuất danh sách người dùng ra Excel/PDF và trả JSON xem trước.
 require_once __DIR__ . '/../core/bootstrap.php';
-Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');   // A-04
+Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');
 
 function loi_xuat(string $thongBao, int $ma = 400): never
 {
@@ -20,7 +10,7 @@ function loi_xuat(string $thongBao, int $ma = 400): never
     exit($thongBao);
 }
 
-// Ảnh biểu đồ (data URL JPEG): chỉ nhận JPEG hợp lệ, tối đa 5 MB mỗi ảnh
+// Kiểm tra và giải mã ảnh biểu đồ JPEG (tối đa 5 MB).
 function anh_bieu_do(string $khoa): ?array
 {
     $v   = (string) ($_POST[$khoa] ?? '');
@@ -33,7 +23,7 @@ function anh_bieu_do(string $khoa): ?array
     return ['jpeg' => $b, 'rong' => $kt[0], 'cao' => $kt[1]];
 }
 
-// Ảnh dùng trong Excel, rộng $rong pixel (giữ tỷ lệ), cách mép trái $x pixel
+// Tính kích thước ảnh theo chiều rộng cố định (giữ tỷ lệ).
 function anh_theo_rong(?array $a, int $rong, int $x = 0): ?array
 {
     if (!$a) { return null; }
@@ -46,11 +36,11 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 csrf_check();
 @set_time_limit(120);
 
-$TOI_DA_XLSX = 10000;   // số dòng tối đa của file Excel (vượt quá thì yêu cầu lọc bớt, tránh làm treo máy chủ)
+$TOI_DA_XLSX = 10000;
 $TOI_DA_PDF  = 3000;
-$SO_DONG_XEM = 10;      // số dòng đầu đưa vào khung xem trước
+$SO_DONG_XEM = 10;
 
-// Các trường được phép xuất: khóa => [tiêu đề cột, tỉ lệ độ rộng cột trong PDF]
+// Cấu hình cột xuất và tỉ lệ độ rộng trong PDF.
 $COT = [
     'ma'     => ['Mã',         0.8],
     'ten'    => ['Họ tên',     2.6],
@@ -62,19 +52,19 @@ $COT = [
 
 $pdo = Database::pdo();
 
-// ---- Tham số từ hộp thoại ----
+// Tham số từ hộp thoại xuất.
 $phamVi = (string) ($_POST['pham_vi'] ?? '');
 if (!in_array($phamVi, ['loc', 'tatca'], true)) {
     loi_xuat('Hãy chọn phạm vi cần xuất.');
 }
 $buoc     = (string) ($_POST['buoc'] ?? '');
 $dinhDang = (string) ($_POST['dinhdang'] ?? '');
-if ($buoc === 'xemtruoc') { $dinhDang = 'excel'; }   // xem trước không cần định dạng
+if ($buoc === 'xemtruoc') { $dinhDang = 'excel'; }
 if (!in_array($dinhDang, ['excel', 'pdf'], true)) {
     loi_xuat('Hãy chọn định dạng Excel hoặc PDF.');
 }
 $truongGui = is_array($_POST['truong'] ?? null) ? array_map('strval', $_POST['truong']) : [];
-$truong    = array_values(array_intersect(array_merge(array_keys($COT), ['elo']), $truongGui));   // giữ thứ tự cố định
+$truong    = array_values(array_intersect(array_merge(array_keys($COT), ['elo']), $truongGui));   // giữ thứ tự cột cố định
 $NOI_DUNG = ['ds' => 'Danh sách người dùng', 'tk' => 'Sơ đồ trạng thái tài khoản', 'ngay' => 'Sơ đồ tài khoản mới 30 ngày'];
 $noiDung  = array_values(array_intersect(array_keys($NOI_DUNG), is_array($_POST['noidung'] ?? null) ? array_map('strval', $_POST['noidung']) : []));
 $coDs     = in_array('ds', $noiDung, true);
@@ -86,10 +76,10 @@ if ($buoc !== 'xemtruoc') {
 }
 $coElo = in_array('elo', $truong, true);
 
-// ---- Điều kiện lọc: dựng giống hệt admin/nguoidung.php ----
+// Điều kiện lọc (đồng bộ với nguoidung.php).
 $dieuKien   = [];
 $tham       = [];
-$dieuKien[] = 'n.MaND NOT IN (SELECT MaND FROM ADMIN WHERE MaND IS NOT NULL)';   // không liệt kê tài khoản sinh viên liên kết của admin
+$dieuKien[] = 'n.MaND NOT IN (SELECT MaND FROM ADMIN WHERE MaND IS NOT NULL)';   // Loại trừ tài khoản sinh viên liên kết của admin.
 if ($phamVi === 'loc') {
     $q  = trim((string) ($_POST['q'] ?? ''));
     $tt = (string) ($_POST['tt'] ?? '');
@@ -106,7 +96,7 @@ if ($phamVi === 'loc') {
 $where = 'WHERE ' . implode(' AND ', $dieuKien);
 
 try {
-    // Tổng số và số theo trạng thái trong phạm vi đang xuất
+    // Thống kê tổng quan trong phạm vi xuất.
     $st = $pdo->prepare("SELECT COUNT(*) AS tong,
                                 COALESCE(SUM(n.TrangThai = 'Hoạt động'), 0) AS hoat_dong,
                                 COALESCE(SUM(n.TrangThai = 'Bị khóa'), 0)   AS bi_khoa
@@ -115,7 +105,7 @@ try {
     $tk   = $st->fetch();
     $tong = (int) $tk['tong'];
 
-    // Tài khoản mới mỗi ngày trong 30 ngày gần nhất, trong phạm vi đang xuất (ngày không có ai đăng ký vẫn hiện 0)
+    // Số tài khoản mới 30 ngày gần nhất.
     $st = $pdo->prepare("SELECT DATE(n.NgayTao) AS ngay, COUNT(*) AS so FROM NGUOIDUNG n $where
                          AND n.NgayTao >= CURDATE() - INTERVAL 29 DAY GROUP BY DATE(n.NgayTao)");
     $st->execute($tham);
@@ -128,7 +118,7 @@ try {
 
     $monHoc = $pdo->query('SELECT MaMon, TenMon FROM MONHOC ORDER BY MaMon')->fetchAll();
 
-    // Lấy dữ liệu (xem trước: vài dòng đầu; xuất file: tối đa giới hạn + 1 để biết có vượt không)
+    // Lấy danh sách người dùng.
     $gioiHan = $buoc === 'xemtruoc' ? $SO_DONG_XEM : (($dinhDang === 'pdf' ? $TOI_DA_PDF : $TOI_DA_XLSX) + 1);
     $st = $pdo->prepare(
         "SELECT n.MaND, n.HoTen, n.Email, n.TrangThai, n.NgayTao,
@@ -140,7 +130,7 @@ try {
     $st->execute($tham);
     $nguoi = $st->fetchAll();
 
-    // Điểm Elo theo môn của đúng những người đã lấy
+    // Điểm Elo theo môn của các tài khoản đã lấy.
     $elo = [];
     if ($nguoi && ($coElo || $buoc === 'xemtruoc')) {
         $ids = array_map(static fn (array $r): int => (int) $r['MaND'], $nguoi);
@@ -151,7 +141,7 @@ try {
         }
     }
 
-    // ---- Xem trước: trả JSON ----
+    // Trả JSON xem trước.
     if ($buoc === 'xemtruoc') {
         $dong = [];
         foreach ($nguoi as $r) {
@@ -185,7 +175,7 @@ try {
         exit;
     }
 
-    // ---- Xuất file ----
+    // Xuất file Excel/PDF.
     if ($tong === 0) {
         loi_xuat('Không có người dùng nào trong phạm vi đã chọn.');
     }
@@ -216,7 +206,7 @@ try {
                 case 'ngay':   $d[] = date('d/m/Y H:i', strtotime((string) $r['NgayTao'])); break;
                 case 'elo':
                     foreach ($monHoc as $m) {
-                        $d[] = $elo[(int) $r['MaND']][(int) $m['MaMon']] ?? null;   // chưa chơi môn nào thì để trống
+                        $d[] = $elo[(int) $r['MaND']][(int) $m['MaMon']] ?? null;
                     }
                     break;
             }
@@ -263,7 +253,7 @@ try {
         XlsxWriter::taiNhieuSheet($tenFile . '.xlsx', $sheets);
     }
 
-    // PDF: nhiều cột thì dùng A4 ngang
+    // PDF dùng khổ A4 ngang khi bảng nhiều cột.
     $pdf = new PdfWriter(__DIR__ . '/../assets/fonts');
     $pdf->khoTrang($coDs && count($tieuDe) > 6);
     $pdf->tieuDe($coDs ? 'Danh sách người dùng' : 'Thống kê người dùng', 20);
@@ -303,7 +293,7 @@ try {
         foreach ($d as $v) { $o[] = $v === null ? '—' : (string) $v; }
         $dongPdf[] = $o;
         if ($viTriTT !== null) {
-            $mauO[$i] = [$viTriTT => ($d[$viTriTT] ?? '') === 'Bị khóa' ? '#fde3e6' : '#dcf5ea'];   // tô nền ô trạng thái
+            $mauO[$i] = [$viTriTT => ($d[$viTriTT] ?? '') === 'Bị khóa' ? '#fde3e6' : '#dcf5ea'];
         }
     }
     $pdf->khoang(6);

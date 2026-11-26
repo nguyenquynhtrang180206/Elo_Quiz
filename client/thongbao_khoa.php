@@ -1,6 +1,5 @@
 <?php
-// Người dùng bấm vào thông báo "tài khoản bị khóa": đánh dấu đã đọc rồi đăng xuất ngay để không còn thao tác nào khác.
-// Đặt tại: client/thongbao_khoa.php   (LienKet của thông báo khoa_tk trỏ tới file này)
+// Xử lý thông báo khóa tài khoản: đánh dấu đã đọc và đăng xuất nếu đang bị khóa
 require_once __DIR__ . '/../core/bootstrap.php';
 
 $maND = Auth::clientId();
@@ -17,15 +16,15 @@ $st  = $pdo->prepare('SELECT TrangThai FROM NGUOIDUNG WHERE MaND = ?');
 $st->execute([$maND]);
 $trangThai = $st->fetchColumn();
 
-// Thông báo đã được mở xem nên đánh dấu đã đọc (kể cả khi tài khoản đã được mở khóa lại)
+// Đánh dấu đã đọc kể cả khi tài khoản đã được mở khóa lại
 try {
     $pdo->prepare("UPDATE THONGBAO SET DaDoc = 1 WHERE MaND = ? AND Loai = 'khoa_tk'")->execute([$maND]);
 } catch (Throwable $e) {
-    // không chặn việc đăng xuất nếu đánh dấu đã đọc thất bại
+    // Không chặn việc đăng xuất nếu đánh dấu đã đọc thất bại
 }
 
 if ($trangThai === 'Bị khóa') {
-    // Giống client/dangxuat.php: chỉ xóa khóa của sinh viên, không đụng tới phiên Admin nếu cùng trình duyệt
+    // Chỉ xóa phiên sinh viên, giữ nguyên phiên quản trị nếu đang mở cùng trình duyệt
     unset($_SESSION['nd_id'], $_SESSION['nd_la_admin']);
     session_regenerate_id(true);
     redirect(BASE_URL . '/client/dangnhap.php?khoa=1');

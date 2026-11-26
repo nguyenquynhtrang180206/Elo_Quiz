@@ -1,5 +1,4 @@
-/* Hồ sơ cá nhân - C-15: biểu đồ biến động Elo theo môn (Chart.js, dữ liệu từ LICHSUELO).
-   Dữ liệu do client/hoso.php in sẵn trong <script id="bdDuLieu">; đổi môn hoặc khoảng trận không tải lại trang. */
+// Biểu đồ biến động Elo theo môn (Chart.js) trên trang Hồ sơ.
 (function () {
   'use strict';
 

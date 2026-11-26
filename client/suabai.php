@@ -1,5 +1,5 @@
 <?php
-// Sửa bài đăng của chính mình (C-43). Đặt tại: elo_quiz/client/suabai.php
+// Sửa bài đăng trong giới hạn thời gian cho phép
 require_once __DIR__ . '/../core/bootstrap.php';
 
 $maND = Auth::requireClient(BASE_URL . '/client/dangnhap.php');
@@ -7,7 +7,7 @@ $pdo  = Database::pdo();
 $id   = (int) ($_GET['id'] ?? 0);
 $coLoai = CongDongHelper::coCotLoaiBai();
 
-// Chỉ sửa được bài của mình, đang "Hiển thị", và trong vòng 15 phút kể từ lúc đăng
+// Chỉ chủ bài mới sửa được bài đang hiển thị trong thời hạn cho phép
 $st = $pdo->prepare(
     "SELECT b.MaBaiDang, b.MaMon, b.TieuDe, b.NoiDung, b.AnhDinhKem, m.TenMon,
             " . ($coLoai ? 'b.LoaiBai' : "'" . CongDongHelper::LOAI_MAC_DINH . "' AS LoaiBai") . ",
@@ -23,7 +23,7 @@ $phutCon = $bai && !$hetHan
     : 0;
 
 $monDangMo = CongDongHelper::monDangMo();
-// Bài đang gắn môn đã bị ẩn: vẫn giữ môn đó trong danh sách để không vô tình bỏ gắn
+// Giữ môn đã gắn trong danh sách nếu môn đó hiện đang bị ẩn
 if ($bai && $bai['MaMon'] && !isset($monDangMo[(int) $bai['MaMon']])) {
     $monDangMo[(int) $bai['MaMon']] = $bai['TenMon'] . ' (đã ẩn)';
 }
@@ -34,7 +34,7 @@ $noiDungBai = $bai['NoiDung'] ?? '';
 $monChon    = $bai ? (string) ($bai['MaMon'] ?? '') : '';
 $loaiChon   = $bai['LoaiBai'] ?? CongDongHelper::LOAI_MAC_DINH;
 
-$quaLon = $bai && !$hetHan && CongDongHelper::postQuaLon();   // ảnh làm yêu cầu vượt post_max_size: $_POST rỗng
+$quaLon = $bai && !$hetHan && CongDongHelper::postQuaLon();   // Request vượt post_max_size làm $_POST rỗng
 if ($quaLon) {
     $loi[] = 'Ảnh quá lớn (tối đa ' . CongDongHelper::gioiHanAnhChu() . '), bài chưa được lưu. Hãy chọn ảnh nhỏ hơn rồi lưu lại.';
 }
@@ -48,7 +48,7 @@ if ($bai && !$hetHan && !$quaLon && $_SERVER['REQUEST_METHOD'] === 'POST') {
 
     [$loi, $maMon] = CongDongHelper::kiemTraBai($tieuDeBai, $noiDungBai, $monChon, $monDangMo);
 
-    // Ảnh đính kèm: chọn ảnh mới thì thay ảnh cũ; tích "Xóa ảnh" (không chọn ảnh mới) thì gỡ ảnh; còn lại giữ nguyên
+    // Xử lý ảnh đính kèm: thay mới, giữ nguyên hoặc xóa
     $anhCu = $bai['AnhDinhKem'] ?? null;
     $anhMoi = $anhCu;
     $anhVuaLuu = null;
@@ -79,12 +79,12 @@ if ($bai && !$hetHan && !$quaLon && $_SERVER['REQUEST_METHOD'] === 'POST') {
             : [$tieuDeBai, $noiDungBai, $maMon, $anhMoi, $id, $maND]);
 
         if ($up->rowCount() >= 1 || $anhMoi === $anhCu) {
-            // Cập nhật được: dọn file ảnh cũ nếu đã bị thay hoặc gỡ
+            // Dọn file ảnh cũ nếu đã thay hoặc gỡ
             if ($anhMoi !== $anhCu) {
                 CongDongHelper::xoaFileAnh($anhCu, $cfg['upload_dir']);
             }
         } else {
-            // Không cập nhật được (hết hạn sửa...): bỏ file ảnh vừa tải lên để khỏi thành file mồ côi
+            // Xóa ảnh vừa tải lên nếu cập nhật thất bại (tránh file mồ côi)
             CongDongHelper::xoaFileAnh($anhVuaLuu, $cfg['upload_dir']);
         }
         CongDongHelper::flash('Đã cập nhật bài đăng.');

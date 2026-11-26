@@ -1,19 +1,19 @@
 <?php
-// Dashboard và thống kê (UC10: A-06 đến A-10). Đặt tại: elo_quiz/admin/index.php
+// Trang tổng quan hệ thống và thống kê hoạt động.
 require_once __DIR__ . '/../core/bootstrap.php';
-$adminId = Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');   // A-04
+$adminId = Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');
 
 $pdo = Database::pdo();
 
-// Khoảng thời gian xem (ngày gần nhất): chỉ nhận 7, 30, 90 hoặc 365 (1 năm)
+// Khoảng ngày thống kê hợp lệ: 7, 30, 90 hoặc 365.
 $ngay = (int) ($_GET['ngay'] ?? 7);
 if (!in_array($ngay, [7, 30, 90, 365], true)) {
     $ngay = 7;
 }
-$tuNgay = date('Y-m-d', strtotime('-' . ($ngay - 1) . ' days'));   // ngày đầu của khoảng
+$tuNgay = date('Y-m-d', strtotime('-' . ($ngay - 1) . ' days'));
 $moc    = $tuNgay . ' 00:00:00';
 
-// ---- A-06: tổng số người dùng, môn học, câu hỏi, trận đấu ----
+// Tổng số người dùng, môn học, câu hỏi, trận đấu.
 $tong = $pdo->query(
     'SELECT (SELECT COUNT(*) FROM NGUOIDUNG) AS nguoidung,
             (SELECT COUNT(*) FROM MONHOC)    AS monhoc,
@@ -21,15 +21,13 @@ $tong = $pdo->query(
             (SELECT COUNT(*) FROM TRANDAU)   AS trandau'
 )->fetch();
 
-// ---- A-07: số trận theo trạng thái ----
+// Số trận theo trạng thái.
 $theoTrangThai = ['Đã ghép' => 0, 'Đang diễn ra' => 0, 'Kết thúc' => 0, 'Hủy' => 0];
 foreach ($pdo->query('SELECT TrangThai, COUNT(*) AS so FROM TRANDAU GROUP BY TrangThai') as $r) {
     $theoTrangThai[$r['TrangThai']] = (int) $r['so'];
 }
 
-// ---- A-08 (biểu đồ): gom theo ngày (7, 30 ngày), theo tuần (90 ngày), theo tháng (1 năm) ----
-// TRANDAU không có cột ngày tạo nên trận được tính vào ngày bắt đầu;
-// trận bị hủy trước khi bắt đầu thì tính vào ngày kết thúc (hủy). Trận mới "Đã ghép" chưa có ngày nên chưa tính.
+// Biểu đồ gom theo ngày/tuần/tháng; trận hủy trước khi bắt đầu tính theo ngày kết thúc, trận "Đã ghép" chưa tính.
 if ($ngay <= 30) {
     $kieuGop = 'ngay';
 } elseif ($ngay <= 90) {
@@ -38,7 +36,7 @@ if ($ngay <= 30) {
     $kieuGop = 'thang';
 }
 
-$bieuDo = [];   // khóa nhóm => ['nhan', 'dangky', 'tran']
+$bieuDo = [];
 if ($kieuGop === 'ngay') {
     for ($i = $ngay - 1; $i >= 0; $i--) {
         $t = strtotime("-$i days");
@@ -46,13 +44,13 @@ if ($kieuGop === 'ngay') {
     }
     $batDauBD = $tuNgay;
 } elseif ($kieuGop === 'tuan') {
-    // mỗi nhóm 7 ngày, nhóm 0 bắt đầu ở ngày đầu của khoảng; nhãn là ngày bắt đầu nhóm
+    // Nhóm 7 ngày tính từ ngày đầu khoảng.
     for ($k = 0; $k < (int) ceil($ngay / 7); $k++) {
         $bieuDo[$k] = ['nhan' => date('d/m', strtotime($tuNgay . ' +' . ($k * 7) . ' days')), 'dangky' => 0, 'tran' => 0];
     }
     $batDauBD = $tuNgay;
 } else {
-    // 12 tháng gần nhất (tính cả tháng hiện tại)
+    // 12 tháng gần nhất.
     for ($i = 11; $i >= 0; $i--) {
         $t = strtotime(date('Y-m-01') . " -$i months");
         $bieuDo[date('Y-m', $t)] = ['nhan' => date('m/Y', $t), 'dangky' => 0, 'tran' => 0];
@@ -98,7 +96,7 @@ foreach ($st as $r) {
     }
 }
 
-// ---- Biểu đồ tròn: số trận theo môn học trong khoảng đang xem (5 môn nhiều nhất + "Khác") ----
+// Biểu đồ tròn: top 5 môn theo số trận và nhóm Khác.
 $st = $pdo->prepare(
     'SELECT m.TenMon, COUNT(*) AS so
      FROM TRANDAU t
@@ -128,7 +126,7 @@ foreach ($theoMon as $i => $m) {
     $theoMon[$i]['phantram'] = round($m['so'] * 100 / $tongTranMon, 1);
 }
 
-// Dữ liệu cho Chart.js (đọc ở assets/js/admin/index.js)
+// Dữ liệu JSON cho Chart.js.
 $duLieuDash = [
     'nhan'   => array_column($bieuDo, 'nhan'),
     'dangky' => array_column($bieuDo, 'dangky'),
@@ -136,7 +134,7 @@ $duLieuDash = [
     'mon'    => $theoMon,
 ];
 
-// ---- A-09: người dùng hoạt động = có tham gia (đã vào phòng) ít nhất một trận trong khoảng ----
+// Người dùng hoạt động: đã vào phòng ít nhất một trận trong khoảng.
 $st = $pdo->prepare(
     "SELECT COUNT(DISTINCT n.MaND)
      FROM NGUOICHOITRANDAU n
@@ -148,8 +146,7 @@ $st->execute([$moc]);
 $hoatDong   = (int) $st->fetchColumn();
 $tyLeHoatDong = (int) $tong['nguoidung'] > 0 ? round($hoatDong * 100 / (int) $tong['nguoidung'], 1) : 0;
 
-// ---- A-10: 10 câu hỏi bị trả lời sai nhiều nhất (tính mọi trận) ----
-// Sai = đã chọn một đáp án nhưng đáp án đó không đúng; câu hết giờ không tính là sai.
+// Top 10 câu hỏi trả lời sai nhiều nhất (không tính câu hết giờ).
 $caiSai = $pdo->query(
     "SELECT ch.MaCauHoi, ch.NoiDung, m.TenMon,
             SUM(d.LaDapAnDung = 0) AS so_sai,
@@ -165,8 +162,7 @@ $caiSai = $pdo->query(
      LIMIT 10"
 )->fetchAll();
 
-// ---- Giao diện mới - Phần 1: lời chào, 4 thẻ số liệu, % tăng so với kỳ trước ----
-// Kỳ này = $ngay ngày gần nhất; kỳ trước = $ngay ngày liền trước đó (cùng độ dài).
+// Số liệu 4 thẻ tổng quan và biến động so với kỳ trước.
 $mocTruoc = date('Y-m-d', strtotime('-' . (2 * $ngay - 1) . ' days')) . ' 00:00:00';
 
 $st = $pdo->prepare('SELECT HoTen FROM ADMIN WHERE MaAdmin = ?');
@@ -177,14 +173,14 @@ $thu = ['Chủ nhật', 'Thứ hai', 'Thứ ba', 'Thứ tư', 'Thứ năm', 'Th�
 $ngayHienTai = $thu[(int) date('w')] . ', ' . date('d/m/Y');
 $gioHienTai  = date('H:i');
 
-// Người đăng ký mới: kỳ này, kỳ trước
+// Người đăng ký mới kỳ này và kỳ trước.
 $st = $pdo->prepare(
     'SELECT SUM(NgayTao >= ?), SUM(NgayTao >= ? AND NgayTao < ?) FROM NGUOIDUNG WHERE NgayTao >= ?'
 );
 $st->execute([$moc, $mocTruoc, $moc, $mocTruoc]);
 [$ndNay, $ndTruoc] = array_map('intval', $st->fetch(PDO::FETCH_NUM));
 
-// Trận đấu: tính theo ngày bắt đầu (trận hủy trước khi bắt đầu tính theo ngày kết thúc, như A-08)
+// Trận đấu kỳ này và kỳ trước.
 $st = $pdo->prepare(
     'SELECT SUM(t >= ?), SUM(t >= ? AND t < ?)
      FROM (SELECT COALESCE(ThoiGianBatDau, ThoiGianKetThuc) AS t FROM TRANDAU) x
@@ -193,7 +189,7 @@ $st = $pdo->prepare(
 $st->execute([$moc, $mocTruoc, $moc, $mocTruoc]);
 [$trNay, $trTruoc] = array_map('intval', $st->fetch(PDO::FETCH_NUM));
 
-// Bài đăng cộng đồng (không tính bài đã xóa): tổng, kỳ này, kỳ trước
+// Bài đăng cộng đồng (trừ bài đã xóa).
 $tongBai = (int) $pdo->query("SELECT COUNT(*) FROM BAIDANG WHERE TrangThai <> 'Đã xóa'")->fetchColumn();
 $st = $pdo->prepare(
     "SELECT SUM(NgayDang >= ?), SUM(NgayDang >= ? AND NgayDang < ?)
@@ -202,7 +198,7 @@ $st = $pdo->prepare(
 $st->execute([$moc, $mocTruoc, $moc, $mocTruoc]);
 [$baiNay, $baiTruoc] = array_map('intval', $st->fetch(PDO::FETCH_NUM));
 
-// Tỷ lệ hoạt động kỳ trước (cùng cách tính A-09, mẫu số là tổng người dùng hiện tại)
+// Tỷ lệ hoạt động kỳ trước.
 $st = $pdo->prepare(
     "SELECT COUNT(DISTINCT n.MaND)
      FROM NGUOICHOITRANDAU n
@@ -215,7 +211,7 @@ $st->execute([$mocTruoc, $moc]);
 $hoatDongTruoc     = (int) $st->fetchColumn();
 $tyLeHoatDongTruoc = (int) $tong['nguoidung'] > 0 ? round($hoatDongTruoc * 100 / (int) $tong['nguoidung'], 1) : 0;
 
-// Biểu tượng SVG công nghệ cho 4 thẻ số liệu
+// Biểu tượng SVG cho 4 thẻ số liệu.
 $svgTheSo = [
     'nguoidung' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
     'trandau'   => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>',
@@ -223,8 +219,7 @@ $svgTheSo = [
     'hoatdong'  => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>',
 ];
 
-// Mỗi thẻ: [nhãn, số lớn, màu, mã biểu tượng, giá trị kỳ này, giá trị kỳ trước, kiểu thay đổi]
-// 'phantram' = % thay đổi so với kỳ trước; 'diem' = chênh lệch điểm phần trăm (dùng cho tỷ lệ)
+// Cấu hình thẻ số liệu ('phantram': % thay đổi, 'diem': chênh lệch điểm phần trăm).
 $theSo = [
     ['Tổng người dùng',    number_format((int) $tong['nguoidung'], 0, ',', '.'), 'xanh', 'nguoidung', $ndNay,        $ndTruoc,           'phantram'],
     ['Tổng trận đấu',      number_format((int) $tong['trandau'], 0, ',', '.'),   'vang', 'trandau',   $trNay,        $trTruoc,           'phantram'],
@@ -232,8 +227,7 @@ $theSo = [
     ['Tỷ lệ hoạt động',    $tyLeHoatDong . '%',                                  'luc',  'hoatdong',  $tyLeHoatDong, $tyLeHoatDongTruoc, 'diem'],
 ];
 
-// ---- Giao diện mới - Phần 3: hoạt động gần đây và top người chơi ----
-// Hoạt động gần đây: gộp 4 nguồn (đăng ký mới, bài đăng mới, trận kết thúc, nhật ký quản trị), lấy 5 mục mới nhất (còn lại xem ở trang Nhật ký)
+// 5 hoạt động gần đây nhất từ đăng ký, bài đăng, trận kết thúc và nhật ký quản trị.
 $dsHoatDong = [];
 $gioNay = time();
 $kq = $pdo->query(
@@ -288,7 +282,7 @@ foreach ($kq as $r) {
     $dsHoatDong[] = ['icon' => $bieuTuong, 'noidung' => $noiDung, 'cach' => $cach];
 }
 
-// Top 5 người chơi: mỗi người lấy điểm Elo cao nhất trong các môn đã chơi (bỏ tài khoản bị khóa)
+// Top 5 người chơi theo Elo cao nhất (bỏ tài khoản bị khóa).
 $topNguoi = [];
 $kq = $pdo->query(
     "SELECT u.MaND, u.HoTen, u.AnhDaiDien, e.DiemElo
@@ -300,18 +294,18 @@ $kq = $pdo->query(
      LIMIT 15"
 );
 foreach ($kq as $r) {
-    if (!isset($topNguoi[$r['MaND']]) && count($topNguoi) < 5) {   // một người có thể hòa Elo ở 2 môn: chỉ lấy một dòng
+    if (!isset($topNguoi[$r['MaND']]) && count($topNguoi) < 5) {   // Tránh trùng người chơi nếu hòa Elo ở nhiều môn.
         $topNguoi[$r['MaND']] = $r;
     }
 }
-// Elo thay đổi của họ trong khoảng đang xem (cộng ThayDoi ở LICHSUELO)
+// Biến động Elo trong khoảng thời gian đang xem.
 foreach ($topNguoi as $ma => $r) {
     $st = $pdo->prepare('SELECT COALESCE(SUM(ThayDoi), 0) FROM LICHSUELO WHERE MaND = ? AND ThoiGian >= ?');
     $st->execute([$ma, $moc]);
     $topNguoi[$ma]['thaydoi'] = (int) $st->fetchColumn();
 }
 
-// ---- Thông báo của admin: số chưa đọc ban đầu (danh sách tải qua admin/thongbao_api.php) ----
+// Số thông báo chưa đọc ban đầu.
 $soChuaDocAdmin = ThongBaoAdmin::laySoChuaDoc($pdo, $adminId);
 
 $tieuDe  = 'Tổng quan';

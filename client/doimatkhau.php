@@ -1,11 +1,10 @@
 <?php
-// Đổi mật khẩu khi đã đăng nhập (C-05). Đặt tại: elo_quiz/client/doimatkhau.php
+// Đổi mật khẩu tài khoản sinh viên
 require_once __DIR__ . '/../core/bootstrap.php';
 
-// Phải đăng nhập mới vào được (kiểm tra ở backend)
 $maND = Auth::requireClient(BASE_URL . '/client/dangnhap.php');
 
-// Admin dùng khu sinh viên thì đổi mật khẩu ở trang đổi mật khẩu của quản trị (tài khoản liên kết không có mật khẩu đăng nhập)
+// Admin ở khu sinh viên đổi mật khẩu tại trang quản trị
 if (Auth::laAdminSinhVien()) {
     redirect(BASE_URL . '/admin/doimatkhau.php');
 }
@@ -56,7 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (!$loi) {
-        // Băm mật khẩu mới bằng chuẩn siêu bảo mật và lưu lịch sử xoay vòng
+        // Băm mật khẩu mới và lưu lịch sử xoay vòng
         PasswordSecurity::ghiNhanDoiMatKhau($pdo, $maND, PasswordSecurity::hash($moi));
 
         session_regenerate_id(true);

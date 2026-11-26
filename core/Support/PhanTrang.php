@@ -1,11 +1,5 @@
 <?php
-// Phân trang phía máy chủ. Mặc định 10 dòng/trang ở Client, 20 dòng/trang ở Admin.
-//
-// Ví dụ:
-//   $p = new PhanTrang($tongSoDong, 10);          // $tongSoDong lấy từ SELECT COUNT(*)
-//   $sql .= ' LIMIT ' . $p->limit() . ' OFFSET ' . $p->offset();
-//   ... in danh sách ...
-//   echo $p->links();                              // giữ nguyên từ khóa tìm kiếm và bộ lọc
+// Phân trang phía máy chủ (mặc định 10 dòng/trang), giữ nguyên tham số GET khi dựng link.
 class PhanTrang
 {
     private int $tong;
@@ -64,7 +58,7 @@ class PhanTrang
     }
 }
 
-// Tương thích ngược: Định danh Paginator trỏ tới PhanTrang
+// Alias giữ tương thích tên lớp cũ
 if (!class_exists('Paginator', false)) {
     class_alias('PhanTrang', 'Paginator');
 }

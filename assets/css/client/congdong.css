@@ -1,8 +1,4 @@
-/* =====================================================================
-   CỘNG ĐỒNG GEN Z • ĐẤU TRƯỜNG TRI THỨC (client/congdong.php)
-   Theme Cosmic Esports Glassmorphism - Đồng bộ 100% với Trang Chủ & BXH
-   Tích hợp Linh vật 3D Chibi Faker cầm cúp vàng (má hồng, mắt to long lanh)
-   ===================================================================== */
+/* Cộng đồng (client/congdong.php) */
 
 :root {
   --cd-gold: #D4AF37;
@@ -15,7 +11,7 @@
   --cd-panel-glow: 0 0 18px rgba(0, 217, 255, 0.15), 0 10px 30px rgba(0, 0, 0, 0.55);
 }
 
-/* Nền vũ trụ đồng bộ Canvas WebGL */
+/* Nền trang */
 body.trang-cd {
   background:
     radial-gradient(60% 50% at 50% 0%, rgba(0, 217, 255, 0.12), transparent 75%),
@@ -28,9 +24,7 @@ html.cosmic-on body.trang-cd {
 }
 body.trang-cd .container { max-width: 1240px; }
 
-/* =====================================================================
-   CYBER ESPORTS CORNERS (4 GÓC DÁT VÀNG ĐỒNG BỘ TRANG CHỦ)
-   ===================================================================== */
+/* 4 góc trang trí */
 .pet-corner {
   position: absolute; width: 9px; height: 9px; pointer-events: none; z-index: 3;
   border-color: #F3DE8A; border-style: solid;
@@ -41,10 +35,7 @@ body.trang-cd .container { max-width: 1240px; }
 .pet-corner.bl { bottom: 6px; left: 6px; border-width: 0 0 2px 2px; }
 .pet-corner.br { bottom: 6px; right: 6px; border-width: 0 2px 2px 0; }
 
-/* =====================================================================
-   1. HERO BANNER: ĐẠI SẢNH TRI THỨC • CỘNG ĐỒNG CHIẾN THẦN ELO
-   Kích thước & thông số chuẩn 100% khớp với Bảng Xếp Hạng (.bxh-hero)
-   ===================================================================== */
+/* Banner đầu trang */
 .cd-hero-banner {
   position: relative;
   isolation: isolate;
@@ -106,7 +97,7 @@ body.trang-cd .container { max-width: 1240px; }
   z-index: 2;
 }
 
-/* Cột trái Hero: Tiêu đề & Thông số */
+/* Cột trái banner: tiêu đề và thông số */
 .cd-hero-left {
   flex: 1;
   min-width: 0;
@@ -170,7 +161,7 @@ body.trang-cd .container { max-width: 1240px; }
   font-weight: 500;
 }
 
-/* 4 Thẻ chip chỉ số thời gian thực trên Cột Trái Hero */
+/* 4 chip chỉ số */
 .cd-hero-chips {
   display: flex;
   flex-wrap: wrap;
@@ -342,10 +333,7 @@ body.trang-cd .container { max-width: 1240px; }
   display: block;
 }
 
-/* =====================================================================
-   CỘT GIỮA: RƯƠNG QUÀ & NHIỆM VỤ TRI THỨC HÔM NAY (DAILY QUEST VIP PRO)
-   Đồng bộ 100% phong cách Cyber Gaming & Hoàng Kim Huyền Thoại
-   ===================================================================== */
+/* Cột giữa: nhiệm vụ hằng ngày */
 .cd-hero-center {
   flex: none;
   width: 335px;
@@ -387,7 +375,7 @@ body.trang-cd .container { max-width: 1240px; }
     inset 0 0 22px rgba(0, 217, 255, 0.14);
 }
 
-/* 4 Gilded Cyber Brackets góc rương */
+/* 4 góc khung nhiệm vụ */
 .quest-corner {
   position: absolute;
   width: 12px;
@@ -403,7 +391,7 @@ body.trang-cd .container { max-width: 1240px; }
 .quest-corner.bl { bottom: 5px; left: 5px; border-width: 0 0 2.5px 2.5px; border-radius: 0 0 0 4px; }
 .quest-corner.br { bottom: 5px; right: 5px; border-width: 0 2.5px 2.5px 0; border-radius: 0 0 4px 0; }
 
-/* Header của Quest Card */
+/* Phần đầu thẻ nhiệm vụ */
 .cd-quest-header {
   display: flex;
   align-items: center;
@@ -453,7 +441,7 @@ body.trang-cd .container { max-width: 1240px; }
   gap: 5px;
 }
 
-/* Nút Đổi Nhiệm Vụ Ngẫu Nhiên (Reroll Quest) */
+/* Nút đổi nhiệm vụ */
 .btn-quest-reroll {
   display: inline-flex;
   align-items: center;
@@ -506,7 +494,7 @@ body.trang-cd .container { max-width: 1240px; }
   box-shadow: 0 0 8px rgba(253, 224, 71, 0.28);
 }
 
-/* Thân của Quest Card: Rương 3D + Thông tin nhiệm vụ */
+/* Thân thẻ nhiệm vụ */
 .cd-quest-body {
   display: flex;
   align-items: center;
@@ -516,7 +504,7 @@ body.trang-cd .container { max-width: 1240px; }
   z-index: 2;
 }
 
-/* Khối Rương Báu 3D */
+/* Khối rương quà */
 .cd-quest-chest-wrap {
   position: relative;
   width: 54px;
@@ -806,7 +794,7 @@ body.trang-cd .container { max-width: 1240px; }
   display: block;
 }
 
-/* Footer của Quest Card */
+/* Chân thẻ nhiệm vụ */
 .cd-quest-footer {
   display: flex;
   align-items: center;
@@ -849,7 +837,7 @@ body.trang-cd .container { max-width: 1240px; }
   font-size: 10px;
 }
 
-/* Floating Cyber Toast Notification */
+/* Toast thông báo nổi */
 .cd-floating-toast {
   position: fixed;
   top: 24px;
@@ -884,10 +872,7 @@ body.trang-cd .container { max-width: 1240px; }
   filter: drop-shadow(0 0 6px #FDE047);
 }
 
-/* =====================================================================
-   CỘT PHẢI: BẢNG VINH DANH NGÔI SAO TRI THỨC TUẦN (WEEKLY MVP VIP PRO)
-   Đồng bộ 100% phong cách Hoàng Kim & Cyber Esports Đẳng Cấp Game
-   ===================================================================== */
+/* Cột phải: ngôi sao tuần */
 .cd-hero-right {
   flex: 0 0 520px;
   width: 520px;
@@ -922,7 +907,7 @@ body.trang-cd .container { max-width: 1240px; }
   cursor: pointer;
 }
 
-/* Ánh sáng quét viền thẻ 3D Shimmer Sweep */
+/* Hiệu ứng quét sáng viền thẻ */
 .cd-mvp-card::before {
   content: "";
   position: absolute;
@@ -947,7 +932,7 @@ body.trang-cd .container { max-width: 1240px; }
     inset 0 0 24px rgba(212, 175, 55, 0.2);
 }
 
-/* 4 Góc Dát Vàng Đẳng Cấp Esports (Gilded Gaming Brackets) */
+/* 4 góc khung MVP */
 .mvp-corner {
   position: absolute;
   width: 13px;
@@ -963,7 +948,7 @@ body.trang-cd .container { max-width: 1240px; }
 .mvp-corner.bl { bottom: 5px; left: 5px; border-width: 0 0 2.5px 2.5px; border-radius: 0 0 0 4px; }
 .mvp-corner.br { bottom: 5px; right: 5px; border-width: 0 2.5px 2.5px 0; border-radius: 0 0 4px 0; }
 
-/* Header của Thẻ MVP */
+/* Phần đầu thẻ MVP */
 .cd-mvp-header {
   display: flex;
   align-items: center;
@@ -1043,7 +1028,7 @@ body.trang-cd .container { max-width: 1240px; }
   box-shadow: 0 0 10px rgba(253, 224, 71, 0.4);
 }
 
-/* Thân Thẻ: Avatar & Thông tin (Expanded VIP Pro) */
+/* Thân thẻ MVP */
 .cd-mvp-body {
   display: flex;
   align-items: center;
@@ -1112,7 +1097,7 @@ body.trang-cd .container { max-width: 1240px; }
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.9));
 }
 
-/* Huy hiệu Quán Quân 3D Medal */
+/* Huy hiệu quán quân */
 .cd-mvp-medal {
   position: absolute;
   bottom: -5px;
@@ -1129,7 +1114,7 @@ body.trang-cd .container { max-width: 1240px; }
   display: block;
 }
 
-/* Thông tin chiến thần mở rộng */
+/* Thông tin MVP */
 .cd-mvp-info {
   flex: 1;
   min-width: 0;
@@ -1180,7 +1165,7 @@ body.trang-cd .container { max-width: 1240px; }
   flex: none;
 }
 
-/* Capsule Bậc Đấu Thần (Tier & Elo) */
+/* Nhãn bậc và Elo */
 .cd-mvp-tier-capsule {
   display: inline-flex;
   align-items: center;
@@ -1217,7 +1202,7 @@ body.trang-cd .container { max-width: 1240px; }
   text-shadow: 0 0 8px rgba(253, 224, 71, 0.7);
 }
 
-/* 3 Gaming HUD Stat Capsules */
+/* 3 ô chỉ số MVP */
 .cd-mvp-stats-grid {
   display: flex;
   align-items: center;
@@ -1290,7 +1275,7 @@ body.trang-cd .container { max-width: 1240px; }
   text-transform: uppercase;
 }
 
-/* Footer: Châm ngôn & Nút BẢNG VINH DANH */
+/* Chân thẻ MVP */
 .cd-mvp-footer {
   display: flex;
   align-items: center;
@@ -1371,7 +1356,7 @@ body.trang-cd .container { max-width: 1240px; }
   100% { transform: scale(1) rotate(0deg); }
 }
 
-/* Responsive cho Hero Banner 2 Cột Đẳng Cấp */
+/* Responsive banner đầu trang */
 @media (max-width: 1160px) {
   .cd-hero-left {
     max-width: none;
@@ -1430,9 +1415,7 @@ body.trang-cd .container { max-width: 1240px; }
   }
 }
 
-/* =====================================================================
-   2. BỐ CỤC 2 CỘT: SIDEBAR STICKY (TRÁI) & NỘI DUNG (PHẢI)
-   ===================================================================== */
+/* Bố cục 2 cột */
 .cd-bo-cuc {
   display: grid;
   grid-template-columns: 290px minmax(0, 1fr);
@@ -1452,7 +1435,7 @@ body.trang-cd .container { max-width: 1240px; }
   .cd-trai { display: flex; flex-direction: column; gap: 14px; margin-bottom: 16px; }
 }
 
-/* Hộp kính Sidebar */
+/* Khung thanh bên */
 .cd-hop-trai {
   position: relative;
   background: var(--cd-panel-bg);
@@ -1465,7 +1448,7 @@ body.trang-cd .container { max-width: 1240px; }
   overflow: hidden;
 }
 
-/* Sidebar Card Thống Nhất (Chuẩn theo hình 1) */
+/* Bảng lọc thanh bên */
 .cd-sidebar-panel {
   display: flex;
   flex-direction: column;
@@ -1581,7 +1564,7 @@ body.trang-cd .container { max-width: 1240px; }
   color: #FFF;
 }
 
-/* Danh sách 6 menu chuyên mục dọc (Chuẩn theo hình 1) */
+/* Danh sách menu chuyên mục */
 .cd-menu-list {
   display: flex;
   flex-direction: column;
@@ -1611,7 +1594,7 @@ body.trang-cd .container { max-width: 1240px; }
   transform: translateX(3px);
   box-shadow: 0 0 14px rgba(0, 217, 255, 0.25);
 }
-/* Trạng thái Tab Đang Chọn (Active chuẩn viền xanh neon như ảnh 1) */
+/* Tab đang chọn */
 .cd-tab-btn.active {
   color: #FFFFFF;
   background: linear-gradient(135deg, rgba(0, 217, 255, 0.22) 0%, rgba(8, 123, 255, 0.38) 100%);
@@ -1649,7 +1632,7 @@ body.trang-cd .container { max-width: 1240px; }
   flex: 1;
 }
 
-/* Card Chibi Faker Tip Sĩ Tử bên dưới menu */
+/* Thẻ gợi ý bên dưới menu */
 .cd-trai-tip {
   background: linear-gradient(145deg, rgba(14, 26, 64, 0.92), rgba(8, 16, 42, 0.98));
   border: 1.5px solid rgba(212, 175, 55, 0.35);
@@ -1717,9 +1700,7 @@ body.trang-cd .container { max-width: 1240px; }
   transform: translateY(-2px);
 }
 
-/* =====================================================================
-   3. CỘT PHẢI: BẢNG TIN, VIẾT BÀI, DANH SÁCH BÀI ĐĂNG
-   ===================================================================== */
+/* Cột phải: bảng tin và viết bài */
 .cd-giua { min-width: 0; }
 
 /* Thông báo lỗi / thành công */
@@ -1736,7 +1717,7 @@ body.trang-cd .container { max-width: 1240px; }
   box-shadow: 0 0 14px rgba(239, 68, 68, 0.2);
 }
 
-/* Card Viết bài mới (Thu gọn mặc định, bấm vào bung ra như ảnh) */
+/* Thẻ viết bài mới (thu gọn mặc định) */
 .cd-write-card {
   position: relative;
   background: var(--cd-panel-bg);
@@ -1764,7 +1745,7 @@ body.trang-cd .container { max-width: 1240px; }
   box-shadow: 0 12px 42px rgba(0, 0, 0, 0.6), 0 0 30px rgba(0, 217, 255, 0.25);
 }
 
-/* Header dạng toggle: click vào mở / đóng mượt mà */
+/* Header bật/tắt khung viết bài */
 .cd-write-header {
   display: flex;
   align-items: center;
@@ -1885,7 +1866,7 @@ body.trang-cd .container { max-width: 1240px; }
   transform: rotate(180deg);
 }
 
-/* Thân form: Thu gọn mặc định, mở ra mượt mà */
+/* Thân biểu mẫu viết bài */
 .cd-write-body {
   max-height: 0;
   opacity: 0;
@@ -1950,9 +1931,7 @@ body.trang-cd .container { max-width: 1240px; }
   color: #FFFFFF;
 }
 
-/* =====================================================================
-   BỘ CHỌN MÔN HỌC TÌM KIẾM & XEM THÊM (TỐI ƯU CHO 20+ MÔN HỌC)
-   ===================================================================== */
+/* Bộ chọn môn có tìm kiếm */
 .cd-mon-picker-field {
   margin-bottom: 18px;
 }
@@ -2153,7 +2132,7 @@ body.trang-cd .container { max-width: 1240px; }
   margin-top: 6px;
 }
 
-/* Nút Đăng bài Gradient Tím Xanh Siêu Đẹp (Chuẩn ảnh 2) */
+/* Nút đăng bài */
 .btn-dang-bai-gradient {
   display: inline-flex;
   align-items: center;
@@ -2236,9 +2215,7 @@ body.trang-cd .container { max-width: 1240px; }
 .cd-giua .phantrang a:hover { background: rgba(0, 217, 255, 0.2); border-color: var(--cd-cyan); color: #FFF; }
 .cd-giua .phantrang strong { color: #FFF; background: linear-gradient(135deg, rgba(0, 217, 255, 0.35), rgba(2, 132, 199, 0.6)); border-color: var(--cd-cyan); }
 
-/* =====================================================================
-   4. THẺ BÀI ĐĂNG (POST CARDS): GLASSMORPHIC FLOATING CARDS
-   ===================================================================== */
+/* Thẻ bài đăng */
 .cd-the {
   position: relative; display: flex; gap: 16px;
   padding: 18px 22px; margin-bottom: 14px; border-radius: 16px;
@@ -2318,7 +2295,7 @@ body.trang-cd .container { max-width: 1240px; }
   color: #FBBF24; background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.45);
 }
 
-/* Huy hiệu Elo cạnh tên người đăng (Thiết kế mạ kim loại 3D) */
+/* Huy hiệu Elo cạnh tên người đăng */
 .cd-elo {
   display: inline-flex; align-items: center; gap: 4px;
   padding: 2px 10px; border-radius: 999px;
@@ -2391,7 +2368,7 @@ body.trang-cd .container { max-width: 1240px; }
   transform: translateY(-1px);
 }
 
-/* NÚT THẢ LỬA 🔥 (THAY VÌ LIKE) */
+/* Nút thả lửa */
 .cd-chi-so.cd-tha-lua {
   display: inline-flex;
   align-items: center;
@@ -2455,7 +2432,7 @@ body.trang-cd .container { max-width: 1240px; }
   filter: drop-shadow(0 0 5px #FFF) drop-shadow(0 0 12px #FF6D00);
 }
 
-/* TRẠNG THÁI ĐÃ THẢ LỬA 🔥 (RỰC CHÁY) */
+/* Trạng thái đã thả lửa */
 .cd-chi-so.cd-tha-lua.da-tha-lua,
 .cd-chi-so.cd-thich.da-thich {
   color: #FFF7ED;
@@ -2506,9 +2483,7 @@ body.trang-cd .container { max-width: 1240px; }
 }
 .cd-ghi-chu { font-size: 12.5px; color: #94a3b8; font-style: italic; }
 
-/* =====================================================================
-   5. TAB THÀNH VIÊN NỔI BẬT (RANKING CARDS)
-   ===================================================================== */
+/* Tab thành viên nổi bật */
 .cd-the.cd-thanhvien {
   align-items: center; gap: 18px;
 }
@@ -2550,9 +2525,7 @@ body.trang-cd .container { max-width: 1240px; }
   border-color: rgba(212, 175, 55, 0.4);
 }
 
-/* =====================================================================
-   6. TAB HUY HIỆU LÀ GÌ? (RANK GUIDE PAGE)
-   ===================================================================== */
+/* Tab giải thích huy hiệu */
 .cd-hh-trang {
   position: relative;
   background: var(--cd-panel-bg);
@@ -2643,9 +2616,7 @@ body.trang-cd .container { max-width: 1240px; }
   filter: brightness(1.1);
 }
 
-/* =====================================================================
-   7. TRẠNG THÁI RỖNG & PHÂN TRANG (EMPTY STATES & PAGINATION)
-   ===================================================================== */
+/* Trạng thái trống và phân trang */
 .cd-rong {
   padding: 40px 20px; text-align: center; color: #94a3b8;
   background: var(--cd-panel-bg);
@@ -2686,9 +2657,7 @@ body.trang-cd .container { max-width: 1240px; }
   box-shadow: 0 0 14px rgba(0, 217, 255, 0.6);
 }
 
-/* =====================================================================
-   8. RESPONSIVE REFINEMENTS
-   ===================================================================== */
+/* Responsive */
 @media (max-width: 768px) {
   .cd-the { padding: 14px 16px; gap: 12px; }
   .cd-av { width: 42px; height: 42px; font-size: 16px; }
@@ -2714,9 +2683,7 @@ body.trang-cd .container { max-width: 1240px; }
 .cd-bl-xem-them { align-self: flex-start; font-size: 13px; color: var(--cd-cyan, #00d9ff); text-decoration: none; }
 .cd-bl-xem-them:hover { text-decoration: underline; }
 
-/* =====================================================================
-   9. WIDGET KẾT BẠN & THÁCH ĐẤU NHANH TRONG CỘNG ĐỒNG
-   ===================================================================== */
+/* Nút kết bạn và thách đấu nhanh */
 .cd-ten-row {
   display: flex;
   align-items: center;
@@ -2993,9 +2960,7 @@ body.trang-cd .container { max-width: 1240px; }
   line-height: 1.4;
 }
 
-/* =====================================================================
-   10. BỘ QUY TẮC CHỐNG TRÀN & CHỐNG CHỒNG CHÉO TRÊN ĐIỆN THOẠI (MOBILE)
-   ===================================================================== */
+/* Responsive điện thoại */
 @media (max-width: 768px) {
   /* 1. Toast thông báo nổi vừa khít màn hình nhỏ */
   .cd-floating-toast {

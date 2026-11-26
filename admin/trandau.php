@@ -1,15 +1,12 @@
 <?php
-// Danh sách và tra cứu trận đấu, danh sách trận bất thường (UC14: A-23, A-25).
-// Đặt tại: elo_quiz/admin/trandau.php. Chi tiết và hủy trận: admin/trandau_chitiet.php
+// Danh sách tra cứu trận đấu và theo dõi trận bất thường.
 require_once __DIR__ . '/../core/bootstrap.php';
-Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');   // A-04
+Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');
 
 $pdo = Database::pdo();
-
-// Cột ThoiGianTao đã được DbSchema::damBao bảo đảm tồn tại.
 $coCotTao = true;
 
-// ---- Bộ lọc: mã trận / người chơi, môn, trạng thái, chỉ trận bất thường ----
+// Bộ lọc trận đấu.
 $q   = trim((string) ($_GET['q'] ?? ''));
 $mon = (int) ($_GET['mon'] ?? 0);
 $tt  = (string) ($_GET['tt'] ?? '');
@@ -21,10 +18,10 @@ if (!in_array($tt, ['Đã ghép', 'Đang diễn ra', 'Kết thúc', 'Hủy'], tr
 $nguongPhut = max(1, Config::int('NGUONG_TRAN_KEO_DAI', 10));
 $nguongGiay = $nguongPhut * 60;
 
-// A-25: tiêu chí trận bất thường nằm trong core/TranDauGiamSat.php, dùng chung với biểu đồ (trandau_nhip.php)
+// Tiêu chí trận bất thường dùng chung với biểu đồ.
 [$dkBatThuong, $thamBatThuong] = TranDauGiamSat::dieuKienBatThuong($coCotTao, $nguongGiay);
 
-$dkNen   = [];   // điều kiện nền (tìm kiếm, môn): cũng dùng để đếm số trận trên từng nhãn trạng thái
+$dkNen   = [];   // Điều kiện nền dùng chung cho đếm số trận theo trạng thái.
 $thamNen = [];
 if ($q !== '') {
     $maTran = ctype_digit(ltrim($q, '#')) ? (int) ltrim($q, '#') : 0;
@@ -48,7 +45,7 @@ if ($bt) {
     $dieuKien[] = $dkBatThuong;
     array_push($tham, ...$thamBatThuong);
 }
-// ---- 4 thẻ số liệu đầu trang (tính trên toàn bộ trận, không phụ thuộc bộ lọc bên dưới) ----
+// 4 thẻ số liệu đầu trang (không theo bộ lọc).
 $mocTG = $coCotTao ? 'COALESCE(t.ThoiGianBatDau, t.ThoiGianTao)' : 't.ThoiGianBatDau';
 $st = $pdo->prepare(
     "SELECT COUNT(*) AS tong,
@@ -65,7 +62,7 @@ $where = $dieuKien ? 'WHERE ' . implode(' AND ', $dieuKien) : '';
 
 $cotTao = $coCotTao ? ', TIMESTAMPDIFF(SECOND, t.ThoiGianTao, NOW(3)) AS giay_da_ghep' : ', NULL AS giay_da_ghep';
 
-// ---- Danh sách có phân trang (20 dòng/trang, có tổng số bản ghi) ----
+// Danh sách phân trang (20 dòng/trang).
 $st = $pdo->prepare("SELECT COUNT(*) FROM TRANDAU t $where");
 $st->execute($tham);
 $tongLoc = (int) $st->fetchColumn();
@@ -85,7 +82,7 @@ $st = $pdo->prepare(
 $st->execute($tham);
 $ds = $st->fetchAll();
 
-// Người chơi của các trận trong trang hiện tại (tên, điểm, kết quả, có bỏ trận không)
+// Người chơi của các trận trong trang.
 $nguoiDs = [];
 if ($ds) {
     $maDs = array_map(static fn ($r) => (int) $r['MaTran'], $ds);
@@ -101,7 +98,7 @@ if ($ds) {
     }
 }
 
-// Số trận trên từng nhãn lọc (theo tìm kiếm + môn đang chọn, không phụ thuộc trạng thái / bất thường đang chọn)
+// Số trận trên các chip lọc trạng thái.
 $demTT = ['Đã ghép' => 0, 'Đang diễn ra' => 0, 'Kết thúc' => 0, 'Hủy' => 0];
 $demBt = 0;
 $st = $pdo->prepare(
@@ -115,7 +112,7 @@ foreach ($st->fetchAll() as $r) {
 }
 $demTat = array_sum($demTT);
 
-// Liên kết giữ nguyên các bộ lọc đang chọn, chỉ đổi phần $doi
+// Tạo link giữ nguyên bộ lọc hiện tại.
 $lienKet = static function (array $doi) use ($q, $mon, $tt, $bt): string {
     $t = array_merge(['q' => $q, 'mon' => $mon ?: '', 'tt' => $tt, 'bt' => $bt ? '1' : ''], $doi);
     $t = array_filter($t, static fn ($v) => $v !== '' && $v !== null);
@@ -125,7 +122,7 @@ $dangLoc = $q !== '' || $mon > 0 || $tt !== '' || $bt;
 
 $monHoc = $pdo->query('SELECT MaMon, TenMon FROM MONHOC ORDER BY TenMon')->fetchAll();
 
-// ---- Panel "Trận bất thường": tối đa 10 trận, trận còn đang chạy (có thể bị treo) xếp trước ----
+// Panel trận bất thường (ưu tiên trận đang chạy).
 $st = $pdo->prepare(
     "SELECT t.MaTran, m.TenMon, t.TrangThai, t.LyDoKetThuc, t.ThoiGianKetThuc,
             TIMESTAMPDIFF(SECOND, t.ThoiGianBatDau, NOW(3)) AS giay_dien_ra $cotTao
@@ -138,7 +135,7 @@ $st = $pdo->prepare(
 $st->execute($thamBatThuong);
 $dsBt = $st->fetchAll();
 
-// Người chơi của các trận đó (tên, điểm, có bỏ trận không)
+// Người chơi của các trận bất thường.
 $nguoiBt = [];
 if ($dsBt) {
     $maBt = array_map(static fn ($r) => (int) $r['MaTran'], $dsBt);
@@ -159,7 +156,7 @@ $lopTT = ['Đã ghép' => 'tt-daghep', 'Đang diễn ra' => 'tt-dangdau', 'Kết
 $tieuDe  = 'Trận đấu';
 $mucChon = 'trandau';
 $cssTrang = ['trandau', 'trandau_xuat'];
-$jsTrang  = ['trandau_bieudo', 'trandau_xuat', 'trandau_loc_mon'];   // biểu đồ nhịp trận (gọi admin/trandau_nhip.php)
+$jsTrang  = ['trandau_bieudo', 'trandau_xuat', 'trandau_loc_mon'];
 require __DIR__ . '/layout/header.php';
 ?>
 <div class="td">
@@ -200,7 +197,7 @@ require __DIR__ . '/layout/header.php';
   </div>
 
   <div class="td-hang">
-  <!-- Biểu đồ nhịp trận: dữ liệu lấy từ admin/trandau_nhip.php, vẽ bằng assets/js/admin/trandau_bieudo.js -->
+  <!-- Biểu đồ nhịp trận -->
   <section class="td-bd" id="tdBd" data-api="<?= e(BASE_URL) ?>/admin/trandau_nhip.php">
     <div class="td-bd-dau">
       <div>
@@ -238,7 +235,7 @@ require __DIR__ . '/layout/header.php';
     <div class="td-bd-ve" id="tdBdVe"></div>
   </section>
 
-  <!-- Panel trận bất thường (dữ liệu dựng ở máy chủ, cùng tiêu chí A-25 với biểu đồ và bộ lọc) -->
+  <!-- Panel trận bất thường -->
   <aside class="td-bt" aria-label="Trận bất thường">
     <div class="td-bt-dau">
       <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>Trận bất thường</h3>
@@ -289,7 +286,7 @@ require __DIR__ . '/layout/header.php';
         <div class="td-bt-nut">
           <a class="td-nut td-nut-xanh" href="<?= $linkCt ?>">Xem chi tiết</a>
           <?php if ($dangChay): ?>
-            <!-- Hủy trận (A-26): gửi thẳng tới trandau_chitiet.php, nơi xử lý hủy + ghi nhật ký; bắt buộc có lý do -->
+            <!-- Hủy trận gửi sang trandau_chitiet.php kèm lý do -->
             <details class="td-huy">
               <summary class="td-nut td-nut-do">Hủy trận</summary>
               <form method="post" action="<?= $linkCt ?>" data-xacnhan="Hủy trận #<?= $ma ?>? Thao tác này không thể hoàn tác.">
@@ -314,14 +311,14 @@ require __DIR__ . '/layout/header.php';
   </div>
 
 
-  <!-- ===== Bộ lọc: ô tìm, môn, nhãn trạng thái có số đếm ===== -->
+  <!-- Bộ lọc danh sách -->
   <form method="get" action="" class="td-loc">
     <div class="td-loc-hang">
       <label class="td-tim">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
         <input type="text" name="q" value="<?= e($q) ?>" placeholder="Mã trận, tên hoặc email người chơi">
       </label>
-      <!-- Lọc môn: ô chọn có tìm kiếm, mặc định chỉ hiện 5 môn + nút "Xem thêm" (xử lý ở assets/js/admin/trandau_loc_mon.js) -->
+      <!-- Ô chọn môn có tìm kiếm -->
       <div class="td-mon" id="tdMon" data-gioi-han="5">
         <input type="hidden" name="mon" value="<?= (int) $mon ?>">
         <?php $tenMonChon = 'Mọi môn'; foreach ($monHoc as $m) { if ($mon === (int) $m['MaMon']) { $tenMonChon = $m['TenMon']; break; } } ?>
@@ -363,7 +360,7 @@ require __DIR__ . '/layout/header.php';
     <p class="td-luuy">Chưa đo được thời gian chờ của trận "Đã ghép" vì bảng TRANDAU chưa có cột ThoiGianTao (xem sql/trandau_thoigiantao.sql).</p>
   <?php endif; ?>
 
-  <!-- ===== Danh sách trận ===== -->
+  <!-- Danh sách trận -->
   <section class="td-ds">
     <div class="td-ds-dau">
       <h3>Danh sách trận</h3>
@@ -387,7 +384,7 @@ require __DIR__ . '/layout/header.php';
             $nhan  = TranDauGiamSat::nhan($r, $nguongGiay);
             $nguoi = $nguoiDs[$ma] ?? [];
 
-            // Thời gian: trận đã xong hiện tổng thời lượng, trận đang chạy hiện đã chạy bao lâu, trận đã ghép hiện đã chờ bao lâu
+            // Thời lượng hoặc thời gian chờ theo trạng thái trận.
             if ($r['TrangThai'] === 'Kết thúc' || $r['TrangThai'] === 'Hủy') {
                 $phuGio = $r['giay_tong'] !== null ? 'Kéo dài ' . TranDauGiamSat::thoiLuong($r['giay_tong']) : '';
             } elseif ($r['TrangThai'] === 'Đang diễn ra') {
@@ -461,7 +458,7 @@ require __DIR__ . '/layout/header.php';
   </section>
 </div>
 
-<!-- Hộp thoại xuất Excel / PDF: xử lý ở admin/trandau_xuat.php, tải file bằng assets/js/admin/trandau_xuat.js -->
+<!-- Hộp thoại xuất Excel/PDF -->
 <div class="tx-nen" id="hopXuatTran" hidden>
   <form class="tx-hop" id="formXuatTran" method="post" action="<?= e(BASE_URL) ?>/admin/trandau_xuat.php" role="dialog" aria-modal="true" aria-labelledby="txTieuDe">
     <h3 id="txTieuDe">Xuất báo cáo trận đấu</h3>

@@ -1,9 +1,4 @@
-// Nút "Xuất" ở trang Tổng quan: mở hộp thoại chọn trang (Tổng quan / Theo môn học / Cả hai), mốc thời gian (nhiều mốc, có nút
-// "Chọn tất cả"), định dạng (Excel / PDF / Cả hai) và cách chia (Theo mốc ngày / Theo loại biểu đồ / Cả hai);
-// có phần XEM TRƯỚC đúng theo cách chia đang chọn. Chỉ khi bấm "Xuất" trong hộp thoại thì file mới tải về.
-// Định dạng "Cả hai": gọi máy chủ lần lượt hai lần (Excel rồi PDF) và tải về liên tiếp hai file (không nén zip).
-// Biểu đồ trong phần xem trước được vẽ lại bằng cùng hàm với biểu đồ trên trang (DashCharts, assets/js/admin/index.js);
-// khi xuất, chính các canvas đó được chụp thành JPEG nền trắng (giữ nguyên màu) rồi gửi kèm.
+// Hộp thoại Xuất ở trang Tổng quan: xem trước biểu đồ (qua DashCharts) và xuất Excel/PDF.
 (function () {
   'use strict';
   var nut = document.getElementById('nutXuat');
@@ -92,7 +87,7 @@
     return cv;
   }
 
-  // ---- Nhóm 1: THEO MỐC NGÀY - mỗi mốc một thẻ gộp, hai biểu đồ ngang cạnh nhau ----
+  // Nhóm 1: Theo mốc ngày
   function veTheoNgay(du, coTq, coMon, khoang, tuyChon) {
     khoang.forEach(function (n) {
       var d = du[n];
@@ -117,7 +112,7 @@
     });
   }
 
-  // ---- Nhóm 2: THEO LOẠI BIỂU ĐỒ - xếp theo loại, trong mỗi loại các mốc nối tiếp ----
+  // Nhóm 2: Theo loại biểu đồ
   function veTheoLoai(du, coTq, coMon, khoang, tuyChon) {
     if (coTq) {
       var tenTq = 'Loại - Tổng quan';

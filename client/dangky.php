@@ -1,8 +1,7 @@
 <?php
-// Đăng ký sinh viên có xác thực Email OTP (C-01, C-02, C-04). Đặt tại: elo_quiz/client/dangky.php
+// Đăng ký tài khoản sinh viên có xác thực Email OTP
 require_once __DIR__ . '/../core/bootstrap.php';
 
-// Đã đăng nhập thì không cần đăng ký nữa
 if (Auth::clientId() !== null) {
     redirect(BASE_URL . '/client/index.php');
 }
@@ -10,11 +9,11 @@ if (Auth::clientId() !== null) {
 $pdo      = Database::pdo();
 $loi      = [];
 $daGuiLai = false;
-$buoc     = 1; // 1: Nhập thông tin, 2: Nhập mã OTP từ email
+$buoc     = 1; // 1: Nhập thông tin, 2: Nhập mã OTP
 $hoTen    = '';
 $email    = '';
 
-// Quay lại bước 1 để sửa họ tên / đổi địa chỉ email khác
+// Quay lại bước 1 để sửa họ tên hoặc đổi email
 if (isset($_GET['sua_thong_tin']) || isset($_GET['doi_email'])) {
     if (!empty($_SESSION['register_flow'])) {
         $_SESSION['register_draft'] = [
@@ -32,7 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST' && !empty($_SESSION['register_draft'])
     unset($_SESSION['register_draft']);
 }
 
-// Kiểm tra phiên xác thực OTP đăng ký đang dở
+// Kiểm tra phiên xác thực OTP đăng ký
 if (!empty($_SESSION['register_flow'])) {
     if (time() > ($_SESSION['register_flow']['expire'] ?? 0)) {
         unset($_SESSION['register_flow']);
@@ -45,7 +44,7 @@ if (!empty($_SESSION['register_flow'])) {
     }
 }
 
-// Xử lý yêu cầu gửi lại mã OTP (chỉ khi đang ở bước 2)
+// Gửi lại mã OTP (cooldown 60s + RateLimiter)
 if (isset($_GET['gui_lai']) && !empty($_SESSION['register_flow'])) {
     $flow     = $_SESSION['register_flow'];
     $now      = time();
@@ -77,7 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_check();
     $action = trim((string) ($_POST['action'] ?? 'gui_otp'));
 
-    // BƯỚC 1: KIỂM TRA THÔNG TIN & GỬI MÃ OTP VỀ EMAIL
+    // Kiểm tra thông tin và gửi OTP về email
     if ($action === 'gui_otp') {
         $loi     = [];
         $hoTen   = trim((string) ($_POST['ho_ten'] ?? ''));
@@ -85,7 +84,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $matKhau = (string) ($_POST['mat_khau'] ?? '');
         $xacNhan = (string) ($_POST['xac_nhan'] ?? '');
 
-        // C-04: báo lỗi dễ hiểu khi thiếu hoặc sai dữ liệu
         if ($hoTen === '') {
             $loi[] = 'Vui lòng nhập họ tên.';
         } elseif (mb_strlen($hoTen) > 100) {
@@ -115,7 +113,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $loi[] = 'Bạn đã gửi yêu cầu đăng ký quá nhiều lần. Vui lòng thử lại sau '
                     . RateLimiter::dinhDangThoiGian($hanChe['thoiGianCon']) . '.';
             } else {
-                // C-01: email không được trùng (kiểm tra trước khi gửi OTP)
+                // Kiểm tra trùng email trước khi gửi OTP
                 $st = $pdo->prepare('SELECT 1 FROM NGUOIDUNG WHERE Email = ?');
                 $st->execute([$email]);
                 if ($st->fetchColumn()) {
@@ -141,7 +139,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    // BƯỚC 2: XÁC THỰC MÃ OTP & TẠO TÀI KHOẢN
+    // Xác thực OTP và tạo tài khoản
     elseif ($action === 'xac_nhan_otp') {
         $loi = [];
         if (empty($_SESSION['register_flow']) || time() > ($_SESSION['register_flow']['expire'] ?? 0)) {
@@ -177,14 +175,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $buoc  = 1;
                 } else {
                     try {
-                        // C-02: lưu mật khẩu đã băm cùng thời điểm đặt mật khẩu
                         $st = $pdo->prepare(
                             'INSERT INTO NGUOIDUNG (HoTen, Email, MatKhau, NgayDoiMatKhau) VALUES (?, ?, ?, NOW())'
                         );
                         $st->execute([$flow['hoTen'], $flow['email'], $flow['matKhauHash']]);
                         $maND = (int) $pdo->lastInsertId();
 
-                        // Lưu bản ghi mật khẩu ban đầu vào LICHSU_MATKHAU
                         try {
                             $pdo->prepare('INSERT INTO LICHSU_MATKHAU (MaND, MatKhauHash) VALUES (?, ?)')
                                 ->execute([$maND, $flow['matKhauHash']]);
@@ -196,7 +192,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         RateLimiter::xoa('register_verify', $flow['email']);
                         unset($_SESSION['register_flow'], $_SESSION['register_draft']);
 
-                        // Đăng nhập luôn sau khi xác thực OTP & tạo tài khoản thành công
+                        // Đăng nhập ngay sau khi tạo tài khoản
                         Auth::regenerate();
                         $_SESSION['nd_id'] = $maND;
 
@@ -227,7 +223,7 @@ require __DIR__ . '/layout/header.php';
     <h2>Đăng ký tài khoản</h2>
     <p class="quenmk-mo-ta">Tạo tài khoản và xác thực Email để bước vào Đấu Trường Tri Thức.</p>
 
-    <!-- Stepper Tiến trình tối giản -->
+    <!-- Tiến trình đăng ký -->
     <div class="quenmk-stepper">
       <div class="stepper-track">
         <div class="stepper-bar" style="width: <?= $buoc === 1 ? '0%' : '50%' ?>;"></div>
@@ -253,7 +249,7 @@ require __DIR__ . '/layout/header.php';
     <?php endif; ?>
 
     <?php if ($buoc === 1): ?>
-      <!-- ==================== BƯỚC 1: NHẬP THÔNG TIN ==================== -->
+      <!-- Nhập thông tin đăng ký -->
       <form method="post" action="" novalidate>
         <?= csrf_field() ?>
         <input type="hidden" name="action" value="gui_otp">
@@ -297,7 +293,7 @@ require __DIR__ . '/layout/header.php';
       <script src="<?= e(BASE_URL) ?>/assets/js/pw_helper.js"></script>
 
     <?php else: ?>
-      <!-- ==================== BƯỚC 2: XÁC THỰC MÃ OTP ==================== -->
+      <!-- Xác thực mã OTP -->
       <?php $flow = $_SESSION['register_flow'] ?? []; ?>
 
       <div class="thongbao-email-box">

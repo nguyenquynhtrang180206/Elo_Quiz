@@ -1,24 +1,21 @@
 <?php
-// Tìm trận: chọn môn trong danh sách, chọn loại kỳ thi, vào / hủy hàng đợi (C-16 đến C-19, C-22).
-// Không thấy môn của mình thì được đề xuất môn mới để quản trị viên duyệt (cần chạy them_de_xuat_mon.sql).
-// Mỗi lần trang chờ tải lại thì gọi GhepDoi::thuGhep() (C-20); ghép được hoặc đã có trận thì chuyển sang phong.php.
-// Đặt tại: elo_quiz/client/timtran.php
+// Tìm trận: chọn môn, kỳ thi, ghép đôi PvP / Bot AI / Thách đấu PIN và đề xuất môn mới
 require_once __DIR__ . '/../core/bootstrap.php';
-if (Auth::laAdminSinhVien()) {   // admin không tìm trận và không đấu trận
+if (Auth::laAdminSinhVien()) {   // Tài khoản quản trị không tham gia thi đấu
     redirect(BASE_URL . '/client/index.php');
 }
 
 
 
 
-$maND = Auth::clientId();   // khách chưa đăng nhập vẫn xem được môn/kỳ thi; vào hàng đợi và đề xuất môn cần đăng nhập
+$maND = Auth::clientId();   // Khách xem được môn/kỳ thi; vào hàng đợi và đề xuất môn cần đăng nhập
 $pdo  = Database::pdo();
 
-// ---- Cấu hình cốt lõi cần cho cả AJAX polling & render trang ----
+// Cấu hình ghép đôi dùng chung cho polling và hiển thị
 $choToiDa  = max(1, Config::int('THOI_GIAN_CHO_GHEP_TOI_DA', 60));
 $nguongElo = max(1, Config::int('NGUONG_ELO_GHEP_DOI', 100));
 
-// Tùy chọn tìm trận lưu bền vững trong NGUOIDUNG (session chỉ là bộ nhớ đệm)
+// Đọc tùy chọn tìm trận từ CSDL vào session nếu chưa nạp
 if ($maND !== null && !isset($_SESSION['tuy_chon_nap'])) {
     $stTC = $pdo->prepare('SELECT TuongChon, ChoPhepBot FROM NGUOIDUNG WHERE MaND = ?');
     $stTC->execute([$maND]);
@@ -37,7 +34,7 @@ function luuTuyChonTimTran(PDO $pdo, ?int $maND): void
         ->execute([(string) ($_SESSION['tuong_chon'] ?? 'sunflower'), !empty($_SESSION['cho_phep_bot']) ? 1 : 0, $maND]);
 }
 $choPhepBot = isset($_SESSION['cho_phep_bot']) ? (bool) $_SESSION['cho_phep_bot'] : true;
-const TOI_DA_DE_XUAT_CHO = 3;   // mỗi người tối đa 3 đề xuất đang chờ duyệt, tránh gửi tràn
+const TOI_DA_DE_XUAT_CHO = 3;   // Giới hạn tối đa 3 đề xuất chờ duyệt mỗi người
 
 function flashTT(?string $loai = null, ?string $nd = null): ?array
 {
@@ -50,7 +47,7 @@ function flashTT(?string $loai = null, ?string $nd = null): ?array
     return $m;
 }
 
-// Bỏ dấu đ/Đ để so tên môn không phân biệt hoa thường và dấu (collation unicode_ci không gộp đ với d)
+// Chuẩn hóa tên môn và bỏ phân biệt đ/d để kiểm tra trùng lặp
 function chuanTen(string $s): string
 {
     $s = trim(preg_replace('/\s+/u', ' ', $s));
@@ -61,7 +58,7 @@ function chuanTen(string $s): string
 }
 const SQL_TEN_KHONG_D = "REPLACE(REPLACE(TenMon, 'đ', 'd'), 'Đ', 'D')";
 
-// ---- Dọn dòng chờ quá hạn (quá hạn chờ không tương tác thì dọn dẹp hàng đợi tránh rác) ----
+// Dọn các dòng chờ quá hạn để tránh rác hàng đợi
 if ($maND !== null) {
     $st = $pdo->prepare('DELETE FROM HANGDOIGHEPDOI WHERE MaND = ? AND ThoiGianVaoHang < DATE_SUB(NOW(), INTERVAL ? SECOND)');
     $st->execute([$maND, max($choToiDa * 3, 90)]);
@@ -69,7 +66,7 @@ if ($maND !== null) {
 
 $mon = (int) ($_GET['mon'] ?? 0);
 
-// ---- AJAX: Bật / Tắt chế độ tự ghép máy khi đang chờ ----
+// AJAX: bật/tắt tự ghép máy khi đang chờ
 if (isset($_GET['ajax_toggle_bot'])) {
     header('Content-Type: application/json; charset=utf-8');
     header('Cache-Control: no-store');
@@ -85,7 +82,7 @@ if (isset($_GET['ajax_toggle_bot'])) {
     exit;
 }
 
-// ---- AJAX: Khởi động lại bộ đếm khi tìm tiếp PvP ----
+// AJAX: khởi động lại bộ đếm khi tìm tiếp PvP
 if (isset($_GET['ajax_reset_timer']) || isset($_POST['ajax_reset_timer'])) {
     header('Content-Type: application/json; charset=utf-8');
     header('Cache-Control: no-store');
@@ -98,7 +95,7 @@ if (isset($_GET['ajax_reset_timer']) || isset($_POST['ajax_reset_timer'])) {
     exit;
 }
 
-// ---- AJAX: Người chơi bấm chấp nhận Sẵn sàng (Ready Check 10s) ----
+// AJAX: xác nhận sẵn sàng trong 10s Ready Check
 if (isset($_GET['ajax_ready_accept']) || isset($_POST['ajax_ready_accept'])) {
     header('Content-Type: application/json; charset=utf-8');
     header('Cache-Control: no-store');
@@ -113,7 +110,7 @@ if (isset($_GET['ajax_ready_accept']) || isset($_POST['ajax_ready_accept'])) {
     exit;
 }
 
-// ---- AJAX: Tạo phòng thách đấu bạn bè 1v1 (Mã PIN 2.0) ----
+// AJAX: tạo phòng thách đấu mã PIN
 if (isset($_GET['ajax_thachdau_tao']) || isset($_POST['ajax_thachdau_tao'])) {
     header('Content-Type: application/json; charset=utf-8');
     header('Cache-Control: no-store');
@@ -127,7 +124,7 @@ if (isset($_GET['ajax_thachdau_tao']) || isset($_POST['ajax_thachdau_tao'])) {
     exit;
 }
 
-// ---- AJAX: Xem trước thông tin phòng thách đấu qua mã PIN (Live Room Preview) ----
+// AJAX: xem trước thông tin phòng thách đấu qua mã PIN
 if (isset($_GET['ajax_thachdau_xem']) || isset($_POST['ajax_thachdau_xem'])) {
     header('Content-Type: application/json; charset=utf-8');
     header('Cache-Control: no-store');
@@ -145,7 +142,7 @@ if (isset($_GET['ajax_thachdau_xem']) || isset($_POST['ajax_thachdau_xem'])) {
     exit;
 }
 
-// ---- AJAX: Khách nhập mã PIN vào phòng thách đấu 1v1 ----
+// AJAX: tham gia phòng thách đấu qua mã PIN
 if (isset($_GET['ajax_thachdau_vao']) || isset($_POST['ajax_thachdau_vao'])) {
     header('Content-Type: application/json; charset=utf-8');
     header('Cache-Control: no-store');
@@ -167,7 +164,7 @@ if (isset($_GET['ajax_thachdau_vao']) || isset($_POST['ajax_thachdau_vao'])) {
     exit;
 }
 
-// ---- AJAX: Chủ phòng kiểm tra khách vào phòng thách đấu ----
+// AJAX: chủ phòng kiểm tra người chơi vào phòng PIN
 if (isset($_GET['ajax_thachdau_kiemtra'])) {
     header('Content-Type: application/json; charset=utf-8');
     header('Cache-Control: no-store');
@@ -180,7 +177,7 @@ if (isset($_GET['ajax_thachdau_kiemtra'])) {
     exit;
 }
 
-// ---- AJAX: Chủ phòng mời bạn bè trực tiếp 1 chạm vào phòng PIN ----
+// AJAX: mời bạn bè vào phòng PIN
 if (isset($_GET['ajax_thachdau_moiban']) || isset($_POST['ajax_thachdau_moiban'])) {
     header('Content-Type: application/json; charset=utf-8');
     header('Cache-Control: no-store');
@@ -194,7 +191,7 @@ if (isset($_GET['ajax_thachdau_moiban']) || isset($_POST['ajax_thachdau_moiban']
     exit;
 }
 
-// ---- AJAX: Hủy phòng thách đấu ----
+// AJAX: hủy phòng thách đấu PIN
 if (isset($_GET['ajax_thachdau_huy']) || isset($_POST['ajax_thachdau_huy'])) {
     header('Content-Type: application/json; charset=utf-8');
     header('Cache-Control: no-store');
@@ -208,7 +205,7 @@ if (isset($_GET['ajax_thachdau_huy']) || isset($_POST['ajax_thachdau_huy'])) {
     exit;
 }
 
-// ---- Dữ liệu chi tiết cho màn hình Chấp nhận trận & VS Showdown Esports ----
+// Dữ liệu màn hình xác nhận trận và đối đầu
 function layDuLieuShowdown(PDO $pdo, int $maTran, int $maND): array
 {
     $stOpp = $pdo->prepare(
@@ -281,7 +278,7 @@ function layDuLieuShowdown(PDO $pdo, int $maTran, int $maND): array
     $giayTuLucTao = max(0, (int) ($players[0]['GiayTuLucTao'] ?? 0));
     $conLai = max(0, 10 - $giayTuLucTao);
 
-    // 1. Nếu cả 2 đều đã sẵn sàng: Bắt đầu trận đấu
+    // Cả hai người chơi đã sẵn sàng: bắt đầu trận
     if ($toiSanSang && $doiThuSanSang) {
         if ($trangThaiTran === 'Đã ghép') {
             $pdo->prepare("UPDATE TRANDAU SET TrangThai = 'Đang diễn ra', ThoiGianBatDau = NOW(3) WHERE MaTran = ? AND TrangThai = 'Đã ghép'")
@@ -327,7 +324,7 @@ function layDuLieuShowdown(PDO $pdo, int $maTran, int $maND): array
         ];
     }
 
-    // 2. Nếu đã quá thời gian 10s Ready Check mà chưa cả 2 cùng sẵn sàng (Phát hiện AFK)
+    // Quá 10s Ready Check: xử phạt AFK người chưa xác nhận và hoàn hàng đợi ưu tiên
     if ($giayTuLucTao >= 11 && $trangThaiTran === 'Đã ghép') {
         if (!$toiSanSang) {
             AfkPenalty::phat($maND, 180);
@@ -336,7 +333,7 @@ function layDuLieuShowdown(PDO $pdo, int $maTran, int $maND): array
             AfkPenalty::phat($doiThuND, 180);
         }
 
-        // Đưa người đã bấm sẵn sàng trở lại hàng đợi ưu tiên
+        // Đưa người đã xác nhận trở lại hàng đợi ưu tiên
         if ($toiSanSang) {
             GhepDoi::vaoHangUuTien($pdo, $maND, (int) $players[0]['MaMon'], (int) $players[0]['MaLoaiKT'], (int) ($toiPlayer['EloMon'] ?? 1000));
         }
@@ -360,7 +357,7 @@ function layDuLieuShowdown(PDO $pdo, int $maTran, int $maND): array
         }
     }
 
-    // 3. Vẫn đang trong thời gian 10s chờ cả 2 bấm xác nhận
+    // Đang trong 10s chờ cả hai xác nhận
     return [
         'coTran'        => true,
         'readyCheck'    => true,
@@ -401,7 +398,7 @@ function layDuLieuShowdown(PDO $pdo, int $maTran, int $maND): array
     ];
 }
 
-// ---- AJAX Polling kiểm tra tìm trận mượt mà không load lại trang ----
+// AJAX polling kiểm tra trạng thái ghép đôi
 if (isset($_GET['ajax_check'])) {
     header('Content-Type: application/json; charset=utf-8');
     header('Cache-Control: no-store');
@@ -410,7 +407,7 @@ if (isset($_GET['ajax_check'])) {
         exit;
     }
 
-    // 0. Kiểm tra án phạt cấm tìm trận (AFK Penalty)
+    // Kiểm tra án phạt AFK
     $afk = AfkPenalty::kiemTra($maND);
     if ($afk['biPhat']) {
         echo json_encode([
@@ -423,13 +420,13 @@ if (isset($_GET['ajax_check'])) {
         exit;
     }
 
-    // 1. Kiểm tra đã có trận đang diễn ra chưa
+    // Kiểm tra trận đang diễn ra
     $maTran = GhepDoi::tranDangCo($pdo, $maND);
     if ($maTran !== null) {
         echo json_encode(layDuLieuShowdown($pdo, $maTran, $maND));
         exit;
     }
-    // 2. Kiểm tra còn trong hàng đợi không
+    // Kiểm tra trạng thái hàng đợi
     $st = $pdo->prepare('SELECT TIMESTAMPDIFF(SECOND, ThoiGianVaoHang, NOW()) AS DaCho FROM HANGDOIGHEPDOI WHERE MaND = ?');
     $st->execute([$maND]);
     $daCho = $st->fetchColumn();
@@ -440,7 +437,7 @@ if (isset($_GET['ajax_check'])) {
 
     $choPhepBot = isset($_SESSION['cho_phep_bot']) ? (bool) $_SESSION['cho_phep_bot'] : true;
 
-    // 3. Nếu là PvP thuần túy (không ghép bot) và đã đủ thời gian chờ tối đa:
+    // Hết thời gian chờ ở chế độ chỉ đấu người thật
     if (!$choPhepBot && (int) $daCho >= $choToiDa) {
         echo json_encode([
             'coTran' => false,
@@ -454,7 +451,7 @@ if (isset($_GET['ajax_check'])) {
         exit;
     }
 
-    // 4. Thử ghép đôi (quét người thật, nếu choPhepBot=true và đủ thời gian chờ thì tự ghép Đấu Thần Máy)
+    // Thử ghép đôi (người thật hoặc bot khi đủ thời gian chờ)
     $maTranMoi = GhepDoi::thuGhep($pdo, $maND, $choPhepBot);
     if ($maTranMoi !== null) {
         echo json_encode(layDuLieuShowdown($pdo, $maTranMoi, $maND));
@@ -472,7 +469,7 @@ if (isset($_GET['ajax_check'])) {
     exit;
 }
 
-// ---- Cấu hình luật chơi & tính điểm (Chỉ nạp khi không phải request AJAX polling) ----
+// Cấu hình luật chơi và tính điểm
 $soCau             = max(1, Config::int('SO_CAU', 10));
 $thoiGianMoiCau    = max(1, Config::int('THOI_GIAN_MOI_CAU', 15));
 $diemCoBan         = Config::int('DIEM_CO_BAN', 10);
@@ -487,7 +484,7 @@ $nguongSoTranDoiK  = Config::int('NGUONG_SO_TRAN_DOI_K', 30);
 $bangHangElo       = CongDongHelper::bangHangElo();
 $toiThieuTranHH    = CongDongHelper::HUY_HIEU_TOI_THIEU_TRAN;
 
-// ---- Xử lý thao tác (POST) ----
+// Xử lý thao tác POST
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($maND === null) {
         redirect(BASE_URL . '/client/dangnhap.php');
@@ -564,14 +561,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif (GhepDoi::demCauHoi($pdo, $maMon, $maKT) < $soCau) {
             $loi = 'Môn này chưa đủ câu hỏi cho loại kỳ thi đã chọn, chưa thể tìm trận.';
         } else {
-            // C-22: lần đầu chơi môn này thì tạo Elo khởi tạo
+            // Tạo bản ghi Elo khởi tạo nếu lần đầu thi đấu môn này
             $pdo->prepare('INSERT IGNORE INTO ELOMONHOC (MaND, MaMon, DiemElo) VALUES (?, ?, ?)')
                 ->execute([$maND, $maMon, $eloKhoiTao]);
             $st = $pdo->prepare('SELECT DiemElo FROM ELOMONHOC WHERE MaND = ? AND MaMon = ?');
             $st->execute([$maND, $maMon]);
             $elo = (int) $st->fetchColumn();
 
-            // Nếu người chơi chọn Đấu Ngay Với Máy (Bot AI)
+            // Ghép ngay với máy nếu người chơi chọn chế độ đấu Bot
             if (!empty($_POST['dau_bot'])) {
                 $maTran = GhepDoi::ghepVoiBot($pdo, $maND, $maMon, $maKT, $elo, $soCau);
                 if ($maTran) {
@@ -581,7 +578,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             try {
                 $pdo->beginTransaction();
-                // C-21: MaND là duy nhất ở hàng đợi, nên mỗi người chỉ có một dòng chờ
+                // MaND là khóa duy nhất trong hàng đợi nên mỗi người chỉ có một dòng chờ
                 $pdo->prepare('INSERT INTO HANGDOIGHEPDOI (MaND, MaMon, MaLoaiKT, EloTaiThoiDiemCho) VALUES (?, ?, ?, ?)')
                     ->execute([$maND, $maMon, $maKT, $elo]);
                 $pdo->commit();
@@ -603,7 +600,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         redirect(BASE_URL . '/client/timtran.php');
     }
 
-    // Đề xuất môn mới: lưu ở trạng thái "Chờ duyệt", chỉ Admin mới duyệt cho hiện ra
+    // Đề xuất môn mới ở trạng thái Chờ duyệt để quản trị viên xét duyệt
     if ($hanhDong === 'dexuat') {
         $ten  = chuanTen((string) ($_POST['ten_mon'] ?? ''));
         $moTa = trim((string) ($_POST['mo_ta'] ?? ''));
@@ -616,7 +613,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif (mb_strlen($moTa) > 500) {
             $loi = 'Mô tả tối đa 500 ký tự.';
         } else {
-            // Trùng tên với môn đã có (kể cả đang chờ duyệt hoặc đang ẩn)?
+            // Kiểm tra trùng tên môn (kể cả đang chờ duyệt hoặc tạm ẩn)
             $st = $pdo->prepare('SELECT TrangThai FROM MONHOC WHERE ' . SQL_TEN_KHONG_D . ' = ? LIMIT 1');
             $st->execute([str_replace(['đ', 'Đ'], ['d', 'D'], $ten)]);
             $trung = $st->fetchColumn();
@@ -645,7 +642,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $thongBao = flashTT();
 
-// ---- Đang chờ trong hàng đợi? ----
+// Kiểm tra trạng thái đang chờ trong hàng đợi
 $dangCho = null;
 if ($maND !== null) {
     $st = $pdo->prepare(
@@ -659,7 +656,7 @@ if ($maND !== null) {
     $st->execute([$maND]);
     $dangCho = $st->fetch() ?: null;
 
-    // Đang chờ thì thử ghép; ghép được (hoặc người kia vừa ghép mình) thì vào phòng
+    // Thử ghép đôi khi tải lại trang chờ
     if ($dangCho) {
         GhepDoi::thuGhep($pdo, $maND, $choPhepBot);
     }
@@ -677,7 +674,6 @@ $jsTrang  = 'timtran';
 function renderPvzTopBattle(): string {
     return '<div class="pvz-top-battle" aria-hidden="true">'
       . '<div class="pvz-plants-group">'
-        . '<!-- Sunflower -->'
         . '<div class="pvz-unit pvz-sunflower" title="Sunflower">'
           . '<svg viewBox="0 0 100 100" class="pvz-plant-svg">'
             . '<path d="M50 70 L50 96" stroke="#22C55E" stroke-width="6" stroke-linecap="round"/>'
@@ -703,7 +699,6 @@ function renderPvzTopBattle(): string {
             . '<circle cx="65" cy="52" r="3.5" fill="#F43F5E" opacity="0.75"/>'
           . '</svg>'
         . '</div>'
-        . '<!-- Wall-nut -->'
         . '<div class="pvz-unit pvz-wallnut" title="Wall-nut">'
           . '<svg viewBox="0 0 100 100" class="pvz-plant-svg">'
             . '<path d="M50 15 C30 15, 20 40, 22 75 C24 96, 76 96, 78 75 C80 40, 70 15, 50 15 Z" fill="#B45309" stroke="#78350F" stroke-width="3"/>'
@@ -717,7 +712,6 @@ function renderPvzTopBattle(): string {
             . '<path d="M52 64 Q57 67 62 64" stroke="#451A03" stroke-width="2.5" fill="none" stroke-linecap="round"/>'
           . '</svg>'
         . '</div>'
-        . '<!-- Peashooter -->'
         . '<div class="pvz-unit pvz-peashooter" title="Peashooter">'
           . '<svg viewBox="0 0 100 100" class="pvz-plant-svg">'
             . '<ellipse cx="38" cy="92" rx="14" ry="6" fill="#15803D"/>'
@@ -731,7 +725,6 @@ function renderPvzTopBattle(): string {
             . '<circle cx="49" cy="32" r="2.5" fill="#FFF"/>'
           . '</svg>'
         . '</div>'
-        . '<!-- Snow Pea -->'
         . '<div class="pvz-unit pvz-snowpea" title="Snow Pea">'
           . '<svg viewBox="0 0 100 100" class="pvz-plant-svg">'
             . '<ellipse cx="38" cy="92" rx="14" ry="6" fill="#0284C7"/>'
@@ -748,10 +741,8 @@ function renderPvzTopBattle(): string {
           . '</svg>'
         . '</div>'
       . '</div>'
-      . '<!-- Flying Bullets -->'
       . '<div class="pvz-bullet pvz-bullet-green"></div>'
       . '<div class="pvz-bullet pvz-bullet-ice"></div>'
-      . '<!-- Pea Hit Splat -->'
       . '<div class="pvz-hit-splat">'
         . '<svg viewBox="0 0 100 100" class="pvz-splat-svg">'
           . '<circle cx="50" cy="50" r="14" fill="#86EFAC"/>'
@@ -761,7 +752,6 @@ function renderPvzTopBattle(): string {
           . '<circle cx="35" cy="75" r="6" fill="#4ADE80"/>'
         . '</svg>'
       . '</div>'
-      . '<!-- Zombie Marching On Right Ledge -->'
       . '<div class="pvz-zombie-group">'
         . '<div class="pvz-zombie-host">'
           . '<div class="pvz-zombie-char">'
@@ -807,7 +797,7 @@ $tatCaTuong = LoLChampions::DANH_SACH;
   <?php endif; ?>
 
   <?php if ($dangCho): ?>
-    <!-- HOLOGRAPHIC RADAR SCANNER SCREEN -->
+    <!-- Màn hình quét tìm đối thủ -->
     <div class="radar-card card" id="radarCard"
          data-ajax-url="<?= e(BASE_URL . '/client/timtran.php?ajax_check=1') ?>"
          data-toggle-bot-url="<?= e(BASE_URL . '/client/timtran.php?ajax_toggle_bot=1') ?>"
@@ -828,7 +818,6 @@ $tatCaTuong = LoLChampions::DANH_SACH;
       </div>
 
       <div class="radar-core-stage">
-        <!-- Circular Radar Scanner (Gọn gàng, cân đối 250px) -->
         <div class="radar-visual">
           <div class="radar-ring r1"></div>
           <div class="radar-ring r2"></div>
@@ -837,7 +826,6 @@ $tatCaTuong = LoLChampions::DANH_SACH;
           <div class="radar-crosshair-v"></div>
           <div class="radar-sweep-beam"></div>
           
-          <!-- Selected Champion Pedestal at Center (Crisp, High-Tech, No Clipping) -->
           <div class="radar-champ-center" id="radarChampCenter">
             <div class="champ-avatar-glow" id="champAvatarGlow" style="border-color: <?= e($tuongHienTai['mauSac']) ?>; box-shadow: 0 0 25px <?= e($tuongHienTai['mauSac']) ?>88;">
               <img src="<?= e(BASE_URL . $tuongHienTai['avatar'] . '?v=' . (file_exists(__DIR__ . '/..' . $tuongHienTai['avatar']) ? filemtime(__DIR__ . '/..' . $tuongHienTai['avatar']) : '2')) ?>" alt="<?= e($tuongHienTai['ten']) ?>" class="champ-radar-img" id="champRadarImg">
@@ -850,9 +838,7 @@ $tatCaTuong = LoLChampions::DANH_SACH;
           </div>
         </div>
 
-        <!-- Radar Stats Panel (Dễ nhìn, chữ to, ngang hàng, vừa 1 màn hình) -->
         <div class="radar-stats-panel">
-          <!-- Hàng 1: Dải 3 thông số nằm ngang (Môn, Hạng mục, Elo) -->
           <div class="radar-match-info-strip">
             <div class="radar-mini-stat">
               <span class="mini-lbl">MÔN THI ĐẤU</span>
@@ -868,9 +854,7 @@ $tatCaTuong = LoLChampions::DANH_SACH;
             </div>
           </div>
 
-          <!-- Hàng 2: Khối trung tâm hàng chờ & Lựa chọn chế độ (Gom chung 1 thẻ chính) -->
           <div class="radar-queue-core-card">
-            <!-- Hàng đồng hồ đếm giờ -->
             <div class="radar-timer-main-row">
               <div class="timer-display-left">
                 <span class="timer-clock-icon">⏱</span>
@@ -882,12 +866,10 @@ $tatCaTuong = LoLChampions::DANH_SACH;
               <span class="est-badge" id="radarMaxBadge">GIỚI HẠN: <?= (int) $choToiDa ?> GIÂY</span>
             </div>
 
-            <!-- Thanh tiến trình thời gian -->
             <div class="radar-timer-bar-wrap">
               <div class="radar-timer-bar-fill" id="radarTimerFill" style="width: <?= min(100, round(((int)$dangCho['DaCho'] / $choToiDa) * 100)) ?>%;"></div>
             </div>
 
-            <!-- TINH GỌN LỰA CHỌN CHẾ ĐỘ: Segmented Switch trực quan 1 chạm -->
             <div class="radar-mode-segmented-block">
               <div class="mode-seg-header">
                 <span class="mode-seg-title">CHẾ ĐỘ GHÉP ĐỐI</span>
@@ -902,21 +884,19 @@ $tatCaTuong = LoLChampions::DANH_SACH;
                   <span class="seg-item-icon">🤖</span>
                   <span class="seg-item-name">Tự ghép Máy sau <?= (int) $choToiDa ?>s</span>
                 </div>
-                <!-- Phần tử ẩn giữ tương thích với JS cập nhật tự động -->
+                <!-- Giữ lại phần tử ẩn để đồng bộ cập nhật bằng JS -->
                 <span id="modeLiveIcon" style="display:none;"><?= $choPhepBot ? '🤖' : '⚔️' ?></span>
                 <span id="modeLiveName" style="display:none;"><?= $choPhepBot ? ('Tự ghép Máy sau ' . $choToiDa . 's') : 'Chỉ đấu Người thật (PvP)' ?></span>
                 <span id="logModeText" style="display:none;"></span>
               </button>
             </div>
 
-            <!-- Trạng thái live radar (1 dòng duy nhất, thoáng đãng) -->
             <div class="radar-live-status-line">
               <span class="log-bullet pulse"></span>
               <span id="logLine2">Đang quét đối thủ trong bán kính Elo ±<?= (int) $nguongElo ?>...</span>
             </div>
           </div>
 
-          <!-- Hàng 3: Hai nút hành động ở đáy (Cân xứng 50-50, rõ ràng) -->
           <div class="radar-action-btns">
             <form method="post" action="" class="form-instant-ai">
               <?= csrf_field() ?>
@@ -937,7 +917,6 @@ $tatCaTuong = LoLChampions::DANH_SACH;
             </form>
           </div>
 
-          <!-- Hàng 4: Mẹo nhỏ tinh tế ở đáy (Không còn là hộp to chen ngang) -->
           <div class="radar-tip-subtle" title="Mẹo leo rank">
             <span class="tip-subtle-icon">💡</span>
             <span class="tip-subtle-text" id="radarTipContent">Trả lời đúng trong 3 giây đầu để giật trọn vẹn điểm thưởng tốc độ tối đa!</span>
@@ -946,9 +925,7 @@ $tatCaTuong = LoLChampions::DANH_SACH;
       </div>
     </div>
 
-    <!-- =====================================================================
-         1. ESPORTS READY CHECK MODAL (10s COUNTDOWN & CONFIRMATION DIALOG)
-         ===================================================================== -->
+    <!-- Hộp thoại xác nhận sẵn sàng (10s) -->
     <div class="ready-check-overlay" id="esportsReadyCheckModal" style="display: none;" aria-hidden="true">
       <div class="ready-check-backdrop"></div>
       <div class="ready-check-dialog">
@@ -962,7 +939,6 @@ $tatCaTuong = LoLChampions::DANH_SACH;
         <h2 class="rc-title">CHẤP NHẬN TRANH HÙNG</h2>
         <p class="rc-sub" id="rcSubInfo">Môn: <strong class="text-cyan" id="rcSubjectName"><?= e($dangCho['TenMon'] ?? 'Đang tải...') ?></strong> &middot; Hạng mục: <strong class="text-gold" id="rcExamName"><?= e($dangCho['TenLoaiKT'] ?? 'Chính thức') ?></strong></p>
 
-        <!-- SVG Countdown Ring -->
         <div class="rc-timer-box">
           <svg class="rc-timer-svg" viewBox="0 0 120 120">
             <circle class="rc-timer-track" cx="60" cy="60" r="52"></circle>
@@ -974,9 +950,7 @@ $tatCaTuong = LoLChampions::DANH_SACH;
           </div>
         </div>
 
-        <!-- 2 Players Ready Badges -->
         <div class="rc-players-status">
-          <!-- You -->
           <div class="rc-player-item is-you" id="rcPlayerYou">
             <div class="rc-avatar-wrap">
               <img src="<?= e(BASE_URL . $tuongHienTai['avatar']) ?>" alt="Bạn" id="rcAvatarYou" class="rc-avatar-img">
@@ -990,7 +964,6 @@ $tatCaTuong = LoLChampions::DANH_SACH;
 
           <div class="rc-vs-badge">VS</div>
 
-          <!-- Opponent -->
           <div class="rc-player-item is-opp" id="rcPlayerOpp">
             <div class="rc-avatar-wrap">
               <img src="<?= e(BASE_URL . '/assets/images/champions/buckethead.png') ?>" alt="Đối thủ" id="rcAvatarOpp" class="rc-avatar-img">
@@ -1003,7 +976,6 @@ $tatCaTuong = LoLChampions::DANH_SACH;
           </div>
         </div>
 
-        <!-- Huge Accept Button -->
         <div class="rc-btn-container">
           <button type="button" class="btn-rc-accept pulse-anim" id="btnRcAccept">
             <span class="btn-rc-glare"></span>
@@ -1014,9 +986,7 @@ $tatCaTuong = LoLChampions::DANH_SACH;
       </div>
     </div>
 
-    <!-- =====================================================================
-         2. CINEMATIC VS SHOWDOWN MODAL (MÀN HÌNH ĐỐI ĐẦU ĐIỆN ẢNH 2.5s)
-         ===================================================================== -->
+    <!-- Màn hình đối đầu trước khi vào phòng -->
     <div class="vs-showdown-overlay" id="esportsVsShowdownModal" style="display: none;" aria-hidden="true">
       <div class="vs-showdown-bg-effects">
         <div class="vs-laser-grid"></div>
@@ -1024,15 +994,12 @@ $tatCaTuong = LoLChampions::DANH_SACH;
       </div>
 
       <div class="vs-showdown-card">
-        <!-- Top Header Strip -->
         <div class="vs-header-banner">
           <span class="vs-mode-pill">⚡ ĐỐI KHÁNG TRANH HÙNG 1 VS 1</span>
           <h3 class="vs-subject-title" id="vsSubjectTitle"><?= e($dangCho['TenMon'] ?? 'ĐẤU TRƯỜNG TRANH TÀI') ?></h3>
         </div>
 
-        <!-- Showdown Stage: Blue (Left) vs Red (Right) -->
         <div class="vs-stage-container">
-          <!-- Left Side: YOU (Blue) -->
           <div class="vs-fighter vs-side-blue" id="vsFighterYou">
             <div class="fighter-glow-ring ring-blue"></div>
             <div class="fighter-avatar-box">
@@ -1049,7 +1016,6 @@ $tatCaTuong = LoLChampions::DANH_SACH;
             </div>
           </div>
 
-          <!-- Center Emblem: VS Sét Đánh Điện Tử -->
           <div class="vs-center-burst" id="vsCenterBurst">
             <div class="vs-electric-circle"></div>
             <div class="vs-letters-wrap">
@@ -1059,7 +1025,6 @@ $tatCaTuong = LoLChampions::DANH_SACH;
             <div class="vs-match-tag">CHIẾN ĐẤU!</div>
           </div>
 
-          <!-- Right Side: OPPONENT (Red) -->
           <div class="vs-fighter vs-side-red" id="vsFighterOpp">
             <div class="fighter-glow-ring ring-red"></div>
             <div class="fighter-avatar-box">
@@ -1077,7 +1042,6 @@ $tatCaTuong = LoLChampions::DANH_SACH;
           </div>
         </div>
 
-        <!-- Bottom Loading Status Bar -->
         <div class="vs-loading-status-bar">
           <div class="vs-loading-track">
             <div class="vs-loading-progress" id="vsLoadingProgress"></div>
@@ -1090,7 +1054,7 @@ $tatCaTuong = LoLChampions::DANH_SACH;
       </div>
     </div>
 
-    <!-- PvP Timeout Overlay Modal khi hết thời gian chờ ở chế độ người thật -->
+    <!-- Hộp thoại hết thời gian chờ PvP -->
     <div class="pvp-timeout-overlay" id="pvpTimeoutOverlay" style="display: none;">
       <div class="pvp-timeout-card">
         <div class="pet-corner tl"></div><div class="pet-corner tr"></div>
@@ -1101,7 +1065,6 @@ $tatCaTuong = LoLChampions::DANH_SACH;
           Hiện chưa có đối thủ người thật nào đang online cùng môn <strong class="text-cyan"><?= e($dangCho['TenMon']) ?></strong> ở mức Elo của bạn.
         </p>
         <div class="pvp-timeout-actions">
-          <!-- Nút 1: Tìm tiếp -->
           <button type="button" class="btn btn-pvp-action btn-pvp-retry" id="btnPvpRetry">
             <span class="btn-pvp-icon">⚔️</span>
             <div class="btn-pvp-text">
@@ -1110,7 +1073,6 @@ $tatCaTuong = LoLChampions::DANH_SACH;
             </div>
           </button>
 
-          <!-- Nút 2: Đấu với máy ngay -->
           <form method="post" action="" class="form-pvp-action">
             <?= csrf_field() ?>
             <input type="hidden" name="hanh_dong" value="vao_ngay_ai">
@@ -1123,7 +1085,6 @@ $tatCaTuong = LoLChampions::DANH_SACH;
             </button>
           </form>
 
-          <!-- Nút 3: Rút khỏi hàng đợi -->
           <form method="post" action="" class="form-pvp-action">
             <?= csrf_field() ?>
             <input type="hidden" name="hanh_dong" value="huy">
@@ -1141,7 +1102,7 @@ $tatCaTuong = LoLChampions::DANH_SACH;
 
   <?php else: ?>
     <?php
-    // ---- Danh sách môn đang mở (C-16): chọn trong ô thả xuống ----
+    // Danh sách môn đang mở
     $dsMon = $pdo->query("SELECT MaMon, TenMon FROM MONHOC WHERE TrangThai = 'Đang mở' ORDER BY TenMon")->fetchAll();
     $choDuyet = [];
     if ($maND !== null) {
@@ -1186,7 +1147,7 @@ $tatCaTuong = LoLChampions::DANH_SACH;
         }
     }
 
-    // Dữ liệu cho Sảnh Thách Đấu PIN 2.0 (khôi phục phòng khi F5 + danh sách bạn bè mời 1 chạm)
+    // Dữ liệu phòng thách đấu PIN và danh sách bạn bè
     $phongPinDangCho = $maND !== null ? ThachDau::layPhongDangChoCuaChu($pdo, (int) $maND) : null;
     $dsBanBePin = $maND !== null ? BanBeHelper::layDanhSachBanBe($pdo, (int) $maND) : [];
     $moiBanId = (int) ($_GET['moi_ban'] ?? 0);
@@ -1199,9 +1160,7 @@ $tatCaTuong = LoLChampions::DANH_SACH;
     }
     ?>
 
-    <!-- ==========================================================================
-         1. VIP PRO ARENA MATCHMAKING DECK (KHUNG TÌM TRẬN GAME CHUYÊN NGHIỆP)
-         ========================================================================== -->
+    <!-- Khu vực cấu hình tìm trận -->
     <div class="arena-config-section">
       <div class="arena-card vip-deck card">
         <div class="pet-corner tl"></div><div class="pet-corner tr"></div>
@@ -1211,9 +1170,8 @@ $tatCaTuong = LoLChampions::DANH_SACH;
         <div class="deck-circuit-bg" aria-hidden="true"></div>
 
         <div class="vip-deck-body">
-          <!-- CỘT TRÁI: BẢNG ĐIỀU KHIỂN TÌM TRẬN (60%) -->
+          <!-- Bảng điều khiển tìm trận -->
           <div class="deck-left-console">
-            <!-- Header -->
             <div class="deck-console-header">
               <div class="deck-emblem-badge" title="QUIZUP ARENA RANKED MATCHMAKING">
                 <svg viewBox="0 0 44 44" width="42" height="42" fill="none">
@@ -1229,10 +1187,8 @@ $tatCaTuong = LoLChampions::DANH_SACH;
                       <stop offset="100%" stop-color="#00D9FF"/>
                     </linearGradient>
                   </defs>
-                  <!-- Cyber Hexagon Shield -->
                   <polygon points="22,3 38,10 38,30 22,41 6,30 6,10" fill="rgba(8, 20, 56, 0.95)" stroke="url(#vipGoldGrad)" stroke-width="2.2"/>
                   <polygon points="22,8 34,13 34,28 22,36 10,28 10,13" fill="none" stroke="url(#vipCyanGrad)" stroke-width="1.2" stroke-dasharray="3 2"/>
-                  <!-- Crossed Swords -->
                   <path d="M14 30 L30 14 M28 12 L32 16 M12 28 L16 32 M11 33 L15 29" stroke="url(#vipGoldGrad)" stroke-width="2.4" stroke-linecap="round"/>
                   <path d="M30 30 L14 14 M12 16 L16 12 M28 32 L32 28 M29 29 L33 33" stroke="url(#vipGoldGrad)" stroke-width="2.4" stroke-linecap="round"/>
                   <circle cx="22" cy="22" r="3.5" fill="url(#vipCyanGrad)" filter="drop-shadow(0 0 6px #00D9FF)"/>
@@ -1246,7 +1202,6 @@ $tatCaTuong = LoLChampions::DANH_SACH;
                 <p class="arena-deck-sub">Hệ thống ghép cặp 1 vs 1 công bằng theo điểm Elo &middot; <?= (int) $soCau ?> câu hỏi kịch tính (<?= (int) $thoiGianMoiCau ?>s/câu)</p>
               </div>
 
-              <!-- Nút mở Cẩm nang Luật đấu & Cách tính điểm Cyber Esports -->
               <div class="deck-header-action">
                 <button type="button" class="btn-cyber-rulebook" id="btnOpenRulebook" title="Xem Cẩm nang Luật đấu & Cách tính điểm">
                   <span class="rulebook-icon" aria-hidden="true">
@@ -1261,9 +1216,8 @@ $tatCaTuong = LoLChampions::DANH_SACH;
               </div>
             </div>
 
-            <!-- Form Chọn Môn & Hạng Mục Kỳ Thi (Bố Cục Rộng Rãi, Chữ To Rõ Ràng, Không Rối Mắt) -->
+            <!-- Chọn môn và hạng mục kỳ thi -->
             <div class="deck-form-stack">
-              <!-- Bước 1: Chọn môn học -->
               <div class="deck-form-group">
                 <div class="deck-group-header">
                   <span class="step-num-badge">BƯỚC 01</span>
@@ -1355,7 +1309,7 @@ $tatCaTuong = LoLChampions::DANH_SACH;
                   </div>
                 </form>
 
-                <!-- Thanh Pill Gợi Ý Đề Xuất Môn Siêu Nổi Bật Chuẩn Cyber Gaming -->
+                <!-- Gợi ý đề xuất môn mới -->
                 <div class="propose-quick-pill" id="proposeQuickPill" onclick="if(window.openProposeModal){window.openProposeModal();}else{var m=document.getElementById('cyberProposeModal');if(m){m.classList.add('is-open');m.style.setProperty('display','flex','important');}}" style="cursor: pointer;">
                   <div class="propose-pill-content">
                     <span class="propose-pill-glow-bulb" aria-hidden="true">💡</span>
@@ -1382,7 +1336,7 @@ $tatCaTuong = LoLChampions::DANH_SACH;
                 <?php endif; ?>
               </div>
 
-              <!-- Bước 2: Chọn hạng mục kỳ thi (Xếp ngang: Giữa kỳ, Cuối kỳ, Cả 2 theo kiểu tích trắc nghiệm) -->
+              <!-- Chọn hạng mục kỳ thi -->
               <div class="deck-form-group" id="deckStep2Group">
                 <div class="deck-group-header">
                   <span class="step-num-badge">BƯỚC 02</span>
@@ -1444,7 +1398,7 @@ $tatCaTuong = LoLChampions::DANH_SACH;
               </div>
             </div>
 
-              <!-- Bước 3: Chọn chế độ thi đấu chuyên nghiệp: Tách bạch rõ ràng Đấu Hạng PvP & Luyện Tập Solo AI -->
+              <!-- Chọn chế độ thi đấu -->
               <div class="deck-form-group deck-mode-group">
                 <div class="deck-group-header">
                   <span class="step-num-badge">BƯỚC 03</span>
@@ -1453,7 +1407,6 @@ $tatCaTuong = LoLChampions::DANH_SACH;
                 </div>
 
                 <div class="mode-cards-grid">
-                  <!-- THẺ 1: ĐẤU HẠNG PVP (NGƯỜI THẬT) -->
                   <div class="mode-selection-card active" id="modeCardPvp" data-mode="pvp" role="button" tabindex="0">
                     <div class="mode-card-radio-indicator">
                       <span class="mode-radio-dot"></span>
@@ -1470,7 +1423,6 @@ $tatCaTuong = LoLChampions::DANH_SACH;
                     </div>
                   </div>
 
-                  <!-- THẺ 2: LUYỆN TẬP VỚI MÁY (SOLO BOT) -->
                   <div class="mode-selection-card" id="modeCardBot" data-mode="bot" role="button" tabindex="0">
                     <div class="mode-card-radio-indicator">
                       <span class="mode-radio-dot"></span>
@@ -1487,7 +1439,6 @@ $tatCaTuong = LoLChampions::DANH_SACH;
                     </div>
                   </div>
 
-                  <!-- THẺ 3: PHÒNG THÁCH ĐẤU BẠN BÈ (MÃ PIN) -->
                   <div class="mode-selection-card" id="modeCardPin" data-mode="pin" role="button" tabindex="0">
                     <div class="mode-card-radio-indicator">
                       <span class="mode-radio-dot"></span>
@@ -1505,7 +1456,7 @@ $tatCaTuong = LoLChampions::DANH_SACH;
                   </div>
                 </div>
 
-                <!-- BẢNG ĐIỀU KHIỂN THÁCH ĐẤU PIN 2.0 (GỌN GÀNG, HIỆN KHI CHỌN CHẾ ĐỘ PIN) -->
+                <!-- Bảng điều khiển thách đấu PIN -->
                 <div class="pin-challenge-drawer" id="pinChallengePanel" style="display: none;"
                      data-active-pin="<?= e($phongPinDangCho['MaPin'] ?? '') ?>"
                      data-active-mon-ten="<?= e($phongPinDangCho['TenMon'] ?? '') ?>"
@@ -1516,7 +1467,6 @@ $tatCaTuong = LoLChampions::DANH_SACH;
                     <button type="button" class="btn-pin-tab active" id="btnPinTabCreate">⚔️ TẠO PHÒNG MỚI</button>
                     <button type="button" class="btn-pin-tab" id="btnPinTabJoin">🔑 NHẬP MÃ PIN</button>
                   </div>
-                  <!-- Tab Tạo Phòng -->
                   <div class="pin-tab-pane active" id="pinTabPaneCreate">
                     <div class="pin-create-initial" id="pinCreateInitial">
                       <p class="pin-hint">Tạo phòng riêng 6 số theo môn &amp; kỳ thi đã chọn. Bạn bè vào phòng là chiến ngay — hoặc bấm mời trực tiếp danh sách bạn bè bên dưới!</p>
@@ -1545,7 +1495,7 @@ $tatCaTuong = LoLChampions::DANH_SACH;
                         <button type="button" class="btn-cancel-pin-room" id="btnCancelPinRoom">✕ Hủy phòng</button>
                       </div>
 
-                      <!-- Mời Bạn Bè Trực Tiếp 1 Chạm -->
+                      <!-- Mời bạn bè vào phòng PIN -->
                       <?php if ($maND !== null): ?>
                         <div class="pin-friend-invite-box" id="pinFriendInviteSection">
                           <div class="pin-invite-header">
@@ -1584,7 +1534,6 @@ $tatCaTuong = LoLChampions::DANH_SACH;
                       <?php endif; ?>
                     </div>
                   </div>
-                  <!-- Tab Nhập PIN -->
                   <div class="pin-tab-pane" id="pinTabPaneJoin" style="display: none;">
                     <div class="pin-join-box">
                       <p class="pin-hint">Nhập mã PIN 6 số hoặc dán link phòng bạn bè gửi (không cần chọn môn trước):</p>
@@ -1592,19 +1541,17 @@ $tatCaTuong = LoLChampions::DANH_SACH;
                         <input type="text" id="inputPinCode" class="input-pin-digits" maxlength="120" placeholder="VD: 123456" autocomplete="off">
                         <button type="button" class="btn-pin-action" id="btnActionJoinRoom">CHẤP NHẬN THÁCH ĐẤU ⚔️</button>
                       </div>
-                      <!-- Live Room Preview Card -->
                       <div class="pin-room-preview" id="pinRoomPreviewCard" style="display: none;"></div>
                       <div class="pin-error-notice" id="pinJoinErrorNotice" style="display: none;"></div>
                     </div>
                   </div>
                 </div>
 
-                <!-- HIDDEN INPUTS ĐỒNG BỘ VỚI FORM VÀO HÀNG -->
                 <input type="hidden" name="che_do_ghep" id="inputCheDoGhep" form="formVaoHang" value="<?= $choPhepBot ? 'auto_bot' : 'pvp_only' ?>">
                 <input type="hidden" name="dau_bot" id="inputDauBot" form="formVaoHang" value="">
               </div>
 
-            <!-- NÚT BẤM HÀNH ĐỘNG DUY NHẤT: BẮT ĐẦU TÌM ĐỐI THỦ HOẶC VÀO ĐẤU MÁY (1 NÚT TO BẢN, RÕ RÀNG) -->
+            <!-- Nút bắt đầu tìm trận -->
             <div class="deck-cta-block" id="deckCtaBlock">
               <?php if ($monChon): ?>
                 <?php if ($maND === null): ?>
@@ -1634,7 +1581,6 @@ $tatCaTuong = LoLChampions::DANH_SACH;
                 </button>
               <?php endif; ?>
 
-              <!-- Dòng gợi ý xem Cẩm nang Luật chơi & Cách tính điểm -->
               <div class="deck-rule-sublink-bar">
                 <span class="rule-hint-icon">📖</span>
                 <span>Chưa rõ quy chế tính điểm &amp; Elo?</span>
@@ -1643,22 +1589,18 @@ $tatCaTuong = LoLChampions::DANH_SACH;
             </div>
           </div>
 
-          <!-- CỘT PHẢI: SÂN KHẤU HOLOGAM TƯỚNG 3D VIP PRO (GỌN GÀNG, SANG TRỌNG, KHÔNG RỐI MẮT) -->
+          <!-- Sân khấu hiển thị nhân vật đã chọn -->
           <div class="deck-right-stage" style="--champ-color: <?= e($tuongHienTai['mauSac']) ?>; --champ-rgb: <?= e($tuongHienTai['mauRgb'] ?? '251, 191, 36') ?>;">
-            <!-- Vầng hào quang dịu nhẹ phía sau -->
             <div class="stage-aura" style="background: radial-gradient(circle, rgba(<?= e($tuongHienTai['mauRgb'] ?? '251, 191, 36') ?>, 0.14) 0%, transparent 70%);"></div>
 
-            <!-- Khung Tranh Hologram Tướng -->
             <div class="stage-champ-card">
               <div class="pet-corner tl"></div><div class="pet-corner tr"></div>
               <div class="pet-corner bl"></div><div class="pet-corner br"></div>
 
-              <!-- Avatar Tướng To, Nét & Có Đèn Viền Đẹp -->
               <div class="stage-avatar-container">
                 <img src="<?= e(BASE_URL . $tuongHienTai['avatar'] . '?v=' . (file_exists(__DIR__ . '/..' . $tuongHienTai['avatar']) ? filemtime(__DIR__ . '/..' . $tuongHienTai['avatar']) : '2')) ?>" alt="<?= e($tuongHienTai['ten']) ?>" class="stage-champ-avatar">
               </div>
 
-              <!-- Tên và Danh Hiệu Tướng -->
               <div class="stage-champ-caption">
                 <span class="stage-champ-faction-pill <?= $tuongHienTai['phe'] === 'plant' ? 'is-plant' : 'is-zombie' ?>">
                   <?= $tuongHienTai['pheIcon'] ?> <?= e($tuongHienTai['pheTen']) ?>
@@ -1671,7 +1613,7 @@ $tatCaTuong = LoLChampions::DANH_SACH;
                 </div>
                 <div class="stage-champ-role"><?= e($tuongHienTai['vaiTro']) ?> &middot; <?= e($tuongHienTai['monHoc']) ?></div>
 
-                <!-- Cây Thông Thạo & EXP Tiến Hóa -->
+                <!-- Tiến độ thông thạo và EXP -->
                 <div class="stage-champ-mastery-box" title="Quy tắc EXP: Chỉ khi CHIẾN THẮNG mới nhận được +160 EXP để nâng cấp/tiến hóa Đấu Thần. Thua hoặc Hòa nhận +0 EXP.">
                   <div class="sc-mastery-top">
                     <span class="sc-mastery-pill <?= e($thongThaoHienTai['cssClass']) ?>">
@@ -1689,7 +1631,6 @@ $tatCaTuong = LoLChampions::DANH_SACH;
                 </div>
               </div>
 
-              <!-- Nút đổi Tướng -->
               <a href="#champSelectSection" class="btn-change-champ-stage" id="btnChangeChamp">
                 <span>ĐỔI ĐẤU THẦN KHÁC ▾</span>
               </a>
@@ -1699,9 +1640,7 @@ $tatCaTuong = LoLChampions::DANH_SACH;
       </div>
     </div>
 
-    <!-- ==========================================================================
-         2. CHAMPION SELECTION SECTION (CHỌN ĐẤU THẦN PLANTS VS ZOMBIES 3D)
-         ========================================================================== -->
+    <!-- Khu vực chọn nhân vật -->
     <div class="champ-select-section" id="champSelectSection">
       <div class="section-badge-wrap">
         <span class="section-badge">
@@ -1714,7 +1653,6 @@ $tatCaTuong = LoLChampions::DANH_SACH;
         <h2 class="section-title">CHỌN ĐẤU THẦN XUẤT TRẬN</h2>
         <p class="section-desc">Mỗi Đấu Thần sở hữu một năng lực chuyên biệt hỗ trợ tìm trận và chiến đấu. Chọn phe Cây Thủ 🌱 hoặc phe Thây Ma 🧟 để đồng hành!</p>
 
-        <!-- Bộ Lọc Phe Phái -->
         <div class="champ-faction-filters">
           <button type="button" class="btn-faction-filter active" data-filter="all">TẤT CẢ (6 ĐẤU THẦN)</button>
           <button type="button" class="btn-faction-filter" data-filter="plant">🌱 PHE CÂY THỦ (3 CÂY)</button>
@@ -1727,7 +1665,6 @@ $tatCaTuong = LoLChampions::DANH_SACH;
           <?php $isChon = ($cid === $tuongChonId); ?>
           <div class="champ-card <?= $isChon ? 'is-selected' : '' ?> faction-<?= e($c['phe']) ?>" style="--champ-color: <?= e($c['mauSac']) ?>; --champ-rgb: <?= e($c['mauRgb'] ?? '251, 191, 36') ?>;" data-champ-id="<?= e($cid) ?>" data-faction="<?= e($c['phe']) ?>">
             <div class="champ-card-inner">
-              <!-- Avatar Circle 3D Nét Đẹp -->
               <div class="champ-avatar-wrap">
                 <div class="champ-avatar-ring">
                   <img src="<?= e(BASE_URL . $c['avatar'] . '?v=' . (file_exists(__DIR__ . '/..' . $c['avatar']) ? filemtime(__DIR__ . '/..' . $c['avatar']) : '2')) ?>" alt="<?= e($c['ten']) ?>" class="champ-avatar-img">
@@ -1737,7 +1674,6 @@ $tatCaTuong = LoLChampions::DANH_SACH;
                 <?php endif; ?>
               </div>
 
-              <!-- Thông tin Đấu Thần Tinh Gọn, Khóa Cứng Vị Trí Đồng Bộ -->
               <div class="champ-details">
                 <div class="champ-header-block">
                   <div class="champ-header-meta">
@@ -1749,7 +1685,6 @@ $tatCaTuong = LoLChampions::DANH_SACH;
                   <h3 class="champ-name" title="<?= e($c['ten']) ?>"><?= e($c['ten']) ?></h3>
                 </div>
 
-                <!-- Năng lực Đặc Biệt (Buff Cốt Lõi - Chiều Cao Cố Định) -->
                 <div class="champ-buff-showcase">
                   <div class="buff-showcase-item" title="⚡ Tìm trận: <?= e($c['tacDungMatch']) ?>">
                     <span class="buff-lbl match-lbl">⚡ TÌM TRẬN:</span>
@@ -1761,7 +1696,6 @@ $tatCaTuong = LoLChampions::DANH_SACH;
                   </div>
                 </div>
 
-                <!-- Nút Bấm Xuất Trận - Khóa Đáy Đồng Bộ -->
                 <form method="post" action="" class="form-chon-tuong">
                   <?= csrf_field() ?>
                   <input type="hidden" name="hanh_dong" value="chon_tuong">
@@ -1786,20 +1720,15 @@ $tatCaTuong = LoLChampions::DANH_SACH;
   <?php endif; ?>
 </div>
 
-<!-- =========================================================================
-     CYBER RULEBOOK MODAL (CẨM NANG LUẬT ĐẤU & CÁCH TÍNH ĐIỂM CHUẨN ADMIN)
-     Thiết kế Ultra-Sleek No-Scroll: Header ngang gọn gàng, bố cục 2 cột, vừa vặn 1 màn hình
-     ========================================================================= -->
+<!-- Hộp thoại cẩm nang luật đấu -->
 <div id="cyberRulebookModal" class="cyber-rulebook-modal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="rulebookModalTitle">
   <div class="cyber-modal-backdrop" id="rulebookModalBackdrop"></div>
   <div class="cyber-modal-dialog rulebook-dialog">
-    <!-- 4 Gilded Gaming Brackets (Góc Dát Vàng Đẳng Cấp) -->
     <div class="pet-corner tl"></div>
     <div class="pet-corner tr"></div>
     <div class="pet-corner bl"></div>
     <div class="pet-corner br"></div>
 
-    <!-- 1. Sleek Compact Header Bar (Ngang hàng, không chiếm chiều dọc) -->
     <div class="rulebook-compact-header">
       <div class="rb-header-left">
         <span class="rb-header-icon" aria-hidden="true">📖</span>
@@ -1818,7 +1747,6 @@ $tatCaTuong = LoLChampions::DANH_SACH;
       </button>
     </div>
 
-    <!-- 2. Compact 3-Tab Bar -->
     <div class="rulebook-tabs-nav" role="tablist">
       <button type="button" class="rulebook-tab-btn active" data-tab="tab-the-thuc" role="tab" aria-selected="true">
         <span class="tab-btn-icon">⚔️</span>
@@ -1834,12 +1762,10 @@ $tatCaTuong = LoLChampions::DANH_SACH;
       </button>
     </div>
 
-    <!-- 3. Tab Contents Body (Được tối ưu Side-by-Side 2 cột để không cần cuộn) -->
     <div class="rulebook-tabs-body">
-      <!-- TAB 1: THỂ THỨC 1 VS 1 (3 TRỤ CỘT RÕ RÀNG, DỄ NHÌN, KHÔNG RỐI MẮT) -->
+      <!-- Tab thể thức 1v1 -->
       <div class="rulebook-tab-pane active" id="tab-the-thuc" role="tabpanel">
         <div class="rule-pillars-3">
-          <!-- Trụ 1: Quy mô & Thời gian -->
           <div class="rule-pillar-card">
             <div class="pillar-header">
               <span class="pillar-icon">🎯</span>
@@ -1865,7 +1791,6 @@ $tatCaTuong = LoLChampions::DANH_SACH;
             </ul>
           </div>
 
-          <!-- Trụ 2: Ghép cặp Elo -->
           <div class="rule-pillar-card">
             <div class="pillar-header">
               <span class="pillar-icon">⚖️</span>
@@ -1891,7 +1816,6 @@ $tatCaTuong = LoLChampions::DANH_SACH;
             </ul>
           </div>
 
-          <!-- Trụ 3: Bảo vệ phòng & Chống AFK -->
           <div class="rule-pillar-card">
             <div class="pillar-header">
               <span class="pillar-icon">🛡️</span>
@@ -1919,12 +1843,10 @@ $tatCaTuong = LoLChampions::DANH_SACH;
         </div>
       </div>
 
-      <!-- TAB 2: CÁCH TÍNH ĐIỂM TỐC ĐỘ (2 CỘT SONG SONG: TRÁI CÔNG THỨC + SLIDER, PHẢI BẢNG ĐIỂM) -->
+      <!-- Tab tính điểm tốc độ -->
       <div class="rulebook-tab-pane" id="tab-tinh-diem" role="tabpanel">
         <div class="rule-tab2-grid">
-          <!-- Cột Trái: 3 Khối Công thức Mini + Live Simulator Kéo Thả -->
           <div class="tab2-left-col">
-            <!-- 3 Khối Công Thức Tinh Gọn -->
             <div class="formula-cards-row-compact">
               <div class="eq-card-mini card-base">
                 <span class="eq-tag-mini">ĐIỂM CƠ BẢN</span>
@@ -1945,7 +1867,6 @@ $tatCaTuong = LoLChampions::DANH_SACH;
               </div>
             </div>
 
-            <!-- Live Simulator Kéo Thả Trực Tiếp -->
             <div class="speed-calc-box-compact">
               <div class="calc-top-row">
                 <div class="calc-top-title">
@@ -1969,13 +1890,11 @@ $tatCaTuong = LoLChampions::DANH_SACH;
                 </div>
               </div>
 
-              <!-- Công Thức Nhảy Số Trực Tiếp -->
               <div class="calc-dyn-compact">
                 <span class="dyn-tag">Công thức:</span>
                 <code id="calcLiveEquation"><?= (int) $diemCoBan ?> + ⌊ <?= (int) $heSoThuong ?> &times; (<?= (int) $thoiGianMoiCau ?> - 1.0) / <?= (int) $thoiGianMoiCau ?> ⌋ = <?= (int) $diemCoBan + (int) floor($heSoThuong * ($thoiGianMoiCau - 1) / $thoiGianMoiCau) ?> điểm</code>
               </div>
 
-              <!-- Kết Quả 3 Hộp Nằm Ngang -->
               <div class="calc-res-strip">
                 <div class="res-box">
                   <span class="res-lbl">Còn lại:</span>
@@ -1993,7 +1912,6 @@ $tatCaTuong = LoLChampions::DANH_SACH;
             </div>
           </div>
 
-          <!-- Cột Phải: Bảng Điểm Tham Khảo & Mẹo Leo Rank -->
           <div class="tab2-right-col">
             <div class="sample-table-card">
               <div class="table-caption-mini">BẢNG VÍ DỤ TÍNH ĐIỂM MỖI CÂU THAM KHẢO</div>
@@ -2047,7 +1965,6 @@ $tatCaTuong = LoLChampions::DANH_SACH;
               </table>
             </div>
 
-            <!-- Pro-Tip Card -->
             <div class="pro-tip-box">
               <span class="pro-tip-ico">💡</span>
               <div class="pro-tip-content">
@@ -2059,12 +1976,10 @@ $tatCaTuong = LoLChampions::DANH_SACH;
         </div>
       </div>
 
-      <!-- TAB 3: BẬC ELO & BÙA LỢI ĐẤU THẦN PvZ (2 CỘT SONG SONG: TRÁI ELO + 4 HẠNG, PHẢI 6 TƯỚNG PvZ) -->
+      <!-- Tab bậc Elo và nhân vật -->
       <div class="rulebook-tab-pane" id="tab-elo-rank" role="tabpanel">
         <div class="rule-tab3-grid">
-          <!-- Cột Trái: Bậc Elo & 4 Phân Hạng Huy Hiệu -->
           <div class="tab3-left-col">
-            <!-- Elo Info Strip -->
             <div class="elo-kpi-compact">
               <div class="kpi-item">
                 <span class="kpi-lbl">ELO KHỞI TẠO</span>
@@ -2082,7 +1997,6 @@ $tatCaTuong = LoLChampions::DANH_SACH;
               </div>
             </div>
 
-            <!-- 4 Thẻ Hạng Elo Dạng List Dọc Gọn Gàng -->
             <div class="rank-list-compact">
               <div class="rank-list-header">4 PHÂN HẠNG HUY HIỆU ELO (TỐI THIỂU <?= (int) $toiThieuTranHH ?> TRẬN HIỂN THỊ)</div>
               <?php foreach ($bangHangElo as $h): ?>
@@ -2097,9 +2011,7 @@ $tatCaTuong = LoLChampions::DANH_SACH;
             </div>
           </div>
 
-          <!-- Cột Phải: Bùa Lợi Đấu Thần PvZ Có Bộ Lọc -->
           <div class="tab3-right-col">
-            <!-- Bộ Lọc Phe Phái -->
             <div class="pvz-filter-bar-compact">
               <span class="pvz-bar-lbl">BÙA LỢI ĐẤU THẦN PvZ:</span>
               <div class="pvz-btns-group">
@@ -2109,7 +2021,6 @@ $tatCaTuong = LoLChampions::DANH_SACH;
               </div>
             </div>
 
-            <!-- Lưới 6 Thẻ Đấu Thần 2 Cột x 3 Hàng Tinh Gọn -->
             <div class="pvz-cards-grid-compact">
               <?php foreach (LoLChampions::DANH_SACH as $c): ?>
                 <div class="pvz-card-compact pvz-buff-card" data-champ-faction="<?= e($c['phe']) ?>" style="--c-rgb: <?= e($c['mauRgb'] ?? '251, 191, 36') ?>; --c-hex: <?= e($c['mauSac']) ?>;">
@@ -2138,7 +2049,6 @@ $tatCaTuong = LoLChampions::DANH_SACH;
       </div>
     </div>
 
-    <!-- 4. Ultra-Sleek Bottom Action Bar (Cực Gọn, Không Chiếm Chỗ) -->
     <div class="rulebook-compact-footer">
       <div class="rb-footer-hint">
         <span>💡 Bấm <strong>ESC</strong> hoặc nhấp ngoài để đóng &bull; Thông số đồng bộ Live thời gian thực</span>
@@ -2151,13 +2061,10 @@ $tatCaTuong = LoLChampions::DANH_SACH;
 </div>
 </div>
 
-<!-- =========================================================================
-     CYBER PROPOSE SUBJECT MODAL (HỘP THOẠI NỔI GAMING ĐỀ XUẤT MÔN)
-     ========================================================================= -->
+<!-- Hộp thoại đề xuất môn học mới -->
 <div id="cyberProposeModal" class="cyber-propose-modal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="proposeModalTitle">
   <div class="cyber-modal-backdrop" id="proposeModalBackdrop"></div>
   <div class="cyber-modal-dialog">
-    <!-- 4 Gilded Gaming Brackets (Góc Dát Vàng) -->
     <div class="pet-corner tl"></div>
     <div class="pet-corner tr"></div>
     <div class="pet-corner bl"></div>
@@ -2167,7 +2074,6 @@ $tatCaTuong = LoLChampions::DANH_SACH;
       <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
     </button>
 
-    <!-- Modal Header -->
     <div class="cyber-modal-header">
       <div class="cyber-modal-crest">
         <span class="crest-icon">💡</span>
@@ -2179,7 +2085,7 @@ $tatCaTuong = LoLChampions::DANH_SACH;
     </div>
 
     <?php if ($maND === null): ?>
-      <!-- Khách chưa đăng nhập: hướng dẫn đăng nhập -->
+      <!-- Khách chưa đăng nhập: yêu cầu đăng nhập -->
       <div class="cyber-modal-guest-box" style="text-align: center; padding: 16px 12px 10px;">
         <div style="font-size: 2.2rem; margin-bottom: 8px;">🔒</div>
         <h4 style="color: #FDE047; font-size: 1.15rem; margin-bottom: 8px; font-weight: 800;">BẠN CẦN ĐĂNG NHẬP</h4>
@@ -2194,7 +2100,7 @@ $tatCaTuong = LoLChampions::DANH_SACH;
         </div>
       </div>
     <?php else: ?>
-      <!-- Modal Form dành cho Sĩ tử đã đăng nhập -->
+      <!-- Form đề xuất môn mới -->
       <form method="post" action="" class="cyber-modal-form" id="formCyberPropose">
         <?= csrf_field() ?>
         <input type="hidden" name="hanh_dong" value="dexuat">

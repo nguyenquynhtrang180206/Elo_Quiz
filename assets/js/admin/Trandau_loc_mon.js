@@ -1,5 +1,4 @@
-/* Trang Trận đấu: ô lọc môn có tìm kiếm, chỉ hiện 5 môn đầu + nút "Xem thêm".
-   Đặt tại: assets/js/admin/trandau_loc_mon.js. Chọn một môn thì gửi form lọc như cũ (tham số mon). */
+// Ô lọc môn có tìm kiếm trên trang Trận đấu (hiện 5 môn đầu và nút Xem thêm).
 (function () {
   'use strict';
   var goc = document.getElementById('tdMon');

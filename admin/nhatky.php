@@ -1,37 +1,33 @@
 <?php
-// Xem nhật ký quản trị (UC16: A-41, A-42; phân trang 6.7). Đặt tại: elo_quiz/admin/nhatky.php
-// Chỉ xem: trang này không có thao tác sửa hoặc xóa nào và không nhận POST (A-42).
-// Giao diện: dùng cùng khung (nền + sidebar) với trang Tổng quan, nên KHÔNG bật $giaoDienMoi.
+// Xem nhật ký quản trị (chỉ đọc, không sửa/xóa).
 require_once __DIR__ . '/../core/bootstrap.php';
-Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');   // A-04
+Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');
 
 $pdo = Database::pdo();
 NhatKy::damBaoCot($pdo);
 $coTT = NhatKy::coCotTrangThai($pdo);
 
-// ---- Dữ liệu cho bộ lọc ----
+// Danh sách hành động cho bộ lọc.
 $dsHanhDong = $pdo->query('SELECT DISTINCT HanhDong FROM NHATKYQUANTRI ORDER BY HanhDong')->fetchAll(PDO::FETCH_COLUMN);
 
-// ---- A-41: bộ lọc dựng ở NhatKy::dieuKien() (dùng chung với file xuất để hai nơi lọc giống hệt nhau) ----
+// Dựng điều kiện lọc dùng chung với file xuất.
 $kq      = NhatKy::dieuKien($_GET);
 $where   = $kq['where'];
 $tham    = $kq['tham'];
-$thamLoc = $kq['loc'];   // bộ lọc đã kiểm tra: dùng dựng link phân trang, link xuất và điền lại form
+$thamLoc = $kq['loc'];
 $loi     = $kq['loi'];
 $q   = (string) ($thamLoc['q']   ?? '');
 $hd  = (string) ($thamLoc['hd']  ?? '');
 $tu  = (string) ($thamLoc['tu']  ?? '');
 $den = (string) ($thamLoc['den'] ?? '');
-$tt  = (string) ($thamLoc['tt']  ?? '');   // trạng thái: Thành công | Thất bại (đã kiểm tra trong NhatKy::dieuKien)
-$nhom = (string) ($thamLoc['nhom'] ?? '');   // nhóm hành động (chip lọc nhanh): mo | sua | xoa | khoa, đã kiểm tra trong NhatKy::dieuKien
+$tt  = (string) ($thamLoc['tt']  ?? '');
+$nhom = (string) ($thamLoc['nhom'] ?? '');
 
-// Sắp xếp theo thời gian: mặc định mới nhất trước; ?sx=asc là cũ nhất trước. Chỉ nhận hai giá trị này.
+// Sắp xếp theo thời gian (asc | desc).
 $sx      = (($_GET['sx'] ?? '') === 'asc') ? 'asc' : 'desc';
-$thamLink = $thamLoc + ($sx === 'asc' ? ['sx' => 'asc'] : []);   // dùng dựng link phân trang (giữ cả bộ lọc và chiều sắp xếp)
+$thamLink = $thamLoc + ($sx === 'asc' ? ['sx' => 'asc'] : []);
 
-// Xuất Excel/PDF: hộp thoại ở cuối trang, xử lý ở admin/nhatky_xuat.php (nhận lại bộ lọc đang chọn bằng các ô ẩn)
-
-// ---- 4 thẻ số liệu (tính trên toàn bộ nhật ký, không phụ thuộc bộ lọc) ----
+// Thống kê 4 thẻ số liệu (không phụ thuộc bộ lọc).
 $mocHomNay = date('Y-m-d') . ' 00:00:00';
 $moc7      = date('Y-m-d', strtotime('-6 days')) . ' 00:00:00';
 $moc30     = date('Y-m-d', strtotime('-29 days')) . ' 00:00:00';
@@ -49,7 +45,7 @@ $st = $pdo->prepare(
 $st->execute($thamTk);
 $tk = array_map('intval', $st->fetch());
 
-// Mức tăng/giảm: 30 ngày gần nhất so với 30 ngày liền trước đó (cùng cách tính với trang Tổng quan)
+// Biến động 30 ngày gần nhất so với 30 ngày trước đó.
 if ($tk['truoc30'] > 0) {
     $chenh = (int) round(($tk['nay30'] - $tk['truoc30']) * 100 / $tk['truoc30']);
     $chuTang = ($chenh > 0 ? '+' : '') . $chenh . '%';
@@ -65,14 +61,14 @@ $lopTang = $chenh > 0 ? 'len' : ($chenh < 0 ? 'xuong' : 'ngang');
 
 $so = static fn (int $n): string => number_format($n, 0, ',', '.');
 
-// ---- Dữ liệu cho biểu đồ "Nhịp hoạt động hôm nay" và khối "Cơ cấu hành động" (tính trên toàn bộ nhật ký, không phụ thuộc bộ lọc) ----
-$nhip   = NhatKy::nhipTheoNgay($pdo, 7);   // mặc định 7 ngày gần nhất; đổi tuần/tháng hoặc lùi ngày thì JS gọi nhatky_nhip.php
+// Dữ liệu biểu đồ hoạt động theo ngày và cơ cấu hành động.
+$nhip   = NhatKy::nhipTheoNgay($pdo, 7);
 $nhipTong = array_sum(array_column($nhip, 'tong'));
 $nhipLoi  = array_sum(array_column($nhip, 'loi'));
-$ngayCu   = date('Y-m-d', strtotime('-' . NhatKy::GIU_THANG . ' months'));   // nhật ký chỉ giữ GIU_THANG tháng nên không chọn xa hơn
+$ngayCu   = date('Y-m-d', strtotime('-' . NhatKy::GIU_THANG . ' months'));
 $coCau  = NhatKy::coCau30Ngay($pdo);
 
-// ---- Danh sách có phân trang (20 dòng/trang, có hiển thị tổng số) ----
+// Danh sách phân trang.
 $st = $pdo->prepare("SELECT COUNT(*) FROM NHATKYQUANTRI n JOIN ADMIN a ON a.MaAdmin = n.MaAdmin $where");
 $st->execute($tham);
 $p = new Paginator((int) $st->fetchColumn(), 10);
@@ -89,8 +85,7 @@ $st = $pdo->prepare(
 $st->execute($tham);
 $ds = $st->fetchAll();
 
-// ---- Gom theo ngày cho dạng dòng thời gian ----
-// Số hoạt động / số thất bại ở tiêu đề mỗi ngày tính trên CẢ NGÀY (theo bộ lọc đang chọn), không chỉ phần nằm trong trang này.
+// Gom bản ghi theo ngày để hiển thị dòng thời gian.
 $tenThu   = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
 $nhomNgay = [];
 foreach ($ds as $r) {
@@ -119,7 +114,7 @@ if ($nhomNgay) {
     }
 }
 
-// ---- Biểu tượng (SVG nội tuyến, kiểu Lucide) ----
+// Biểu tượng SVG nội tuyến.
 $bt = [
     'khien'   => '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/>',
     'tep'     => '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/>',
@@ -134,7 +129,6 @@ $bt = [
     'cham'    => '<circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/>',
     'sapxep'  => '<path d="m21 16-4 4-4-4"/><path d="M17 20V4"/><path d="m3 8 4-4 4 4"/><path d="M7 4v16"/>',
     'datlai'  => '<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>',
-    // biểu tượng nhỏ trong nhãn hành động
     'sua'     => '<path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/>',
     'xoa'     => '<path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/>',
     'them'    => '<path d="M5 12h14"/><path d="M12 5v14"/>',
@@ -146,7 +140,7 @@ $svg = static function (string $k, int $px = 20) use ($bt): string {
          . 'stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' . $bt[$k] . '</svg>';
 };
 
-// Nhãn hành động: màu và biểu tượng theo nhóm (NhatKy::NHOM, cùng nguồn với chip lọc và biểu đồ cơ cấu)
+// Ánh xạ màu và biểu tượng theo nhóm hành động.
 $kieuHanhDong = static function (string $hd): array {
     $khoa = NhatKy::nhomCuaHanhDong($hd);
     if ($khoa === null) {
@@ -155,7 +149,7 @@ $kieuHanhDong = static function (string $hd): array {
     return [NhatKy::NHOM[$khoa][1], ['xoa' => 'xoa', 'mo' => 'them', 'khoa' => 'khoa', 'sua' => 'sua', 'xuat' => 'tai'][$khoa]];
 };
 
-// Thanh phân trang kiểu ảnh thiết kế: ‹ 1 2 3 … ›  (giữ nguyên các tham số lọc)
+// Thanh phân trang giữ nguyên bộ lọc.
 $phanTrang = static function (Paginator $pg) use ($thamLink): string {
     if ($pg->soTrang() <= 1) {
         return '';
@@ -178,18 +172,18 @@ $phanTrang = static function (Paginator $pg) use ($thamLink): string {
 };
 
 $coLoc   = $thamLoc !== [];
-$urlNhom = static function (string $khoa) use ($thamLoc, $sx): string {   // '' = bỏ lọc nhóm
+$urlNhom = static function (string $khoa) use ($thamLoc, $sx): string {
     $t = array_diff_key($thamLoc, ['nhom' => 1]) + ($khoa !== '' ? ['nhom' => $khoa] : []) + ($sx === 'asc' ? ['sx' => 'asc'] : []);
     return '?' . http_build_query($t);
 };
-$urlSx   = '?' . http_build_query($thamLoc + ($sx === 'asc' ? [] : ['sx' => 'asc']));   // bấm tiêu đề cột Thời gian để đảo chiều
+$urlSx   = '?' . http_build_query($thamLoc + ($sx === 'asc' ? [] : ['sx' => 'asc']));
 $tu1     = $ds ? $p->offset() + 1 : 0;
 $den1    = $ds ? $p->offset() + count($ds) : 0;
 
 $tieuDe  = 'Nhật ký quản trị';
 $mucChon = 'nhatky';
-$cssTrang = ['thongke_xuat', 'nhatky'];   // thongke_xuat: giao diện hộp thoại Xuất dùng chung với trang Tổng quan; nhatky nạp sau để ghi đè phần riêng
-$jsTrang  = 'nhatky';   // panel chi tiết bên phải + biểu đồ nhịp hoạt động
+$cssTrang = ['thongke_xuat', 'nhatky'];   // Nạp nhatky sau để ghi đè style hộp thoại Xuất.
+$jsTrang  = 'nhatky';
 require __DIR__ . '/layout/header.php';
 ?>
 <div class="nk-khung">
@@ -297,7 +291,7 @@ require __DIR__ . '/layout/header.php';
             $thatBai = ($r['TrangThai'] ?? '') === 'Thất bại';
             $coDT    = $r['DoiTuong'] !== null && $r['DoiTuong'] !== '';
             $coMT    = $r['MoTa'] !== null && $r['MoTa'] !== '';
-            // Dữ liệu cho panel chi tiết (JS đọc bằng JSON.parse rồi gán bằng textContent nên không chèn HTML)
+            // Dữ liệu JSON cho panel chi tiết.
             $chiTiet = json_encode([
                 'tg'   => date('d/m/Y H:i:s', strtotime($r['ThoiGian'])),
                 'hd'   => (string) $r['HanhDong'],
@@ -374,8 +368,7 @@ require __DIR__ . '/layout/header.php';
 
 </div>
 
-<!-- Hộp thoại Xuất nhật ký (Excel / PDF): cùng giao diện với hộp thoại Xuất của trang Tổng quan (modal-nen, modal xuat-hop);
-     cột trái chọn phạm vi, trường và định dạng, cột phải xem trước. Xử lý ở nhatky_xuat.php -->
+<!-- Hộp thoại xuất Excel/PDF -->
 <div class="modal-nen" id="nkXuatHop" hidden>
   <form class="modal xuat-hop nk-xuat-hop" id="nkXuatForm" method="post" action="<?= e(BASE_URL) ?>/admin/nhatky_xuat.php" role="dialog" aria-modal="true" aria-labelledby="nkXuatTieuDe">
     <h3 id="nkXuatTieuDe">Xuất nhật ký quản trị</h3>

@@ -1,9 +1,6 @@
 <?php
-// Tính Elo sau trận (C-32, C-33). Đặt tại: elo_quiz/core/Elo.php
-// Gọi bên trong giao dịch đang giữ khóa dòng TRANDAU, ngay sau khi trận chuyển sang "Kết thúc".
-// - Khóa hai dòng ELOMONHOC theo thứ tự MaND tăng dần để nhiều trận kết thúc cùng lúc không deadlock.
-// - Chỉ chạy một lần cho mỗi trận (kiểm tra LICHSUELO + ràng buộc duy nhất MaND, MaMon, MaTran).
-// - Trận Hủy không gọi hàm này nên không đổi Elo.
+// Tính Elo sau trận bên trong transaction đang giữ khóa TRANDAU.
+// Khóa ELOMONHOC theo MaND tăng dần tránh deadlock; mỗi trận chỉ tính 1 lần qua LICHSUELO.
 class Elo
 {
     // Elo mới = Elo cũ + K x (S - E), E = 1 / (1 + 10^((Elo đối thủ - Elo mình) / 400))
@@ -40,7 +37,7 @@ class Elo
         $b = (int) $ds[1]['MaND'];
         $kq = [$a => (string) $ds[0]['KetQua'], $b => (string) $ds[1]['KetQua']];
 
-        // Đảm bảo có dòng Elo (C-22), rồi khóa theo thứ tự MaND tăng dần
+        // Tạo dòng Elo nếu chưa có rồi khóa theo thứ tự MaND tăng dần tránh deadlock
         $khoiTao = max(0, Config::int('ELO_KHOI_TAO', 1000));
         $ins = $pdo->prepare('INSERT IGNORE INTO ELOMONHOC (MaND, MaMon, DiemElo) VALUES (?, ?, ?)');
         $ins->execute([$a, $maMon, $khoiTao]);
@@ -86,12 +83,12 @@ class Elo
             // Áp dụng bùa Đấu Thần PvZ cho người chơi đang đăng nhập
             if ($minh === $currentLoggedND) {
                 $delta = $moi - $eloC;
-                // 1. Sunflower (+20% Elo khi chiến thắng)
+                // Sunflower (+20% Elo khi chiến thắng)
                 if ($buffLoai === 'bonus_elo' && $kq[$minh] === 'Thắng' && $delta > 0) {
                     $delta = (int) round($delta * 1.20);
                     $moi = $eloC + $delta;
                 }
-                // 2. Wall-nut (Giảm 50% lượng Elo bị trừ khi thua trận)
+                // Wall-nut (Giảm 50% lượng Elo bị trừ khi thua trận)
                 elseif ($buffLoai === 'elo_shield' && $kq[$minh] === 'Thua' && $delta < 0) {
                     $delta = (int) round($delta * 0.50);
                     $moi = $eloC + $delta;

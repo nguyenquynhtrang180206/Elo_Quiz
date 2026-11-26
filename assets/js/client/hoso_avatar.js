@@ -1,6 +1,4 @@
-/* Trang hồ sơ: xem trước, căn chỉnh (kéo + phóng to) và bỏ chọn ảnh đại diện trước khi lưu.
-   Khi bấm "Lưu thay đổi", vùng đang hiển thị trong khung được cắt vuông 512x512 và thay vào ô chọn tệp,
-   nên phía máy chủ vẫn nhận một file JPG/PNG như cũ (không cần sửa PHP xử lý). */
+// Cắt và căn chỉnh ảnh đại diện 512x512 trước khi gửi form trên trang Hồ sơ.
 (function () {
   'use strict';
   var input = document.getElementById('anh_dai_dien');

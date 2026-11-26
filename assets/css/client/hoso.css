@@ -1,14 +1,14 @@
 /* Trang Hồ sơ cá nhân (client/hoso.php) */
 .hoso-luoi { display:flex; flex-wrap:wrap; gap:16px; }
 .hoso-luoi > .card { flex:1 1 320px; min-width:0; max-width:100%; }
-/* ===== Khối "Thông tin" (thẻ đầu tiên của lưới hồ sơ) ===== */
+/* Khối thông tin hồ sơ */
 .hoso-luoi > .card:first-child h3 { position:relative; margin:0 0 20px; padding-bottom:12px; }
 .hoso-luoi > .card:first-child h3::after {
   content:""; position:absolute; left:0; bottom:0; width:52px; height:3px; border-radius:3px;
   background:var(--gradient-neon);
 }
 
-/* Ảnh đại diện: căn giữa, vòng sáng cyan bên ngoài (dùng outline vì cosmic-fix.css đã chiếm box-shadow) */
+/* Ảnh đại diện (dùng outline vì cosmic-fix.css ghi đè box-shadow) */
 .avatar, .avatar-mac-dinh {
   width:112px; height:112px; border-radius:50%; display:block; margin:6px auto 22px;
   outline:2px solid var(--cyan); outline-offset:5px;
@@ -81,7 +81,7 @@ input[readonly] { border-style:dashed; color:var(--mau-phu); cursor:not-allowed;
 /* Chân trang Elo theo môn: dấu "…" báo có trang bị bỏ qua */
 .elo-dots { display:inline-block; padding:3px 4px; margin:0 2px 4px 0; color:var(--mau-phu); }
 
-/* C-15: biểu đồ biến động Elo */
+/* Biểu đồ biến động Elo */
 #bieudo-elo { margin-top:16px; }
 .bd-dieukhien { display:flex; flex-wrap:wrap; align-items:center; gap:10px 12px; margin-bottom:12px; }
 .bd-dieukhien label { margin:0; }

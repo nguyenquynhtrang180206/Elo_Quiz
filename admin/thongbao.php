@@ -1,7 +1,7 @@
 <?php
-// Trang xem toàn bộ thông báo của admin (có phân trang, tab Tất cả / Chưa đọc). Đặt tại: admin/thongbao.php
+// Danh sách thông báo đề xuất môn học của quản trị viên.
 require_once __DIR__ . '/../core/bootstrap.php';
-$adminId = Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');   // A-04
+$adminId = Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');
 
 $pdo = Database::pdo();
 ThongBaoAdmin::damBaoBang();
@@ -86,7 +86,7 @@ require __DIR__ . '/layout/header.php';
 </div>
 
 <script>
-// Bấm thông báo chưa đọc: ghi đã đọc (keepalive) rồi link chuyển trang như bình thường
+// Đánh dấu đã đọc khi bấm vào thông báo chưa đọc.
 (function () {
   var goc = document.querySelector('.tbp');
   if (!goc) { return; }

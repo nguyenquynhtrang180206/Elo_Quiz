@@ -1,10 +1,7 @@
 <?php
-// Dùng chung cho trang Trận đấu (admin/trandau.php) và biểu đồ (admin/trandau_nhip.php):
-// tiêu chí "trận bất thường" (A-25) chỉ viết một lần ở đây để bộ lọc, thẻ số liệu và biểu đồ luôn khớp nhau.
-// Đặt tại: elo_quiz/core/Game/TranDauGiamSat.php
+// Tiêu chí "trận bất thường" dùng chung cho trang quản lý trận đấu và biểu đồ nhịp trận.
 final class TranDauGiamSat
 {
-    // Bảng TRANDAU đã có cột ThoiGianTao (được DbSchema::damBao bảo đảm)
     public static function coCotTao(PDO $pdo): bool
     {
         return true;

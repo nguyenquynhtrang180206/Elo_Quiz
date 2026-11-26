@@ -1,10 +1,7 @@
 <?php
-// Xem một bài đăng và toàn bộ bình luận (kể cả đã ẩn) để kiểm duyệt (UC15: A-32, A-33, A-34).
-// Đặt tại: elo_quiz/admin/congdong_baidang.php   (mở bằng ?id=<MaBaiDang>)
-// Không dùng client/baidang.php vì trang đó cần đăng nhập sinh viên và chỉ hiện bài "Hiển thị".
-// Việc ẩn/hiện được gửi sang congdong.php (cùng quy tắc: bắt buộc lý do, ghi nhật ký), rồi quay lại trang này.
+// Chi tiết bài đăng và bình luận để kiểm duyệt (gửi thao tác về congdong.php).
 require_once __DIR__ . '/../core/bootstrap.php';
-Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');   // A-04
+Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');
 
 $pdo = Database::pdo();
 $id  = (int) ($_GET['id'] ?? 0);
@@ -38,7 +35,7 @@ $loiBao   = [
     'khong'   => 'Không thực hiện được: trạng thái đã thay đổi (hoặc bài đã bị sinh viên tự xóa). Hãy tải lại trang.',
 ][$_GET['kq'] ?? ''] ?? '';
 
-// Bình luận của bài, mọi trạng thái, phân trang 20 dòng
+// Bình luận của bài (tất cả trạng thái, 20 dòng/trang).
 $st = $pdo->prepare('SELECT COUNT(*) FROM BINHLUAN WHERE MaBaiDang = ?');
 $st->execute([$id]);
 $p = new Paginator((int) $st->fetchColumn(), 20);
@@ -55,7 +52,7 @@ $binhLuan = $st->fetchAll();
 
 $lopTT = ['Hiển thị' => 'tt-hien', 'Bị ẩn' => 'tt-an', 'Đã xóa' => 'tt-xoa'];
 
-// Form ẩn/hiện dùng chung cho bài và bình luận; gửi sang congdong.php, xong quay lại trang này
+// Form ẩn/hiện dùng chung cho bài đăng và bình luận.
 function form_kiem_duyet(string $hanhDong, int $ma, int $veBai, string $nhan, bool $nutDo): void
 {
     ?>

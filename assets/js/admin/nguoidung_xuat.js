@@ -1,6 +1,4 @@
-// Hộp thoại "Xuất" của trang Người dùng (admin/nguoidung.php), cùng kiểu với hộp thoại Xuất của Tổng quan / Nhật ký.
-// Cột trái: phạm vi, trường, định dạng. Cột phải: xem trước. Số liệu xem trước lấy từ máy chủ (buoc=xemtruoc) một lần cho mỗi
-// phạm vi; đổi trường hay định dạng chỉ vẽ lại, không gọi lại. Định dạng "Cả hai": tải liên tiếp hai file (Excel rồi PDF), không nén zip.
+// Hộp thoại Xuất của trang Người dùng (admin/nguoidung.php): xem trước và xuất Excel/PDF.
 (function () {
   'use strict';
   var nutMo = document.getElementById('ndMoXuat');
@@ -52,8 +50,7 @@
     form.querySelectorAll('input[name="truong[]"], #ndChonHet, #ndBoChon').forEach(function (i) { i.disabled = !coDs; });
   }
 
-  // ---------- Sơ đồ (dùng cho cả khung xem trước và ảnh chụp đưa vào file) ----------
-  // tinh = true: ảnh chụp (kích thước cố định, không hiệu ứng, nét gấp đôi); false: xem trước co giãn theo khung
+  // Cấu hình sơ đồ (tinh = true khi chụp ảnh cố định để xuất file)
   function cauHinh(loai, d, tinh) {
     var chung = tinh ? { responsive: false, animation: false, devicePixelRatio: 2 }
                      : { responsive: true, maintainAspectRatio: false, animation: false };
@@ -120,7 +117,6 @@
     return kq;
   }
 
-  // ---------- Gọi máy chủ ----------
   function goi(fd) { return fetch(form.action, { method: 'POST', body: fd, credentials: 'same-origin' }); }
   function docLoi(r) { return r.text().then(function (t) { throw new Error(t || 'Không xuất được file.'); }); }
   function layDuLieu() {
@@ -137,7 +133,6 @@
     });
   }
 
-  // ---------- Khung xem trước ----------
   function oSo(nhan, giaTri) {
     var o = el('div', 'xuat-so-o');
     o.appendChild(el('strong', '', giaTri));
@@ -261,7 +256,6 @@
   document.getElementById('ndChonHet').addEventListener('click', function () { datTatCa(true); });
   document.getElementById('ndBoChon').addEventListener('click', function () { datTatCa(false); });
 
-  // ---------- Mở / đóng ----------
   function mo() { cache = { khoa: '', du: null }; bao(''); hop.hidden = false; capNhatXem(); }
   function dong() { hop.hidden = true; huyBieuDoXem(); xem.textContent = ''; }
   nutMo.addEventListener('click', mo);
@@ -269,7 +263,6 @@
   hop.addEventListener('click', function (e) { if (e.target === hop) { dong(); } });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !hop.hidden) { dong(); } });
 
-  // ---------- Xuất file ----------
   function taoFile(dinhDang, anh) {
     var fd = new FormData(form);
     fd.set('dinhdang', dinhDang);
