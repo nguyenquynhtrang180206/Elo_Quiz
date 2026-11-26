@@ -5,15 +5,12 @@
 //   $tieuDe = 'Tên trang'; $mucChon = 'nguoidung';   ($mucChon: mã mục sidebar đang mở)
 //   $cssTrang = 'tenfile';   (nạp assets/css/admin/tenfile.css; có thể là mảng)
 //   $jsTrang  = 'tenfile';   (nạp assets/js/admin/tenfile.js ở cuối trang; có thể là mảng)
-//   $giaoDienMoi = true;     (TÙY CHỌN) dùng khung giao diện sáng mới: sidebar xanh + thanh trên + breadcrumb.
-//                            Không khai báo thì trang giữ nguyên giao diện cũ, nên đổi dần từng trang.
 //   require __DIR__ . '/layout/header.php';
 //   ... nội dung ...
 //   require __DIR__ . '/layout/footer.php';
-$tieuDe  = $tieuDe  ?? 'Quản trị';
-$mucChon = $mucChon ?? '';
+$tieuDe   = $tieuDe  ?? 'Quản trị';
+$mucChon  = $mucChon ?? '';
 $cssTrang = (array) ($cssTrang ?? []);
-$giaoDienMoi = (bool) ($giaoDienMoi ?? false);
 $menu = [
     'dashboard' => ['Tổng quan',          '/admin/index.php'],
     'nguoidung' => ['Người dùng',         '/admin/nguoidung.php'],
@@ -71,9 +68,6 @@ $chuCaiAdmin = mb_strtoupper(mb_substr(trim($tenAdmin), 0, 1)) ?: 'A';
   <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,600&family=Inter:wght@400;500;600;700;800&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="<?= e(BASE_URL) ?>/assets/style.css?v=<?= (int) @filemtime(__DIR__ . '/../../assets/style.css') ?>">
   <link rel="stylesheet" href="<?= e(BASE_URL) ?>/assets/style_admin.css?v=<?= (int) @filemtime(__DIR__ . '/../../assets/style_admin.css') ?>">
-  <?php if ($giaoDienMoi): ?>
-  <link rel="stylesheet" href="<?= e(BASE_URL) ?>/assets/css/admin/khung.css?v=<?= (int) @filemtime(__DIR__ . '/../../assets/css/admin/khung.css') ?>">
-  <?php endif; ?>
   <?php foreach ($cssTrang as $f): ?>
   <link rel="stylesheet" href="<?= e(BASE_URL) ?>/assets/css/admin/<?= e($f) ?>.css?v=<?= (int) @filemtime(__DIR__ . '/../../assets/css/admin/' . $f . '.css') ?>">
   <?php endforeach; ?>
@@ -86,7 +80,6 @@ $chuCaiAdmin = mb_strtoupper(mb_substr(trim($tenAdmin), 0, 1)) ?: 'A';
   </script>
   <script src="<?= e(BASE_URL) ?>/assets/js/admin/sidebar_toggle.js?v=<?= (int) @filemtime(__DIR__ . '/../../assets/js/admin/sidebar_toggle.js') ?>" defer></script>
 </head>
-<?php if (!$giaoDienMoi): ?>
 <body class="admin-body">
 <!-- Nút nổi mở thanh điều hướng khi Sidebar bị ẩn -->
 <button type="button" class="sidebar-expand-btn" id="sidebarExpandBtn" title="Mở thanh điều hướng (Ctrl+B)" aria-label="Mở thanh điều hướng">
@@ -126,82 +119,3 @@ $chuCaiAdmin = mb_strtoupper(mb_substr(trim($tenAdmin), 0, 1)) ?: 'A';
     </div>
   </nav>
   <main class="admin-noidung">
-<?php else: ?>
-<body class="admin-moi">
-<button type="button" class="sidebar-expand-btn" title="Mở thanh điều hướng (Ctrl+B)" aria-label="Mở thanh điều hướng">
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/><path d="m13 15 3-3-3-3"/></svg>
-  <span>Menu</span>
-</button>
-<div class="admin-khung">
-  <!-- Lớp nền mờ phía sau menu trượt (điện thoại); bấm vào để đóng menu -->
-  <div class="sidebar-overlay" id="sidebarOverlay" aria-hidden="true"></div>
-  <nav class="sidebar" id="adminSidebar" aria-label="Menu quản trị">
-    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; padding-bottom:8px; border-bottom:1px solid rgba(255,255,255,0.08);">
-      <a class="logo" href="<?= e(BASE_URL) ?>/admin/index.php" style="margin-bottom:0; padding-bottom:0; border-bottom:none;">
-        <img class="quizup-logo-emblem" src="<?= e(BASE_URL) ?>/assets/img/quizup-emblem.svg" alt="" width="44" height="44">
-        <div class="quizup-wordmark">
-          <strong>QUIZUP</strong>
-          <small>ARENA</small>
-        </div>
-        <span class="logo-tag">Admin</span>
-      </a>
-      <button type="button" class="sidebar-toggle-btn" title="Thu gọn thanh điều hướng (Ctrl+B)" aria-label="Thu gọn thanh điều hướng">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/><path d="m14 9-3 3 3 3"/></svg>
-      </button>
-    </div>
-    <div class="menu-chinh">
-      <?php foreach ($menu as $ma => [$ten, $duong]): if ($ma === 'doimatkhau') { continue; } ?>
-        <a href="<?= e(BASE_URL . $duong) ?>"<?= $ma === $mucChon ? ' class="dang-chon" aria-current="page"' : '' ?>><?= $svg($ma) ?><span><?= e($ten) ?></span></a>
-      <?php endforeach; ?>
-    </div>
-    <div class="menu-phu">
-      <a href="<?= e(BASE_URL) ?>/admin/doimatkhau.php"<?= $mucChon === 'doimatkhau' ? ' class="dang-chon" aria-current="page"' : '' ?>><?= $svg('doimatkhau', 18) ?><span>Đổi mật khẩu</span></a>
-      <a href="<?= e(BASE_URL) ?>/admin/vesinhvien.php"><?= $svg('vesinhvien', 18) ?><span>Về trang sinh viên</span></a>
-      <a href="<?= e(BASE_URL) ?>/admin/dangxuat.php" data-xacnhan="Bạn có chắc muốn đăng xuất không?" data-xacnhan2="Phiên đăng nhập hiện tại sẽ kết thúc và bạn cần đăng nhập lại để tiếp tục. Xác nhận đăng xuất?" data-xacnhan2-nut="Đăng xuất"><?= $svg('dangxuat', 18) ?><span>Đăng xuất</span></a>
-    </div>
-    <img class="sidebar-cup" src="<?= e(BASE_URL) ?>/assets/img/cup.svg" alt="" width="110" height="110">
-  </nav>
-
-  <div class="admin-chinh">
-    <header class="thanh-tren<?= $mucChon === 'nguoidung' ? ' thanh-tren-trong' : '' ?>">
-      <!-- Nút 3 gạch: chỉ hiện trên điện thoại, bấm để mở menu -->
-      <button type="button" class="admin-hamburger" id="adminHamburger" aria-label="Mở menu điều hướng" aria-controls="adminSidebar" aria-expanded="false">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
-      </button>
-      <?php if ($mucChon !== 'nguoidung'): ?>
-      <!-- Ô tìm kiếm nhanh: có trong ảnh thiết kế nhưng code gốc chưa có chức năng tương ứng, hiện chỉ là giao diện -->
-      <label class="tt-tim"><?= $svg('tim', 18) ?><input type="search" placeholder="Tìm kiếm nhanh..." aria-label="Tìm kiếm nhanh" autocomplete="off"></label>
-      <div class="tt-phai">
-        <!-- Chuông: đúng cấu trúc, id và API của trang Tổng quan (assets/js/admin/thongbao_admin.js) -->
-        <div class="adm-tb" id="admTb" data-api="<?= e(BASE_URL) ?>/admin/thongbao_api.php" data-csrf="<?= e(csrf_token()) ?>">
-          <button type="button" class="tt-chuong" id="admTbNut" aria-label="Thông báo" aria-expanded="false" title="Thông báo cộng đồng">
-            <?= $svg('chuong', 24) ?><em id="admTbBadge"<?= $soChuaDocAdmin > 0 ? '' : ' hidden' ?>><?= $soChuaDocAdmin > 99 ? '99+' : $soChuaDocAdmin ?></em>
-          </button>
-          <div class="adm-tb-hop" id="admTbHop" hidden>
-            <div class="adm-tb-dau">
-              <span class="adm-tb-tieude">Thông báo <b id="admTbTag"><?= $soChuaDocAdmin ?> mới</b></span>
-              <button type="button" class="adm-tb-docHet" id="admTbDocHet">✓ Đã đọc hết</button>
-            </div>
-            <div class="adm-tb-ds" id="admTbDs"><p class="adm-tb-trong">Đang tải...</p></div>
-            <div class="adm-tb-chan">
-              <a id="admTbTatCa" href="<?= e(BASE_URL) ?>/admin/thongbao.php">Tất cả thông báo</a>
-            </div>
-          </div>
-        </div>
-        <span class="tt-vach" aria-hidden="true"></span>
-        <div class="tt-admin" title="Quản trị viên">
-          <span class="tt-ava" aria-hidden="true"><?= e($chuCaiAdmin) ?></span>
-          <b><?= e($tenAdmin) ?></b>
-          <?= $svg('xuong', 16) ?>
-        </div>
-      </div>
-      <?php endif; ?>
-    </header>
-
-    <main class="admin-noidung">
-      <nav class="duong-dan" aria-label="Đường dẫn">
-        <a href="<?= e(BASE_URL) ?>/admin/index.php" title="Tổng quan" aria-label="Tổng quan"><?= $svg('dashboard', 18) ?></a>
-        <span class="phan-cach">/</span>
-        <span><?= e($tieuDe) ?></span>
-      </nav>
-<?php endif; ?>

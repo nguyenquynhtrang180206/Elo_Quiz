@@ -3,7 +3,7 @@
 // Chạy đúng 1 lần cho mỗi phiên bản (đánh dấu bằng CAUHINH.SCHEMA_VERSION), các request sau chỉ tốn 1 truy vấn nhẹ.
 class DbSchema
 {
-    public const PHIEN_BAN = '8';
+    public const PHIEN_BAN = '9';
     private static bool $daKiemTra = false;
 
     public static function damBao(PDO $pdo): void
@@ -65,6 +65,26 @@ class DbSchema
         }
     }
 
+    private static function xoaCot(PDO $pdo, string $bang, string $cot): void
+    {
+        if (self::coCot($pdo, $bang, $cot)) {
+            $tenBangThuc = $bang;
+            try {
+                $st = $pdo->prepare(
+                    'SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES
+                      WHERE TABLE_SCHEMA = DATABASE() AND LOWER(TABLE_NAME) = LOWER(?) LIMIT 1'
+                );
+                $st->execute([$bang]);
+                $found = $st->fetchColumn();
+                if ($found) {
+                    $tenBangThuc = (string) $found;
+                }
+            } catch (Throwable) {
+            }
+            self::thucThiAnToan($pdo, "ALTER TABLE `$tenBangThuc` DROP COLUMN `$cot`");
+        }
+    }
+
     private static function themCot(PDO $pdo, string $bang, string $cot, string $dinhNghia): void
     {
         if (!self::coCot($pdo, $bang, $cot)) {
@@ -102,10 +122,13 @@ class DbSchema
         self::themCot($pdo, 'TRANDAU', 'DotBien', "VARCHAR(30) NOT NULL DEFAULT 'chuan'");
         self::themCot($pdo, 'TRANDAU', 'PhaRoi', 'TEXT NULL');
 
-        // 2. Cột mở rộng bảng NGUOIDUNG
+        // 2. Cột mở rộng bảng NGUOIDUNG (và dọn bỏ 5 cột khảo sát cũ không còn dùng)
         self::themCot($pdo, 'NGUOIDUNG', 'TuongChon', "VARCHAR(40) NOT NULL DEFAULT 'sunflower'");
         self::themCot($pdo, 'NGUOIDUNG', 'ChoPhepBot', 'TINYINT(1) NOT NULL DEFAULT 1');
         self::themCot($pdo, 'NGUOIDUNG', 'NgayDoiMatKhau', 'DATETIME NULL DEFAULT NULL');
+        foreach (['TrangThaiKhaoSat', 'MucTieuKhaoSat', 'LinhVucYeuThich', 'TrinhDoTuDanhGia', 'NgayKhaoSat'] as $cotCu) {
+            self::xoaCot($pdo, 'NGUOIDUNG', $cotCu);
+        }
 
         // 3. Cột mở rộng bảng MONHOC (hỗ trợ sinh viên đề xuất môn)
         self::themCot($pdo, 'MONHOC', 'MaNguoiDeXuat', 'INT UNSIGNED NULL');

@@ -269,7 +269,7 @@ require __DIR__ . '/layout/header.php';
 
         <label for="email">Email tài khoản</label>
         <input type="email" id="email" name="email" maxlength="150" required
-               placeholder="Nhập email bạn đã đăng ký" value="<?= e($_POST['email'] ?? '') ?>" autofocus>
+               placeholder="Nhập email bạn đã đăng ký" value="<?= e($_POST['email'] ?? $_GET['email'] ?? '') ?>" autofocus>
 
         <p><button type="submit" class="btn">Nhận mã xác thực qua Email</button></p>
       </form>

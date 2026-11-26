@@ -5,7 +5,7 @@
 // Đặt tại: elo_quiz/client/timtran.php
 require_once __DIR__ . '/../core/bootstrap.php';
 if (Auth::laAdminSinhVien()) {   // admin không tìm trận và không đấu trận
-    redirect(BASE_URL . '/client/khong_dau_tran.php');
+    redirect(BASE_URL . '/client/index.php');
 }
 
 

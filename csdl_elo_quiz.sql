@@ -1,7 +1,7 @@
 -- =====================================================================
 -- BẢN SAO LƯU CƠ SỞ DỮ LIỆU ĐẦY ĐỦ (FULL LIVE DUMP - QUIZUP ARENA)
 -- Tên CSDL: elo_quiz
--- Thời điểm xuất: 2026-11-26 00:43:05
+-- Thời điểm xuất: 2026-11-26 19:51:29
 -- Bao gồm toàn bộ cấu trúc 29 bảng và MỌI dữ liệu người dùng đã thao tác trên web
 -- (Tài khoản, bài đăng, bình luận, ảnh đính kèm, trận đấu, Elo, bạn bè, thông báo, lịch sử...)
 -- =====================================================================
@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS `CAUHINH` (
   `MoTa` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`MaCauHinh`),
   UNIQUE KEY `uq_cauhinh_ten` (`TenCauHinh`)
-) ENGINE=InnoDB AUTO_INCREMENT=51 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=52 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- Dữ liệu của bảng `CAUHINH` (20 dòng)
 INSERT INTO `CAUHINH` (`MaCauHinh`, `TenCauHinh`, `GiaTri`, `MoTa`) VALUES
@@ -48,7 +48,7 @@ INSERT INTO `CAUHINH` (`MaCauHinh`, `TenCauHinh`, `GiaTri`, `MoTa`) VALUES
   (17, 'NGUONG_BIEN_DONG_ELO', '150', 'Elo tăng/giảm quá mức này trong khoảng thời gian bên dưới thì cảnh báo'),
   (18, 'KHOANG_BIEN_DONG_ELO', '24', 'Khoảng thời gian xét biến động Elo (giờ)'),
   (19, 'MIN_LUOT_DO_KHO', '1', 'Số lượt trả lời tối thiểu để một câu hỏi được xét độ khó theo dữ liệu thật (Ngân hàng câu hỏi)'),
-  (25, 'SCHEMA_VERSION', '8', 'Phiên bản cấu trúc CSDL chuẩn hóa');
+  (25, 'SCHEMA_VERSION', '9', 'Phiên bản cấu trúc CSDL chuẩn hóa');
 
 -- ---------------------------------------------------------------------
 -- Bảng: `LOAIKYTHI`
@@ -82,11 +82,6 @@ CREATE TABLE IF NOT EXISTS `NGUOIDUNG` (
   `TrangThai` enum('Hoạt động','Bị khóa') NOT NULL DEFAULT 'Hoạt động',
   `NgayTao` datetime NOT NULL DEFAULT current_timestamp(),
   `NgayDoiMatKhau` datetime DEFAULT NULL,
-  `TrangThaiKhaoSat` enum('Chưa làm','Hoàn tất','Bỏ qua') NOT NULL DEFAULT 'Chưa làm',
-  `MucTieuKhaoSat` varchar(255) DEFAULT NULL COMMENT 'Danh sách mã mục tiêu, phân tách bằng dấu phẩy',
-  `LinhVucYeuThich` varchar(255) DEFAULT NULL COMMENT 'Danh sách mã lĩnh vực yêu thích, phân tách bằng dấu phẩy',
-  `TrinhDoTuDanhGia` enum('Mới bắt đầu','Trung bình','Khá','Nâng cao') DEFAULT NULL COMMENT 'Trình độ tự đánh giá khi làm khảo sát',
-  `NgayKhaoSat` datetime DEFAULT NULL COMMENT 'Thời điểm bấm Hoàn tất hoặc Bỏ qua khảo sát',
   `TuongChon` varchar(40) NOT NULL DEFAULT 'sunflower',
   `ChoPhepBot` tinyint(1) NOT NULL DEFAULT 1,
   PRIMARY KEY (`MaND`),
@@ -94,32 +89,32 @@ CREATE TABLE IF NOT EXISTS `NGUOIDUNG` (
 ) ENGINE=InnoDB AUTO_INCREMENT=1000012 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- Dữ liệu của bảng `NGUOIDUNG` (25 dòng)
-INSERT INTO `NGUOIDUNG` (`MaND`, `HoTen`, `Email`, `MatKhau`, `AnhDaiDien`, `Lop`, `Khoa`, `TrangThai`, `NgayTao`, `NgayDoiMatKhau`, `TrangThaiKhaoSat`, `MucTieuKhaoSat`, `LinhVucYeuThich`, `TrinhDoTuDanhGia`, `NgayKhaoSat`, `TuongChon`, `ChoPhepBot`) VALUES
-  (1, 'Nguyễn Văn An', 'an@test.com', '$argon2id$v=19$m=65536,t=4,p=2$Z0dtREZhckkzS0pVY1AzLw$Le22AD/w9T4wXZBES1bTcxC8o1aHOSUZv/Qr77JIijQ', NULL, 'CNTT01', 'Công nghệ thông tin', 'Hoạt động', '2026-11-02 14:18:49', '2026-11-05 01:26:19', 'Hoàn tất', 'kiem_tra_kien_thuc,on_luyen_nhanh', 'tin_hoc,toan_hoc', 'Khá', '2026-11-07 20:49:54', 'sunflower', 1),
-  (2, 'Trần Thị Bình', 'binh@test.com', '$2y$10$5MOB9RsdS2KQ7u7XSozfRegxPg6munieu4rdL6h9RQKMYgbtH0RTy', NULL, 'CNTT01', 'Công nghệ thông tin', 'Hoạt động', '2026-11-02 14:18:49', '2026-11-02 14:18:49', 'Hoàn tất', 'ghi_nho_lau', 'toan_hoc', 'Trung bình', '2026-11-04 20:49:54', 'sunflower', 1),
-  (3, 'Lê Minh Cường', 'cuong@test.com', '$2y$10$5MOB9RsdS2KQ7u7XSozfRegxPg6munieu4rdL6h9RQKMYgbtH0RTy', NULL, 'CNTT02', 'Công nghệ thông tin', 'Hoạt động', '2026-11-02 14:18:49', '2026-11-02 14:18:49', 'Hoàn tất', 'ap_luc_thoi_gian,xoa_so_thi', 'tin_hoc,khoa_hoc', 'Nâng cao', '2026-11-02 20:49:54', 'sunflower', 1),
-  (4, 'Phạm Thu Dung', 'dung@test.com', '$2y$10$5MOB9RsdS2KQ7u7XSozfRegxPg6munieu4rdL6h9RQKMYgbtH0RTy', NULL, 'HTTT01', 'Hệ thống thông tin', 'Hoạt động', '2026-11-02 14:18:49', '2026-11-02 14:18:49', 'Hoàn tất', 'on_luyen_nhanh', 'tieng_anh', 'Mới bắt đầu', '2026-10-31 20:49:54', 'sunflower', 1),
-  (5, 'Hoàng Gia Huy', 'huy@test.com', '$2y$10$5MOB9RsdS2KQ7u7XSozfRegxPg6munieu4rdL6h9RQKMYgbtH0RTy', NULL, 'HTTT01', 'Hệ thống thông tin', 'Hoạt động', '2026-11-02 14:18:49', '2026-11-02 14:18:49', 'Hoàn tất', 'so_hoa_du_lieu,kiem_tra_kien_thuc', 'lich_su,tin_hoc', 'Trung bình', '2026-10-28 20:49:54', 'sunflower', 1),
-  (6, 'Vũ Khánh Linh', 'linh@test.com', '$2y$10$5MOB9RsdS2KQ7u7XSozfRegxPg6munieu4rdL6h9RQKMYgbtH0RTy', NULL, 'KTPM01', 'Kỹ thuật phần mềm', 'Hoạt động', '2026-11-02 14:18:49', '2026-11-02 14:18:49', 'Hoàn tất', 'kiem_tra_kien_thuc', 'toan_hoc,tieng_anh', 'Trung bình', '2026-10-25 20:49:54', 'sunflower', 1),
-  (7, 'hihi', 'hihi@gmail.com', '$argon2id$v=19$m=65536,t=4,p=2$VEVoVzdsWlF1VFpjN1p2eA$iTstn2sObpfLMTG7wHezHxP2/iIR9HUrCumWf2OOJ7I', NULL, NULL, NULL, 'Hoạt động', '2026-11-02 14:19:37', '2026-11-02 14:19:37', 'Bỏ qua', NULL, NULL, NULL, '2026-11-02 14:19:37', 'sunflower', 1),
-  (8, 'ha ha', 'haha@gmail.com', '$2y$10$5XYD/sDVmmUXD/cjBxyzD.ZPQ5pKXTQrobF28ndxsP7phvH.BjvB.', NULL, NULL, NULL, 'Hoạt động', '2026-11-04 13:21:03', '2026-11-04 13:21:03', 'Bỏ qua', NULL, NULL, NULL, '2026-11-04 13:21:03', 'sunflower', 1),
-  (10, 'Thua a ker mỗi cú lộn mèo 🤫', 'buithutrang149@gmail.com', '$argon2id$v=19$m=65536,t=4,p=2$T0YwakNjdkhoRktPc3dvMw$CPDgoEm1OiTtGFUA2JZz5q8puk/kCD7kYnG+0h+Asws', 'uploads/avatars/e9852511873a79346f2e8d3163fc3cf2.jpg', NULL, NULL, 'Hoạt động', '2026-11-04 22:00:25', '2026-11-04 22:00:25', 'Hoàn tất', 'kiem_tra_kien_thuc,on_luyen_nhanh,ghi_nho_lau,ap_luc_thoi_gian,so_hoa_du_lieu,xoa_so_thi', NULL, NULL, '2026-11-04 22:00:25', 'sunflower', 1),
-  (11, 'Quản trị viên', 'quantri-1-443af85f@quantri.elo.local', '$2y$10$o8GJY4Wqvc/yOmei9oCyP.tVH2EjOKtgkYf8hCyeKNPx6ltiIAi1y', NULL, NULL, NULL, 'Hoạt động', '2026-11-07 19:32:25', '2026-11-07 19:32:25', 'Bỏ qua', NULL, NULL, NULL, '2026-11-07 19:32:25', 'sunflower', 1),
-  (18, 'mmmmmmmmmm', 'nguyenthitrang15122006@gmail.com', '$2y$10$rTAIU7oxcDF2i7V0hWtQhuE2Bmq.T8OXF6frxeG9Vrn2KNIIPohsi', NULL, NULL, NULL, 'Hoạt động', '2026-11-09 20:51:34', '2026-11-09 20:51:34', 'Bỏ qua', NULL, NULL, NULL, '2026-11-09 20:51:40', 'sunflower', 1),
-  (19, 'aaaaaa', 'hahaa@gmail.com', '$2y$10$jENVPXWyWHdDq8r7bfzHl./5QR598gvQByEJoYLjjei3x10iLznkG', NULL, NULL, NULL, 'Hoạt động', '2026-11-09 22:23:51', '2026-11-09 22:23:51', 'Hoàn tất', 'kiem_tra_kien_thuc', 'toan_hoc', 'Khá', '2026-11-09 22:26:37', 'sunflower', 1),
-  (20, 's3', 's3@gmail.com', '$2y$10$DdXmUX5ydXMvyWQJZqK18effjDbR21RPOR96djA890v/eEkBWuT/u', NULL, NULL, NULL, 'Hoạt động', '2026-11-09 22:30:56', '2026-11-09 22:30:56', 'Hoàn tất', 'on_luyen_nhanh', 'tieng_anh', 'Mới bắt đầu', '2026-11-09 22:31:11', 'sunflower', 1),
-  (999999, 'Hoa Hướng Dương [AI Vui Vẻ]', 'bot@quizup.arena', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', NULL, NULL, NULL, 'Hoạt động', '2026-11-13 21:57:57', '2026-11-13 21:57:57', 'Chưa làm', NULL, NULL, NULL, NULL, 'sunflower', 1),
-  (1000000, 'NTQT', 'nguyenquynhtrang180206@gmail.com', '$argon2id$v=19$m=65536,t=4,p=2$SHN2My9MbVp4MmxYQnozcA$Sy9F0bAmSqXBxg0ZXMTCyRF/6iupU9FtZDmohLNY33U', 'uploads/avatars/2cf4488e4b800988bfc70f1cd6d0ff64.png', NULL, NULL, 'Hoạt động', '2026-11-13 22:40:23', '2026-11-13 22:40:23', 'Hoàn tất', 'ap_luc_thoi_gian', 'tieng_anh', 'Mới bắt đầu', '2026-11-13 22:40:39', 'sunflower', 0),
-  (1000001, 'Ngồi trong tolet gào thét tên em 😂', 'trangthubui918@gmail.com', '$argon2id$v=19$m=65536,t=4,p=2$QTRtSWZlQldYRFUzZTg1Sg$ODsPyY4idvWU61S+Ol8c1XHwjYXyIYyMu6yx2VZ0K4I', NULL, NULL, NULL, 'Hoạt động', '2026-11-13 22:53:40', '2026-11-13 22:53:40', 'Chưa làm', NULL, NULL, NULL, NULL, 'sunflower', 1),
-  (1000002, 'Ngồi trong tolet gào thét tên em 😂', 'buithutrang143@gmail.com', '$argon2id$v=19$m=65536,t=4,p=2$SDl3TVcwN2IyanFGa2hpZA$ufnB+7c/ozUqUUp4xt2avpr5OWKsM4IwZeJA+Yr7HnU', 'uploads/avatars/3728ca7e788d8d688e622f2171738bfe.jpg', NULL, NULL, 'Hoạt động', '2026-11-13 23:01:42', '2026-11-13 23:01:42', 'Bỏ qua', NULL, NULL, NULL, '2026-11-13 23:01:51', 'sunflower', 1),
-  (1000003, 'Bật nắp quan tài hôn e lần cuối 😍', 'buithutrang06@gmail.com', '$argon2id$v=19$m=65536,t=4,p=2$aUg4alNIT3BVcmkwdzZ1TA$K3UIJFC0JHkhr4vFuRne6AF3ZPML6Qi1eJSOcopvFts', 'uploads/avatars/1200fc7fb5a6e88530f6b2bc3687af54.jpg', NULL, NULL, 'Hoạt động', '2026-11-13 23:25:39', '2026-11-13 23:25:39', 'Bỏ qua', NULL, NULL, NULL, '2026-11-13 23:25:45', 'sunflower', 0),
-  (1000004, 'Thua a ker mỗi cú lộn mèo', 'buithutrang123@gmail.com', '$argon2id$v=19$m=65536,t=4,p=2$NkVYajRzTG13dlFhVWtsQg$/XjDsRGjfuHMiReW7/I92YHAMauvqOC9Xq6uGtylHjU', 'uploads/avatars/073cd4beaa2d1d623ccf5424bff097e0.jpg', NULL, NULL, 'Hoạt động', '2026-11-19 09:55:39', NULL, 'Bỏ qua', NULL, NULL, NULL, '2026-11-19 09:55:42', 'snowpea', 1),
-  (1000005, 'Chị phiến', 'chiphienphp123@gmail.com', '$argon2id$v=19$m=65536,t=4,p=2$YmlCaDhSREVockpTQWcwWg$MC7eVsRVsInutnngc0/A+a+WnT6HKWn8awyf7FzXdfg', NULL, NULL, NULL, 'Hoạt động', '2026-11-19 14:04:11', NULL, 'Bỏ qua', NULL, NULL, NULL, '2026-11-19 14:04:26', 'sunflower', 1),
-  (1000007, 'Chị phiến', 'chiphienphp987@gmail.com', '$argon2id$v=19$m=65536,t=4,p=2$Mkpjdm9KU3dqTU96RE1CVQ$w4dlfVT1jKibig542+yaZFCYaIFScmF8TZoJ7kZtBFU', 'uploads/avatars/d52d37f0ff813285cf60a6342b3de589.png', NULL, NULL, 'Hoạt động', '2026-11-19 14:56:42', '2026-11-19 14:56:42', 'Bỏ qua', NULL, NULL, NULL, '2026-11-19 14:56:46', 'snowpea', 1),
-  (1000008, 'Nguyễn Thị Quỳnh Trang', 'nguyenquynhtrang@gmail.com', '$argon2id$v=19$m=65536,t=4,p=2$TlJCb1cza3lLU0hwcy5pVw$rwQ4YRy1PrmpIYGPkFDbFNOP572UofAUK9WjKJjR9K4', NULL, NULL, NULL, 'Hoạt động', '2026-11-19 17:46:33', '2026-11-19 17:46:33', 'Hoàn tất', 'on_luyen_nhanh,ghi_nho_lau', 'tieng_anh', 'Trung bình', '2026-11-19 17:46:59', 'sunflower', 0),
-  (1000009, 'NTQT', 'quynhtrang062k6@gmail.com', '$argon2id$v=19$m=65536,t=4,p=2$Z1B3emM1Q2hKNEVZZ3MyeA$jpQusZ+2JSe9X8xZ0cOQLW/UbuYLdYZhflneTHM2xpg', NULL, NULL, NULL, 'Hoạt động', '2026-11-24 22:16:51', '2026-11-24 22:16:51', 'Bỏ qua', NULL, NULL, NULL, '2026-11-24 22:18:20', 'sunflower', 1),
-  (1000010, 'Nguyễn Thị Thu Huyền', 'huyenteo468@gmail.com', '$argon2id$v=19$m=65536,t=4,p=2$dDU1cjYuU2RSejhtdE9qdw$zlIjmjoz5n7968P6mVARO4ey/OC3uCCJ9XR+tZsjQc0', NULL, NULL, NULL, 'Hoạt động', '2026-11-24 22:18:30', '2026-11-24 22:18:30', 'Hoàn tất', 'kiem_tra_kien_thuc,on_luyen_nhanh,so_hoa_du_lieu', 'toan_hoc,tin_hoc,tieng_anh', 'Khá', '2026-11-24 22:19:33', 'sunflower', 1),
-  (1000011, 'A ko cờ bạc ok 🤫', 'akocobacok@gmail.com', '$argon2id$v=19$m=65536,t=4,p=2$ZzBZNW5MdUljOG5VRHlFQg$af6YoumkTj5BwzeWbi6VBnSSvZwzWdPiYBsZMetqoOk', 'uploads/avatars/311b015493deba84f7331134e19f5b6d.jpg', NULL, NULL, 'Hoạt động', '2026-11-24 22:33:27', '2026-11-24 22:33:27', 'Chưa làm', NULL, NULL, NULL, NULL, 'sunflower', 1);
+INSERT INTO `NGUOIDUNG` (`MaND`, `HoTen`, `Email`, `MatKhau`, `AnhDaiDien`, `Lop`, `Khoa`, `TrangThai`, `NgayTao`, `NgayDoiMatKhau`, `TuongChon`, `ChoPhepBot`) VALUES
+  (1, 'Nguyễn Văn An', 'an@test.com', '$argon2id$v=19$m=65536,t=4,p=2$Z0dtREZhckkzS0pVY1AzLw$Le22AD/w9T4wXZBES1bTcxC8o1aHOSUZv/Qr77JIijQ', NULL, 'CNTT01', 'Công nghệ thông tin', 'Hoạt động', '2026-11-02 14:18:49', '2026-11-05 01:26:19', 'sunflower', 1),
+  (2, 'Trần Thị Bình', 'binh@test.com', '$2y$10$5MOB9RsdS2KQ7u7XSozfRegxPg6munieu4rdL6h9RQKMYgbtH0RTy', NULL, 'CNTT01', 'Công nghệ thông tin', 'Hoạt động', '2026-11-02 14:18:49', '2026-11-02 14:18:49', 'sunflower', 1),
+  (3, 'Lê Minh Cường', 'cuong@test.com', '$2y$10$5MOB9RsdS2KQ7u7XSozfRegxPg6munieu4rdL6h9RQKMYgbtH0RTy', NULL, 'CNTT02', 'Công nghệ thông tin', 'Hoạt động', '2026-11-02 14:18:49', '2026-11-02 14:18:49', 'sunflower', 1),
+  (4, 'Phạm Thu Dung', 'dung@test.com', '$2y$10$5MOB9RsdS2KQ7u7XSozfRegxPg6munieu4rdL6h9RQKMYgbtH0RTy', NULL, 'HTTT01', 'Hệ thống thông tin', 'Hoạt động', '2026-11-02 14:18:49', '2026-11-02 14:18:49', 'sunflower', 1),
+  (5, 'Hoàng Gia Huy', 'huy@test.com', '$2y$10$5MOB9RsdS2KQ7u7XSozfRegxPg6munieu4rdL6h9RQKMYgbtH0RTy', NULL, 'HTTT01', 'Hệ thống thông tin', 'Hoạt động', '2026-11-02 14:18:49', '2026-11-02 14:18:49', 'sunflower', 1),
+  (6, 'Vũ Khánh Linh', 'linh@test.com', '$2y$10$5MOB9RsdS2KQ7u7XSozfRegxPg6munieu4rdL6h9RQKMYgbtH0RTy', NULL, 'KTPM01', 'Kỹ thuật phần mềm', 'Hoạt động', '2026-11-02 14:18:49', '2026-11-02 14:18:49', 'sunflower', 1),
+  (7, 'hihi', 'hihi@gmail.com', '$argon2id$v=19$m=65536,t=4,p=2$VEVoVzdsWlF1VFpjN1p2eA$iTstn2sObpfLMTG7wHezHxP2/iIR9HUrCumWf2OOJ7I', NULL, NULL, NULL, 'Hoạt động', '2026-11-02 14:19:37', '2026-11-02 14:19:37', 'sunflower', 1),
+  (8, 'ha ha', 'haha@gmail.com', '$2y$10$5XYD/sDVmmUXD/cjBxyzD.ZPQ5pKXTQrobF28ndxsP7phvH.BjvB.', NULL, NULL, NULL, 'Hoạt động', '2026-11-04 13:21:03', '2026-11-04 13:21:03', 'sunflower', 1),
+  (10, 'Thua a ker mỗi cú lộn mèo 🤫', 'buithutrang149@gmail.com', '$argon2id$v=19$m=65536,t=4,p=2$T0YwakNjdkhoRktPc3dvMw$CPDgoEm1OiTtGFUA2JZz5q8puk/kCD7kYnG+0h+Asws', 'uploads/avatars/e9852511873a79346f2e8d3163fc3cf2.jpg', NULL, NULL, 'Hoạt động', '2026-11-04 22:00:25', '2026-11-04 22:00:25', 'sunflower', 1),
+  (11, 'Quản trị viên', 'quantri-1-443af85f@quantri.elo.local', '$2y$10$o8GJY4Wqvc/yOmei9oCyP.tVH2EjOKtgkYf8hCyeKNPx6ltiIAi1y', NULL, NULL, NULL, 'Hoạt động', '2026-11-07 19:32:25', '2026-11-07 19:32:25', 'sunflower', 1),
+  (18, 'mmmmmmmmmm', 'nguyenthitrang15122006@gmail.com', '$2y$10$rTAIU7oxcDF2i7V0hWtQhuE2Bmq.T8OXF6frxeG9Vrn2KNIIPohsi', NULL, NULL, NULL, 'Hoạt động', '2026-11-09 20:51:34', '2026-11-09 20:51:34', 'sunflower', 1),
+  (19, 'aaaaaa', 'hahaa@gmail.com', '$2y$10$jENVPXWyWHdDq8r7bfzHl./5QR598gvQByEJoYLjjei3x10iLznkG', NULL, NULL, NULL, 'Hoạt động', '2026-11-09 22:23:51', '2026-11-09 22:23:51', 'sunflower', 1),
+  (20, 's3', 's3@gmail.com', '$2y$10$DdXmUX5ydXMvyWQJZqK18effjDbR21RPOR96djA890v/eEkBWuT/u', NULL, NULL, NULL, 'Hoạt động', '2026-11-09 22:30:56', '2026-11-09 22:30:56', 'sunflower', 1),
+  (999999, 'Zombie Máy AI [Buckethead]', 'bot@quizup.arena', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', NULL, NULL, NULL, 'Hoạt động', '2026-11-13 21:57:57', '2026-11-13 21:57:57', 'sunflower', 1),
+  (1000000, 'NTQT', 'nguyenquynhtrang180206@gmail.com', '$argon2id$v=19$m=65536,t=4,p=2$SHN2My9MbVp4MmxYQnozcA$Sy9F0bAmSqXBxg0ZXMTCyRF/6iupU9FtZDmohLNY33U', 'uploads/avatars/2cf4488e4b800988bfc70f1cd6d0ff64.png', NULL, NULL, 'Hoạt động', '2026-11-13 22:40:23', '2026-11-13 22:40:23', 'sunflower', 0),
+  (1000001, 'Ngồi trong tolet gào thét tên em 😂', 'trangthubui918@gmail.com', '$argon2id$v=19$m=65536,t=4,p=2$QTRtSWZlQldYRFUzZTg1Sg$ODsPyY4idvWU61S+Ol8c1XHwjYXyIYyMu6yx2VZ0K4I', NULL, NULL, NULL, 'Hoạt động', '2026-11-13 22:53:40', '2026-11-13 22:53:40', 'sunflower', 1),
+  (1000002, 'Ngồi trong tolet gào thét tên em 😂', 'buithutrang143@gmail.com', '$argon2id$v=19$m=65536,t=4,p=2$SDl3TVcwN2IyanFGa2hpZA$ufnB+7c/ozUqUUp4xt2avpr5OWKsM4IwZeJA+Yr7HnU', 'uploads/avatars/3728ca7e788d8d688e622f2171738bfe.jpg', NULL, NULL, 'Hoạt động', '2026-11-13 23:01:42', '2026-11-13 23:01:42', 'sunflower', 1),
+  (1000003, 'Bật nắp quan tài hôn e lần cuối 😍', 'buithutrang06@gmail.com', '$argon2id$v=19$m=65536,t=4,p=2$aUg4alNIT3BVcmkwdzZ1TA$K3UIJFC0JHkhr4vFuRne6AF3ZPML6Qi1eJSOcopvFts', 'uploads/avatars/1200fc7fb5a6e88530f6b2bc3687af54.jpg', NULL, NULL, 'Hoạt động', '2026-11-13 23:25:39', '2026-11-13 23:25:39', 'sunflower', 0),
+  (1000004, 'Thua a ker mỗi cú lộn mèo', 'buithutrang123@gmail.com', '$argon2id$v=19$m=65536,t=4,p=2$NkVYajRzTG13dlFhVWtsQg$/XjDsRGjfuHMiReW7/I92YHAMauvqOC9Xq6uGtylHjU', 'uploads/avatars/073cd4beaa2d1d623ccf5424bff097e0.jpg', NULL, NULL, 'Hoạt động', '2026-11-19 09:55:39', NULL, 'snowpea', 1),
+  (1000005, 'Chị phiến', 'chiphienphp123@gmail.com', '$argon2id$v=19$m=65536,t=4,p=2$YmlCaDhSREVockpTQWcwWg$MC7eVsRVsInutnngc0/A+a+WnT6HKWn8awyf7FzXdfg', 'uploads/avatars/f886ba279f5b23437e5575a56cfc9f54.jpg', NULL, NULL, 'Hoạt động', '2026-11-19 14:04:11', NULL, 'sunflower', 1),
+  (1000007, 'Chị phiến', 'chiphienphp987@gmail.com', '$argon2id$v=19$m=65536,t=4,p=2$Mkpjdm9KU3dqTU96RE1CVQ$w4dlfVT1jKibig542+yaZFCYaIFScmF8TZoJ7kZtBFU', 'uploads/avatars/d52d37f0ff813285cf60a6342b3de589.png', NULL, NULL, 'Hoạt động', '2026-11-19 14:56:42', '2026-11-19 14:56:42', 'snowpea', 1),
+  (1000008, 'Nguyễn Thị Quỳnh Trang', 'nguyenquynhtrang@gmail.com', '$argon2id$v=19$m=65536,t=4,p=2$TlJCb1cza3lLU0hwcy5pVw$rwQ4YRy1PrmpIYGPkFDbFNOP572UofAUK9WjKJjR9K4', NULL, NULL, NULL, 'Hoạt động', '2026-11-19 17:46:33', '2026-11-19 17:46:33', 'sunflower', 0),
+  (1000009, 'NTQT', 'quynhtrang062k6@gmail.com', '$argon2id$v=19$m=65536,t=4,p=2$Z1B3emM1Q2hKNEVZZ3MyeA$jpQusZ+2JSe9X8xZ0cOQLW/UbuYLdYZhflneTHM2xpg', NULL, NULL, NULL, 'Hoạt động', '2026-11-24 22:16:51', '2026-11-24 22:16:51', 'sunflower', 1),
+  (1000010, 'Nguyễn Thị Thu Huyền', 'huyenteo468@gmail.com', '$argon2id$v=19$m=65536,t=4,p=2$dDU1cjYuU2RSejhtdE9qdw$zlIjmjoz5n7968P6mVARO4ey/OC3uCCJ9XR+tZsjQc0', NULL, NULL, NULL, 'Hoạt động', '2026-11-24 22:18:30', '2026-11-24 22:18:30', 'sunflower', 1),
+  (1000011, 'A ko cờ bạc ok 🤫', 'akocobacok@gmail.com', '$argon2id$v=19$m=65536,t=4,p=2$ZzBZNW5MdUljOG5VRHlFQg$af6YoumkTj5BwzeWbi6VBnSSvZwzWdPiYBsZMetqoOk', 'uploads/avatars/311b015493deba84f7331134e19f5b6d.jpg', NULL, NULL, 'Hoạt động', '2026-11-24 22:33:27', '2026-11-24 22:33:27', 'wallnut', 1);
 
 -- ---------------------------------------------------------------------
 -- Bảng: `ADMIN`
@@ -1099,9 +1094,9 @@ CREATE TABLE IF NOT EXISTS `TRANDAU` (
   KEY `fk_trandau_loaikt` (`MaLoaiKT`),
   CONSTRAINT `fk_trandau_loaikt` FOREIGN KEY (`MaLoaiKT`) REFERENCES `LOAIKYTHI` (`MaLoaiKT`),
   CONSTRAINT `fk_trandau_mon` FOREIGN KEY (`MaMon`) REFERENCES `MONHOC` (`MaMon`)
-) ENGINE=InnoDB AUTO_INCREMENT=46 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=48 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- Dữ liệu của bảng `TRANDAU` (41 dòng)
+-- Dữ liệu của bảng `TRANDAU` (43 dòng)
 INSERT INTO `TRANDAU` (`MaTran`, `MaMon`, `MaLoaiKT`, `ThoiGianTao`, `ThoiGianBatDau`, `ThoiGianKetThuc`, `TrangThai`, `LyDoKetThuc`, `DotBien`, `PhaRoi`) VALUES
   (1, 5, 1, '2026-11-04 13:21:42.344', '2026-11-04 13:21:43.112', '2026-11-04 13:23:29.685', 'Kết thúc', 'Hoàn thành', 'chuan', NULL),
   (2, 1, 1, '2026-11-04 13:47:40.708', '2026-11-04 13:47:42.733', '2026-11-04 13:48:06.521', 'Kết thúc', 'Chịu thua', 'chuan', NULL),
@@ -1143,7 +1138,9 @@ INSERT INTO `TRANDAU` (`MaTran`, `MaMon`, `MaLoaiKT`, `ThoiGianTao`, `ThoiGianBa
   (42, 8, 2, '2026-11-19 17:48:03.042', '2026-11-19 17:48:08.340', '2026-11-19 17:49:18.981', 'Kết thúc', 'Hoàn thành', 'chuan', '{\"nguoiBan\":1000007,\"mucTieu\":1000008,\"loai\":\"dong_bang\",\"thoiGian\":1795085340.714682}'),
   (43, 3, 1, '2026-11-19 17:58:55.845', '2026-11-19 17:58:57.235', '2026-11-19 18:00:34.278', 'Kết thúc', 'Hoàn thành', 'chuan', '{\"nguoiBan\":1000007,\"mucTieu\":1000008,\"loai\":\"suong_mu\",\"thoiGian\":1795086011.773428}'),
   (44, 8, 2, '2026-11-24 22:28:04.637', '2026-11-24 22:28:04.637', '2026-11-24 22:30:23.942', 'Kết thúc', 'Chịu thua', 'chuan', NULL),
-  (45, 3, 1, '2026-11-25 07:09:49.602', '2026-11-25 07:09:49.602', '2026-11-25 07:11:04.568', 'Kết thúc', 'Hoàn thành', 'chuan', '{\"nguoiBan\":1000011,\"mucTieu\":999999,\"loai\":\"dong_bang\",\"thoiGian\":1795565438.654446}');
+  (45, 3, 1, '2026-11-25 07:09:49.602', '2026-11-25 07:09:49.602', '2026-11-25 07:11:04.568', 'Kết thúc', 'Hoàn thành', 'chuan', '{\"nguoiBan\":1000011,\"mucTieu\":999999,\"loai\":\"dong_bang\",\"thoiGian\":1795565438.654446}'),
+  (46, 3, 1, '2026-11-26 18:56:28.131', '2026-11-26 18:56:28.131', '2026-11-26 18:57:37.945', 'Kết thúc', 'Hoàn thành', 'chuan', '{\"nguoiBan\":1000005,\"mucTieu\":999999,\"loai\":\"dong_bang\",\"thoiGian\":1795694233.847089}'),
+  (47, 1, 1, '2026-11-26 19:01:00.311', '2026-11-26 19:01:00.311', '2026-11-26 19:02:02.205', 'Kết thúc', 'Hoàn thành', 'chuan', '{\"nguoiBan\":1000005,\"mucTieu\":999999,\"loai\":\"suong_mu\",\"thoiGian\":1795694499.970243}');
 
 -- ---------------------------------------------------------------------
 -- Bảng: `NGUOICHOITRANDAU`
@@ -1164,7 +1161,7 @@ CREATE TABLE IF NOT EXISTS `NGUOICHOITRANDAU` (
   CONSTRAINT `fk_nctd_tran` FOREIGN KEY (`MaTran`) REFERENCES `TRANDAU` (`MaTran`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- Dữ liệu của bảng `NGUOICHOITRANDAU` (82 dòng)
+-- Dữ liệu của bảng `NGUOICHOITRANDAU` (86 dòng)
 INSERT INTO `NGUOICHOITRANDAU` (`MaTran`, `MaND`, `DiemSo`, `KetQua`, `EloTruoc`, `EloSau`, `TrangThaiThamGia`, `LanHoatDongCuoi`) VALUES
   (1, 7, 409, 'Thua', 1000, 984, 'Đã xong', '2026-11-04 13:23:29.666'),
   (1, 8, 809, 'Thắng', 1000, 1016, 'Đã xong', '2026-11-04 13:22:58.144'),
@@ -1247,7 +1244,11 @@ INSERT INTO `NGUOICHOITRANDAU` (`MaTran`, `MaND`, `DiemSo`, `KetQua`, `EloTruoc`
   (44, 999999, 928, 'Thắng', 1074, 1087, 'Đã xong', '2026-11-24 22:28:58.024'),
   (44, 1000010, 0, 'Thua', 1000, 987, 'Bỏ trận', '2026-11-24 22:30:21.547'),
   (45, 999999, 800, 'Thua', 1006, 990, 'Đã xong', '2026-11-25 07:10:46.465'),
-  (45, 1000011, 1172, 'Thắng', 1000, 1016, 'Đã xong', '2026-11-25 07:11:04.456');
+  (45, 1000011, 1172, 'Thắng', 1000, 1016, 'Đã xong', '2026-11-25 07:11:04.456'),
+  (46, 999999, 1046, 'Thua', 990, 974, 'Đã xong', '2026-11-26 18:57:29.648'),
+  (46, 1000005, 1050, 'Thắng', 1000, 1016, 'Đã xong', '2026-11-26 18:57:37.892'),
+  (47, 999999, 1046, 'Thua', 1038, 1020, 'Đã xong', '2026-11-26 19:01:59.380'),
+  (47, 1000005, 1088, 'Thắng', 1000, 1018, 'Đã xong', '2026-11-26 19:02:02.176');
 
 -- ---------------------------------------------------------------------
 -- Bảng: `CAUHOITRANDAU`
@@ -1267,7 +1268,7 @@ CREATE TABLE IF NOT EXISTS `CAUHOITRANDAU` (
   CONSTRAINT `fk_cauhoitrandau_tran` FOREIGN KEY (`MaTran`) REFERENCES `TRANDAU` (`MaTran`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- Dữ liệu của bảng `CAUHOITRANDAU` (410 dòng)
+-- Dữ liệu của bảng `CAUHOITRANDAU` (430 dòng)
 INSERT INTO `CAUHOITRANDAU` (`MaTran`, `MaCauHoi`, `ThuTu`, `DiemCoBan`, `HeSoThuong`, `ThoiGianQuyDinh`) VALUES
   (1, 73, 4, 100, 50, 15),
   (1, 74, 7, 100, 50, 15),
@@ -1682,7 +1683,27 @@ INSERT INTO `CAUHOITRANDAU` (`MaTran`, `MaCauHoi`, `ThuTu`, `DiemCoBan`, `HeSoTh
   (45, 51, 7, 100, 50, 15),
   (45, 53, 2, 100, 50, 15),
   (45, 86, 4, 100, 50, 15),
-  (45, 87, 5, 100, 50, 15);
+  (45, 87, 5, 100, 50, 15),
+  (46, 41, 1, 100, 50, 15),
+  (46, 42, 6, 100, 50, 15),
+  (46, 43, 10, 100, 50, 15),
+  (46, 44, 3, 100, 50, 15),
+  (46, 47, 2, 100, 50, 15),
+  (46, 48, 5, 100, 50, 15),
+  (46, 49, 9, 100, 50, 15),
+  (46, 52, 8, 100, 50, 15),
+  (46, 85, 4, 100, 50, 15),
+  (46, 88, 7, 100, 50, 15),
+  (47, 2, 6, 100, 50, 15),
+  (47, 3, 1, 100, 50, 15),
+  (47, 4, 5, 100, 50, 15),
+  (47, 5, 4, 100, 50, 15),
+  (47, 6, 8, 100, 50, 15),
+  (47, 7, 2, 100, 50, 15),
+  (47, 8, 10, 100, 50, 15),
+  (47, 9, 9, 100, 50, 15),
+  (47, 11, 7, 100, 50, 15),
+  (47, 13, 3, 100, 50, 15);
 
 -- ---------------------------------------------------------------------
 -- Bảng: `ELOMONHOC`
@@ -1702,7 +1723,7 @@ CREATE TABLE IF NOT EXISTS `ELOMONHOC` (
   CONSTRAINT `fk_elo_nd` FOREIGN KEY (`MaND`) REFERENCES `NGUOIDUNG` (`MaND`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- Dữ liệu của bảng `ELOMONHOC` (37 dòng)
+-- Dữ liệu của bảng `ELOMONHOC` (39 dòng)
 INSERT INTO `ELOMONHOC` (`MaND`, `MaMon`, `DiemElo`, `SoTran`, `SoThang`, `SoThua`, `SoHoa`) VALUES
   (7, 1, 983, 3, 1, 2, 0),
   (7, 2, 984, 1, 0, 1, 0),
@@ -1715,9 +1736,9 @@ INSERT INTO `ELOMONHOC` (`MaND`, `MaMon`, `DiemElo`, `SoTran`, `SoThang`, `SoThu
   (8, 5, 1016, 1, 1, 0, 0),
   (10, 1, 1016, 1, 1, 0, 0),
   (10, 6, 1000, 0, 0, 0, 0),
-  (999999, 1, 1038, 1, 1, 0, 0),
+  (999999, 1, 1020, 2, 1, 1, 0),
   (999999, 2, 1002, 1, 1, 0, 0),
-  (999999, 3, 990, 7, 5, 2, 0),
+  (999999, 3, 974, 8, 5, 3, 0),
   (999999, 6, 1008, 1, 1, 0, 0),
   (999999, 8, 1087, 3, 3, 0, 0),
   (999999, 12, 951, 1, 0, 1, 0),
@@ -1734,6 +1755,8 @@ INSERT INTO `ELOMONHOC` (`MaND`, `MaMon`, `DiemElo`, `SoTran`, `SoThang`, `SoThu
   (1000003, 8, 944, 4, 0, 4, 0),
   (1000004, 6, 984, 1, 0, 1, 0),
   (1000004, 12, 1014, 1, 1, 0, 0),
+  (1000005, 1, 1018, 1, 1, 0, 0),
+  (1000005, 3, 1016, 1, 1, 0, 0),
   (1000007, 1, 985, 1, 0, 1, 0),
   (1000007, 3, 997, 2, 1, 1, 0),
   (1000007, 8, 972, 2, 0, 2, 0),
@@ -1765,7 +1788,7 @@ CREATE TABLE IF NOT EXISTS `CHITIETTRALOI` (
   CONSTRAINT `fk_cttl_nguoichoi` FOREIGN KEY (`MaTran`, `MaND`) REFERENCES `NGUOICHOITRANDAU` (`MaTran`, `MaND`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- Dữ liệu của bảng `CHITIETTRALOI` (820 dòng)
+-- Dữ liệu của bảng `CHITIETTRALOI` (860 dòng)
 INSERT INTO `CHITIETTRALOI` (`MaTran`, `MaND`, `MaCauHoi`, `MaDapAn`, `ThoiDiemBatDau`, `ThoiGianTraLoi`, `DiemNhanDuoc`, `TrangThai`, `ThoiDiemGui`) VALUES
   (1, 7, 73, 289, '2026-11-04 13:22:23.814', '5.860', 130, 'Đã trả lời', '2026-11-04 13:22:29.676'),
   (1, 7, 74, 293, '2026-11-04 13:23:03.271', '1.897', 0, 'Đã trả lời', '2026-11-04 13:23:05.173'),
@@ -2594,7 +2617,47 @@ INSERT INTO `CHITIETTRALOI` (`MaTran`, `MaND`, `MaCauHoi`, `MaDapAn`, `ThoiDiemB
   (45, 1000011, 51, 204, '2026-11-25 07:10:37.814', '9.246', 119, 'Đã trả lời', '2026-11-25 07:10:47.061'),
   (45, 1000011, 53, 209, '2026-11-25 07:10:00.831', '4.649', 134, 'Đã trả lời', '2026-11-25 07:10:05.483'),
   (45, 1000011, 86, 342, '2026-11-25 07:10:12.522', '12.357', 108, 'Đã trả lời', '2026-11-25 07:10:24.883'),
-  (45, 1000011, 87, 346, '2026-11-25 07:10:26.333', '2.520', 141, 'Đã trả lời', '2026-11-25 07:10:28.856');
+  (45, 1000011, 87, 346, '2026-11-25 07:10:26.333', '2.520', 141, 'Đã trả lời', '2026-11-25 07:10:28.856'),
+  (46, 999999, 41, 163, '2026-11-26 18:56:31.976', '3.594', 138, 'Đã trả lời', '2026-11-26 18:56:35.572'),
+  (46, 999999, 42, 165, '2026-11-26 18:57:00.800', '6.082', 129, 'Đã trả lời', '2026-11-26 18:57:06.883'),
+  (46, 999999, 43, 171, '2026-11-26 18:57:23.569', '6.082', 129, 'Đã trả lời', '2026-11-26 18:57:29.653'),
+  (46, 999999, 44, 174, '2026-11-26 18:56:41.569', '5.996', 130, 'Đã trả lời', '2026-11-26 18:56:47.566'),
+  (46, 999999, 47, 188, '2026-11-26 18:56:35.577', '5.988', 0, 'Đã trả lời', '2026-11-26 18:56:41.566'),
+  (46, 999999, 48, 190, '2026-11-26 18:56:53.719', '7.077', 126, 'Đã trả lời', '2026-11-26 18:57:00.797'),
+  (46, 999999, 49, 194, '2026-11-26 18:57:18.785', '4.780', 134, 'Đã trả lời', '2026-11-26 18:57:23.567'),
+  (46, 999999, 52, 208, '2026-11-26 18:57:12.787', '5.994', 130, 'Đã trả lời', '2026-11-26 18:57:18.782'),
+  (46, 999999, 85, 339, '2026-11-26 18:56:47.569', '6.146', 0, 'Đã trả lời', '2026-11-26 18:56:53.716'),
+  (46, 999999, 88, 350, '2026-11-26 18:57:06.886', '5.898', 130, 'Đã trả lời', '2026-11-26 18:57:12.785'),
+  (46, 1000005, 41, 163, '2026-11-26 18:56:31.970', '3.800', 137, 'Đã trả lời', '2026-11-26 18:56:35.773'),
+  (46, 1000005, 42, 165, '2026-11-26 18:57:06.875', '4.455', 135, 'Đã trả lời', '2026-11-26 18:57:11.332'),
+  (46, 1000005, 43, 171, '2026-11-26 18:57:34.183', '2.256', 142, 'Đã trả lời', '2026-11-26 18:57:36.442'),
+  (46, 1000005, 44, 174, '2026-11-26 18:56:43.161', '9.118', 119, 'Đã trả lời', '2026-11-26 18:56:52.280'),
+  (46, 1000005, 47, 185, '2026-11-26 18:56:37.213', '4.488', 0, 'Đã trả lời', '2026-11-26 18:56:41.702'),
+  (46, 1000005, 48, 190, '2026-11-26 18:57:00.786', '4.643', 134, 'Đã trả lời', '2026-11-26 18:57:05.430'),
+  (46, 1000005, 49, 196, '2026-11-26 18:57:29.645', '3.102', 0, 'Đã trả lời', '2026-11-26 18:57:32.748'),
+  (46, 1000005, 52, 208, '2026-11-26 18:57:25.791', '2.421', 141, 'Đã trả lời', '2026-11-26 18:57:28.214'),
+  (46, 1000005, 85, 338, '2026-11-26 18:56:53.708', '5.637', 131, 'Đã trả lời', '2026-11-26 18:56:59.347'),
+  (46, 1000005, 88, 350, '2026-11-26 18:57:12.778', '11.580', 111, 'Đã trả lời', '2026-11-26 18:57:24.360'),
+  (47, 999999, 2, 5, '2026-11-26 19:01:32.985', '4.798', 134, 'Đã trả lời', '2026-11-26 19:01:37.785'),
+  (47, 999999, 3, 9, '2026-11-26 19:01:04.191', '4.796', 134, 'Đã trả lời', '2026-11-26 19:01:08.988'),
+  (47, 999999, 4, 15, '2026-11-26 19:01:24.374', '8.607', 121, 'Đã trả lời', '2026-11-26 19:01:32.982'),
+  (47, 999999, 5, 20, '2026-11-26 19:01:19.055', '5.315', 132, 'Đã trả lời', '2026-11-26 19:01:24.371'),
+  (47, 999999, 6, 24, '2026-11-26 19:01:44.993', '4.804', 0, 'Đã trả lời', '2026-11-26 19:01:49.799'),
+  (47, 999999, 7, 28, '2026-11-26 19:01:08.992', '4.922', 0, 'Đã trả lời', '2026-11-26 19:01:13.916'),
+  (47, 999999, 8, 29, '2026-11-26 19:01:53.414', '5.969', 130, 'Đã trả lời', '2026-11-26 19:01:59.384'),
+  (47, 999999, 9, 34, '2026-11-26 19:01:49.802', '3.608', 137, 'Đã trả lời', '2026-11-26 19:01:53.411'),
+  (47, 999999, 11, 42, '2026-11-26 19:01:37.789', '7.200', 126, 'Đã trả lời', '2026-11-26 19:01:44.991'),
+  (47, 999999, 13, 49, '2026-11-26 19:01:13.920', '5.130', 132, 'Đã trả lời', '2026-11-26 19:01:19.051'),
+  (47, 1000005, 2, 5, '2026-11-26 19:01:35.352', '2.457', 141, 'Đã trả lời', '2026-11-26 19:01:37.810'),
+  (47, 1000005, 3, 9, '2026-11-26 19:01:04.185', '6.259', 129, 'Đã trả lời', '2026-11-26 19:01:10.445'),
+  (47, 1000005, 4, 15, '2026-11-26 19:01:28.162', '5.743', 130, 'Đã trả lời', '2026-11-26 19:01:33.907'),
+  (47, 1000005, 5, 20, '2026-11-26 19:01:24.363', '2.359', 142, 'Đã trả lời', '2026-11-26 19:01:26.724'),
+  (47, 1000005, 6, 22, '2026-11-26 19:01:46.670', '5.299', 0, 'Đã trả lời', '2026-11-26 19:01:51.972'),
+  (47, 1000005, 7, 25, '2026-11-26 19:01:11.911', '5.676', 0, 'Đã trả lời', '2026-11-26 19:01:17.589'),
+  (47, 1000005, 8, 29, '2026-11-26 19:01:57.674', '3.062', 139, 'Đã trả lời', '2026-11-26 19:02:00.737'),
+  (47, 1000005, 9, 34, '2026-11-26 19:01:53.405', '2.835', 140, 'Đã trả lời', '2026-11-26 19:01:56.241'),
+  (47, 1000005, 11, 42, '2026-11-26 19:01:39.257', '5.975', 130, 'Đã trả lời', '2026-11-26 19:01:45.234'),
+  (47, 1000005, 13, 49, '2026-11-26 19:01:19.044', '3.874', 137, 'Đã trả lời', '2026-11-26 19:01:22.920');
 
 -- ---------------------------------------------------------------------
 -- Bảng: `LICHSUELO`
@@ -2616,9 +2679,9 @@ CREATE TABLE IF NOT EXISTS `LICHSUELO` (
   KEY `idx_lichsuelo_tran` (`MaTran`),
   CONSTRAINT `fk_lichsuelo_elo` FOREIGN KEY (`MaND`, `MaMon`) REFERENCES `ELOMONHOC` (`MaND`, `MaMon`),
   CONSTRAINT `fk_lichsuelo_tran` FOREIGN KEY (`MaTran`) REFERENCES `TRANDAU` (`MaTran`)
-) ENGINE=InnoDB AUTO_INCREMENT=83 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=87 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- Dữ liệu của bảng `LICHSUELO` (82 dòng)
+-- Dữ liệu của bảng `LICHSUELO` (86 dòng)
 INSERT INTO `LICHSUELO` (`MaLichSu`, `MaND`, `MaMon`, `MaTran`, `EloTruoc`, `EloSau`, `ThayDoi`, `ThoiGian`) VALUES
   (1, 7, 5, 1, 1000, 984, -16, '2026-11-04 13:23:29'),
   (2, 8, 5, 1, 1000, 1016, 16, '2026-11-04 13:23:29'),
@@ -2701,7 +2764,11 @@ INSERT INTO `LICHSUELO` (`MaLichSu`, `MaND`, `MaMon`, `MaTran`, `EloTruoc`, `Elo
   (79, 999999, 8, 44, 1074, 1087, 13, '2026-11-24 22:30:23'),
   (80, 1000010, 8, 44, 1000, 987, -13, '2026-11-24 22:30:23'),
   (81, 999999, 3, 45, 1006, 990, -16, '2026-11-25 07:11:04'),
-  (82, 1000011, 3, 45, 1000, 1016, 16, '2026-11-25 07:11:04');
+  (82, 1000011, 3, 45, 1000, 1016, 16, '2026-11-25 07:11:04'),
+  (83, 999999, 3, 46, 990, 974, -16, '2026-11-26 18:57:37'),
+  (84, 1000005, 3, 46, 1000, 1016, 16, '2026-11-26 18:57:37'),
+  (85, 999999, 1, 47, 1038, 1020, -18, '2026-11-26 19:02:02'),
+  (86, 1000005, 1, 47, 1000, 1018, 18, '2026-11-26 19:02:02');
 
 -- ---------------------------------------------------------------------
 -- Bảng: `BAIDANG`
@@ -3047,9 +3114,9 @@ CREATE TABLE IF NOT EXISTS `NHATKYQUANTRI` (
   KEY `idx_nhatky_tg` (`ThoiGian`),
   KEY `idx_nhatky_trangthai` (`TrangThai`,`ThoiGian`),
   CONSTRAINT `fk_nhatky_admin` FOREIGN KEY (`MaAdmin`) REFERENCES `ADMIN` (`MaAdmin`)
-) ENGINE=InnoDB AUTO_INCREMENT=55 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=61 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- Dữ liệu của bảng `NHATKYQUANTRI` (53 dòng)
+-- Dữ liệu của bảng `NHATKYQUANTRI` (59 dòng)
 INSERT INTO `NHATKYQUANTRI` (`MaNhatKy`, `MaAdmin`, `HanhDong`, `DoiTuong`, `ThoiGian`, `MoTa`, `DiaChiIP`, `TrangThai`) VALUES
   (1, 1, 'Import câu hỏi từ Excel', 'CAUHOI', '2026-11-02 14:37:26', 'Thêm 5 câu từ file cauhoi_tu_word_20261102_143717.xlsx', NULL, 1),
   (2, 1, 'Ẩn bài đăng', 'BAIDANG #4', '2026-11-07 14:02:06', 'Lý do: hmmm', NULL, 1),
@@ -3103,7 +3170,13 @@ INSERT INTO `NHATKYQUANTRI` (`MaNhatKy`, `MaAdmin`, `HanhDong`, `DoiTuong`, `Tho
   (51, 1, 'Khóa người dùng', 'NGUOIDUNG #1000000', '2026-11-24 22:38:45', 'Lý do: vi phạm tiêu chuẩn cộng đồng', '::1', 0),
   (52, 1, 'Khóa người dùng', 'NGUOIDUNG #1000009', '2026-11-24 22:42:07', 'Lý do: sống lỗi', '::1', 0),
   (53, 1, 'Mở khóa người dùng', 'NGUOIDUNG #1000009', '2026-11-24 22:42:59', 'Lý do: sống bình thg r', '::1', 0),
-  (54, 1, 'Mở khóa người dùng', 'NGUOIDUNG #1000000', '2026-11-24 22:45:30', 'Lý do: KO VI phạm', '::1', 0);
+  (54, 1, 'Mở khóa người dùng', 'NGUOIDUNG #1000000', '2026-11-24 22:45:30', 'Lý do: KO VI phạm', '::1', 0),
+  (55, 1, 'Đăng nhập quản trị', 'ADMIN #1', '2026-11-26 01:43:53', 'Đăng nhập hệ thống quản trị thành công', '::1', 0),
+  (56, 1, 'Import câu hỏi từ Excel', 'CAUHOI', '2026-11-26 01:55:05', 'Dòng tiêu đề không đúng mẫu (cột 1 phải là \"Môn học\"). Hãy tải file mẫu về điền hoặc dùng file Excel xuất ra từ file Word.', '::1', 0),
+  (57, 1, 'Đăng nhập quản trị', 'ADMIN #1', '2026-11-26 03:43:31', 'Đăng nhập hệ thống quản trị thành công', '::1', 0),
+  (58, 1, 'Import câu hỏi từ Excel', 'CAUHOI', '2026-11-26 03:46:03', 'Dòng tiêu đề không đúng mẫu (cột 1 phải là \"Môn học\"). Hãy tải file mẫu về điền hoặc dùng trực tiếp chức năng Nhập từ file Word.', '::1', 0),
+  (59, 1, 'Import câu hỏi từ Excel', 'CAUHOI', '2026-11-26 03:49:21', 'Dòng tiêu đề không đúng mẫu (cột 1 phải là \"Môn học\"). Hãy tải file mẫu về điền hoặc dùng trực tiếp chức năng Nhập từ file Word.', '::1', 0),
+  (60, 1, 'Import câu hỏi từ Excel', 'CAUHOI', '2026-11-26 03:52:11', 'Dòng tiêu đề không đúng mẫu (cột 1 phải là \"Môn học\"). Hãy tải file mẫu về điền hoặc dùng trực tiếp chức năng Nhập từ file Word.', '::1', 0);
 
 -- ---------------------------------------------------------------------
 -- Bảng: `PHONGTHACHDAU`
@@ -3152,7 +3225,7 @@ CREATE TABLE IF NOT EXISTS `THONGTHAOTUONG` (
   CONSTRAINT `fk_thongthao_nd` FOREIGN KEY (`MaND`) REFERENCES `NGUOIDUNG` (`MaND`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Dữ liệu của bảng `THONGTHAOTUONG` (12 dòng)
+-- Dữ liệu của bảng `THONGTHAOTUONG` (13 dòng)
 INSERT INTO `THONGTHAOTUONG` (`MaND`, `TuongId`, `CapDo`, `DiemEXP`, `SoTranThang`, `SoTranDau`, `CapNhatLuc`) VALUES
   (1000000, 'sunflower', 3, 1380, 6, 17, '2026-11-19 17:36:28'),
   (1000003, 'buckethead', 1, 160, 1, 1, '2026-11-13 23:50:48'),
@@ -3161,6 +3234,7 @@ INSERT INTO `THONGTHAOTUONG` (`MaND`, `TuongId`, `CapDo`, `DiemEXP`, `SoTranThan
   (1000003, 'sunflower', 2, 220, 1, 2, '2026-11-13 23:59:36'),
   (1000003, 'wallnut', 1, 60, 0, 1, '2026-11-13 23:47:51'),
   (1000004, 'snowpea', 2, 380, 2, 3, '2026-11-19 13:26:06'),
+  (1000005, 'sunflower', 3, 640, 4, 4, '2026-11-26 19:02:02'),
   (1000007, 'snowpea', 1, 0, 0, 1, '2026-11-19 16:46:58'),
   (1000007, 'sunflower', 1, 160, 1, 4, '2026-11-19 18:00:34'),
   (1000008, 'sunflower', 2, 320, 2, 2, '2026-11-19 18:00:34'),
@@ -3201,8 +3275,8 @@ CREATE TABLE IF NOT EXISTS `GIOIHANDANGNHAP` (
 
 -- Dữ liệu của bảng `GIOIHANDANGNHAP` (15 dòng)
 INSERT INTO `GIOIHANDANGNHAP` (`Khoa`, `HanhDong`, `DinhDanh`, `DiaChiIP`, `SoLanSai`, `LanCuoi`) VALUES
-  ('21b417ee4a461c275d7bf8913d541e813b6040c7047895f831fc4de371188823', 'login_client', 'buithutrang149506@gmail.com', '::1', 3, '2026-11-24 21:52:30'),
   ('31abd64b754a89007a8a9edbc75ab0a71fff270fce58f3ca42186370bc992b3a', 'forgot_pw', 'buithutrang149506@gmail.com', '::1', 1, '2026-11-19 14:05:54'),
+  ('4bd2095cca1777a2df0fe09625f6517890e40cbbe434d602b3345bc4a320788d', 'login_client', 'buithutrang149@gmail.com', '::1', 1, '2026-11-26 01:42:36'),
   ('5d9f4b8b0cb78dbaf8dd1ea4a8653be7a1d84b840cd1895af9c5ac9290f16719', 'login_client', 'anhtunguyenxomchua1306@gmail.com', '::1', 1, '2026-11-19 17:38:58'),
   ('60cdfff12b4a70bddfcc6b2a07624d1561582d0f31c7418dd96d573cbb606d47', 'register_otp', 'admin@tmu.edu.vn', '::1', 4, '2026-11-19 17:41:56'),
   ('654a7346adee3dff6979c4725f3a6e873ab2bd830a575c8a5874d6f672828330', 'forgot_pw', 'anhtunguyenxomchua1306@gmail.com', '::1', 1, '2026-11-19 18:04:40'),
@@ -3232,9 +3306,9 @@ CREATE TABLE IF NOT EXISTS `LICHSUDANGNHAP` (
   PRIMARY KEY (`MaLS`),
   KEY `idx_lsdn_dinhdanh` (`DinhDanh`,`ThoiGian`),
   KEY `idx_lsdn_thoigian` (`ThoiGian`)
-) ENGINE=InnoDB AUTO_INCREMENT=133 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=141 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Dữ liệu của bảng `LICHSUDANGNHAP` (132 dòng)
+-- Dữ liệu của bảng `LICHSUDANGNHAP` (140 dòng)
 INSERT INTO `LICHSUDANGNHAP` (`MaLS`, `HanhDong`, `DinhDanh`, `DiaChiIP`, `TrinhDuyet`, `KetQua`, `ThoiGian`) VALUES
   (1, 'login_client', 'buithutrang149@gmail.com', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36 Edg/157.0.0.0', 'Thành công', '2026-11-13 22:36:22'),
   (2, 'login_client', 'nguyenquynhtrang180206@gmail.com', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36', 'Thất bại', '2026-11-13 22:46:25'),
@@ -3368,7 +3442,15 @@ INSERT INTO `LICHSUDANGNHAP` (`MaLS`, `HanhDong`, `DinhDanh`, `DiaChiIP`, `Trinh
   (129, 'login_admin', 'nguyenquynhtrang180206@gmail.com', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/158.0.0.0 Safari/537.36', 'Thành công', '2026-11-24 23:27:05'),
   (130, 'register_otp', 'akocobacok@gmail.com', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/158.0.0.0 Safari/537.36', 'Thất bại', '2026-11-25 07:06:16'),
   (131, 'login_client', 'akocobacok@gmail.com', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/158.0.0.0 Safari/537.36', 'Thành công', '2026-11-25 07:06:34'),
-  (132, 'login_admin', 'akocobacok@gmail.com', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/158.0.0.0 Safari/537.36', 'Thành công', '2026-11-25 07:06:34');
+  (132, 'login_admin', 'akocobacok@gmail.com', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/158.0.0.0 Safari/537.36', 'Thành công', '2026-11-25 07:06:34'),
+  (133, 'login_client', 'buithutrang149@gmail.com', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/158.0.0.0 Safari/537.36', 'Thất bại', '2026-11-26 01:42:36'),
+  (134, 'login_client', 'buithutrang149506@gmail.com', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/158.0.0.0 Safari/537.36', 'Thành công', '2026-11-26 01:43:00'),
+  (135, 'login_admin', 'buithutrang149506@gmail.com', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/158.0.0.0 Safari/537.36', 'Thành công', '2026-11-26 01:43:00'),
+  (136, 'admin_2fa_verify', 'admin', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/158.0.0.0 Safari/537.36', 'Thành công', '2026-11-26 01:43:53'),
+  (137, 'login_client', 'admin', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/158.0.0.0 Safari/537.36', 'Thành công', '2026-11-26 03:43:31'),
+  (138, 'login_admin', 'admin', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/158.0.0.0 Safari/537.36', 'Thành công', '2026-11-26 03:43:31'),
+  (139, 'login_client', 'chiphienphp123@gmail.com', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/158.0.0.0 Safari/537.36', 'Thành công', '2026-11-26 18:55:51'),
+  (140, 'login_admin', 'chiphienphp123@gmail.com', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/158.0.0.0 Safari/537.36', 'Thành công', '2026-11-26 18:55:51');
 
 -- ---------------------------------------------------------------------
 -- Bảng: `LICHSU_MATKHAU`

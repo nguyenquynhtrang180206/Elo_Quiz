@@ -3,7 +3,7 @@
 // Đặt tại: elo_quiz/client/phong.php
 require_once __DIR__ . '/../core/bootstrap.php';
 if (Auth::laAdminSinhVien()) {   // admin không tìm trận và không đấu trận
-    redirect(BASE_URL . '/client/khong_dau_tran.php');
+    redirect(BASE_URL . '/client/index.php');
 }
 
 $maND   = Auth::requireClient(BASE_URL . '/client/dangnhap.php');
