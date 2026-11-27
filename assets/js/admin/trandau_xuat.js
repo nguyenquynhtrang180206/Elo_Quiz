@@ -1,5 +1,4 @@
-// Hộp thoại "Xuất báo cáo" của trang Trận đấu (admin/trandau.php): gọi admin/trandau_xuat.php, tải file về.
-// Biểu đồ nhịp trận được chụp từ chính SVG đang hiển thị (đúng khoảng thời gian và số liệu đang xem), gửi kèm dạng JPEG nền trắng.
+// Hộp thoại Xuất báo cáo của trang Trận đấu (admin/trandau.php): xem trước và xuất Excel/PDF.
 (function () {
   'use strict';
   var nut = document.getElementById('nutXuatTran');
@@ -22,7 +21,7 @@
   hop.addEventListener('click', function (e) { if (e.target === hop) { dong(); } });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !hop.hidden) { dong(); } });
 
-  // ---------- Xem trước: số liệu + vài dòng đầu của danh sách, biểu đồ lấy từ SVG đang hiển thị ----------
+  // Xem trước số liệu và biểu đồ canvas
   function el(tag, cls, text) {
     var e = document.createElement(tag);
     if (cls) { e.className = cls; }
@@ -87,9 +86,7 @@
       xem.appendChild(t);
     });
   }
-  // Vẽ biểu đồ "trận bắt đầu mỗi ngày" lên canvas, cùng kiểu với biểu đồ trên trang Trận đấu:
-  // đường xanh + vùng tô, đường trung bình nét đứt, chấm đỏ rỗng ở ngày có trận bất thường, dải "TRẬN BẤT THƯỜNG" bên dưới.
-  // Nền trắng; dùng cho cả xem trước lẫn ảnh JPEG đưa vào file xuất.
+  // Vẽ biểu đồ "trận bắt đầu mỗi ngày" lên canvas nền trắng (dùng cho xem trước và ảnh JPEG xuất file)
   function veCot(ngay) {
     var W = 900, H = 340, tr = 16, ph = 58, tren = 18, yDay = 220, xLan = 258, xCot = 294;
     var XANH = '#2563eb', DO = '#e5484d', LUOI = '#e6ecf8', CHU = '#8a97b5';

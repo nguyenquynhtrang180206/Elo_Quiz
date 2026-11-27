@@ -1,6 +1,4 @@
-/* Trang Ngân hàng câu hỏi (admin/cauhoi.php). Đặt tại: assets/css/admin/cauhoi.css
-   Mọi luật nằm trong .ch-trang (nội dung trang) hoặc .ch-ngan / .ch-nen / .ch-thanhchon (các lớp nổi),
-   không đụng tới các trang admin khác. Dùng class riêng "ch-*" thay vì .card để khỏi dính viền neon chung. */
+/* Trang Ngân hàng câu hỏi (admin/cauhoi.php); dùng tiền tố ch- tránh xung đột */
 
 .admin-noidung .ch-trang {
   --ch-chu:#15204a; --ch-phu:#6b7694; --ch-vien:#dbe1f3; --ch-xanh:#1f55d6; --ch-xanh-nhat:#e3edff;
@@ -14,7 +12,7 @@
 .ch-trang .nhan-phu { color:var(--ch-phu); font-size:13px; }
 .ch-trang a { text-shadow:none; }
 
-/* ---------- Đầu trang ---------- */
+/* Đầu trang */
 .ch-dau { display:flex; align-items:center; gap:14px; margin-bottom:14px; flex-wrap:wrap; }
 .ch-dau-icon {
   display:flex; align-items:center; justify-content:center; width:56px; height:56px; border-radius:16px; color:#fff; flex:none;
@@ -25,7 +23,7 @@
 .ch-dau-chu p { font-size:13px; color:var(--ch-phu); margin-top:2px; }
 .ch-dau-nut { display:flex; gap:8px; flex-wrap:wrap; }
 
-/* ---------- Nút ---------- */
+/* Nút */
 .ch-nut {
   display:inline-flex; align-items:center; gap:6px; padding:9px 16px; border-radius:12px; border:1px solid transparent; cursor:pointer;
   font:600 14px/1.2 inherit; font-family:inherit; text-decoration:none; text-shadow:none; transition:filter .15s, background .15s, box-shadow .15s;
@@ -36,7 +34,7 @@
 .ch-trang .ch-nut-vien:hover { color:var(--ch-xanh); background:#fff; }
 .ch-nut-nho { padding:5px 12px; font-size:13px; border-radius:10px; }
 
-/* ---------- Khối (thẻ) ---------- */
+/* Khối nội dung */
 .ch-khoi {
   margin-bottom:14px; padding:16px 18px; border-radius:20px;
   background:rgba(255,255,255,.62); border:1px solid rgba(255,255,255,.8); box-shadow:0 4px 16px rgba(30,60,140,.07);
@@ -48,9 +46,7 @@
 .ch-trang .thanhcong { background:#e8f8ef; color:#1a7a45; border-color:#b7e8cb; box-shadow:none; }
 .ch-trang .loi { background:#fdecee; color:#b3262c; border-color:#f5c2c6; box-shadow:none; }
 
-/* (Khối "Độ khó theo môn" cũ đã được thay bằng "Bản đồ phủ câu hỏi", xem cuối file) */
-
-/* Biểu tượng môn: chữ cái đầu trên nền màu (màu theo mã môn % 6, vì bảng MONHOC không có cột biểu tượng) */
+/* Biểu tượng môn: màu theo mã môn % 6 vì MONHOC không có cột biểu tượng */
 .ch-ico-mon {
   display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:8px; flex:none;
   font-size:12px; font-weight:800;
@@ -62,7 +58,7 @@
 .ch-ico-mon.m4 { background:#ffe1e8; color:#cc3a62; }
 .ch-ico-mon.m5 { background:#dcf3f7; color:#13869c; }
 
-/* ---------- Bộ lọc ---------- */
+/* Bộ lọc */
 .ch-loc { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
 .ch-trang .ch-o-tim {
   position:relative; display:block; flex:1; min-width:220px; margin:0; font-weight:400;
@@ -88,7 +84,7 @@
 .ch-trang .ch-chip.dang-chon { background:#1b3aa8; color:#fff; box-shadow:0 4px 12px rgba(27,58,168,.35); }
 .ch-trang .ch-chip.dang-chon b { background:rgba(255,255,255,.22); color:#fff; }
 
-/* ---------- Bảng ---------- */
+/* Bảng câu hỏi */
 .ch-cuon { overflow-x:auto; border-radius:14px; }
 .admin-noidung .ch-trang table.ch-bang { display:table; width:100%; min-width:860px; border-collapse:collapse; color:var(--ch-chu); font-size:13.5px; }
 .ch-bang th {
@@ -125,7 +121,7 @@
 .ch-trang .phantrang strong { color:var(--ch-chu); padding:0 4px; }
 .ch-ghichu { margin-top:8px !important; }
 
-/* ---------- Thanh nổi "Đã chọn N câu hỏi" ---------- */
+/* Thanh nổi đã chọn nhiều câu hỏi */
 .ch-thanhchon {
   position:fixed; left:50%; bottom:22px; transform:translateX(-50%); z-index:70;
   display:flex; align-items:center; gap:8px; padding:10px 14px 10px 20px; border-radius:999px;
@@ -141,7 +137,7 @@
 .ch-tc-bo { padding:6px 10px; border:0; background:transparent; color:#b9c8f5; cursor:pointer; font:600 13px/1.2 inherit; font-family:inherit; }
 .ch-tc-bo:hover { color:#fff; text-decoration:underline; }
 
-/* ---------- Ngăn "Xem nhanh" ---------- */
+/* Ngăn xem nhanh */
 .ch-nen {
   position:fixed; inset:0; z-index:50; background:rgba(4,10,36,.45); backdrop-filter:blur(2px); -webkit-backdrop-filter:blur(2px);
   opacity:0; visibility:hidden; transition:opacity .25s, visibility 0s .25s;
@@ -205,7 +201,7 @@ body.ch-khoa-cuon { overflow:hidden; }
   .ch-ngan, .ch-nen { transition:none !important; }
 }
 
-/* ---------- Nút xóa, nút bị ẩn ---------- */
+/* Nút xóa và trạng thái ẩn */
 .ch-nut[hidden] { display:none; }
 .ch-trang .ch-nut-do, .ch-ngan .ch-nut-do { color:#c0314f; background:#fde8ec; border:1px solid #f3b8c4; }
 .ch-trang .ch-nut-do:hover, .ch-ngan .ch-nut-do:hover { color:#fff; background:#d9425f; border-color:#d9425f; }
@@ -214,7 +210,7 @@ body.ch-khoa-cuon { overflow:hidden; }
 .ch-ngan-chan { flex-wrap:wrap; }
 .ch-ngan-chan form { display:inline-flex; gap:10px; align-items:center; }
 
-/* ---------- Bộ chọn môn có tìm kiếm ---------- */
+/* Bộ chọn môn có tìm kiếm */
 .ch-chon-mon { position:relative; }
 .ch-chon-mon-nut {
   display:inline-flex; align-items:center; justify-content:space-between; gap:10px; min-width:170px; max-width:260px; height:42px; padding:0 14px;
@@ -244,9 +240,7 @@ body.ch-khoa-cuon { overflow:hidden; }
 .ch-chon-mon-them[hidden] { display:none; }
 .ch-chon-mon-rong { padding:8px 10px; color:var(--ch-phu); font-size:13px; }
 
-/* =====================================================================
-   Giao diện mới: thẻ số liệu, bản đồ phủ, hiệu chỉnh độ khó, cột tỉ lệ đúng, phân trang
-   ===================================================================== */
+/* Bản đồ phủ và hiệu chỉnh độ khó */
 .ch-trang .ch-mota { color:var(--ch-phu); font-size:13px; line-height:1.5; margin-bottom:12px; }
 .ch-trang .ch-mota b { color:var(--ch-chu); }
 .ch-trang .ch-mota-cuoi { margin:12px 0 0; }
@@ -258,7 +252,7 @@ body.ch-khoa-cuon { overflow:hidden; }
   background:linear-gradient(135deg,#c03cff,#8a2be2); color:#fff; font-size:10.5px; font-weight:800; letter-spacing:.05em;
 }
 
-/* ---------- Bốn thẻ số liệu ---------- */
+/* Bốn thẻ số liệu */
 .ch-the-so { display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:14px; margin-bottom:14px; }
 .ch-the { display:flex; align-items:center; gap:14px; padding:14px 16px; border-radius:18px; background:#fff; box-shadow:0 4px 16px rgba(30,60,140,.07); }
 .ch-the-ico {
@@ -272,7 +266,7 @@ body.ch-khoa-cuon { overflow:hidden; }
 .ch-the .ch-the-so-lon { display:block; font-size:25px; line-height:1.1; color:var(--ch-chu); }
 .ch-the small { display:block; margin-top:2px; color:var(--ch-phu); font-size:13px; line-height:1.3; }
 
-/* ---------- Hai thẻ giữa ---------- */
+/* Hai thẻ giữa */
 .ch-hai-cot { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:14px; margin-bottom:14px; align-items:stretch; }
 .ch-hai-cot > .ch-khoi { margin-bottom:0; background:#fff; }
 #chDanhSach { background:#fff; }
@@ -280,7 +274,7 @@ body.ch-khoa-cuon { overflow:hidden; }
 .ch-trang .ch-xem-tat-ca { font-size:13px; font-weight:700; color:var(--ch-xanh); text-decoration:none; }
 .ch-trang .ch-xem-tat-ca:hover { text-decoration:underline; }
 
-/* ---------- Bản đồ phủ ---------- */
+/* Bản đồ phủ */
 .ch-bando { display:flex; flex-direction:column; gap:6px; }
 .ch-bando-dong { display:grid; grid-template-columns:minmax(120px,1.25fr) repeat(3, minmax(0,1fr)); gap:6px; align-items:center; }
 .ch-bando-dau { padding-bottom:2px; color:var(--ch-phu); font-size:12px; font-weight:700; }
@@ -316,7 +310,7 @@ body.ch-khoa-cuon { overflow:hidden; }
 .ch-chuthich i.o-xanh-nhat { background:#d9f3e5; }
 .ch-chuthich i.o-xanh      { background:#a9e5c8; }
 
-/* ---------- Hiệu chỉnh độ khó ---------- */
+/* Hiệu chỉnh độ khó */
 .ch-lech-ds { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:10px; }
 .ch-lech-muc { display:flex; align-items:center; gap:12px; padding:10px 14px; border:1px solid #e2e7f6; border-radius:14px; background:#fafbff; }
 .ch-lech-giua { flex:1; min-width:0; }
@@ -329,14 +323,14 @@ b.ty-de  { color:#17804f; }
 b.ty-tb  { color:#a06a05; }
 b.ty-kho { color:#c0314f; }
 
-/* ---------- Chip ---------- */
+/* Chip lọc */
 .ch-trang .ch-chip.ch-chip-cam { background:#fdebc8; color:#7a4b00; }
 .ch-trang .ch-chip.ch-chip-cam b { background:rgba(255,255,255,.7); }
 .ch-trang .ch-chip.ch-chip-cam:hover { background:#fbe0a8; color:#7a4b00; }
 .ch-trang .ch-chip.ch-chip-cam.dang-chon { background:#1b3aa8; color:#fff; }
 .ch-trang .ch-chip.ch-chip-cam.dang-chon b { background:rgba(255,255,255,.22); color:#fff; }
 
-/* ---------- Bảng: cột tỉ lệ đúng thực tế ---------- */
+/* Cột tỉ lệ đúng thực tế */
 .admin-noidung .ch-trang table.ch-bang { min-width:980px; }
 .admin-noidung .ch-trang .ch-bang tbody tr.dong-lech td { background:#fff6df; }
 .admin-noidung .ch-trang .ch-bang tbody tr.dong-lech:hover td { background:#ffefc6; }
@@ -360,7 +354,7 @@ b.ty-kho { color:#c0314f; }
 .ch-ty-chu b.ty-chua { color:var(--ch-phu); font-size:11.5px; }
 .ch-ty-chu small { font-size:12px; }
 
-/* ---------- Phân trang kiểu nút ---------- */
+/* Phân trang */
 .ch-pt { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
 .ch-trang .ch-pt .ch-pt-nut {
   display:inline-flex; align-items:center; justify-content:center; min-width:32px; height:32px; padding:0 8px; border-radius:10px;
@@ -381,13 +375,13 @@ b.ty-kho { color:#c0314f; }
   .ch-bando-dong { grid-template-columns:minmax(90px,1fr) repeat(3, minmax(0,.8fr)); }
 }
 
-/* ---------- Xóa hàng loạt ---------- */
+/* Xóa hàng loạt */
 .ch-xoa-mon { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-top:12px; padding:10px 14px; border-radius:12px; background:#fdf0f2; border:1px solid #f5ccd3; }
 .ch-xoa-mon .nhan-phu b { color:var(--ch-chu); }
 .ch-tc-nut.ch-tc-do { background:#ffe3e8; color:#b3223f; border-color:#f3b8c4; }
 .ch-tc-nut.ch-tc-do:hover { background:#ffd0d8; }
 
-/* ---------- Biểu đồ phân bố tỉ lệ đúng ---------- */
+/* Biểu đồ phân bố tỉ lệ đúng */
 .ch-bieudo { margin:0 0 14px; padding:12px 14px 10px; border:1px solid #e2e7f6; border-radius:14px; background:#fafbff; }
 .ch-bieudo-dau { display:flex; align-items:baseline; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:6px; font-size:13px; }
 .ch-bieudo-khung { position:relative; height:150px; }
@@ -409,7 +403,7 @@ b.ty-kho { color:#c0314f; }
 .ch-dong:target > td { animation:chDongVuaSua 2.4s ease-out 1; }
 @keyframes chDongVuaSua { 0%,35% { background:#fff6cf; } 100% { background:transparent; } }
 
-/* ---------- Ghi chú "cách đọc biểu đồ": nút i ở góc tiêu đề, rê chuột / bấm để xem ---------- */
+/* Chú thích cách đọc biểu đồ */
 .ch-ghichu { position:relative; display:inline-flex; align-items:center; gap:7px; }
 .ch-ghichu-nut { width:18px; height:18px; padding:0; border-radius:50%; border:1px solid #b9c4e6; background:#fff; color:#1f55d6; font:700 11px/1 inherit; font-style:italic; cursor:help; display:inline-grid; place-items:center; }
 .ch-ghichu-nut:hover, .ch-ghichu-nut:focus-visible, .ch-ghichu.mo .ch-ghichu-nut { background:#1f55d6; color:#fff; border-color:#1f55d6; outline:none; }
@@ -418,15 +412,13 @@ b.ty-kho { color:#c0314f; }
 .ch-ghichu-nd em { font-style:normal; font-weight:700; color:#1f3a8a; }
 .ch-ghichu:hover .ch-ghichu-nd, .ch-ghichu:focus-within .ch-ghichu-nd, .ch-ghichu.mo .ch-ghichu-nd { opacity:1; visibility:visible; transform:none; pointer-events:auto; }
 
-/* ---------- Ô tự chỉnh số lượt tối thiểu trong thẻ hiệu chỉnh độ khó ---------- */
+/* Ô số lượt tối thiểu */
 .ch-min-luot { display:flex; flex-wrap:wrap; align-items:center; gap:6px 8px; margin:0 0 12px; padding:8px 12px; border:1px solid #e2e7f6; border-radius:12px; background:#fafbff; font-size:13px; color:#3b4666; }
 .ch-min-luot input[type=number] { width:64px; padding:4px 8px; border:1px solid #c9d2ee; border-radius:8px; background:#fff; color:#1f3a8a; font:700 13px/1.2 inherit; text-align:center; }
 .ch-min-luot input[type=number]:focus { outline:2px solid rgba(31,85,214,.35); outline-offset:1px; border-color:#1f55d6; }
 .ch-min-luot small { flex-basis:100%; }
 
-/* ---------- Hộp thoại Xuất ngân hàng câu hỏi ----------
-   Dùng chung giao diện với hộp thoại Xuất của trang Tổng quan (modal-nen, modal xuat-hop, xuat-* trong thongke_xuat.css);
-   ở đây chỉ bổ sung những phần riêng của trang này: bảng xem trước, khối biểu đồ, hai cột cao bằng nhau. */
+/* Hộp thoại xuất ngân hàng câu hỏi (bổ sung trên nền thongke_xuat.css) */
 .xuat-hop .xuat-phu { opacity:.65; font-size:13px; }
 .xuat-xemDau small { font-weight:400; font-size:13px; opacity:.75; margin-left:6px; }
 
@@ -462,10 +454,7 @@ b.ty-kho { color:#c0314f; }
 .xuat-the .cx-bang td.dk-tb { color:#a06a05; font-weight:700; }
 .xuat-the .cx-bang td.dk-kho { color:#c0314f; font-weight:700; }
 
-/* =====================================================================
-   ĐIỆN THOẠI (<= 720px). Sidebar -> nút 3 gạch đã có sẵn ở style_admin.css + sidebar_toggle.js
-   - Các khối xếp 1 cột, bảng câu hỏi thành dạng thẻ (không phải kéo ngang), bộ lọc xếp dọc
-   ===================================================================== */
+/* Responsive điện thoại (<= 720px) */
 @media (max-width:1100px) {
   .ch-hai-cot { grid-template-columns:minmax(0,1fr); }   /* minmax(0,..) để biểu đồ/bản đồ không đẩy rộng trang */
 }
@@ -528,14 +517,7 @@ b.ty-kho { color:#c0314f; }
   .ch-ngan-chan .ch-nut-chinh, .ch-ngan-chan form { flex:1 1 auto; }
 }
 
-/* =====================================================================
-   BẢNG CÂU HỎI - TỰ CO GIÃN THEO BỀ RỘNG KHUNG CHỨA (không phụ thuộc cỡ màn hình / zoom / sidebar mở hay ẩn)
-   Dùng container query trên .ch-cuon, nên dù là màn hình lớn, laptop 125-150%, máy tính bảng hay điện thoại
-   thì chữ cũng không bị đè và 3 nút Sửa / Ẩn / Xóa luôn nằm trên cùng một hàng:
-     - khung >= 1140px : bảng 9 cột, cột cố định px, nút không xuống dòng
-     - 740 - 1139px    : mỗi câu là một thẻ 2 hàng (nội dung + nút ở hàng trên, thông tin ở hàng dưới)
-     - < 740px         : thẻ xếp dọc cho điện thoại
-   ===================================================================== */
+/* Container query bảng câu hỏi theo bề rộng khung chứa */
 /* body là flex dọc + .admin-khung có margin auto nên khung tự co theo nội dung; bảng giờ tự co giãn nên phải giữ khung đủ rộng (chỉ trang này) */
 .admin-khung:has(.ch-trang) { width:100%; }
 .ch-nut { white-space:nowrap; }
@@ -543,7 +525,7 @@ b.ty-kho { color:#c0314f; }
 .ch-cuon { container-type:inline-size; container-name:chbang; overflow-x:auto; border-radius:14px; }
 .ch-ty-chu { flex-wrap:wrap; gap:0 8px; white-space:normal; }
 
-/* ---------- Bảng thường (khung >= 1140px) ---------- */
+/* Bảng thường (khung >= 1140px) */
 .admin-noidung .ch-trang table.ch-bang { display:table; table-layout:fixed; width:100%; min-width:1100px; font-size:13px; }
 /* style_admin.css có .admin-noidung th/td { padding:13px 16px !important; ... } nên phải ghi đè bằng !important + độ ưu tiên cao hơn */
 .admin-noidung .ch-trang .ch-bang th { padding:10px 8px !important; font-size:12px !important; letter-spacing:.03em !important; line-height:1.25; vertical-align:bottom !important; }
@@ -571,8 +553,7 @@ b.ty-kho { color:#c0314f; }
 .ch-bang td.ch-td-tt .ch-nut-nho { padding:5px 10px; flex:none; }
 .ch-bang td.ch-td-tt form { display:inline-block; margin:0 0 0 4px !important; }
 
-/* ---------- Thẻ 2 hàng (khung 740 - 1139px) ----------
-   Hàng 1: [chọn] [mã] [nội dung - chiếm hết chỗ trống] [Sửa Ẩn Xóa]   Hàng 2: môn, độ khó, tỉ lệ đúng, số trận, trạng thái */
+/* Thẻ 2 hàng (khung 740 - 1139px) */
 @container chbang (max-width:1139px) {
   .ch-cuon { overflow-x:visible; }
   .admin-noidung .ch-trang table.ch-bang { display:block; table-layout:auto; min-width:0; width:100%; }
@@ -613,7 +594,7 @@ b.ty-kho { color:#c0314f; }
   .ch-ty { max-width:none; }
 }
 
-/* ---------- Thẻ xếp dọc cho điện thoại (khung < 740px) ---------- */
+/* Thẻ xếp dọc cho điện thoại (khung < 740px) */
 @container chbang (max-width:739px) {
   .ch-bang tbody tr.ch-dong::after { display:none; }
   .ch-bang tbody td:nth-child(n) { order:0; flex:none; width:auto; margin:0; max-width:none; min-width:0; }
@@ -652,19 +633,18 @@ b.ty-kho { color:#c0314f; }
   .admin-noidung .ch-trang table.ch-bang { min-width:1100px; }
 }
 
-/* ---------- Chữ dễ đọc hơn (nhãn/chữ mặc định của giao diện tối là xanh nhạt, bị chìm trên nền sáng của trang) ---------- */
+/* Chữ nền sáng (tránh kế thừa màu xanh nhạt của giao diện tối) */
 .admin-noidung .ch-trang label, .admin-noidung .ch-trang legend { color:var(--ch-chu); text-shadow:none; }
 .admin-noidung .ch-trang .ch-min-luot label { color:var(--ch-chu); font-weight:600; }
 .admin-noidung .ch-trang .ch-min-luot small { color:var(--ch-phu); }
 
-/* Hộp thoại Xuất: dùng nền trắng như hộp thoại Xuất ở Tổng quan/Người dùng/Elo (class tq-xuat-hop trong thongke_xuat.css);
-   riêng khung xem trước cần chừa chỗ cho tiêu đề bên trong khung. */
+/* Hộp thoại Xuất: chừa chỗ tiêu đề bên trong khung xem trước */
 .tq-xuat-hop .xuat-xem { inset:42px 10px 10px 10px; }
 .tq-xuat-hop .xuat-phu { color:#6b7694; opacity:1; }
 .tq-xuat-hop .xuat-xemDau small { color:#6b7694; opacity:1; }
 @media (max-width:760px) { .tq-xuat-hop .xuat-xem { inset:auto; } }
 
-/* ===== Ô tìm kiếm: chừa chỗ cho kính lúp (style_admin.css đặt padding !important nên đè mất padding-left, chữ chồng lên icon) ===== */
+/* Ô tìm kiếm: chừa chỗ kính lúp, ghi đè padding !important của style_admin.css */
 .admin-noidung .ch-trang .ch-loc input[type=search] { padding:0 14px 0 42px !important; height:42px !important; font-size:14px !important; }
 .ch-o-tim svg { z-index:1; }
 @media (max-width:768px) { .admin-noidung .ch-trang .ch-loc input[type=search] { font-size:16px !important; } }
@@ -672,7 +652,7 @@ b.ty-kho { color:#c0314f; }
 /* Thanh chọn nhiều: nút bị ẩn bằng thuộc tính hidden thì phải thật sự biến mất (display của .ch-tc-nut không được đè) */
 .ch-thanhchon .ch-tc-nut[hidden] { display:none !important; }
 
-/* ---------- Thông báo nổi sau thao tác (ẩn / hiện / xóa... chạy ngầm, không tải lại trang) ---------- */
+/* Thông báo nổi sau thao tác */
 .ch-toast { position:fixed; left:50%; top:18px; z-index:200; max-width:min(92vw,560px); padding:11px 18px; border-radius:12px;
   font-size:14px; font-weight:600; line-height:1.4; box-shadow:0 10px 30px rgba(10,25,80,.3);
   opacity:0; transform:translate(-50%,-12px); pointer-events:none; transition:opacity .2s, transform .2s; }

@@ -1,7 +1,4 @@
-/* =====================================================================
-   HỆ THỐNG THÔNG BÁO REALTIME QUIZUP ARENA (assets/js/thongbao.js)
-   Tự động cập nhật chuông thông báo khi có người rep bài, bình luận
-   ===================================================================== */
+// Chuông thông báo thời gian thực (client/thongbao_api.php).
 (function () {
   'use strict';
 
@@ -23,7 +20,7 @@
   var isLoaded = false;
   var isOpen = false;
 
-  // Thoát HTML: tên người gửi do người dùng tự đặt nên không được chèn thẳng vào innerHTML
+  // Thoát HTML cho tên người gửi trước khi chèn vào innerHTML
   function esc(v) {
     return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
@@ -32,7 +29,6 @@
 
   var ICON_LOAI = { rep_bl: '💬', loi_moi_kb: '👋', chap_nhan_kb: '🤝', thach_dau: '⚔️', tha_lua_bai: '🔥', tha_lua_bl: '🔥' };
 
-  // Cập nhật số đếm trên badge
   function capNhatBadge(count) {
     count = parseInt(count, 10) || 0;
     if (count > 0) {
@@ -46,7 +42,6 @@
     }
   }
 
-  // Tải danh sách thông báo qua API
   function taiDanhSachThongBao(force) {
     if (isLoaded && !force) { return; }
     if (notifLoading) notifLoading.style.display = 'block';
@@ -105,7 +100,6 @@
     btnNotifToggle.classList.remove('is-active');
   }
 
-  // Đóng / mở dropdown khi bấm chuông
   function toggleDropdown() {
     if (isOpen) { dongDropdown(); return; }
     isOpen = true;
@@ -120,14 +114,13 @@
     toggleDropdown();
   });
 
-  // Đóng dropdown khi click ra ngoài
   document.addEventListener('click', function (e) {
     if (isOpen && navNotifWrap && !navNotifWrap.contains(e.target)) {
       dongDropdown();
     }
   });
 
-  // Chỉ mở một khung một lúc: rê chuột hoặc focus vào menu Hồ sơ thì đóng khung thông báo
+  // Đóng thông báo khi mở menu Hồ sơ để tránh mở hai khung cùng lúc
   var menuHoSo = document.querySelector('.nav-dropdown');
   if (menuHoSo) {
     menuHoSo.addEventListener('mouseenter', dongDropdown);
@@ -137,7 +130,6 @@
     if (e.key === 'Escape') { dongDropdown(); }
   });
 
-  // Đánh dấu tất cả là đã đọc
   if (btnMarkAllRead) {
     btnMarkAllRead.addEventListener('click', function (e) {
       e.preventDefault();
@@ -160,7 +152,7 @@
     });
   }
 
-  // Bấm vào từng thông báo -> đánh dấu đã đọc trước khi chuyển trang
+  // Đánh dấu đã đọc trước khi chuyển trang
   if (notifList) {
     notifList.addEventListener('click', function (e) {
       var item = e.target.closest('.notif-drop-item');
@@ -174,7 +166,7 @@
     });
   }
 
-  // Polling định kỳ mỗi 20 giây để cập nhật số thông báo chưa đọc trong thời gian thực
+  // Polling cập nhật số thông báo chưa đọc mỗi 20 giây
   setInterval(function () {
     fetch(apiUrl + '?action=dem')
       .then(function (res) { return res.json(); })

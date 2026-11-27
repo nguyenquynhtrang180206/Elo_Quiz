@@ -1,6 +1,6 @@
-/* Trang Tìm trận (client/timtran.php) - LoL Cosmic Arena Engine */
+// Trang Tìm trận (client/timtran.php): chọn môn, phòng PIN, hàng chờ và xác nhận vào trận.
 (function () {
-  // --- Web Audio SFX Synthesizer (Zero External Dependencies) ---
+  // Hiệu ứng âm thanh Web Audio
   var audioCtx = null;
   function getAudioCtx() {
     if (!audioCtx) {
@@ -69,7 +69,6 @@
     var ctx = getAudioCtx();
     if (!ctx) return;
     var now = ctx.currentTime;
-    // Epic brass fanfare: C4, E4, G4, C5 chord progression
     [261.63, 329.63, 392.00, 523.25].forEach(function (f, i) {
       var osc = ctx.createOscillator();
       var gain = ctx.createGain();
@@ -122,7 +121,6 @@
     var ctx = getAudioCtx();
     if (!ctx) return;
     var now = ctx.currentTime;
-    // Deep thunder rumble & energy slice
     var osc = ctx.createOscillator();
     var gain = ctx.createGain();
     osc.type = 'triangle';
@@ -136,7 +134,7 @@
     osc.stop(now + 0.8);
   }
 
-  // --- Champion Selection Handling ---
+  // Chọn tướng
   var champCards = document.querySelectorAll('.champ-card');
   champCards.forEach(function (card) {
     card.addEventListener('click', function (e) {
@@ -149,7 +147,7 @@
     });
   });
 
-  // --- Exam Quiz Multiple-Choice Cards (Giữa kỳ, Cuối kỳ, Cả 2) ---
+  // Chọn loại kỳ thi
   function ganSuKienExamQuizCards() {
     var examQuizCards = document.querySelectorAll('.exam-quiz-card');
     examQuizCards.forEach(function (card) {
@@ -167,7 +165,7 @@
   }
   ganSuKienExamQuizCards();
 
-  // --- Cyber Propose Subject Modal Logic ---
+  // Modal đề xuất môn học
   function openProposeModal(prefillName) {
     var modal = document.getElementById('cyberProposeModal');
     if (!modal) return;
@@ -242,7 +240,7 @@
     }
   });
 
-  // --- Custom Searchable Subject Picker (#vipMonPicker: hiện 5 môn mặc định + Tìm kiếm + Xem thêm + Đề xuất) ---
+  // Bộ chọn môn học có tìm kiếm (#vipMonPicker)
   var chonMon = document.getElementById('mon');
   var vipMonPicker = document.getElementById('vipMonPicker');
   var vipMonTrigger = document.getElementById('vipMonTrigger');
@@ -359,7 +357,7 @@
 
     var targetUrl = window.location.pathname + '?mon=' + encodeURIComponent(monId);
 
-    // Cập nhật giao diện mượt mà không tải lại toàn trang (Không giật nháy)
+    // Tải lại vùng bước 2 và CTA qua fetch không tải lại trang
     fetch(targetUrl, {
       headers: { 'X-Requested-With': 'XMLHttpRequest' }
     })
@@ -371,7 +369,6 @@
       var parser = new DOMParser();
       var doc = parser.parseFromString(html, 'text/html');
 
-      // 1. Trạng thái Bước 1
       var newStep1Status = doc.getElementById('step1HeaderStatus');
       var curStep1Status = document.getElementById('step1HeaderStatus');
       if (curStep1Status) {
@@ -383,7 +380,6 @@
         }
       }
 
-      // 2. Trạng thái Bước 2
       var newStep2Status = doc.getElementById('step2HeaderStatus');
       var curStep2Status = document.getElementById('step2HeaderStatus');
       if (curStep2Status) {
@@ -395,26 +391,22 @@
         }
       }
 
-      // 3. Khung nội dung Bước 2 (Giữa kỳ, Cuối kỳ, Cả 2)
       var newStep2Container = doc.getElementById('deckStep2Container');
       var curStep2Container = document.getElementById('deckStep2Container');
       if (newStep2Container && curStep2Container) {
         curStep2Container.innerHTML = newStep2Container.innerHTML;
       }
 
-      // 4. Khối nút bấm CTA chính
       var newCtaBlock = doc.getElementById('deckCtaBlock');
       var curCtaBlock = document.getElementById('deckCtaBlock');
       if (newCtaBlock && curCtaBlock) {
         curCtaBlock.innerHTML = newCtaBlock.innerHTML;
       }
 
-      // 5. Gắn lại sự kiện chọn thẻ kỳ thi trắc nghiệm
       if (typeof ganSuKienExamQuizCards === 'function') {
         ganSuKienExamQuizCards();
       }
 
-      // 6. Gắn lại nút CTA tìm trận
       btnSubmitQuickMatch = document.getElementById('btnSubmitQuickMatch');
       ctaBtnText = document.getElementById('ctaBtnText');
       ctaBtnIcon = document.getElementById('ctaBtnIcon');
@@ -424,7 +416,6 @@
         });
       }
 
-      // 7. Đồng bộ lại chế độ chơi (PvP / Bot / PIN) cho nút CTA mới
       var currentMode = layCheDoLobbyHienTai();
       if (typeof setLobbyMode === 'function') {
         setLobbyMode(currentMode);
@@ -548,7 +539,7 @@
     });
   }
 
-  // --- Quick-Pick Subject Pills ---
+  // Nút chọn nhanh môn học
   var quickTags = document.querySelectorAll('.quick-mon-tag');
   quickTags.forEach(function (tag) {
     tag.addEventListener('click', function () {
@@ -586,7 +577,6 @@
     });
   }
 
-  // --- Smooth Scroll to Champion Select ---
   var btnChangeChamp = document.getElementById('btnChangeChamp');
   if (btnChangeChamp) {
     btnChangeChamp.addEventListener('click', function (e) {
@@ -598,7 +588,6 @@
     });
   }
 
-  // --- Submit Quick Match Button ---
   var btnSubmitQuickMatch = document.getElementById('btnSubmitQuickMatch');
   if (btnSubmitQuickMatch) {
     btnSubmitQuickMatch.addEventListener('click', function () {
@@ -608,7 +597,7 @@
     });
   }
 
-  // --- Modern Game Mode Selection: Tách bạch Đấu Hạng PvP & Luyện Tập Solo AI ---
+  // Chọn chế độ chơi (PvP / Bot / PIN)
   var modeCardPvp = document.getElementById('modeCardPvp');
   var modeCardBot = document.getElementById('modeCardBot');
   var modeCardPin = document.getElementById('modeCardPin');
@@ -717,7 +706,7 @@
     });
   }
 
-  // --- Xử lý Logic Thách Đấu PIN 2.0 (Tạo phòng, F5 restore, Live Room Preview, Mời bạn 1 chạm) ---
+  // Phòng thách đấu mã PIN
   var currentRoomPin = null;
   var pinPollInterval = null;
   var pinCountdownInterval = null;
@@ -1030,7 +1019,7 @@
       });
   });
 
-  // Live Room Preview khi nhập đủ 6 chữ số PIN hoặc mở link ?phong=XXXXXX
+  // Xem trước thông tin phòng khi đủ 6 số PIN
   function taiXemTruocPhong(pin6) {
     if (!pinRoomPreviewCard) return;
     if (pin6.length !== 6) {
@@ -1156,7 +1145,7 @@
     });
   }
 
-  // Tự động kích hoạt chế độ PIN theo URL (?phong=XXXXXX, ?che_do=pin, ?moi_ban=...) hoặc khôi phục phòng đang mở khi F5
+  // Tự kích hoạt chế độ PIN theo URL hoặc khôi phục phòng đang mở khi tải lại trang
   (function () {
     var urlParams = new URLSearchParams(window.location.search);
     var pinParam = extractSixDigitPin(urlParams.get('phong') || '');
@@ -1186,7 +1175,7 @@
     }
   })();
 
-  // --- Modern LoL Esports Radar Poller & Smooth Digital Clock ---
+  // Hàng chờ tìm trận và đồng hồ đếm
   var radarCard = document.getElementById('radarCard');
   var dachoClock = document.getElementById('dachoClock');
   var dachoRawInput = document.getElementById('dachoRaw');
@@ -1218,7 +1207,7 @@
       return (m < 10 ? '0' : '') + m + ':' + (sec < 10 ? '0' : '') + sec;
     }
 
-    // Hàm đồng bộ hiển thị toàn bộ giao diện theo cấu hình Admin (cập nhật tức thời khi Admin đổi)
+    // Đồng bộ cấu hình giới hạn chờ từ Admin
     function syncConfigUI() {
       var radarMaxLimit = document.getElementById('radarMaxLimit');
       if (radarMaxLimit) {
@@ -1243,7 +1232,6 @@
       updateProgressBar();
     }
 
-    // Đồng bộ hiển thị ban đầu
     syncConfigUI();
 
     function updateProgressBar() {
@@ -1258,7 +1246,7 @@
       }
     }
 
-    // 1. Live second-by-second ticking clock (Zero page flicker)
+    // Đồng hồ đếm từng giây trên giao diện
     dachoClock.textContent = formatTime(daChoSec);
     updateProgressBar();
 
@@ -1268,7 +1256,7 @@
       dachoClock.textContent = formatTime(daChoSec);
       updateProgressBar();
 
-      // Dynamic Esports Radar Logs: Bán kính nới rộng theo NGUONG_ELO_GHEP_DOI của Admin
+      // Mở rộng bán kính Elo theo thời gian chờ
       if (logLine2) {
         var radius = nguongEloVal * (1 + Math.floor(daChoSec / 10));
         if (daChoSec < choToiDaSec - 4) {
@@ -1301,7 +1289,7 @@
       }
     }
 
-    // 2. Background Polling without page reloads (Every 1.2s)
+    // Polling trạng thái tìm trận mỗi 1.2s
     var isPolling = false;
     function pollQueue() {
       if (matchFound || isPolling || isPvpTimeoutPaused) return;
@@ -1352,7 +1340,7 @@
 
     var pollInterval = setInterval(pollQueue, 1200);
 
-    // 3. Live Mode Toggle directly on Radar Screen (Zero reload)
+    // Chuyển chế độ PvP/Bot ngay trên màn hình chờ
     if (btnRadarModeToggle && toggleBotUrl) {
       btnRadarModeToggle.addEventListener('click', function () {
         playPickSound();
@@ -1381,7 +1369,7 @@
       });
     }
 
-    // 4. Retry PvP Search for another period
+    // Gia hạn tìm kiếm PvP
     if (btnPvpRetry && resetTimerUrl) {
       btnPvpRetry.addEventListener('click', function () {
         playPickSound();
@@ -1410,7 +1398,7 @@
     }
   }
 
-  // --- Faction Filter Tabs (Plants vs Zombies) ---
+  // Lọc phe phái tướng
   var factionBtns = document.querySelectorAll('.btn-faction-filter');
   var champCardsList = document.querySelectorAll('.champ-card');
   if (factionBtns.length > 0) {
@@ -1432,7 +1420,7 @@
     });
   }
 
-  // --- Plants vs Zombies: Diverse Rotating Zombies Engine ---
+  // Xoay vòng phụ kiện zombie
   var pvzZombieHeadgears = [
     // 1. Conehead Zombie (Nón chóp giao thông cam)
     '<polygon points="50,-8 34,16 66,16" fill="#F97316" stroke="#C2410C" stroke-width="2"/><ellipse cx="50" cy="16" rx="18" ry="4" fill="#EA580C"/><rect x="42" y="4" width="16" height="3" fill="#FFF" opacity="0.85"/>',
@@ -1456,15 +1444,12 @@
     }, 4000);
   }
 
-  // Unlock Audio on First User Interaction
   document.addEventListener('click', function unlock() {
     getAudioCtx();
     document.removeEventListener('click', unlock);
   }, { once: true });
 
-  // =========================================================================
-  // CẨM NANG LUẬT ĐẤU & CÁCH TÍNH ĐIỂM (CYBER ESPORTS RULEBOOK MODAL & SIMULATOR)
-  // =========================================================================
+  // Modal cẩm nang luật đấu
   var rulebookModal = document.getElementById('cyberRulebookModal');
   var btnOpenRulebook = document.getElementById('btnOpenRulebook');
   var btnRibbonRulebook = document.getElementById('btnRibbonRulebook');
@@ -1524,7 +1509,6 @@
     });
   }
 
-  // Phím ESC đóng modal Cẩm nang
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape' && rulebookModal && rulebookModal.style.display !== 'none') {
       window.closeRulebookModal();
@@ -1554,7 +1538,7 @@
     });
   });
 
-  // Interactive Live Speed Calculator Slider (Mô phỏng điểm tốc độ thời gian thực)
+  // Mô phỏng tính điểm theo tốc độ
   var speedSlider = document.getElementById('rulebookSpeedSlider');
   if (speedSlider) {
     var sliderSecDisplay = document.getElementById('sliderSecDisplay');
@@ -1626,9 +1610,7 @@
     });
   }
 
-  // ==========================================================================
-  // 1. DYNAMIC TIP ROTATOR (XOAY VÒNG MẸO THI ĐẤU TINH TẾ)
-  // ==========================================================================
+  // Xoay vòng mẹo thi đấu
   (function initTipsRotator() {
     var tipContent = document.getElementById('radarTipContent');
     var rankTips = [
@@ -1655,9 +1637,7 @@
     }
   })();
 
-  // ==========================================================================
-  // 2. ESPORTS READY CHECK & 3. CINEMATIC VS SHOWDOWN FLOW
-  // ==========================================================================
+  // Xác nhận sẵn sàng và màn hình VS trước khi vào trận
   var rcModal = document.getElementById('esportsReadyCheckModal');
   var vsModal = document.getElementById('esportsVsShowdownModal');
 
@@ -1667,7 +1647,7 @@
       return;
     }
 
-    // 1. Play Fanfare Horn & Safe Screen Shake (Remove anim after finish so transform doesn't linger)
+    // Xóa class rung sau khi chạy xong để không giữ transform
     try { playReadyCheckHorn(); } catch (err) {}
     var radarCard = document.getElementById('radarCard');
     if (radarCard) {
@@ -1679,7 +1659,7 @@
       radarCard.style.pointerEvents = 'none';
     }
 
-    // 2. Populate Ready Check Data
+    var rcSubjectName = document.getElementById('rcSubjectName');
     var rcSubjectName = document.getElementById('rcSubjectName');
     var rcExamName = document.getElementById('rcExamName');
     var rcNameYou = document.getElementById('rcNameYou');
@@ -1720,11 +1700,9 @@
     }
     if (btnRcText) btnRcText.textContent = 'CHẤP NHẬN TRANH HÙNG (10s)';
 
-    // Show Ready Check Modal
     rcModal.style.display = 'flex';
     document.body.classList.add('modal-open');
 
-    // 10s Countdown Ring
     var remainSec = 10;
     var userAccepted = !!data.toiSanSang;
     var oppAccepted = !!data.doiThuSanSang;
@@ -1787,7 +1765,7 @@
       };
     }
 
-    // Polling đồng bộ trạng thái Ready Check thực tế thời gian thực (mỗi 1s)
+    // Polling đồng bộ trạng thái Ready Check mỗi 1s
     var rcSyncPoller = setInterval(function () {
       fetch('timtran.php?ajax_check=1')
         .then(function (r) { return r.json(); })
@@ -1847,7 +1825,7 @@
       if (remainSec <= 0) {
         clearInterval(rcInterval);
         clearInterval(rcSyncPoller);
-        // Hết 10s: nếu người dùng chưa bấm sẵn sàng, gọi ajax_check để server kích hoạt án phạt AFK
+        // Hết 10s chưa bấm sẵn sàng thì gọi ajax_check để xử lý phạt AFK
         if (!userAccepted) {
           fetch('timtran.php?ajax_check=1')
             .then(function (r) { return r.json(); })
@@ -1872,7 +1850,7 @@
   function startVsShowdown(data) {
     if (rcModal) rcModal.style.display = 'none';
 
-    // Ẩn hoàn toàn radarCard để màn hình VS Showdown hiển thị độc lập, không bị đè chữ
+    // Ẩn radarCard để màn hình VS hiển thị độc lập
     var radarCard = document.getElementById('radarCard');
     if (radarCard) {
       radarCard.style.display = 'none';
@@ -1883,10 +1861,9 @@
       return;
     }
 
-    // Play Thunder / Slash sound
     try { playVsThunderSlashSound(); } catch (err) {}
 
-    // Populate Showdown Elements
+    var vsSubjectTitle = document.getElementById('vsSubjectTitle');
     var vsSubjectTitle = document.getElementById('vsSubjectTitle');
     var vsAvatarYou = document.getElementById('vsAvatarYou');
     var vsNameYou = document.getElementById('vsNameYou');
@@ -1930,10 +1907,8 @@
       }
     }
 
-    // Show VS Showdown Screen
     vsModal.style.display = 'flex';
 
-    // Trigger visual slide-in animations
     var vsFighterYou = document.getElementById('vsFighterYou');
     var vsFighterOpp = document.getElementById('vsFighterOpp');
     var vsCenterBurst = document.getElementById('vsCenterBurst');
@@ -1950,7 +1925,6 @@
       }, 50);
     }
 
-    // Redirect to match room after 2.5s cinematic showdown
     setTimeout(function () {
       vsModal.classList.add('fade-out-exit');
       setTimeout(function () {

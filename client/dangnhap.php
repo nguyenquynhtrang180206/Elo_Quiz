@@ -1,24 +1,13 @@
 <?php
-// =========================================================================
-// CỔNG ĐĂNG NHẬP HỢP NHẤT (UNIFIED SINGLE SIGN-ON) & TỰ ĐỘNG PHÂN QUYỀN
-// Đặt tại: elo_quiz/client/dangnhap.php
-//
-// Nguyên tắc hoạt động chuẩn thị trường:
-// - Dùng chung 1 giao diện đăng nhập duy nhất cho toàn hệ thống (Sinh viên & Quản trị viên).
-// - Hệ thống tự động nhận diện tài khoản nhập vào thuộc phân quyền nào:
-//   + Nếu là Tài khoản Quản trị viên (nhập Tên đăng nhập hoặc Email Admin):
-//     -> Kiểm tra thiết bị tin cậy / Gửi mã OTP 2FA ngay trên giao diện này -> Chuyển thẳng vào /admin/index.php
-//   + Nếu là Tài khoản Sinh viên (nhập Email sinh viên):
-//     -> Hỗ trợ Ghi nhớ đăng nhập 30 ngày -> Chuyển thẳng vào /client/index.php
-// =========================================================================
+// Cổng đăng nhập chung cho Sinh viên và Quản trị viên (tự động phân quyền)
 require_once __DIR__ . '/../core/bootstrap.php';
 
-// Nếu đang ở bước chờ nhập OTP 2FA của Admin thì ưu tiên xử lý 2FA
+// Ưu tiên xử lý nếu đang chờ OTP 2FA của Admin
 $dangCho2FA = !empty($_SESSION['admin_2fa_pending'])
     && time() <= (int) ($_SESSION['admin_2fa_pending']['expire'] ?? 0);
 
 if (!$dangCho2FA) {
-    // Nếu đã đăng nhập Admin hoặc Sinh viên thì điều hướng theo đúng phân quyền
+    // Đã đăng nhập thì điều hướng theo đúng phân quyền
     if (Auth::adminId() !== null && !Auth::laAdminSinhVien()) {
         redirect(BASE_URL . '/admin/index.php');
     }
@@ -50,7 +39,7 @@ if (($_GET['khoa'] ?? '') === '1' || !empty($_SESSION['_client_bi_khoa'])) {
     $loi[] = 'Tài khoản của bạn đã bị khóa nên phiên làm việc đã kết thúc. Vui lòng liên hệ quản trị viên để được hỗ trợ.';
 }
 
-// Xử lý yêu cầu gửi lại mã OTP 2FA cho Admin ngay trên giao diện hợp nhất
+// Gửi lại mã OTP 2FA cho Admin
 if (isset($_GET['gui_lai_otp']) && $dangCho2FA) {
     $kqGui = Auth::guiLaiOtpAdmin2FA();
     if ($kqGui['ok']) {
@@ -64,7 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_check();
     $action = trim((string) ($_POST['action'] ?? 'dang_nhap'));
 
-    // BƯỚC 2: XÁC THỰC MÃ OTP 2FA (DÀNH CHO TÀI KHOẢN QUẢN TRỊ VIÊN TRÊN THIẾT BỊ MỚI)
+    // Xác thực OTP 2FA cho tài khoản Quản trị viên
     if ($action === 'xac_thuc_2fa') {
         $otpNhap       = trim((string) ($_POST['otp'] ?? ''));
         $tinCayThietBi = !empty($_POST['tin_cay_thiet_bi']);
@@ -75,9 +64,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         $loi[]      = $kq['loi'];
         $dangCho2FA = empty($kq['hetHan']);
-    }
-    // BƯỚC 1: ĐĂNG NHẬP CHUNG & TỰ ĐỘNG PHÂN QUYỀN THEO TÀI KHOẢN
-    else {
+    } else {
+        // Đăng nhập chung và tự động phân quyền
         $dinhDanhNhap = trim((string) ($_POST['email'] ?? ''));
         $matKhau      = (string) ($_POST['mat_khau'] ?? '');
         $ghiNho       = !empty($_POST['ghi_nho']);
@@ -85,14 +73,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($dinhDanhNhap === '' || $matKhau === '') {
             $loi[] = 'Vui lòng nhập email (hoặc tên đăng nhập) và mật khẩu.';
         } else {
-            // Tự động phân tích tài khoản thuộc phân quyền nào (Admin hay Sinh viên)
             $pdo = Database::pdo();
             $stC = $pdo->prepare('SELECT 1 FROM NGUOIDUNG WHERE Email = ? LIMIT 1');
             $stC->execute([strtolower($dinhDanhNhap)]);
             $laTaiKhoanClient = (bool) $stC->fetchColumn();
             $laTaiKhoanAdmin  = Auth::laDinhDanhAdmin($dinhDanhNhap);
 
-            // Ưu tiên 1: Nếu khớp tài khoản Admin (và không trùng tài khoản sinh viên, hoặc thử xác thực Admin thành công)
+            // Ưu tiên kiểm tra tài khoản Admin trước
             if ($laTaiKhoanAdmin) {
                 $kqAdmin = Auth::dangNhap('admin', $dinhDanhNhap, $matKhau, ['yeuCau2FA' => true]);
                 if ($kqAdmin['ok']) {
@@ -105,7 +92,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
 
-            // Ưu tiên 2: Nếu chưa chuyển sang 2FA Admin và chưa có lỗi (hoặc là tài khoản Sinh viên)
+            // Kiểm tra tài khoản Sinh viên nếu chưa chuyển sang 2FA Admin
             if (!$dangCho2FA && empty($loi)) {
                 $kqClient = Auth::dangNhap('client', strtolower($dinhDanhNhap), $matKhau, ['remember' => $ghiNho]);
                 if ($kqClient['ok']) {
@@ -138,7 +125,7 @@ require __DIR__ . '/layout/header.php';
         $otpConLai2FA    = max(0, (int) ($flow2FA['expire'] ?? 0) - $now2FA);
         $guiLaiConLai2FA = max(0, 60 - ($now2FA - (int) ($flow2FA['last_sent'] ?? 0)));
       ?>
-      <!-- ==================== GIAO DIỆN XÁC THỰC OTP 2FA CHO QUẢN TRỊ VIÊN ==================== -->
+      <!-- Xác thực OTP 2FA cho Quản trị viên -->
       <div class="thongbao-2fa-box">
         <span class="icon-2fa">🛡️</span>
         <div>
@@ -188,7 +175,7 @@ require __DIR__ . '/layout/header.php';
       <script src="<?= e(BASE_URL) ?>/assets/js/pw_helper.js"></script>
 
     <?php else: ?>
-      <!-- ==================== GIAO DIỆN ĐĂNG NHẬP CHUNG (TỰ ĐỘNG PHÂN QUYỀN) ==================== -->
+      <!-- Form đăng nhập chung -->
       <form method="post" action="" novalidate>
         <?= csrf_field() ?>
         <input type="hidden" name="action" value="dang_nhap">

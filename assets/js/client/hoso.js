@@ -1,4 +1,4 @@
-/* Trang hồ sơ: nút "Xem thêm" ở chân trang Elo theo môn - hiện các số trang từ 3 trở đi. */
+// Nút Xem thêm phân trang Elo theo môn trên trang Hồ sơ.
 (function () {
   'use strict';
   var nut = document.querySelector('.elo-xemthem');

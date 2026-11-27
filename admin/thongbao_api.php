@@ -1,5 +1,5 @@
 <?php
-// API thông báo của admin (AJAX, chuông ở trang Tổng quan). Đặt tại: admin/thongbao_api.php
+// API thông báo cho quản trị viên (đếm, lấy danh sách, đánh dấu đã đọc).
 require_once __DIR__ . '/../core/bootstrap.php';
 header('Content-Type: application/json; charset=utf-8');
 
@@ -11,7 +11,7 @@ if ($maAdmin === null) {
 $pdo    = Database::pdo();
 $action = (string) ($_GET['action'] ?? $_POST['action'] ?? 'lay_danh_sach');
 
-// Hành động ghi dữ liệu: chỉ nhận POST và phải đúng mã CSRF
+// Thao tác ghi yêu cầu POST và kiểm tra CSRF.
 if (in_array($action, ['doc_mot', 'doc_het'], true)) {
     $gui = $_POST['csrf'] ?? '';
     if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !is_string($gui) || !hash_equals($_SESSION['csrf'] ?? '', $gui)) {
@@ -26,7 +26,7 @@ if ($action === 'dem') {
 }
 
 if ($action === 'lay_danh_sach') {
-    // Mặc định chỉ 5 thông báo gần nhất; all=1 (nút "Tất cả thông báo") mới lấy toàn bộ (tối đa 200)
+    // Mặc định lấy 5 thông báo mới nhất; all=1 lấy tối đa 200.
     $tatCa = (string) ($_GET['all'] ?? '') === '1';
     $rows  = ThongBaoAdmin::layDanhSach($pdo, $maAdmin, $tatCa ? 200 : 5, 0);
     $ds = [];

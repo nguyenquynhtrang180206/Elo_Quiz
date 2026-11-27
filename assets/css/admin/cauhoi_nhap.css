@@ -1,6 +1,4 @@
-/* Trang Nhập câu hỏi từ Word/Excel (admin/cauhoi_nhap.php). Đặt tại: assets/css/admin/cauhoi_nhap.css
-   Mọi luật nằm trong .ci-trang (nội dung trang), không đụng tới các trang admin khác.
-   Cùng ngôn ngữ thiết kế với trang Ngân hàng câu hỏi (cauhoi.css) nhưng dùng class riêng "ci-*". */
+/* Trang Nhập câu hỏi từ Word/Excel (admin/cauhoi_nhap.php); dùng tiền tố ci- */
 
 .admin-noidung .ci-trang {
   --ci-chu:#15204a; --ci-phu:#6b7694; --ci-vien:#dbe1f3; --ci-xanh:#1f55d6; --ci-xanh-nhat:#e3edff;
@@ -16,7 +14,7 @@
 .ci-trang label { display:block; margin:0 0 6px; color:var(--ci-chu); font-size:13px; font-weight:600; }
 .ci-sao-bb { color:#b3262c; font-weight:800; }
 
-/* ---------- Đầu trang ---------- */
+/* Đầu trang */
 .ci-dau { display:flex; align-items:center; gap:14px; margin-bottom:14px; flex-wrap:wrap; }
 .ci-dau-icon {
   display:flex; align-items:center; justify-content:center; width:56px; height:56px; border-radius:16px; color:#fff; flex:none;
@@ -27,7 +25,7 @@
 .ci-dau-chu p { font-size:13px; color:var(--ci-phu); margin-top:2px; }
 .ci-dau-nut { display:flex; gap:8px; flex-wrap:wrap; }
 
-/* ---------- Thanh quy trình 3 bước ---------- */
+/* Thanh quy trình 3 bước */
 .ci-buoc-bar {
   display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:12px; margin-bottom:14px;
 }
@@ -45,7 +43,7 @@
 .ci-buoc-item strong { display:block; font-size:13.5px; color:#1f3a8a; margin-bottom:2px; }
 .ci-buoc-item small { display:block; font-size:12px; color:var(--ci-phu); line-height:1.45; }
 
-/* ---------- Nút ---------- */
+/* Nút */
 .ci-nut {
   display:inline-flex; align-items:center; justify-content:center; gap:7px; padding:10px 16px; border-radius:12px; border:1px solid transparent; cursor:pointer;
   font:600 13.5px/1.2 inherit; font-family:inherit; text-decoration:none; text-shadow:none; transition:filter .15s, background .15s, box-shadow .15s, opacity .15s;
@@ -64,7 +62,7 @@
 .ci-block { width:100%; }
 .ci-nut-nhom { display:flex; flex-direction:column; gap:8px; margin-top:auto; }
 
-/* ---------- Khối ---------- */
+/* Khối nội dung */
 .ci-khoi {
   margin-bottom:14px; padding:18px 20px; border-radius:20px;
   background:rgba(255,255,255,.72); border:1px solid rgba(255,255,255,.88); box-shadow:0 4px 16px rgba(30,60,140,.07);
@@ -86,7 +84,7 @@
 .ci-trang .loi { padding:12px 14px; border-radius:14px; background:#fdecee; color:#b3262c; border:1px solid #f5c2c6; box-shadow:none; line-height:1.5; }
 .ci-trang .loi div + div { margin-top:4px; }
 
-/* ---------- Hai thẻ thao tác ---------- */
+/* Hai thẻ thao tác */
 .ci-hai-cot { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:16px; align-items:stretch; }
 .ci-hai-cot .ci-khoi { margin-bottom:0; display:flex; flex-direction:column; gap:12px; }
 .ci-the-chinh { border:2px solid #8fb0ff; box-shadow:0 8px 24px rgba(31,85,214,.14); }
@@ -122,7 +120,7 @@
 .ci-hang-o input:checked + .hang-vang { border-color:#e0a21c; background:#fff5d9; box-shadow:0 4px 12px rgba(224,162,28,.28); }
 .ci-hang-o input:focus-visible + .ci-hang-the { outline:2px solid #5b8cff; outline-offset:2px; }
 
-/* ---------- Cổng thả file ---------- */
+/* Vùng thả file */
 .ci-trang .ci-tha {
   flex:1 1 auto; position:relative; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; min-height:175px; margin:0 !important; padding:18px 14px;
   border-radius:18px; border:2px dashed #9db6f0; background:rgba(255,255,255,.65); text-align:center; overflow:hidden; transition:border-color .2s, background .2s;
@@ -176,7 +174,7 @@
 }
 .ci-quy li svg { color:var(--ci-xanh); flex:none; }
 
-/* ---------- BẢNG TRỢ LÝ XEM TRƯỚC & SỬA LỖI TRỰC TIẾP TRÊN WEB ---------- */
+/* Bảng xem trước và sửa lỗi trực tiếp */
 .ci-ketqua { border:2px solid #5b8cff; background:rgba(255,255,255,.88); }
 .ci-kq-dau {
   display:flex; align-items:flex-start; justify-content:space-between; gap:14px; flex-wrap:wrap; margin-bottom:12px;
@@ -269,7 +267,7 @@ a.ci-o:hover, a.ci-o:focus-visible { transform:scale(1.18); outline:none; box-sh
   color:var(--ci-chu); font-size:12.5px;
 }
 
-/* Cụm nút 1-Click chọn đáp án đúng A B C D */
+/* Cụm nút chọn đáp án đúng */
 .ci-chon-da { display:flex; gap:5px; align-items:center; }
 .ci-nut-da {
   width:32px; height:32px; border-radius:9px; border:1.5px solid #c6d2f2; background:#fff; color:var(--ci-chu);
@@ -290,7 +288,7 @@ a.ci-o:hover, a.ci-o:focus-visible { transform:scale(1.18); outline:none; box-sh
 .ci-nut-boqua:hover { background:#fbd5db; }
 .ci-dong-sua.da-bo-qua .ci-nut-boqua { background:#e4e9f8; border-color:#c6d2f2; color:#1f3a8a; }
 
-/* ---------- Hộp quy tắc ---------- */
+/* Hộp quy tắc */
 .ci-quytac { margin-top:0; margin-bottom:14px; }
 .ci-quytac summary { display:flex; align-items:center; gap:8px; cursor:pointer; font-weight:700; font-size:14.5px; color:#1f3a8a; list-style:none; }
 .ci-quytac summary::-webkit-details-marker { display:none; }
@@ -306,14 +304,14 @@ a.ci-o:hover, a.ci-o:focus-visible { transform:scale(1.18); outline:none; box-sh
 .ci-cot td { padding:6px 10px; border-bottom:1px solid #e3e8f6; vertical-align:top; }
 .ci-cot .bb { color:#b3262c; font-weight:800; }
 
-/* ---------- Hoạt họa ---------- */
+/* Hoạt họa */
 @keyframes ci-quay { to { transform:rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) {
   .ci-cong::before, .ci-cong::after, .ci-nut.dang-xu-ly::before { animation:none; }
   .ci-tha.keo .ci-cong { transform:none; }
 }
 
-/* ---------- Màn hình nhỏ ---------- */
+/* Responsive */
 @media (max-width: 960px) {
   .ci-hai-cot, .ci-quytac-than, .ci-buoc-bar { grid-template-columns:minmax(0,1fr); }
 }

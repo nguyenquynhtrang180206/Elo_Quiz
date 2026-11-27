@@ -1,6 +1,5 @@
 <?php
-// Quản lý thông báo người dùng (Đặc biệt thông báo khi có người rep bài, bình luận, v.v.)
-// Đặt tại: core/ThongBaoHelper.php
+// Quản lý thông báo người dùng (bảng THONGBAO).
 class ThongBaoHelper
 {
     private static ?bool $bangTonTai = null;
@@ -61,9 +60,6 @@ class ThongBaoHelper
         }
     }
 
-    /**
-     * Tự động đảm bảo bảng THONGBAO tồn tại trong CSDL (đã được DbSchema::damBao xử lý).
-     */
     public static function damBaoBang(): bool
     {
         return true;

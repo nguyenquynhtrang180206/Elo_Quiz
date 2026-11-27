@@ -1,18 +1,15 @@
-/* ==========================================================================
-   QUIZUP ARENA - PHONG.JS
-   League of Legends 1 vs 1 Esports Combat & Web Audio Engine
-   ========================================================================== */
+// Điều khiển phòng đấu 1v1 và hiệu ứng âm thanh Web Audio.
 (function () {
   'use strict';
 
-  // 1. LOBBY WAITING SCREEN (Trạng thái "Đã ghép")
+  // Trạng thái chờ ghép trận
   var cho = document.querySelector('[data-tai-lai]');
   if (cho) {
     setTimeout(function () { location.reload(); }, parseInt(cho.getAttribute('data-tai-lai'), 10) || 1200);
     return;
   }
 
-  // 2. ACTIVE COMBAT MATCH (Trạng thái "Đang diễn ra")
+  // Trạng thái trận đấu đang diễn ra
   var thi = document.getElementById('thi');
   if (!thi) { return; }
 
@@ -23,7 +20,6 @@
   var myChampBuff = thi.dataset.myChampBuff || '';
   var oppChampBuff = thi.dataset.oppChampBuff || '';
 
-  // DOM Elements
   var khung = document.getElementById('khung');
   var tiendo = document.getElementById('tiendo');
   var arenaCombatStage = document.getElementById('arenaCombatStage');
@@ -56,7 +52,6 @@
   var killstreakText = document.getElementById('killstreakText');
   var nutChiuThua = document.getElementById('nutChiuThua');
 
-  // Mutator & Sabotage Mind Games Elements
   var mutatorMatchBanner = document.getElementById('mutatorMatchBanner');
   var rageBarInner = document.getElementById('rageBarInner');
   var rageValNum = document.getElementById('rageValNum');
@@ -64,7 +59,6 @@
   var btnDebuffSuongMu = document.getElementById('btnDebuffSuongMu');
   var btnDebuffDongBang = document.getElementById('btnDebuffDongBang');
 
-  // Combat State
   var MAX_HP = 1000;
   var myCurrentHp = 1000;
   var oppCurrentHp = 1000;
@@ -92,9 +86,7 @@
   var dangLay = false;
   var nutDapAn = [];
 
-  // ==========================================================================
-  // PROCEDURAL WEB AUDIO SFX ENGINE (0 External Audio Files Needed)
-  // ==========================================================================
+  // Hiệu ứng âm thanh Web Audio
   var audioCtx = null;
   function getAudioCtx() {
     if (!audioCtx) {
@@ -124,7 +116,6 @@
   function playSlashSound() {
     var ctx = getAudioCtx(); if (!ctx) return;
     var now = ctx.currentTime;
-    // White noise swoosh filter
     var bufferSize = ctx.sampleRate * 0.15;
     var buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
     var data = buffer.getChannelData(0);
@@ -160,7 +151,6 @@
   function playFirstBloodSound() {
     var ctx = getAudioCtx(); if (!ctx) return;
     var now = ctx.currentTime;
-    // LoL First Blood Brass Chime
     [330, 440, 554, 660].forEach(function (f, i) {
       var osc = ctx.createOscillator();
       var gain = ctx.createGain();
@@ -176,7 +166,6 @@
   function playPentakillSound() {
     var ctx = getAudioCtx(); if (!ctx) return;
     var now = ctx.currentTime;
-    // Epic ascending fanfare
     [261.6, 329.6, 392.0, 523.2, 659.2, 783.9, 1046.5].forEach(function (f, i) {
       var osc = ctx.createOscillator();
       var gain = ctx.createGain();
@@ -287,9 +276,7 @@
     osc.start(now); osc.stop(now + 0.26);
   }
 
-  // ==========================================================================
-  // COMBAT VISUAL FX (PROJECTILES, DAMAGE POPUPS, HEALTH BARS)
-  // ==========================================================================
+  // Hiệu ứng chiến đấu và thanh HP/Mana
   function spawnDamagePopup(isAtOpponent, text, isCrit) {
     if (!fxLayer) return;
     var targetEl = isAtOpponent ? redFighter : blueFighter;
@@ -366,9 +353,7 @@
     }
   }
 
-  // ==========================================================================
-  // LOL ANNOUNCER KILLSTREAK SYSTEM
-  // ==========================================================================
+  // Thông báo chuỗi thắng
   function showAnnouncer(title, sub, soundFn) {
     if (!announcerBanner || !announcerTitle || !announcerSub) return;
     announcerTitle.textContent = title;
@@ -417,9 +402,7 @@
     }
   }
 
-  // ==========================================================================
-  // SURRENDER ACTION
-  // ==========================================================================
+  // Đầu hàng
   if (nutChiuThua) {
     nutChiuThua.onclick = function () {
       if (!confirm('Bạn chắc chắn muốn đầu hàng? Đối thủ sẽ được tính là chiến thắng.')) return;
@@ -437,9 +420,7 @@
     };
   }
 
-  // ==========================================================================
-  // CHIÊU TRÒ PHÁ RỐI & HỆ THỐNG TÍCH NỘ (SABOTAGE SYSTEM)
-  // ==========================================================================
+  // Thanh Nộ và chiêu phá rối
   function addRage(amt) {
     currentRage = Math.min(100, Math.max(0, currentRage + amt));
     if (rageBarInner) rageBarInner.style.width = currentRage + '%';
@@ -491,9 +472,7 @@
     btnDebuffDongBang.onclick = function () { banPhaRoi('dong_bang'); };
   }
 
-  // ==========================================================================
-  // XỬ LÝ TRỰC QUAN KHI BỊ ĐỐI THỦ TẤN CÔNG BẰNG CHIÊU TRÒ (DEBUFF FX)
-  // ==========================================================================
+  // Hiệu ứng khi bị dính chiêu phá rối
   function triggerDebuffDongBang() {
     playIceFreezeSound();
     var freezeOverlay = document.getElementById('debuffFreezeOverlay');
@@ -599,9 +578,7 @@
     }, 3500);
   }
 
-  // ==========================================================================
-  // RENDERING QUESTION & SKILLS (Q - W - E - R)
-  // ==========================================================================
+  // Hiển thị câu hỏi và đáp án (Q, W, E, R)
   var SKILL_KEYS = ['Q', 'W', 'E', 'R'];
 
   function xoa(el) { while (el.firstChild) { el.removeChild(el.firstChild); } }
@@ -610,11 +587,10 @@
     xoa(khung);
     nutDapAn = [];
 
-    // Header with Question number
     if (soCauHienTai) soCauHienTai.textContent = c.thuTu;
     if (tongSoCau) tongSoCau.textContent = tong;
 
-    // Check Baron Steal Sudden Death Round (Last question)
+    // Vòng Baron (câu cuối)
     if (c.thuTu === tong && !isBaronRound) {
       isBaronRound = true;
       if (arenaCombatStage) arenaCombatStage.classList.add('baron-mode');
@@ -653,7 +629,6 @@
 
     khung.appendChild(qBox);
 
-    // 4 Answer choices styled as LoL Skills
     var answersGrid = document.createElement('div');
     answersGrid.className = 'quiz-answers-grid';
 
@@ -706,7 +681,6 @@
     nutDapAn.forEach(function (b) { b.disabled = true; });
   }
 
-  // Keyboard Event Listener for Q, W, E, R Keys
   window.addEventListener('keydown', function (e) {
     if (daGui || !cauHienTai || nutDapAn.length === 0) return;
     var k = e.key.toUpperCase();
@@ -716,7 +690,6 @@
     }
   });
 
-  // Circular Neon Timer Tick
   function tick() {
     if (!cauHienTai || !demNguocGiay) return;
     var con = Math.max(0, (hanChot - Date.now()) / 1000);
@@ -742,9 +715,7 @@
   }
   setInterval(tick, 100);
 
-  // ==========================================================================
-  // SEND ANSWER & COMBAT RESOLUTION
-  // ==========================================================================
+  // Gửi đáp án và xử lý kết quả
   function gui(maDapAn, clickedBtn) {
     if (daGui || !cauHienTai) return;
     daGui = true;
@@ -763,7 +734,6 @@
         if (r.loi) { location.reload(); return; }
         dangPhanHoi = true;
 
-        // 1. Phản hồi trực quan trạng thái nút đã chọn
         nutDapAn.forEach(function (btn) {
           if (btn === clickedBtn) {
             if (r.dung) {
@@ -784,7 +754,6 @@
           }
         });
 
-        // 2. Combat Resolution FX (Sát thương / Chiêu thức)
         if (r.dung) {
           var conLaiSec = Math.max(0, (hanChot - Date.now()) / 1000);
           var elapsedSec = (thoiGianQuyDinh || 15) - conLaiSec;
@@ -811,7 +780,6 @@
 
           handleKillstreak(true);
         } else {
-          // Trả lời sai hoặc hết giờ
           myCurrentHp = Math.max(0, myCurrentHp - 50);
           updateHpDisplay();
 
@@ -826,7 +794,7 @@
           handleKillstreak(false);
         }
 
-        // 3. Hiện Banner kết quả lượt đấu (Bảo mật: Không tiết lộ đáp án đúng để người chơi tự làm lại)
+        // Banner kết quả (không tiết lộ đáp án đúng)
         var oldBanner = document.getElementById('answerRevealBanner');
         if (oldBanner) oldBanner.remove();
 
@@ -873,7 +841,7 @@
           khung.appendChild(banner);
         }
 
-        // 4. Nghỉ 1.4s chuyển mượt sang câu tiếp theo
+        // Chờ 1.4s rồi tải câu tiếp theo
         setTimeout(function () {
           dangPhanHoi = false;
           cauHienTai = null;
@@ -883,9 +851,7 @@
       .catch(function () { location.reload(); });
   }
 
-  // ==========================================================================
-  // POLLING & ARENA SYNCHRONIZATION
-  // ==========================================================================
+  // Polling đồng bộ trạng thái trận đấu
   function xuLy(d) {
     if (!d || d.loi) {
       if (d && d.loi) console.warn("API Error:", d.loi);
@@ -925,13 +891,11 @@
       }
     }
 
-    // Check if Opponent scored since last poll!
     var currentOppScore = (d.doiThu && d.doiThu.diem) ? d.doiThu.diem : 0;
     if (currentOppScore > prevOppScore) {
       var diffScore = currentOppScore - prevOppScore;
       prevOppScore = currentOppScore;
 
-      // Opponent attacked You!
       var oppDmg = diffScore * 10;
       myCurrentHp = Math.max(0, myCurrentHp - oppDmg);
       oppCurrentMana = Math.min(100, oppCurrentMana + 25);
@@ -993,15 +957,12 @@
       .then(function () { dangLay = false; });
   }
 
-  // Initial call & Polling loop
   lay();
   setInterval(lay, 1200);
 
-  // Initialize UI Displays
   updateHpDisplay();
   updateManaDisplay();
 
-  // Unlock Audio
   document.addEventListener('click', function unlock() {
     getAudioCtx();
     document.removeEventListener('click', unlock);

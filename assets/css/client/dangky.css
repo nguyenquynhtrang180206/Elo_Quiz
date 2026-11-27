@@ -8,7 +8,7 @@
   font-size: 14px;
 }
 
-/* Stepper tiến trình tối giản (đồng bộ với quenmatkhau.css) */
+/* Thanh tiến trình các bước */
 .quenmk-stepper {
   display: flex;
   align-items: center;
@@ -87,7 +87,7 @@
   color: #34d399;
 }
 
-/* Hộp thông báo gửi OTP siêu gọn */
+/* Hộp thông báo gửi OTP */
 .thongbao-email-box {
   display: flex;
   align-items: center;

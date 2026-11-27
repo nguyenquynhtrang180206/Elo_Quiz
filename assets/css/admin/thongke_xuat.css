@@ -1,4 +1,4 @@
-/* Hộp thoại "Xuất" báo cáo thống kê (admin/index.php): rộng hơn bản đầu để có chỗ cho phần xem trước */
+/* Hộp thoại xuất báo cáo thống kê (admin/index.php) */
 .dash-thanhtren .btn { white-space:nowrap; }
 .xuat-hop { width:min(860px,100%); max-height:92vh; overflow-y:auto; }
 .xuat-hop h3 { margin:0 0 6px; }
@@ -45,10 +45,7 @@
 .xuat-hop .xuat-cap canvas.xuat-cv-mon { flex:1 1 0; min-width:0; width:auto !important; }
 .xuat-the > .xuat-chuthich { margin-top:6px; }
 .xuat-the > .xuat-cap + .xuat-chuthich { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); column-gap:14px; }
-/* ============================================================================
-   Hộp thoại Xuất của trang Tổng quan (.tq-xuat-hop): NỀN TRẮNG + responsive điện thoại
-   Chỉ áp cho form có class tq-xuat-hop nên không ảnh hưởng các trang khác dùng chung file này.
-   ============================================================================ */
+/* Hộp thoại xuất nền trắng (.tq-xuat-hop) */
 .modal-nen:has(.tq-xuat-hop) { background:rgba(8,20,70,.55); backdrop-filter:none; -webkit-backdrop-filter:none; overflow-y:auto; -webkit-overflow-scrolling:touch; }
 .xuat-hop.tq-xuat-hop { background:#fff; color:#12235e; border:1px solid #dfe6f6; border-radius:16px; box-shadow:0 24px 60px rgba(10,25,80,.35);
   box-sizing:border-box; max-height:92vh; max-height:92dvh; overflow-y:auto; overflow-x:hidden; }

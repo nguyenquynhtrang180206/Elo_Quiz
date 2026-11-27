@@ -1,9 +1,7 @@
 <?php
-// Chi tiết người dùng, lịch sử Elo, khóa/mở khóa (UC11: A-11, A-12, A-13, A-29).
-// Đặt tại: elo_quiz/admin/nguoidung_chitiet.php   (mở bằng ?id=<MaND>)
-// A-13: không có chức năng xóa người dùng; chỉ khóa để giữ nguyên lịch sử trận đấu.
+// Chi tiết người dùng, lịch sử Elo và khóa/mở khóa tài khoản (chỉ khóa, không xóa).
 require_once __DIR__ . '/../core/bootstrap.php';
-Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');   // A-04
+Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');
 
 $pdo = Database::pdo();
 $id  = (int) ($_GET['id'] ?? 0);
@@ -26,7 +24,7 @@ if (!$nd) {
     exit;
 }
 
-// ---- A-12: khóa / mở khóa, cập nhật trạng thái và ghi nhật ký trong cùng một giao dịch (A-40) ----
+// Khóa/mở khóa tài khoản và ghi nhật ký trong cùng giao dịch.
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_check();
     $hanhDong = (string) ($_POST['hanh_dong'] ?? '');
@@ -37,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $pdo->beginTransaction();
         try {
-            // Điều kiện theo trạng thái cũ: bấm lặp hoặc hai quản trị viên cùng bấm thì chỉ ghi nhật ký một lần
+            // Ràng buộc trạng thái cũ tránh ghi nhật ký trùng khi thao tác đồng thời.
             $up = $pdo->prepare('UPDATE NGUOIDUNG SET TrangThai = ? WHERE MaND = ? AND TrangThai = ?');
             $up->execute([$khoa ? 'Bị khóa' : 'Hoạt động', $id, $khoa ? 'Hoạt động' : 'Bị khóa']);
             if ($up->rowCount() === 1) {
@@ -58,7 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $thongBao = ['khoa' => 'Đã khóa tài khoản.', 'mokhoa' => 'Đã mở khóa tài khoản.'][$_GET['kq'] ?? ''] ?? '';
 
-// ---- A-11: Elo từng môn, số trận, tỷ lệ thắng (hiển thị tất cả môn đang mở kèm Elo khởi tạo 1.000 nếu chưa đấu) ----
+// Điểm Elo các môn đang mở (mặc định 1.000 nếu chưa đấu).
 $st = $pdo->prepare(
     "SELECT m.MaMon, m.TenMon,
             COALESCE(e.DiemElo, 1000) AS DiemElo,
@@ -76,7 +74,7 @@ $eloMon = $st->fetchAll();
 $tongTran  = array_sum(array_column($eloMon, 'SoTran'));
 $tongThang = array_sum(array_column($eloMon, 'SoThang'));
 
-// ---- A-29: lịch sử Elo (lọc theo môn, phân trang 20 dòng) ----
+// Lịch sử biến động Elo (20 dòng/trang).
 $monLoc = (int) ($_GET['mon'] ?? 0);
 if (!in_array($monLoc, array_map('intval', array_column($eloMon, 'MaMon')), true)) {
     $monLoc = 0;
@@ -140,7 +138,7 @@ require __DIR__ . '/layout/header.php';
 
 <?php if ($thongBao !== ''): ?><div class="thanhcong"><?= e($thongBao) ?></div><?php endif; ?>
 
-<!-- Bố cục 2 cột cân đối: Thông tin tài khoản (Trái) & Quản lý trạng thái (Phải) -->
+<!-- Thông tin tài khoản và quản lý trạng thái -->
 <div class="nd-grid-2cot">
   <div class="card nd-card-thongtin">
     <h3 class="nd-card-tieude">

@@ -1,18 +1,13 @@
-/* Trang Ngân hàng câu hỏi (admin/cauhoi.php). Đặt tại: assets/js/admin/cauhoi.js
-   1) Hỏi xác nhận trước nút có thuộc tính data-xac-nhan (giữ từ bản cũ)
-   2) Chọn nhiều câu + thanh nổi "Đã chọn N câu hỏi"
-   3) Ngăn "Xem nhanh": bấm dòng -> tải chi tiết từ cauhoi_api.php, đổ vào panel bên phải
-   Dữ liệu từ máy chủ luôn đổ bằng textContent (không innerHTML) nên không có nguy cơ XSS. */
+// Trang Ngân hàng câu hỏi (admin/cauhoi.php): chọn nhiều, ngăn Xem nhanh, thao tác AJAX và xuất file.
 (function () {
   'use strict';
 
-  // ---------- 1) Xác nhận ----------
   document.addEventListener('click', function (e) {
     var nut = e.target.closest('[data-xac-nhan]');
     if (nut && !confirm(nut.getAttribute('data-xac-nhan'))) { e.preventDefault(); }
   });
 
-  // ---------- Bộ lọc: đổi môn / loại kỳ thi thì lọc ngay ----------
+  // Tự gửi bộ lọc khi đổi môn hoặc loại kỳ thi
   var formLoc = document.getElementById('chLoc');
   if (formLoc) {
     [].forEach.call(formLoc.querySelectorAll('select'), function (s) {
@@ -20,7 +15,7 @@
     });
   }
 
-  // ---------- 2) Chọn nhiều ----------
+  // Chọn nhiều câu hỏi
   var bang       = document.getElementById('chBang');
   var thanh      = document.getElementById('chThanhChon');
   var soChon     = document.getElementById('chSoChon');
@@ -88,7 +83,7 @@
     capNhatChon();
   }
 
-  // ---------- Bộ chọn môn trong bộ lọc: tìm kiếm, hiện 10 môn đầu, "Xem thêm" ----------
+  // Bộ chọn môn có tìm kiếm (mặc định hiện 10 môn)
   var chonMon = document.getElementById('chChonMon');
   if (chonMon && formLoc) {
     var nutMo   = chonMon.querySelector('.ch-chon-mon-nut');
@@ -153,7 +148,7 @@
     });
   }
 
-  // ---------- 3) Ngăn "Xem nhanh" ----------
+  // Ngăn Xem nhanh chi tiết câu hỏi
   var ngan = document.getElementById('chNgan');
   if (!ngan || !bang) { return; }
 
@@ -333,9 +328,7 @@
     if (e.shiftKey && document.activeElement === dau) { e.preventDefault(); cuoi.focus(); }
     else if (!e.shiftKey && document.activeElement === cuoi) { e.preventDefault(); dau.focus(); }
   });
-  // ---------- 4) Thao tác (ẩn / hiện / xóa / đổi độ khó...) không tải lại trang ----------
-  // Gửi form ngầm bằng fetch, rồi chỉ thay các khối số liệu và phần thân bảng bằng bản mới từ máy chủ.
-  // Vị trí cuộn, bộ lọc, trang đang xem đều giữ nguyên; thông báo kết quả hiện ở thanh nổi phía trên.
+  // Thao tác AJAX giữ nguyên vị trí cuộn và bộ lọc
   var dangGui = false;
   var toast = null, henToast = 0;
 
@@ -424,7 +417,7 @@
   });
 })();
 
-// ---------- Biểu đồ phân bố tỉ lệ đúng (Chart.js, assets/vendor/chart.umd.js) ----------
+// Biểu đồ phân bố tỉ lệ đúng (Chart.js)
 (function () {
   'use strict';
   var cv = document.getElementById('chBieuDo');
@@ -455,7 +448,7 @@
 })();
 
 
-// ---------- Ghi chú cách đọc biểu đồ: bấm nút i để mở / đóng (cho màn hình cảm ứng, không có rê chuột) ----------
+// Tooltip ghi chú biểu đồ cho màn hình cảm ứng
 (function () {
   'use strict';
   var gc = document.querySelector('.ch-ghichu');
@@ -468,10 +461,7 @@
 })();
 
 
-// ---------- Hộp thoại Xuất (Excel / PDF) có khung XEM TRƯỚC, gửi tới cauhoi_xuat.php rồi tải file về ----------
-// Xem trước: hỏi máy chủ (buoc=xemtruoc) số liệu của phạm vi đã chọn, rồi dựng từng thẻ đúng theo nội dung + định dạng đang tích
-// (mỗi thẻ có nhãn cho biết thành sheet / trang nào trong file). Biểu đồ vẽ bằng ĐÚNG cấu hình Chart.js của biểu đồ trên trang;
-// khi xuất, chính biểu đồ đó được vẽ lại thành ảnh JPEG rồi gửi kèm để chèn vào Excel / PDF.
+// Hộp thoại Xuất câu hỏi (Excel/PDF) kèm xem trước và ảnh biểu đồ.
 (function () {
   'use strict';
   var nutMo = document.getElementById('cxMo');
@@ -504,7 +494,7 @@
   function radio(ten) { var r = form.querySelector('input[name="' + ten + '"]:checked'); return r ? r.value : ''; }
   function daTich(giaTri) { var i = form.querySelector('input[name="noidung[]"][value="' + giaTri + '"]'); return !!(i && i.checked); }
 
-  // ---------- Vẽ biểu đồ giống hệt trên trang ----------
+  // Cấu hình biểu đồ xuất ảnh
   function cauHinhBieuDo(d, co, tt) {
     return {
       type: 'bar',
@@ -559,7 +549,6 @@
     return cv.toDataURL('image/jpeg', 0.95);
   }
 
-  // ---------- Gọi máy chủ ----------
   function goi(fd) { return fetch(form.action, { method: 'POST', body: fd, credentials: 'same-origin' }); }
   function docLoi(r) { return r.text().then(function (t) { throw new Error(t || 'Không xuất được file.'); }); }
   function khoaPhamVi() { var pv = radio('pham_vi'); return pv === 'chon' ? 'chon:' + cacCauDaChon().join(',') : pv; }
@@ -579,7 +568,6 @@
     });
   }
 
-  // ---------- Dựng khung xem trước ----------
   function xoaXem() {
     bieuDoXem.forEach(function (c) { c.destroy(); });
     bieuDoXem = [];
@@ -758,7 +746,6 @@
   hop.addEventListener('click', function (e) { if (e.target === hop) { dong(); } });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !hop.hidden) { dong(); } });
 
-  // ---------- Xuất file ----------
   function taoFile(fd, dinhDang) {
     fd.set('dinhdang', dinhDang);
     return goi(fd).then(function (r) {

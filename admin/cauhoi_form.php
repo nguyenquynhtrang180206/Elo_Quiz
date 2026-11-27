@@ -1,22 +1,12 @@
 <?php
-// Thêm / sửa câu hỏi cùng đáp án (UC13: A-18, A-19, A-21, A-44).
-// Đặt tại: elo_quiz/admin/cauhoi_form.php   (?id=<MaCauHoi> để sửa, không có id là thêm mới)
-//
-// Quy tắc sửa (đã đổi so với bản cũ):
-//  - Câu CHƯA dùng trong trận: sửa tự do (môn, loại kỳ thi, độ khó, nội dung, 2-4 phương án, giải thích).
-//  - Câu ĐÃ dùng trong trận (kể cả trận đã kết thúc): vẫn sửa được để chữa lỗi nhập sai, nhưng chỉ sửa
-//    nội dung, độ khó, giải thích, chữ của từng phương án và đáp án đúng. Giữ nguyên môn, loại kỳ thi và số
-//    phương án vì bài làm cũ (CHITIETTRALOI) tham chiếu tới từng phương án. Mỗi lần sửa ghi nhật ký (A-40).
-//    Điểm và Elo của các trận cũ KHÔNG được tính lại.
-//  - Câu đang nằm trong trận chưa kết thúc ('Đã ghép', 'Đang diễn ra'): tạm khóa, chỉ xem.
+// Thêm/sửa câu hỏi: câu đã dùng giữ nguyên môn, loại kỳ thi, số phương án; đang trong trận chưa kết thúc thì khóa.
 require_once __DIR__ . '/../core/bootstrap.php';
-Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');   // A-04
+Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');
 
 $pdo  = Database::pdo();
 $id   = (int) ($_GET['id'] ?? 0);
 $danhSach = BASE_URL . '/admin/cauhoi.php';
-// ve = chuỗi truy vấn của danh sách lúc bấm Sửa (bộ lọc, trang danh sách, trang bản đồ). Chỉ nhận các khóa
-// quen thuộc, nên không thể bị lợi dụng để chuyển sang địa chỉ khác. Lưu xong thì quay về đúng chỗ đó.
+// Chỉ nhận tham số lọc hợp lệ từ query 've' để quay về đúng trang danh sách.
 $veTho = [];
 parse_str((string) ($_GET['ve'] ?? ''), $veTho);
 $veSach = [];
@@ -27,12 +17,12 @@ foreach (['q', 'mon', 'kt', 'dk', 'tt', 'loc', 'page', 'bd'] as $khoa) {
 }
 $veChuoi = $veSach ? http_build_query($veSach) : '';
 if ($veChuoi !== '') { $danhSach .= '?' . $veChuoi; }
-$veNeo = static fn (int $maCau): string => $danhSach . '#cau-' . $maCau;   // nhảy đúng tới dòng vừa sửa
+$veNeo = static fn (int $maCau): string => $danhSach . '#cau-' . $maCau;
 
 $tieuDe  = $id > 0 ? 'Sửa câu hỏi' : 'Thêm câu hỏi';
 $mucChon = 'cauhoi';
 
-// Đếm số trận đã dùng câu này và số trận chưa kết thúc đang dùng câu này
+// Đếm tổng trận đã dùng và số trận chưa kết thúc.
 $demTran = static function (PDO $pdo, int $maCau): array {
     $st = $pdo->prepare('SELECT COUNT(DISTINCT MaTran) FROM CAUHOITRANDAU WHERE MaCauHoi = ?');
     $st->execute([$maCau]);
@@ -45,7 +35,7 @@ $demTran = static function (PDO $pdo, int $maCau): array {
     return [$soTran, (int) $st->fetchColumn()];
 };
 
-// ---- Nạp câu hỏi khi sửa ----
+// Nạp dữ liệu câu hỏi khi sửa.
 $cau    = null;
 $dapCu  = [];
 if ($id > 0) {
@@ -70,15 +60,15 @@ $dangTran = 0;
 if ($id > 0) {
     [$soTran, $dangTran] = $demTran($pdo, $id);
 }
-$daDung = $soTran > 0;      // đã dùng: sửa hạn chế, có ghi nhật ký
-$khoa   = $dangTran > 0;    // đang trong trận chưa kết thúc: chỉ xem
+$daDung = $soTran > 0;
+$khoa   = $dangTran > 0;
 
 $dsMon = $pdo->query("SELECT MaMon, TenMon FROM MONHOC WHERE TrangThai IN ('Đang mở','Đã ẩn') ORDER BY TenMon")->fetchAll();
 $dsKT  = $pdo->query('SELECT MaLoaiKT, TenLoaiKT FROM LOAIKYTHI ORDER BY MaLoaiKT')->fetchAll();
 
 $loi = [];
 
-// ---- Xử lý lưu ----
+// Xử lý lưu câu hỏi.
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_check();
     $in = [
@@ -96,8 +86,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $choPhep    = true;
         $cheDoDaDung = false;
         if ($id > 0) {
-            // Khóa dòng câu hỏi rồi đếm lại trong cùng giao dịch: khóa này và khóa khóa ngoại của một trận
-            // đang được tạo loại trừ nhau, nên không có chuyện sửa đúng lúc câu được đưa vào trận.
+            // Khóa dòng câu hỏi và đếm lại trong transaction để tránh xung đột với trận đang tạo.
             $st = $pdo->prepare('SELECT MaCauHoi FROM CAUHOI WHERE MaCauHoi = ? FOR UPDATE');
             $st->execute([$id]);
             [$soTranTx, $dangTranTx] = $demTran($pdo, $id);
@@ -110,7 +99,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if ($choPhep && $cheDoDaDung) {
-            // ===== Câu đã dùng trong trận: sửa tại chỗ, giữ nguyên mã câu và mã từng phương án =====
+            // Câu đã dùng: sửa tại chỗ, giữ nguyên mã câu và mã phương án.
             $st = $pdo->prepare('SELECT MaMon, MaLoaiKT, NoiDung, GiaiThich, DoKho FROM CAUHOI WHERE MaCauHoi = ?');
             $st->execute([$id]);
             $cu = $st->fetch();
@@ -119,8 +108,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $dapGoc = $st->fetchAll();
             $n = count($dapGoc);
 
-            $in['mon']   = (int) $cu['MaMon'];                                   // không đổi môn
-            $in['loai']  = $cu['MaLoaiKT'] === null ? '' : (string) $cu['MaLoaiKT'];   // không đổi loại kỳ thi
+            $in['mon']   = (int) $cu['MaMon'];
+            $in['loai']  = $cu['MaLoaiKT'] === null ? '' : (string) $cu['MaLoaiKT'];
             $in['dapan'] = array_slice(is_array($_POST['dapan'] ?? null) ? array_values($_POST['dapan']) : [], 0, $n);
 
             [$loi, $sach] = CauHoiHelper::kiemTra($pdo, $in, $id);
@@ -129,7 +118,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             if (!$loi) {
-                // Liệt kê những gì thay đổi để ghi nhật ký
+                // Ghi nhận các trường thay đổi vào nhật ký.
                 $doi = [];
                 if (CauHoiHelper::chuan((string) $cu['NoiDung']) !== $sach['noidung']) { $doi[] = 'nội dung'; }
                 if (CauHoiHelper::chuan((string) $cu['GiaiThich']) !== (string) ($sach['giaithich'] ?? '')) { $doi[] = 'giải thích'; }
@@ -151,7 +140,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 $pdo->prepare('UPDATE CAUHOI SET NoiDung = ?, GiaiThich = ?, DoKho = ? WHERE MaCauHoi = ?')
                     ->execute([$sach['noidung'], $sach['giaithich'], $sach['dokho'], $id]);
-                // Bỏ cờ đúng của cả câu trước, rồi đặt lại: cột sinh DapAnDungDuy chỉ cho một dòng đúng mỗi câu
+                // Đặt lại cờ đúng trên toàn câu trước khi cập nhật tránh lỗi ràng buộc duy nhất.
                 $pdo->prepare('UPDATE DAPAN SET LaDapAnDung = 0 WHERE MaCauHoi = ?')->execute([$id]);
                 $up = $pdo->prepare('UPDATE DAPAN SET NoiDungDapAn = ?, LaDapAnDung = ? WHERE MaDapAn = ? AND MaCauHoi = ?');
                 foreach ($dapGoc as $i => $d) {
@@ -163,13 +152,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 redirect($veNeo($id));
             }
         } elseif ($choPhep) {
-            // ===== Câu chưa dùng trong trận (hoặc thêm mới): như cũ =====
+            // Câu chưa dùng hoặc thêm mới.
             [$loi, $sach] = CauHoiHelper::kiemTra($pdo, $in, $id);
             if (!$loi) {
                 if ($id > 0) {
                     $pdo->prepare('UPDATE CAUHOI SET MaMon = ?, MaLoaiKT = ?, NoiDung = ?, GiaiThich = ?, DoKho = ? WHERE MaCauHoi = ?')
                         ->execute([$sach['mon'], $sach['loai'], $sach['noidung'], $sach['giaithich'], $sach['dokho'], $id]);
-                    // Chưa có bài làm nào tham chiếu đáp án: ghi lại toàn bộ đáp án
+                    // Chưa có bài làm tham chiếu: ghi lại toàn bộ đáp án.
                     $pdo->prepare('DELETE FROM DAPAN WHERE MaCauHoi = ?')->execute([$id]);
                     CauHoiHelper::ghiDapAn($pdo, $id, $sach);
                     $maMoi = $id;
@@ -190,7 +179,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// ---- Giá trị đổ vào form: ưu tiên dữ liệu vừa gửi (khi có lỗi), rồi đến dữ liệu đang sửa ----
+// Đổ dữ liệu vào form.
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $v = [
         'mon'       => (int) ($_POST['mon'] ?? 0),
@@ -201,7 +190,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'dapan'     => array_pad(array_map('strval', (array) ($_POST['dapan'] ?? [])), 4, ''),
         'dung'      => (int) ($_POST['dung'] ?? -1),
     ];
-    if ($cau) {   // câu đã dùng: môn và loại kỳ thi luôn lấy từ CSDL
+    if ($cau) {   // Câu đã dùng giữ nguyên môn và loại kỳ thi từ CSDL.
         $v['mon']  = (int) $cau['MaMon'];
         $v['loai'] = $cau['MaLoaiKT'] === null ? '' : (string) $cau['MaLoaiKT'];
     }
@@ -221,9 +210,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 } else {
-    // ?dokho= (từ dấu + trên bản đồ phủ ở cauhoi.php) chọn sẵn độ khó; giá trị lạ thì dùng Trung bình
+    // Gợi ý sẵn độ khó và loại kỳ thi từ query string.
     $dokhoGoiY = (string) ($_GET['dokho'] ?? '');
-    // ?loai= (từ ô "+ Thêm câu hỏi" ở bản đồ môn học) chọn sẵn loại kỳ thi; không hợp lệ thì để "cả hai kỳ"
     $loaiGoiY = (string) ($_GET['loai'] ?? '');
     $loaiHopLe = in_array($loaiGoiY, array_map(static fn ($k) => (string) $k['MaLoaiKT'], $dsKT), true) ? $loaiGoiY : '';
     $v = ['mon' => (int) ($_GET['mon'] ?? 0), 'loai' => $loaiHopLe, 'dokho' => in_array($dokhoGoiY, CauHoiHelper::DO_KHO, true) ? $dokhoGoiY : 'Trung bình', 'noidung' => '', 'giaithich' => '',
@@ -234,13 +222,13 @@ $tenMon = '';
 foreach ($dsMon as $m) { if ((int) $m['MaMon'] === $v['mon']) { $tenMon = $m['TenMon']; } }
 $tenKT = 'Cả hai kỳ';
 foreach ($dsKT as $k) { if ((string) $k['MaLoaiKT'] === $v['loai']) { $tenKT = $k['TenLoaiKT']; } }
-$soO = $daDung ? count($dapCu) : 4;   // câu đã dùng: giữ đúng số phương án đang có
+$soO = $daDung ? count($dapCu) : 4;
 
 $cssTrang = 'cauhoi_form';
 $jsTrang  = 'cauhoi_form';
 require __DIR__ . '/layout/header.php';
 
-// Nhãn hạng theo độ khó (hiện trên thẻ độ khó và thẻ xem trước)
+// Nhãn hạng hiển thị theo độ khó.
 $hangTheoKho = ['Dễ' => ['Hạng Đồng', 'h-de'], 'Trung bình' => ['Hạng Bạc', 'h-tb'], 'Khó' => ['Hạng Vàng', 'h-kho']];
 $huyChuong = static function (string $lop = ''): string {
     return '<svg class="cf-hc ' . $lop . '" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" '
@@ -298,7 +286,7 @@ $icTick = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="c
 
     <div class="cf-luoi">
 
-      <!-- ===== Cột trái: thông tin câu hỏi ===== -->
+      <!-- Cột trái: thông tin câu hỏi -->
       <section class="cf-khoi">
         <div class="cf-truong">
           <label for="mon">Môn học</label>
@@ -353,7 +341,7 @@ $icTick = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="c
         </div>
       </section>
 
-      <!-- ===== Cột phải: thẻ xem trước, gõ thẳng vào thẻ ===== -->
+      <!-- Cột phải: xem trước và nhập đáp án -->
       <section class="cf-xem" aria-label="Xem trước câu hỏi">
         <div class="cf-xem-dau">
           <span id="cfXemMon">Chưa chọn môn · Cả hai kỳ</span>
@@ -401,7 +389,7 @@ $icTick = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="c
     <p class="cf-thongbao" id="cfThongBao" role="status" aria-live="polite"></p>
   </form>
 
-  <!-- Hộp chạy thử: giả lập màn trả lời của người chơi, không ghi gì vào CSDL -->
+  <!-- Hộp chạy thử giao diện người chơi (không lưu CSDL) -->
   <dialog class="cf-dlg" id="cfDlg" aria-labelledby="cfDlgTieuDe">
     <div class="cf-xem cf-xem-dlg">
       <div class="cf-xem-dau">

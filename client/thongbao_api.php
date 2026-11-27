@@ -1,6 +1,5 @@
 <?php
-// API Xử lý thông báo người dùng (AJAX)
-// Đặt tại: client/thongbao_api.php
+// API xử lý thông báo người dùng
 require_once __DIR__ . '/../core/bootstrap.php';
 
 header('Content-Type: application/json; charset=utf-8');
@@ -15,7 +14,7 @@ $pdo = Database::pdo();
 $action = (string) ($_GET['action'] ?? $_POST['action'] ?? 'lay_danh_sach');
 
 if ($action === 'dem') {
-    // Chỉ đếm số thông báo chưa đọc (nhẹ nhất để polling)
+    // Chỉ đếm số chưa đọc để giảm tải polling
     $soChuaDoc = ThongBaoHelper::laySoChuaDoc($pdo, $maND);
     echo json_encode(['ok' => true, 'soChuaDoc' => $soChuaDoc]);
     exit;

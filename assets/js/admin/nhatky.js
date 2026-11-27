@@ -1,11 +1,14 @@
+<<<<<<< HEAD
 // Trang Nhật ký quản trị (chỉ xem, không sửa/xóa: A-42).
 // 1) Bấm một thẻ trong dòng thời gian: chi tiết hiện ở panel bên phải (mặc định chọn dòng đầu tiên).
 //    Dữ liệu nằm trong thuộc tính data-nk (JSON do PHP tạo); gán bằng textContent nên không chèn HTML.
 // 2) Vẽ biểu đồ "Nhịp hoạt động hôm nay" (48 mốc 30 phút) bằng Chart.js; mỗi cột là tổng số thao tác trong ngày.
+=======
+// Trang Nhật ký quản trị: panel chi tiết và biểu đồ hoạt động theo ngày.
+>>>>>>> f9a7b753f7123132c42ced4858c19a0f7b41e5a2
 (function () {
   'use strict';
 
-  // ---------- Panel chi tiết ----------
   var ds = document.getElementById('nkDanhSach');
   var panel = document.getElementById('nkPanel');
   var bang = document.getElementById('nkPanelDs');
@@ -45,7 +48,7 @@
     if (dau) { chon(dau, false); }
   }
 
-  // ---------- Biểu đồ hoạt động theo ngày (mỗi cột = 1 ngày; xem 7 hoặc 30 ngày, lùi/tiến không tải lại trang) ----------
+  // Biểu đồ hoạt động theo ngày (7 hoặc 30 ngày)
   var cv = document.getElementById('nkNhip');
   var khung = document.getElementById('nkNhipKhung');
   if (cv && khung && typeof Chart !== 'undefined') {
@@ -159,12 +162,7 @@
   }
 })();
 
-// ---------- Hộp thoại Xuất (Excel / PDF) có khung XEM TRƯỚC, gửi tới nhatky_xuat.php rồi tải file về ----------
-// Cột trái: phạm vi, nội dung (danh sách / hai biểu đồ), trường, mốc thời gian (tích nhiều), cách chia sheet, định dạng.
-// Cột phải: xem trước từng mốc đã tích. Số liệu xem trước của CẢ BA mốc lấy từ máy chủ (buoc=xemtruoc) một lần cho mỗi phạm vi;
-// đổi nội dung, trường, mốc, cách chia hay định dạng chỉ vẽ lại, không gọi lại.
-// Khi bấm Xuất: vẽ lại các biểu đồ ở kích thước cố định, chụp thành JPEG (anh_nhip_<mốc>, anh_cocau_<mốc>) gửi kèm để máy chủ đưa vào file.
-// Định dạng "Cả hai": gọi máy chủ lần lượt hai lần (Excel rồi PDF) và tải về liên tiếp hai file (không nén zip).
+// Hộp thoại Xuất nhật ký (Excel/PDF) kèm xem trước và ảnh biểu đồ.
 (function () {
   'use strict';
   var nutMo = document.getElementById('nkMoXuat');
@@ -218,7 +216,6 @@
     return '';
   }
 
-  // ---------- Gọi máy chủ ----------
   function goi(fd) { return fetch(form.action, { method: 'POST', body: fd, credentials: 'same-origin' }); }
   function docLoi(r) { return r.text().then(function (t) { throw new Error(t || 'Không xuất được file.'); }); }
   function layDuLieu() {
@@ -235,8 +232,7 @@
     });
   }
 
-  // ---------- Biểu đồ (dùng cho cả khung xem trước và ảnh chụp đưa vào file) ----------
-  // tinh = true: ảnh chụp (kích thước cố định, không hiệu ứng, nét gấp đôi); false: xem trước co giãn theo khung
+  // Cấu hình biểu đồ (tinh = true khi chụp ảnh cố định để xuất file)
   function cauHinh(loai, dm, tinh) {
     var chung = tinh ? { responsive: false, animation: false, devicePixelRatio: 2 }
                      : { responsive: true, maintainAspectRatio: false, animation: false };
@@ -311,7 +307,7 @@
     return kq;
   }
 
-  // ---------- Mô tả cấu trúc file (như ghi chú "Chia" của hộp thoại Xuất ở trang Tổng quan) ----------
+  // Mô tả cấu trúc file xuất
   function tenSheets() {
     var nd = chonList('noidung[]'), chia = radio('chia'), ten = [];
     if (chia !== 'loai') {
@@ -341,7 +337,6 @@
     form.querySelectorAll('input[name="truong[]"], #nkChonHet, #nkBoChon').forEach(function (i) { i.disabled = !coDs; });
   }
 
-  // ---------- Khung xem trước ----------
   function nhanThe() {
     var dd = radio('dinhdang');
     if (dd === 'excel') { return 'Excel · ' + tenSheets().length + ' sheet'; }
@@ -472,7 +467,6 @@
   document.getElementById('nkChonHet').addEventListener('click', function () { datTatCa(true); });
   document.getElementById('nkBoChon').addEventListener('click', function () { datTatCa(false); });
 
-  // ---------- Mở / đóng ----------
   function mo() {
     cache = { khoa: '', du: null };   // luôn lấy số liệu mới mỗi lần mở
     bao('');
@@ -485,7 +479,6 @@
   hop.addEventListener('click', function (e) { if (e.target === hop) { dong(); } });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !hop.hidden) { dong(); } });
 
-  // ---------- Xuất file ----------
   function taoFile(dinhDang, anh) {
     var fd = new FormData(form);
     fd.set('dinhdang', dinhDang);

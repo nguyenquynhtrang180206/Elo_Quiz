@@ -1,6 +1,4 @@
-/* ==========================================================================
-   QUIZUP ARENA - Password Security & Strength UI Components
-   ========================================================================== */
+/* Thành phần bảo mật mật khẩu */
 
 .pw-field-wrap {
   position: relative;
@@ -50,7 +48,7 @@
   display: none;
 }
 
-/* Password Strength Meter */
+/* Thanh đo độ mạnh mật khẩu */
 .pw-strength-container {
   margin: 10px 0 14px 0;
 }
@@ -93,7 +91,7 @@
   margin-top: 5px;
 }
 
-/* Requirements Checklist */
+/* Danh sách yêu cầu mật khẩu */
 .pw-requirements-list {
   list-style: none;
   padding: 12px 14px;
@@ -136,7 +134,7 @@
   color: #10b981;
 }
 
-/* Rate Limit Alert Box */
+/* Cảnh báo giới hạn tần suất */
 .rate-limit-warning {
   background: rgba(239, 68, 68, 0.15);
   border: 1px solid rgba(239, 68, 68, 0.4);
@@ -150,7 +148,7 @@
   gap: 10px;
 }
 
-/* No-Paste Toast & Warning */
+/* Toast chống dán */
 .no-paste-toast {
   position: absolute;
   bottom: calc(100% + 6px);

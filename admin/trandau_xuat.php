@@ -1,19 +1,7 @@
 <?php
-// Xuất danh sách / thống kê trận đấu ra Excel hoặc PDF. Đặt tại: elo_quiz/admin/trandau_xuat.php
-// Được gọi (POST, có CSRF) từ hộp thoại "Xuất báo cáo" ở admin/trandau.php. Mỗi lần gọi trả MỘT file; khi người dùng chọn
-// "Cả hai", trình duyệt (trandau_xuat.js) gọi lần lượt hai lần (Excel rồi PDF), không nén zip (cùng cách với thongke_xuat.php).
-//
-// Tham số:
-//   pham_vi  : loc = đang lọc (q, mon, tt, bt gửi kèm từ trang, cùng tiêu chí với danh sách), tatca = mọi trận.
-//   noidung[]: tongquan = ô số liệu + số trận theo trạng thái, bieudo = trận bắt đầu mỗi ngày trong khoảng ngày tự chọn
-//              (bd_khoang = 7|30|90|tuychon, bd_tu, bd_den; KHÔNG phụ thuộc bộ lọc),
-//              ds = danh sách trận, batthuong = danh sách trận bất thường (A-25).
-//   truong[] : các cột của danh sách (xem $COT). Thứ tự cột trong file luôn theo $COT.
-//   dinhdang : excel | pdf.
-//   buoc=xemtruoc: không xuất file mà trả JSON (số liệu, vài dòng đầu của danh sách) để dựng khung "Xem trước" trong hộp thoại.
-//   anh_bieudo: ảnh JPEG (data URL) của biểu đồ cột "trận bắt đầu mỗi ngày", do trình duyệt vẽ từ số liệu xem trước.
+// Xuất danh sách và thống kê trận đấu ra Excel/PDF, kèm JSON xem trước.
 require_once __DIR__ . '/../core/bootstrap.php';
-Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');   // A-04
+Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');
 
 function loi_xuat(string $thongBao, int $ma = 400): never
 {
@@ -22,7 +10,7 @@ function loi_xuat(string $thongBao, int $ma = 400): never
     exit($thongBao);
 }
 
-// Ảnh biểu đồ (data URL JPEG): chỉ nhận JPEG hợp lệ, tối đa 5 MB
+// Kiểm tra và giải mã ảnh biểu đồ JPEG (tối đa 5 MB).
 function anh_bieu_do(string $khoa): ?array
 {
     $v   = (string) ($_POST[$khoa] ?? '');
@@ -41,10 +29,10 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 csrf_check();
 @set_time_limit(120);
 
-$TOI_DA_XLSX = 20000;   // số dòng tối đa của MỖI bảng danh sách (vượt thì yêu cầu lọc bớt, tránh treo máy chủ)
+$TOI_DA_XLSX = 20000;
 $TOI_DA_PDF  = 3000;
 
-// Cột được phép xuất: khóa => [tiêu đề, tỉ lệ độ rộng trong PDF]
+// Cấu hình cột xuất và tỉ lệ độ rộng trong PDF.
 $COT = [
     'ma'    => ['Mã trận',                     1.0],
     'mon'   => ['Môn học',                     2.2],
@@ -67,7 +55,7 @@ $phamVi = (string) ($_POST['pham_vi'] ?? '');
 if (!in_array($phamVi, ['loc', 'tatca'], true)) { loi_xuat('Hãy chọn phạm vi cần xuất.'); }
 $dinhDang = (string) ($_POST['dinhdang'] ?? '');
 $xemTruoc = (($_POST['buoc'] ?? '') === 'xemtruoc');
-if ($xemTruoc) { $dinhDang = 'excel'; }   // xem trước không cần định dạng
+if ($xemTruoc) { $dinhDang = 'excel'; }
 if (!in_array($dinhDang, ['excel', 'pdf'], true)) { loi_xuat('Hãy chọn định dạng Excel hoặc PDF.'); }
 $noiDung = $chon('noidung', array_keys($NOI_DUNG));
 $truong  = $chon('truong', array_keys($COT));
@@ -85,7 +73,7 @@ $nguongPhut = intdiv($nguongGiay, 60);
 [$dkBt, $thamBt] = TranDauGiamSat::dieuKienBatThuong($coCotTao, $nguongGiay);
 $cotTao = $coCotTao ? ', TIMESTAMPDIFF(SECOND, t.ThoiGianTao, NOW(3)) AS giay_da_ghep' : ', NULL AS giay_da_ghep';
 
-// ---- Bộ lọc (cùng tiêu chí với admin/trandau.php) ----
+// Bộ lọc đồng bộ với trandau.php.
 $dieuKien = []; $tham = []; $moTaLoc = [];
 if ($phamVi === 'loc') {
     $q   = trim((string) ($_POST['q'] ?? ''));
@@ -134,7 +122,7 @@ if ($coDs && !$xemTruoc) {
     }
 }
 
-// ---- Số liệu tổng quan trong phạm vi ----
+// Số liệu tổng quan trong phạm vi.
 $tq = ['tong' => 0, 'hom_nay' => 0, 'tb' => null, 'bat_thuong' => 0, 'tt' => ['Đã ghép' => 0, 'Đang diễn ra' => 0, 'Kết thúc' => 0, 'Hủy' => 0]];
 if ($coTq) {
     $moc = $coCotTao ? 'COALESCE(t.ThoiGianBatDau, t.ThoiGianTao)' : 't.ThoiGianBatDau';
@@ -153,7 +141,7 @@ if ($coTq) {
     foreach ($st->fetchAll(PDO::FETCH_NUM) as [$k, $n]) { $tq['tt'][$k] = (int) $n; }
 }
 
-// ---- Trận bắt đầu mỗi ngày: khoảng ngày chọn trong hộp thoại, tính trên toàn bộ trận (không theo bộ lọc) ----
+// Thống kê trận bắt đầu mỗi ngày (không phụ thuộc bộ lọc).
 $ngayBd = []; $moTaBd = ''; $tkBd = ['tong' => 0, 'tb' => 0, 'cao' => '—', 'bt' => 0];
 if ($coBd) {
     $kBd = (string) ($_POST['bd_khoang'] ?? '7');
@@ -191,7 +179,7 @@ if ($coBd) {
     $moTaBd = 'Trận bắt đầu mỗi ngày · ' . $tuD->format('d/m/Y') . ' - ' . $denD->format('d/m/Y') . ' (' . count($ngayBd) . ' ngày, toàn bộ trận, không theo bộ lọc)';
 }
 
-// ---- Danh sách trận (và danh sách bất thường) ----
+// Truy vấn danh sách trận và trận bất thường.
 $sqlDs = static function (string $whereSql) use ($cotTao): string {
     return "SELECT t.MaTran, m.TenMon, k.TenLoaiKT, t.TrangThai, t.LyDoKetThuc, t.ThoiGianBatDau, t.ThoiGianKetThuc,
                    TIMESTAMPDIFF(SECOND, t.ThoiGianBatDau, NOW(3)) AS giay_dien_ra,
@@ -242,7 +230,7 @@ $tieuDeCot = array_map(static fn (string $k): string => $COT[$k][0], $truong);
 $tyLe     = array_map(static fn (string $k): float => $COT[$k][1], $truong);
 $tbChu    = TranDauGiamSat::thoiLuong($tq['tb']);
 
-// ---- Xem trước: trả JSON, không xuất file, không ghi nhật ký ----
+// Trả JSON xem trước (không ghi nhật ký).
 if ($xemTruoc) {
     $demBt = 0;
     if ($coBt) {
@@ -267,7 +255,7 @@ if ($xemTruoc) {
     exit;
 }
 
-// Ghi vết việc xuất (gọi trước khi gửi file vì gửi xong là kết thúc chương trình)
+// Ghi nhật ký thao tác xuất trước khi gửi file.
 NhatKy::ghi('Xuất danh sách trận đấu', null,
     ($dinhDang === 'pdf' ? 'PDF' : 'Excel') . ' · ' . $so($tongPhamVi) . ' trận trong phạm vi · Nội dung: '
     . implode(', ', array_map(static fn (string $k): string => $NOI_DUNG[$k], $noiDung))
@@ -277,7 +265,7 @@ $mauTT = ['Kết thúc' => ['xlsx' => 10, 'pdf' => '#dcf5ea'], 'Hủy' => ['xlsx
           'Đang diễn ra' => ['xlsx' => 0, 'pdf' => '#e3ebff'], 'Đã ghép' => ['xlsx' => 0, 'pdf' => '#fff4d6']];
 
 try {
-    // ============================== EXCEL ==============================
+    // Xuất Excel.
     if ($dinhDang === 'excel') {
         $hangDs = static function (array $ds) use ($truong, $tieuDeCot, $mauTT): array {
             $h = [['kieu' => 6, 'o' => $tieuDeCot]];
@@ -334,7 +322,7 @@ try {
         XlsxWriter::taiNhieuSheet($tenFile . '.xlsx', $sheets);
     }
 
-    // ============================== PDF (A4 ngang) ==============================
+    // Xuất PDF (A4 ngang).
     $pdf = new PdfWriter(__DIR__ . '/../assets/fonts');
     $pdf->khoTrang(true);
     $veDs = static function (array $ds) use ($pdf, $truong, $tieuDeCot, $tyLe, $mauTT): void {

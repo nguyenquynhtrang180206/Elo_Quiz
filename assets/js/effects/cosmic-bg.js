@@ -1,16 +1,4 @@
-/* =====================================================================
-   COSMIC NEBULA - hệ thống hạt sao 3D tương tác (Three.js / WebGL)
-   Chỉ lo phần đồ họa; không liên quan nghiệp vụ PHP.
-
-   Thành phần:
-     1. Nebula  : fragment shader (domain-warped fbm) vẽ ở độ phân giải thấp -> tinh vân lỏng.
-     2. Stars   : 1 BufferGeometry (3 lớp xa/giữa/gần), vật lý CPU: spring + damping + lực hút
-                  xoáy theo chuột + sóng xung kích khi click, vẽ bằng ShaderMaterial (additive).
-     3. FX pool : vòng đệm hạt cho vệt chuột và tia sáng khi click.
-     4. Links   : đường sáng nối các hạt đang bị hút; glow tại tâm; vòng shockwave.
-   Tối ưu: không cấp phát trong vòng lặp, tự giảm chất lượng khi FPS thấp, dừng khi tab ẩn,
-           tôn trọng prefers-reduced-motion, có nút Tự động / Nhẹ / Tắt (lưu localStorage).
-   ===================================================================== */
+// Nền sao và tinh vân 3D tương tác bằng Three.js / WebGL (lưu chế độ trong localStorage, tự giảm chất lượng khi FPS thấp).
 import * as THREE from '../../vendor/three.module.min.js';
 
 const root = document.documentElement;
@@ -22,7 +10,7 @@ let mode = 'auto';
 try { mode = localStorage.getItem(KEY) || 'auto'; } catch (e) { /* bỏ qua */ }
 if (!MODES.includes(mode)) mode = 'auto';
 
-/* ---------- Nút chọn chế độ hiệu ứng (Gaming Cyber Orb) ---------- */
+// Nút chuyển chế độ hiệu ứng (Tự động / Nhẹ / Tắt)
 (function makeToggle() {
   const b = document.createElement('button');
   b.type = 'button';
@@ -48,7 +36,7 @@ function init() {
     ? { neb: 0.3, oct: 4, n: 1500, dpr: 1, fx: 160, sparks: 40, links: false, nebEvery: 2 }
     : { neb: 0.5, oct: 5, n: 5200, dpr: Math.min(devicePixelRatio || 1, 2), fx: 420, sparks: 90, links: true, nebEvery: 1 };
 
-  /* ---------- Hai renderer (nebula nền + hạt phía trên) ---------- */
+  // Hai renderer: tinh vân nền và lớp hạt sao
   let rN, rP;
   const cN = document.createElement('canvas');
   const cP = document.createElement('canvas');
@@ -78,7 +66,7 @@ function init() {
     blendSrcAlpha: THREE.OneFactor, blendDstAlpha: THREE.OneFactor,
   }, params));
 
-  /* ---------- 1. Nebula (tinh vân lỏng) ---------- */
+  // Tinh vân nền (shader)
   const sceneN = new THREE.Scene();
   const camN = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
   const nebMat = new THREE.ShaderMaterial({
@@ -106,7 +94,7 @@ function init() {
         col=mix(col,cyan,smoothstep(.55,.9,r.y)*.7*smoothstep(.3,.7,f));
         col=mix(col,purple,smoothstep(.4,.8,r.x)*.75);
         col=mix(col,mag,smoothstep(.65,.95,r.x*f*1.6)*.6);
-        float fil=pow(1.-abs(fbm(p*3.+3.*r)-.5)*2.,6.);     /* sợi sáng như trong ảnh tham chiếu */
+        float fil=pow(1.-abs(fbm(p*3.+3.*r)-.5)*2.,6.);     /* sợi sáng tinh vân */
         col+=mix(cyan,mag,r.x)*fil*.22*f;
         float vig=smoothstep(1.25,.25,length(vUv-.5)*1.5);
         col*=.62+.38*vig;                                   /* tối nhẹ để nội dung dễ đọc */
@@ -117,7 +105,7 @@ function init() {
   nebMesh.frustumCulled = false;
   sceneN.add(nebMesh);
 
-  /* ---------- 2. Sao 3 lớp ---------- */
+  // Hệ thống hạt sao 3 lớp
   const CAMZ = 30, tanH = Math.tan(THREE.MathUtils.degToRad(30));
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 300);
@@ -188,7 +176,7 @@ function init() {
   let drawN = N;
   S.g.setDrawRange(0, drawN);
 
-  /* ---------- 3. FX pool: vệt chuột + tia sáng ---------- */
+  // Pool hạt vệt chuột và tia sáng
   const FXN = Q.fx;
   const F = mkPoints(FXN, 0);
   scene.add(F.pts);
@@ -204,7 +192,7 @@ function init() {
     fxAlive++; fxColDirty = true;
   }
 
-  /* ---------- 4. Links, glow, shockwave ---------- */
+  // Đường nối hạt, glow tâm và sóng xung kích
   const MAXSEG = 90;
   const linkPos = new Float32Array(MAXSEG * 6);
   const linkGeo = new THREE.BufferGeometry();
@@ -248,7 +236,7 @@ function init() {
   }
   let wavesOn = 0, waveCursor = 0;
 
-  /* ---------- Trạng thái chuột ---------- */
+  // Trạng thái con trỏ
   const mouse = { x: 0, y: 0, px: 0, py: 0, active: false };  // px: tọa độ màn hình
   const ms = { x: 0, y: 0 };            // vị trí đã làm mượt (có độ trễ)
   let mStr = 0, spS = 0, lastPx = 0, lastPy = 0, lastNx = 0, lastNy = 0;
@@ -288,7 +276,7 @@ function init() {
     }
   }
 
-  /* ---------- Bố cục / resize ---------- */
+  // Bố cục và resize
   let W = 1, H = 1, nebScale = Q.neb;
   function layout() {
     for (let i = 0; i < N; i++) {
@@ -312,7 +300,7 @@ function init() {
   let rq = 0;
   addEventListener('resize', () => { cancelAnimationFrame(rq); rq = requestAnimationFrame(resize); });
 
-  /* ---------- Vật lý + vẽ mỗi khung ---------- */
+  // Cập nhật vật lý và render mỗi khung
   let time = 0, last = 0, raf = 0, ema = 16, slow = 0, degrade = 0, frameNo = 0;
   const WA = [1.5, 1.8, 2.5], WS = [0.05, 0.09, 0.14];
 
@@ -393,7 +381,7 @@ function init() {
     }
     S.pa.needsUpdate = true; S.ga.needsUpdate = true;
 
-    // đường sáng nối các hạt bị hút
+    // Đường nối các hạt bị hút
     if (Q.links) {
       let seg = 0;
       if (s > 0.08 && nc > 1) {
@@ -415,7 +403,6 @@ function init() {
       linkMat.uniforms.uOp.value = Math.min(0.45, s * 0.5);
     }
 
-    // glow ở điểm hội tụ
     if (s > 0.01) {
       const d = CAMZ;
       glowMesh.visible = true;
@@ -437,7 +424,6 @@ function init() {
     }
     lastNx = mouse.x; lastNy = mouse.y;
 
-    // cập nhật pool FX
     if (fxAlive > 0) {
       let alive = 0;
       for (let j = 0; j < FXN; j++) {
@@ -455,7 +441,6 @@ function init() {
       if (fxColDirty) { F.ca.needsUpdate = true; fxColDirty = false; }
     }
 
-    // vòng shockwave
     for (let k = 0; k < WAVES; k++) {
       const w = waves[k]; if (!w.on) continue;
       w.age += dt;

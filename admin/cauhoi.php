@@ -1,36 +1,29 @@
 <?php
-// Ngân hàng câu hỏi: thẻ số liệu, bản đồ phủ câu hỏi, hiệu chỉnh độ khó bằng dữ liệu thật,
-// danh sách, lọc, ẩn/hiện một hoặc nhiều câu, xem nhanh (UC13: A-17, A-20, A-40).
-// Đặt tại: elo_quiz/admin/cauhoi.php
-// Thêm/sửa câu hỏi nằm ở cauhoi_form.php. Chi tiết một câu (ngăn "Xem nhanh") lấy qua cauhoi_api.php.
+// Quản lý ngân hàng câu hỏi, bản đồ phủ và hiệu chỉnh độ khó.
 require_once __DIR__ . '/../core/bootstrap.php';
-Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');   // A-04
+Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');
 
 $pdo = Database::pdo();
 
-// ---- Ngưỡng dùng cho bản đồ phủ và hiệu chỉnh độ khó (đổi tại đây nếu cần) ----
-$MIN_LUOT_MAC_DINH = 2;   // giá trị mặc định khi chưa có cấu hình
-$MIN_LUOT_TOI_DA   = 200; // admin chỉnh được từ 1 đến ngần này (ô nhập ở thẻ hiệu chỉnh độ khó)
-// Câu có ít hơn ngần này lượt trả lời thì chưa đủ dữ liệu để đánh giá độ khó; admin tự chỉnh, lưu trong CAUHINH (MIN_LUOT_DO_KHO)
+// Ngưỡng cho bản đồ phủ và hiệu chỉnh độ khó.
+$MIN_LUOT_MAC_DINH = 2;
+$MIN_LUOT_TOI_DA   = 200;
 $MIN_LUOT  = min($MIN_LUOT_TOI_DA, max(1, Config::int('MIN_LUOT_DO_KHO', $MIN_LUOT_MAC_DINH)));
-$NGUONG_DE = 70;   // tỉ lệ đúng >= 70%  -> Dễ
-$NGUONG_KHO = 40;  // tỉ lệ đúng < 40%   -> Khó; ở giữa là Trung bình
-$PHU_DU    = 20;   // mỗi môn cần tối thiểu ngần này câu hiển thị cho mỗi mức độ khó
-$PHU_TOT   = 40;   // từ mức này trở lên là ô xanh đậm
-$NGUONG_DO = min($PHU_DU, max(1, Config::int('SO_CAU', 10)));   // dưới ngưỡng này (mặc định = số câu mỗi trận) là ô đỏ
-$SO_MON_BANDO = 6; // số môn mỗi trang của bản đồ phủ
+$NGUONG_DE = 70;
+$NGUONG_KHO = 40;
+$PHU_DU    = 20;
+$PHU_TOT   = 40;
+$NGUONG_DO = min($PHU_DU, max(1, Config::int('SO_CAU', 10)));
+$SO_MON_BANDO = 6;
 
-// Mức độ khó theo tỉ lệ trả lời đúng thực tế
+// Xác định độ khó gợi ý theo tỉ lệ trả lời đúng thực tế.
 $hangTheoTyLe = static function (int $dung, int $luot) use ($NGUONG_DE, $NGUONG_KHO): string {
     if ($dung * 100 >= $NGUONG_DE * $luot) { return 'Dễ'; }
     if ($dung * 100 < $NGUONG_KHO * $luot) { return 'Khó'; }
     return 'Trung bình';
 };
 
-// Xóa hẳn một câu hỏi, kể cả câu đã dùng trong trận: xóa luôn bài làm (CHITIETTRALOI), dòng câu trong trận
-// (CAUHOITRANDAU) và đáp án. Điểm tổng, kết quả trận và lịch sử Elo đã lưu KHÔNG bị tính lại.
-// Câu đang nằm trong trận chưa kết thúc thì không xóa (sẽ làm hỏng trận đang chơi).
-// Gọi trong giao dịch của nơi gọi. Trả về [trạng thái 'ok'|'khoa'|'khong', số trận bị ảnh hưởng, nội dung câu].
+// Xóa vĩnh viễn câu hỏi (không tính lại Elo cũ); khóa xóa nếu câu đang trong trận chưa kết thúc.
 $xoaMotCau = static function (PDO $pdo, int $ma): array {
     $st = $pdo->prepare('SELECT NoiDung FROM CAUHOI WHERE MaCauHoi = ? FOR UPDATE');
     $st->execute([$ma]);
@@ -52,7 +45,7 @@ $xoaMotCau = static function (PDO $pdo, int $ma): array {
     return ['ok', $soTran, (string) $nd];
 };
 
-// ---- A-20: ẩn / hiện câu hỏi (kèm nhật ký A-40 trong cùng giao dịch) ----
+// Xử lý ẩn/hiện, đổi độ khó và xóa câu hỏi (kèm nhật ký trong cùng giao dịch).
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_check();
     $hd = (string) ($_POST['hanh_dong'] ?? '');
@@ -62,7 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $an = $hd === 'an';
         $pdo->beginTransaction();
         try {
-            // Điều kiện theo trạng thái cũ: bấm lặp hoặc hai admin cùng bấm thì chỉ ghi nhật ký một lần
+            // Ràng buộc trạng thái cũ để tránh ghi nhật ký trùng khi thao tác đồng thời.
             $up = $pdo->prepare('UPDATE CAUHOI SET TrangThai = ? WHERE MaCauHoi = ? AND TrangThai = ?');
             $up->execute([$an ? 'Đã ẩn' : 'Hiển thị', $id, $an ? 'Hiển thị' : 'Đã ẩn']);
             if ($up->rowCount() === 1) {
@@ -77,8 +70,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             throw $ex;
         }
     } elseif ($hd === 'doi_do_kho' && (int) ($_POST['id'] ?? 0) > 0) {
-        // Đổi nhãn độ khó theo dữ liệu thật (nút "→ Dễ / Trung bình / Khó" ở thẻ hiệu chỉnh).
-        // Số liệu được tính lại ngay trong giao dịch: chỉ đổi khi nhãn mới đúng bằng nhãn mà dữ liệu hiện tại gợi ý.
+        // Đổi độ khó theo tỉ lệ đúng thực tế (kiểm tra lại số liệu trong giao dịch).
         $id  = (int) $_POST['id'];
         $moi = (string) ($_POST['dokho_moi'] ?? '');
         $pdo->beginTransaction();
@@ -89,7 +81,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($cu === false || !in_array($moi, CauHoiHelper::DO_KHO, true)) {
                 $_SESSION['ch_flash'] = ['loi', 'Câu hỏi không tồn tại hoặc độ khó mới không hợp lệ.'];
             } else {
-                // Cùng quy tắc với cauhoi_form.php: câu đang nằm trong trận chưa kết thúc thì tạm khóa
+                // Khóa sửa nếu câu đang nằm trong trận chưa kết thúc.
                 $st = $pdo->prepare(
                     "SELECT COUNT(*) FROM CAUHOITRANDAU x JOIN TRANDAU t ON t.MaTran = x.MaTran
                      WHERE x.MaCauHoi = ? AND t.TrangThai IN ('Đã ghép', 'Đang diễn ra')"
@@ -123,7 +115,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             throw $ex;
         }
     } elseif ($hd === 'doi_min_luot') {
-        // Admin tự chỉnh số lượt trả lời tối thiểu để một câu được xét độ khó (lưu bền trong CAUHINH, có ghi nhật ký).
+        // Cập nhật ngưỡng lượt trả lời tối thiểu vào CAUHINH.
         $v = trim((string) ($_POST['min_luot'] ?? ''));
         if ($v === '' || !ctype_digit($v) || strlen($v) > 4 || (int) $v < 1 || (int) $v > $MIN_LUOT_TOI_DA) {
             $_SESSION['ch_flash'] = ['loi', 'Số lượt tối thiểu phải là số nguyên từ 1 đến ' . $MIN_LUOT_TOI_DA . '.'];
@@ -156,7 +148,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } elseif ($kq === 'khoa') {
                 $_SESSION['ch_flash'] = ['loi', 'Câu hỏi #' . $id . ' đang nằm trong trận chưa kết thúc nên tạm thời chưa xóa được. Hãy chờ trận kết thúc.'];
             } else {
-                // Câu đã mất khỏi CSDL nên chép nội dung vào nhật ký để còn truy vết (A-40)
+                // Lưu nội dung câu đã xóa vào nhật ký để truy vết.
                 NhatKy::ghi('Xóa câu hỏi', 'CAUHOI #' . $id,
                     'Nội dung: ' . mb_substr($nd, 0, 300) . ($soTran > 0 ? '. Đã dùng trong ' . $soTran . ' trận, bài làm và dòng câu trong các trận đó cũng bị xóa.' : ''));
                 $_SESSION['ch_flash'] = ['ok', 'Đã xóa câu hỏi #' . $id . '.' . ($soTran > 0 ? ' (kèm dữ liệu bài làm trong ' . $soTran . ' trận)' : '')];
@@ -167,8 +159,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['ch_flash'] = ['loi', 'Không xóa được câu hỏi #' . $id . ' vì lỗi cơ sở dữ liệu. Hãy thử lại hoặc ẩn câu hỏi.'];
         }
     } elseif ($hd === 'xoa_nhieu' || $hd === 'xoa_mon') {
-        // Xóa hàng loạt (các câu đã chọn, hoặc mọi câu của một môn). Mọi câu đều xóa được, kể cả câu đã dùng,
-        // trừ câu đang nằm trong trận chưa kết thúc (được bỏ qua và báo lại).
+        // Xóa hàng loạt; bỏ qua câu đang nằm trong trận chưa kết thúc.
         $maMonXoa = (int) ($_POST['mon_xoa'] ?? 0);
         $ids = [];
         if ($hd === 'xoa_nhieu') {
@@ -214,7 +205,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
     } elseif ($hd === 'an_nhieu' || $hd === 'hien_nhieu') {
-        // Thao tác nhiều câu cùng lúc (thanh "Đã chọn N câu hỏi"): tối đa 100 câu mỗi lần
+        // Ẩn/hiện hàng loạt (tối đa 100 câu mỗi lần).
         $an  = $hd === 'an_nhieu';
         $ids = array_filter((array) ($_POST['ids'] ?? []), 'is_scalar');
         $ids = array_values(array_unique(array_filter(array_map('intval', $ids), static fn (int $x): bool => $x > 0)));
@@ -234,7 +225,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 }
                 if ($doi) {
-                    // Một dòng nhật ký cho cả lượt: số câu ở DoiTuong, danh sách mã ở MoTa
+                    // Ghi một dòng nhật ký chung cho cả lô.
                     NhatKy::ghi($an ? 'Ẩn câu hỏi' : 'Hiện lại câu hỏi', 'CAUHOI (' . count($doi) . ' câu)', 'Mã: #' . implode(', #', $doi));
                     $_SESSION['ch_flash'] = ['ok', ($an ? 'Đã ẩn ' : 'Đã hiện lại ') . count($doi) . ' câu hỏi.'
                         . (count($doi) < count($ids) ? ' ' . (count($ids) - count($doi)) . ' câu đã ở trạng thái này nên được bỏ qua.' : '')];
@@ -248,28 +239,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
     }
-    redirect((string) $_SERVER['REQUEST_URI']);   // ở lại đúng trang, giữ nguyên bộ lọc
+    redirect((string) $_SERVER['REQUEST_URI']);
 }
 
-// Địa chỉ hiện tại (bộ lọc, trang danh sách, trang bản đồ) gửi kèm sang form để lưu xong quay về đúng chỗ cũ
+// Giữ query bộ lọc để quay về đúng vị trí sau khi sửa.
 $veQuery = rawurlencode((string) ($_SERVER['QUERY_STRING'] ?? ''));
 $flash = $_SESSION['ch_flash'] ?? null;
 unset($_SESSION['ch_flash']);
 
-// ---- Mảnh SQL dùng chung ----
-// tl: mỗi câu có bao nhiêu lượt trả lời (đã trả lời hoặc hết giờ) và bao nhiêu lượt đúng. Hết giờ tính là sai, "Không làm" bỏ qua.
+// Truy vấn phụ đếm lượt trả lời (hết giờ tính là sai) và xác định câu lệch độ khó.
 $tlSub = "(SELECT t.MaCauHoi, COUNT(*) AS luot, SUM(d.LaDapAnDung = 1) AS dung
            FROM CHITIETTRALOI t LEFT JOIN DAPAN d ON d.MaDapAn = t.MaDapAn
            WHERE t.TrangThai IN ('Đã trả lời', 'Hết giờ') GROUP BY t.MaCauHoi)";
-// u: các câu đã từng nằm trong một trận nào đó
 $dungSub = '(SELECT DISTINCT MaCauHoi FROM CAUHOITRANDAU)';
 $joinTL  = "LEFT JOIN $tlSub tl ON tl.MaCauHoi = c.MaCauHoi LEFT JOIN $dungSub u ON u.MaCauHoi = c.MaCauHoi";
-// Câu "lệch độ khó": đủ lượt trả lời mà tỉ lệ đúng không nằm trong khoảng của nhãn đang gắn
 $sqlLech = "(tl.luot >= $MIN_LUOT AND (
               (c.DoKho = 'Dễ' AND tl.dung * 100 < $NGUONG_DE * tl.luot)
            OR (c.DoKho = 'Khó' AND tl.dung * 100 >= $NGUONG_KHO * tl.luot)
            OR (c.DoKho = 'Trung bình' AND (tl.dung * 100 >= $NGUONG_DE * tl.luot OR tl.dung * 100 < $NGUONG_KHO * tl.luot))))";
-// Mức lệch (điểm phần trăm so với khoảng đúng của nhãn): dùng để xếp câu lệch nhiều nhất lên đầu
 $sqlMucLech = "CASE c.DoKho
                  WHEN 'Dễ'  THEN $NGUONG_DE - tl.dung * 100 / tl.luot
                  WHEN 'Khó' THEN tl.dung * 100 / tl.luot - $NGUONG_KHO
@@ -278,7 +265,7 @@ $sqlMucLech = "CASE c.DoKho
                            ELSE $NGUONG_KHO - tl.dung * 100 / tl.luot END
                END";
 
-// ---- Bốn thẻ số liệu đầu trang (toàn ngân hàng, không phụ thuộc bộ lọc) ----
+// Số liệu tổng quan toàn ngân hàng.
 $toanCuc = $pdo->query(
     "SELECT COUNT(*) AS tong,
             COALESCE(SUM(c.TrangThai = 'Đã ẩn'), 0) AS an,
@@ -289,7 +276,7 @@ $tongCau  = (int) $toanCuc['tong'];
 $tongAn   = (int) $toanCuc['an'];
 $tongLech = (int) $toanCuc['lech'];
 
-// ---- Bản đồ phủ câu hỏi: số câu đang hiển thị của từng môn đang mở theo từng mức độ khó ----
+// Bản đồ phủ theo môn đang mở và độ khó.
 $bando = $pdo->query(
     "SELECT m.MaMon, m.TenMon,
             COALESCE(SUM(c.DoKho = 'Dễ'), 0)         AS de,
@@ -311,11 +298,11 @@ foreach ($bando as $i => $m) {
     }
     $bando[$i]['thieu'] = $thieu;
 }
-usort($bando, static fn (array $a, array $b): int => $b['thieu'] <=> $a['thieu']);   // môn thiếu nhiều nhất lên đầu (giữ thứ tự tên khi bằng nhau)
+usort($bando, static fn (array $a, array $b): int => $b['thieu'] <=> $a['thieu']);
 $pBando = new Paginator(count($bando), $SO_MON_BANDO, 'bd');
 $bandoTrang = array_slice($bando, $pBando->offset(), $pBando->limit());
 
-// ---- Biểu đồ phân bố tỉ lệ đúng: 10 khoảng 0-10%, ..., 90-100% (chỉ câu đủ lượt trả lời; theo môn đang lọc nếu có) ----
+// Phân bố tỉ lệ đúng (10 khoảng 10%) cho biểu đồ.
 $monBieuDo = (int) ($_GET['mon'] ?? 0);
 $st = $pdo->prepare(
     "SELECT LEAST(FLOOR(tl.dung * 100 / tl.luot / 10), 9) AS khoang, COUNT(*) AS so
@@ -334,13 +321,13 @@ for ($i = 0; $i < 10; $i++) {
     $bieuDo['mau'][]  = $i * 10 >= $NGUONG_DE ? '#22a06b' : ($i * 10 + 10 <= $NGUONG_KHO ? '#ef4444' : '#e3a93b');
 }
 
-// ---- A-17: bộ lọc ----
+// Bộ lọc danh sách.
 $q    = trim((string) ($_GET['q'] ?? ''));
 $mon  = (int) ($_GET['mon'] ?? 0);
-$kt   = (string) ($_GET['kt'] ?? '');          // '' = mọi loại, 'chung' = dùng cho cả hai kỳ, số = mã loại
+$kt   = (string) ($_GET['kt'] ?? '');
 $dk   = (string) ($_GET['dk'] ?? '');
 $tt   = (string) ($_GET['tt'] ?? '');
-$loc  = (string) ($_GET['loc'] ?? '');         // '' | 'lech' (lệch độ khó) | 'chua' (chưa từng dùng trong trận)
+$loc  = (string) ($_GET['loc'] ?? '');
 if (!in_array($dk, CauHoiHelper::DO_KHO, true)) { $dk = ''; }
 if (!in_array($tt, ['Hiển thị', 'Đã ẩn'], true)) { $tt = ''; }
 if (!in_array($loc, ['lech', 'chua'], true)) { $loc = ''; }
@@ -349,12 +336,12 @@ if ($kt !== 'chung' && !ctype_digit($kt)) { $kt = ''; }
 $dsMon = $pdo->query("SELECT MaMon, TenMon FROM MONHOC WHERE TrangThai IN ('Đang mở','Đã ẩn') ORDER BY TenMon")->fetchAll();
 $dsKT  = $pdo->query('SELECT MaLoaiKT, TenLoaiKT FROM LOAIKYTHI ORDER BY MaLoaiKT')->fetchAll();
 
-// Điều kiện "cơ sở" (tìm kiếm, môn, loại kỳ thi): dùng cho cả danh sách lẫn số đếm trên các chip
+// Điều kiện cơ sở dùng chung cho danh sách và bộ đếm chip.
 $dieuKien = [];
 $tham     = [];
 if ($q !== '') {
     $like = '%' . addcslashes($q, '\\%_') . '%';
-    if (preg_match('/^#?(\d{1,9})$/', $q, $mm)) {   // gõ "127" hoặc "#127" thì khớp cả mã câu hỏi
+    if (preg_match('/^#?(\d{1,9})$/', $q, $mm)) {
         $dieuKien[] = '(c.NoiDung LIKE ? OR c.MaCauHoi = ?)';
         $tham[]     = $like;
         $tham[]     = (int) $mm[1];
@@ -369,7 +356,7 @@ elseif ($kt !== '')  { $dieuKien[] = 'c.MaLoaiKT = ?';     $tham[] = (int) $kt; 
 $whereCoSo = $dieuKien ? 'WHERE ' . implode(' AND ', $dieuKien) : '';
 $thamCoSo  = $tham;
 
-// Số đếm trên chip: Dễ + Trung bình + Khó = Tất cả; "Đã ẩn", "Lệch độ khó", "Chưa từng dùng" là số riêng nằm trong các số đó
+// Số đếm trên các chip lọc.
 $st = $pdo->prepare(
     "SELECT COUNT(*) AS tong,
             COALESCE(SUM(c.DoKho = 'Dễ'), 0)         AS de,
@@ -383,7 +370,7 @@ $st = $pdo->prepare(
 $st->execute($thamCoSo);
 $dem = array_map('intval', $st->fetch());
 
-// Thêm độ khó, trạng thái và chip đặc biệt cho danh sách
+// Lọc thêm theo độ khó, trạng thái và chip đặc biệt.
 if ($dk !== '')       { $dieuKien[] = 'c.DoKho = ?';     $tham[] = $dk; }
 if ($tt !== '')       { $dieuKien[] = 'c.TrangThai = ?'; $tham[] = $tt; }
 if ($loc === 'lech')  { $dieuKien[] = $sqlLech; }
@@ -394,7 +381,7 @@ $st = $pdo->prepare("SELECT COUNT(*) FROM CAUHOI c $joinTL $where");
 $st->execute($tham);
 $p = new Paginator((int) $st->fetchColumn(), 5);
 
-// Số câu chưa dùng trong trận của môn đang lọc (cho nút "Xóa câu chưa dùng của môn này")
+// Số câu chưa dùng trong trận của môn đang lọc.
 $soXoaDuocMon = 0;
 $soCauMon = 0;
 if ($mon > 0) {
@@ -418,18 +405,15 @@ $st = $pdo->prepare(
 $st->execute($tham);
 $ds = $st->fetchAll();
 
-// ---- Hàm phụ cho phần hiển thị ----
-// Link chip: giữ tìm kiếm, môn, loại kỳ thi; chỉ đổi độ khó/trạng thái/chip đặc biệt; về trang 1
+// Hàm tạo URL bộ lọc và phân trang.
 $urlChip = static function (string $dkMoi, string $ttMoi, string $locMoi = '') use ($q, $mon, $kt): string {
     $tx = array_filter(['q' => $q, 'mon' => $mon > 0 ? $mon : '', 'kt' => $kt, 'dk' => $dkMoi, 'tt' => $ttMoi, 'loc' => $locMoi],
         static fn ($v): bool => $v !== '' && $v !== null);
     return '?' . http_build_query($tx) . '#chDanhSach';
 };
-// Link của một ô trên bản đồ phủ: lọc đúng môn + độ khó, chỉ câu đang hiển thị
 $urlO = static fn (int $maMon, string $doKho): string =>
     '?' . http_build_query(['mon' => $maMon, 'dk' => $doKho, 'tt' => 'Hiển thị']) . '#chDanhSach';
 
-// Thanh phân trang kiểu nút tròn: giữ nguyên mọi tham số GET khác, chỉ đổi tham số của chính nó
 $veTrang = static function (int $trang, int $soTrang, string $tham, bool $muiTen = false): string {
     if ($soTrang <= 1) { return ''; }
     $url = static function (int $n) use ($tham): string {
@@ -469,7 +453,7 @@ $veTrang = static function (int $trang, int $soTrang, string $tham, bool $muiTen
     return $h . '</nav>';
 };
 
-$so       = static fn (int $n): string => number_format($n, 0, ',', '.');   // 1248 -> 1.248
+$so       = static fn (int $n): string => number_format($n, 0, ',', '.');
 $lopDoKho = ['Dễ' => 'pill-de', 'Trung bình' => 'pill-tb', 'Khó' => 'pill-kho'];
 $chuMon   = static fn (string $ten): string => mb_strtoupper(mb_substr(trim($ten), 0, 1)) ?: '?';
 $cat      = static fn (string $s, int $n): string => (string) preg_replace('/^(.{' . $n . '}).+$/su', '$1…', $s);
@@ -481,13 +465,13 @@ $lopOBando = static function (int $n) use ($NGUONG_DO, $PHU_DU, $PHU_TOT): strin
 };
 $hangBando = [['Hạng Đồng · Dễ', 'Dễ', 'de'], ['Hạng Bạc · TB', 'Trung bình', 'tb'], ['Hạng Vàng · Khó', 'Khó', 'kho']];
 
-// Khoảng tỉ lệ đúng "đúng chuẩn" của từng nhãn: [bắt đầu %, độ rộng %, chữ gợi ý]
+// Khoảng tỉ lệ đúng chuẩn theo từng nhãn độ khó.
 $khoangDo = [
     'Dễ'         => [$NGUONG_DE, 100 - $NGUONG_DE, 'nên ≥ ' . $NGUONG_DE . '%'],
     'Trung bình' => [$NGUONG_KHO, $NGUONG_DE - $NGUONG_KHO, 'nên ' . $NGUONG_KHO . ' – ' . $NGUONG_DE . '%'],
     'Khó'        => [0, $NGUONG_KHO, 'nên < ' . $NGUONG_KHO . '%'],
 ];
-$lopTyLe = static function (int $dung, int $luot) use ($NGUONG_DE, $NGUONG_KHO): string {   // màu chữ phần trăm theo vùng rơi vào
+$lopTyLe = static function (int $dung, int $luot) use ($NGUONG_DE, $NGUONG_KHO): string {
     if ($dung * 100 >= $NGUONG_DE * $luot) { return 'ty-de'; }
     if ($dung * 100 < $NGUONG_KHO * $luot) { return 'ty-kho'; }
     return 'ty-tb';
@@ -501,7 +485,7 @@ foreach ($dsMon as $m) {
 
 $tieuDe   = 'Ngân hàng câu hỏi';
 $mucChon  = 'cauhoi';
-$cssTrang = ['cauhoi', 'thongke_xuat'];   // thongke_xuat: dùng chung giao diện hộp thoại Xuất của trang Tổng quan
+$cssTrang = ['cauhoi', 'thongke_xuat'];   // Dùng chung style hộp thoại Xuất.
 $jsTrang  = 'cauhoi';
 require __DIR__ . '/layout/header.php';
 ?>
@@ -789,7 +773,7 @@ require __DIR__ . '/layout/header.php';
     <p class="nhan-phu ch-ghichu">Câu đã dùng trong trận vẫn sửa được để chữa lỗi (điểm và Elo của trận cũ không tính lại, mỗi lần sửa có ghi nhật ký). Xóa câu đã dùng sẽ xóa luôn bài làm của câu đó trong các trận cũ (điểm tổng và Elo đã lưu không đổi). Câu đang nằm trong trận chưa kết thúc tạm thời chỉ xem, không xóa được. Tỉ lệ đúng thực tế tính trên các lượt trả lời đã nộp hoặc hết giờ.</p>
   </section>
 
-  <!-- Thanh nổi khi chọn nhiều câu (JS thêm các ô ids[] lúc gửi) -->
+  <!-- Thanh thao tác hàng loạt -->
   <form method="post" action="" class="ch-thanhchon" id="chThanhChon" hidden>
     <?= csrf_field() ?>
     <span class="ch-thanhchon-so">Đã chọn <b id="chSoChon">0</b> câu hỏi</span>
@@ -801,7 +785,7 @@ require __DIR__ . '/layout/header.php';
 
 </div>
 
-<!-- Ngăn "Xem nhanh": JS đổ dữ liệu từ cauhoi_api.php -->
+<!-- Ngăn xem nhanh -->
 <div class="ch-nen" id="chNen"></div>
 <aside class="ch-ngan" id="chNgan" role="dialog" aria-modal="true" aria-labelledby="chNganTieuDe" aria-hidden="true"
        data-api="<?= e(BASE_URL) ?>/admin/cauhoi_api.php" data-form="<?= e(BASE_URL) ?>/admin/cauhoi_form.php">
@@ -843,7 +827,7 @@ require __DIR__ . '/layout/header.php';
     </div>
   </div>
 </aside>
-<!-- Hộp thoại Xuất ngân hàng câu hỏi (Excel / PDF): cùng giao diện với hộp thoại Xuất của trang Tổng quan, xử lý ở cauhoi_xuat.php -->
+<!-- Hộp thoại xuất Excel/PDF -->
 <div class="modal-nen" id="cxHop" hidden>
   <form class="modal xuat-hop tq-xuat-hop" id="cxForm" method="post" action="<?= e(BASE_URL) ?>/admin/cauhoi_xuat.php" role="dialog" aria-modal="true" aria-labelledby="cxTieuDe">
     <h3 id="cxTieuDe">Xuất ngân hàng câu hỏi</h3>

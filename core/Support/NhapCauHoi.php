@@ -1,21 +1,17 @@
 <?php
-// Tách câu hỏi từ file Word (A-43), kiểm tra bảng câu hỏi (A-22, A-44) và nhận file tải lên (6.8).
-// Đặt tại: elo_quiz/core/Support/NhapCauHoi.php
+// Tách câu hỏi từ Word (.docx), kiểm tra bảng câu hỏi và nhận file tải lên.
 class NhapCauHoi
 {
     public const TOI_DA_DONG = 1000;              // số câu tối đa mỗi lần
-    public const TOI_DA_BYTE = 10 * 1024 * 1024;  // 10 MB, hỗ trợ bộ đề lớn có nhiều bảng/định dạng
+    public const TOI_DA_BYTE = 10 * 1024 * 1024;  // 10 MB
 
-    // 10 cột của file Excel mẫu (A-22), theo đúng thứ tự
+    // 10 cột của file Excel mẫu
     public const COT = ['Môn học', 'Loại kỳ thi', 'Độ khó', 'Nội dung', 'Phương án A', 'Phương án B',
                         'Phương án C', 'Phương án D', 'Đáp án đúng', 'Giải thích'];
-    // 3 cột thêm khi xuất từ file Word (A-43)
+    // 3 cột thêm khi xuất từ file Word
     public const COT_THEM = ['Trạng thái kiểm tra', 'Ghi chú lỗi', 'Dòng nguồn trong file Word'];
 
-    // ------------------------------------------------------------------
-    // Nhận file tải lên: kiểm tra đuôi, dung lượng, loại file thật, đặt tên ngẫu nhiên khi lưu tạm.
-    // Trả về đường dẫn file tạm; nơi gọi PHẢI unlink sau khi xử lý xong.
-    // ------------------------------------------------------------------
+    // Nhận file tải lên, kiểm tra chữ ký PK/nội dung và lưu tạm (bên gọi phải unlink sau khi dùng).
     public static function nhanFileTai(string $truong, string $duoi, string $phanBatBuoc): string
     {
         $f  = $_FILES[$truong] ?? null;
@@ -72,19 +68,7 @@ class NhapCauHoi
         return $dich;
     }
 
-    // ------------------------------------------------------------------
-    // A-43: Tách câu hỏi thông minh từ các dòng chữ của file Word (kết quả của DocxReader::doc)
-    //
-    // Hỗ trợ linh hoạt nhiều kiểu định dạng thực tế của giáo viên/Admin:
-    //   1. Đầu câu: "Câu 1.", "Câu 1:", "Câu 1 [Khó].", "Câu 1 (Dễ):", "Question 1.", hoặc "1.", "1)"
-    //   2. Phương án: "A. ...", "A) ...", "A: ...", "*A. ...", hoặc viết sát "A.Hà Nội" (tự tách khi nhiều phương án nằm trên 1 dòng)
-    //   3. Đáp án đúng:
-    //      - Dòng "Đáp án: B", "ĐA: B", "Answer: B", "Đáp án đúng là B"
-    //      - Dấu * trước chữ cái: "*B. Hà Nội" hoặc "B*. Hà Nội"
-    //      - Phương án duy nhất trong câu được Gạch chân (<u>), Tô đỏ/màu nổi, Tô nền Highlight hoặc In đậm (<b>)
-    //      - Bảng đáp án ở cuối đề: "1.A 2.B 3.C 4.D" hoặc "1-A, 2-B, 3-C"
-    //   4. Độ khó riêng từng câu: "[Dễ]", "(Trung bình)", "[Khó]", hoặc dòng "Độ khó: Khó"
-    // ------------------------------------------------------------------
+    // Tách câu hỏi từ các dòng chữ của file Word (hỗ trợ tiêu đề Câu/Question/số, đáp án A-D, dấu *, gạch chân/tô màu và bảng đáp án cuối đề).
     public static function tachWord(array $dong): array
     {
         $reCau = '/^(?:C[âa]u(?:\s*h[ỏo]i)?|Question)\s*(\d+)\s*(?:[\[\(]\s*(D[ễe]|Trung\s*b[ìi]nh|TB|Kh[óo])\s*[\]\)])?\s*[\.\):\-]?\s*(.*)$/iu';
@@ -386,9 +370,6 @@ class NhapCauHoi
         return $bang;
     }
 
-    // ------------------------------------------------------------------
-    // Kiểm tra dòng tiêu đề của file Excel import
-    // ------------------------------------------------------------------
     public static function kiemTraTieuDe(array $o): void
     {
         foreach (self::COT as $i => $ten) {
@@ -399,11 +380,7 @@ class NhapCauHoi
         }
     }
 
-    // ------------------------------------------------------------------
-    // A-22, A-44: kiểm tra từng dòng, chưa ghi gì vào CSDL.
-    // $dong: danh sách ['so' => số dòng nguồn, 'o' => các ô (chỉ số 0..9, theo COT), 'loi_word' => []]
-    // Trả về cùng thứ tự: ['so', 'o' (đã chuẩn hóa 10 ô), 'trangThai' (Hợp lệ|Lỗi|Trùng), 'loi' => [], 'sach' => dữ liệu để ghi hoặc null]
-    // ------------------------------------------------------------------
+    // Kiểm tra từng dòng từ Excel/Word (chưa ghi CSDL). Trả về trạng thái Hợp lệ | Lỗi | Trùng.
     public static function kiemTraBang(PDO $pdo, array $dong): array
     {
         $mon = [];
@@ -449,7 +426,7 @@ class NhapCauHoi
                 $loi[] = 'Không tìm thấy môn học "' . $o[0] . '" (phải đúng tên môn trong hệ thống).';
             }
 
-            // Loại kỳ thi: để trống hoặc ghi "Cả hai kỳ" nghĩa là dùng cho cả hai kỳ (A-19)
+            // Loại kỳ thi: để trống hoặc "Cả hai kỳ" nghĩa là dùng cho cả hai kỳ
             $maKT = '';
             $kk   = self::khoa($o[1]);
             if ($kk !== '' && !in_array($kk, ['cả hai', 'cả hai kỳ', 'cả hai loại', 'chung', 'dùng được cho cả hai kỳ'], true)) {
@@ -503,7 +480,7 @@ class NhapCauHoi
                     $daThay[$khoa] = $d['so'];
                 }
                 if ($tt === 'Trùng') {
-                    $sach = null;   // câu trùng không được thêm (A-44)
+                    $sach = null;   // câu trùng không được thêm
                 }
             }
 

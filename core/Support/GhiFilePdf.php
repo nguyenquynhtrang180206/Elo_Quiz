@@ -1,14 +1,5 @@
 <?php
-// Ghi file PDF khổ A4, không cần thư viện ngoài. Chữ tiếng Việt dùng font TrueType nhúng thẳng
-// vào file (assets/fonts/DejaVuSans*.ttf); ảnh biểu đồ là JPEG nên giữ nguyên màu như trên màn hình.
-// Mặc định A4 dọc. Gọi khoTrang(true) để các trang từ đó trở đi là A4 ngang, khoTrang(false) để quay lại dọc;
-// mỗi trang giữ đúng khổ của nhóm nội dung đó (một file có thể có cả trang ngang và trang dọc).
-// Nội dung chảy theo một luồng: hết trang thì tự sang trang mới, không cắt cột.
-//
-//   $pdf = new PdfWriter(__DIR__ . '/../assets/fonts');
-//   $pdf->tieuDe('Báo cáo'); $pdf->doan('Nội dung...'); $pdf->anh($jpeg);
-//   $pdf->bang(['Cột 1', 'Cột 2'], [['a', 'b']], [2, 1]);
-//   $pdf->tai('baocao.pdf');
+// Tạo và xuất file PDF khổ A4 (nhúng font TTF DejaVuSans hỗ trợ tiếng Việt, hỗ trợ đổi khổ dọc/ngang qua khoTrang()).
 
 // Đọc một font TrueType: bảng cmap (mã Unicode -> glyph) và độ rộng ký tự.
 class PdfFontTtf
@@ -520,7 +511,7 @@ class GhiFilePdf
     }
 }
 
-// Tương thích ngược: Định danh PdfWriter trỏ tới GhiFilePdf
+// Alias giữ tương thích tên lớp cũ
 if (!class_exists('PdfWriter', false)) {
     class_alias('GhiFilePdf', 'PdfWriter');
 }

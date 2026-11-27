@@ -1,8 +1,5 @@
 <?php
-// Ghi file Excel (.xlsx) đơn giản, không cần cài thư viện ngoài (chỉ cần extension zip của PHP,
-// XAMPP bật sẵn). Dùng cho các chức năng xuất Excel của Admin (A-45, A-46) và file mẫu import (A-22).
-// Cách dùng:
-//   XlsxWriter::tai('nguoidung.xlsx', 'Người dùng', ['Họ tên', 'Email'], [['An', 'an@test.com'], ...]);
+// Tạo và xuất file Excel (.xlsx) bằng ZipArchive (hỗ trợ 1 hoặc nhiều sheet kèm ảnh JPEG).
 class GhiFileXlsx
 {
     // Gửi file về trình duyệt rồi dừng chương trình.
@@ -336,7 +333,7 @@ class GhiFileXlsx
     }
 }
 
-// Tương thích ngược: Định danh XlsxWriter trỏ tới GhiFileXlsx
+// Alias giữ tương thích tên lớp cũ
 if (!class_exists('XlsxWriter', false)) {
     class_alias('GhiFileXlsx', 'XlsxWriter');
 }

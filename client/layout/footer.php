@@ -1,33 +1,23 @@
 <?php
-// =====================================================================
-// MEGA HYBRID FOOTER: ESPORTS COMMAND HUB & HIGH-TECH TELEMETRY
-// 1. Esports Battle Gateway Bar (Tìm trận nhanh 1 vs 1)
-// 2. 4 Cột Điều Hướng Cao Cấp & Trạm Tiếp Sức Sĩ Tử 3D Mascot
-// 3. Bottom Bar Chuyên Nghiệp (Tránh chồng đè nút FX)
-// =====================================================================
+// Footer chung cho giao diện sinh viên
 ?>
 </main>
 
 <footer class="site-mega-footer" id="site-footer">
-  <!-- Đường phân tách ánh sáng năng lượng trên cùng -->
   <div class="ft-energy-beam" aria-hidden="true"></div>
 
   <div class="container footer-container">
 
-    <!-- 2. THÂN CHÂN TRANG: TRẠM CHỈ HUY & ĐIỀU HƯỚNG -->
     <div class="footer-main-grid">
-      <!-- Cột 1: Thương hiệu & Thông Tin Liên Hệ -->
+      <!-- Thương hiệu & liên hệ -->
       <div class="ft-col ft-brand-col">
         <a class="ft-brand-head" href="<?= e(BASE_URL) ?>/client/index.php" title="QUIZUP ARENA">
-          <!-- Huy hiệu hoàng gia chính thức đồng bộ Header -->
           <span class="ft-logo-shield" aria-hidden="true">
             <svg viewBox="0 0 52 52" width="38" height="38" fill="none">
               <polygon points="26,2.5 42.6,9.4 49.5,26 42.6,42.6 26,49.5 9.4,42.6 2.5,26 9.4,9.4" fill="#0A1838" stroke="#D4AF37" stroke-width="1.8" stroke-linejoin="round"/>
               <polygon points="26,6 40,12 46,26 40,40 26,46 12,40 6,26 12,12" fill="none" stroke="#F3DE8A" stroke-width="0.8" stroke-dasharray="3 2" opacity="0.75"/>
               <circle cx="26" cy="26" r="14" fill="#040A18" stroke="#D4AF37" stroke-width="0.8"/>
-              <!-- Crown -->
               <path d="M20 18 L22 14.5 L26 16.5 L30 14.5 L32 18 Z" fill="#FDE047" stroke="#B45309" stroke-width="0.6"/>
-              <!-- Letter Q Monogram -->
               <circle cx="26" cy="27" r="7" fill="none" stroke="#FCD34D" stroke-width="2.4"/>
               <polygon points="28,29 35,36 37,34 30,27" fill="#FDE047"/>
               <circle cx="26" cy="27" r="1.2" fill="#FFF"/>
@@ -43,7 +33,7 @@
           Đấu trường trắc nghiệm trí tuệ 1 vs 1 đỉnh cao theo thời gian thực. Hệ thống ghép cặp tự động, thuật toán Elo công bằng và bảng xếp hạng phân bậc theo từng bộ môn.
         </p>
 
-        <!-- Khối Thông Tin Liên Hệ & Kênh Mạng Xã Hội (Mẫu Hotline / Social) -->
+        <!-- Liên hệ & mạng xã hội -->
         <div class="ft-contact-box">
           <div class="ft-contact-line">
             <span class="ft-contact-lbl">Phone:</span>
@@ -54,15 +44,12 @@
             <a href="mailto:fluentezenglish@gmail.com" class="ft-contact-val">fluentezenglish@gmail.com</a>
           </div>
           <div class="ft-social-links" aria-label="Kênh mạng xã hội">
-            <!-- Facebook -->
             <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" class="ft-social-btn ft-fb" title="Facebook">
               <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
             </a>
-            <!-- Instagram -->
             <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" class="ft-social-btn ft-insta" title="Instagram">
               <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
             </a>
-            <!-- Threads -->
             <a href="https://threads.net" target="_blank" rel="noopener noreferrer" class="ft-social-btn ft-threads" title="Threads">
               <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M12.186 24h-.007c-3.581-.024-6.334-1.205-8.184-3.509C2.35 18.44 1.5 15.586 1.472 12.01v-.017c.03-3.579.879-6.43 2.525-8.482C5.845 1.205 8.6.024 12.18 0h.014c2.746.02 5.043.725 6.826 2.098c1.677 1.29 2.858 3.13 3.509 5.467l-2.04.569c-1.104-3.96-3.898-5.984-8.304-6.015c-2.91.022-5.11.936-6.54 2.717C4.307 6.504 3.616 8.914 3.589 12c.027 3.086.718 5.496 2.057 7.164c1.43 1.783 3.631 2.698 6.54 2.717c2.623-.02 4.358-.631 5.8-2.045c1.647-1.613 1.618-3.593 1.09-4.798c-.31-.71-.873-1.3-1.634-1.75c-.192 1.352-.622 2.446-1.284 3.272c-.886 1.102-2.14 1.704-3.73 1.79-1.202.065-2.361-.218-3.259-.801c-1.063-.689-1.685-1.74-1.752-2.964c-.065-1.19.408-2.285 1.33-3.082c.88-.76 2.119-1.207 3.583-1.291a14 14 0 0 1 3.02.142c-.126-.742-.375-1.332-.75-1.757c-.513-.586-1.308-.883-2.359-.89h-.029c-.844 0-1.992.232-2.721 1.32l-1.757-1.18c.98-1.454 2.568-2.256 4.478-2.256h.044c3.194.02 5.097 1.975 5.287 5.388q.163.07.321.142c1.49.7 2.58 1.761 3.154 3.07c.797 1.82.871 4.79-1.548 7.158c-1.85 1.81-4.094 2.628-7.277 2.65Zm1.003-11.69q-.362 0-.739.021c-1.836.103-2.98.946-2.916 2.143c.067 1.256 1.452 1.839 2.784 1.767c1.224-.065 2.818-.543 3.086-3.71a10.5 10.5 0 0 0-2.215-.221"/></svg>
             </a>
@@ -70,7 +57,7 @@
         </div>
       </div>
 
-      <!-- Cột 2: Sàn Đấu & Elo -->
+      <!-- Sàn đấu & Elo -->
       <div class="ft-col">
         <h4 class="ft-col-heading">
           <span class="ft-heading-bar"></span>
@@ -108,7 +95,7 @@
         </ul>
       </div>
 
-      <!-- Cột 3: Cộng Đồng Gen Z -->
+      <!-- Cộng đồng -->
       <div class="ft-col">
         <h4 class="ft-col-heading">
           <span class="ft-heading-bar bar-purple"></span>
@@ -148,7 +135,7 @@
       </div>
     </div>
 
-    <!-- 3. BOTTOM BAR: CREDITS -->
+    <!-- Bản quyền -->
     <div class="footer-bottom-bar">
       <div class="ft-bottom-left">
         <span class="ft-copyright">&copy; <?= date('Y') ?> <strong>QUIZUP ARENA</strong>. Nền tảng thi đấu trắc nghiệm trí tuệ 1 vs 1.</span>

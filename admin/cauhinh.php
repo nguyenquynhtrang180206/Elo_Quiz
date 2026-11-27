@@ -1,18 +1,11 @@
 <?php
-// Cấu hình hệ thống: xem và sửa tham số luật chơi (UC16: A-37, A-38, A-39; ghi nhật ký A-40).
-// Đặt tại: elo_quiz/admin/cauhinh.php
-// Giao diện giống trang Tổng quan: giữ khung cũ (nền ngoài và sidebar), nội dung nằm trong một khối sáng bo góc.
-// Thẻ theo nhóm, menu nhóm bên trái, đánh dấu thay đổi và kiểm tra ngay khi gõ (assets/js/admin/cauhinh.js).
-// Phần xử lý lưu (kiểm tra hợp lệ, transaction, nhật ký, xóa cache) giữ nguyên logic cũ.
+// Quản lý tham số cấu hình hệ thống (kiểm tra hợp lệ, khóa cập nhật và ghi nhật ký).
 require_once __DIR__ . '/../core/bootstrap.php';
-Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');   // A-04
+Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');
 
 $pdo = Database::pdo();
 
-// Nhóm hiển thị: mã nhóm => [tên, tên ngắn ở menu, loại huy hiệu, nội dung huy hiệu, ghi chú, biểu tượng, các tham số].
-// Mỗi tham số: tên => [nhãn, nhỏ nhất, lớn nhất, đơn vị]. Mọi tham số đều là số nguyên không âm;
-// khoảng giá trị là mức chặn hợp lý do người làm chọn, chỉnh được ở đây.
-// loai: 'moi' = chỉ áp dụng cho trận tạo sau khi lưu; 'ngay' = có hiệu lực ngay khi lưu.
+// Nhóm tham số hiển thị ('moi': áp dụng cho trận mới; 'ngay': hiệu lực ngay khi lưu).
 $nhom = [
     'luat' => [
         'ten'     => 'Luật một trận đấu',
@@ -80,7 +73,7 @@ foreach ($nhom as $g) {
     }
 }
 
-// Biểu tượng SVG nội tuyến (kiểu Lucide, không cần mạng), dùng riêng cho trang này.
+// Biểu tượng SVG nội tuyến.
 $duongIcon = [
     'co'      => '<path d="M4 22V4"/><path d="M4 4h13l-2 4 2 4H4"/>',
     'xuhuong' => '<polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/>',
@@ -94,26 +87,26 @@ $ic = static fn (string $k, int $px = 18): string =>
     '<svg class="ch-bt" width="' . $px . '" height="' . $px . '" viewBox="0 0 24 24" fill="none" stroke="currentColor" '
     . 'stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' . $duongIcon[$k] . '</svg>';
 
-// ---- Giá trị hiện tại trong CAUHINH ----
+// Giá trị hiện tại trong CAUHINH.
 $hienTai = [];
 foreach ($pdo->query('SELECT TenCauHinh, GiaTri, MoTa FROM CAUHINH') as $r) {
     $hienTai[$r['TenCauHinh']] = $r;
 }
 
 $loi     = [];
-$loiTheo = [];   // tên tham số => câu lỗi ngắn hiện ngay dưới ô nhập (khi máy chủ từ chối lưu)
-$nhap    = [];   // giá trị người dùng vừa gửi, để giữ lại trong form khi có lỗi
+$loiTheo = [];
+$nhap    = [];
 $flash = $_SESSION['cfg_flash'] ?? null;
 unset($_SESSION['cfg_flash']);
 
-// ---- A-38: lưu, kiểm tra hợp lệ trước ----
+// Lưu cấu hình sau khi kiểm tra hợp lệ.
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_check();
     $gui   = is_array($_POST['gt'] ?? null) ? $_POST['gt'] : [];
     $moi   = [];
     foreach ($luat as $ten => [$nhan, $min, $max, $donVi]) {
         if (!isset($hienTai[$ten])) {
-            continue;   // tham số chưa có trong CSDL thì không sửa
+            continue;
         }
         $v = trim((string) ($gui[$ten] ?? ''));
         $nhap[$ten] = $v;
@@ -134,7 +127,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!$loi) {
         try {
             $pdo->beginTransaction();
-            // Khóa các dòng cấu hình rồi so với giá trị đang có (hai admin sửa cùng lúc thì ghi nhật ký đúng giá trị cũ)
+            // Khóa bản ghi cấu hình để ghi nhận đúng giá trị cũ khi nhiều admin cùng sửa.
             $cu = [];
             foreach ($pdo->query('SELECT TenCauHinh, GiaTri FROM CAUHINH FOR UPDATE') as $r) {
                 $cu[$r['TenCauHinh']] = $r['GiaTri'];
@@ -166,7 +159,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Chỉ hiện các tham số đang có trong CSDL; nhóm không còn tham số nào thì bỏ cả nhóm.
+// Chỉ hiển thị nhóm còn tham số trong CSDL.
 $nhomHienThi = [];
 foreach ($nhom as $ma => $g) {
     $cac = array_filter($g['muc'], static fn ($k) => isset($hienTai[$k]), ARRAY_FILTER_USE_KEY);

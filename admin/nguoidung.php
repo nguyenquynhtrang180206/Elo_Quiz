@@ -1,11 +1,11 @@
 <?php
-// Danh sách người dùng (UC11: A-11, A-45). Đặt tại: elo_quiz/admin/nguoidung.php
+// Quản lý người dùng, khóa/mở khóa tài khoản và bảng xếp hạng Elo.
 require_once __DIR__ . '/../core/bootstrap.php';
-Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');   // A-04
+Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');
 
 $pdo = Database::pdo();
 
-// ---- Bộ lọc: từ khóa (họ tên, email) và trạng thái ----
+// Bộ lọc từ khóa và trạng thái.
 $q  = trim((string) ($_GET['q'] ?? ''));
 $tt = (string) ($_GET['tt'] ?? '');
 if (!in_array($tt, ['Hoạt động', 'Bị khóa'], true)) {
@@ -14,9 +14,9 @@ if (!in_array($tt, ['Hoạt động', 'Bị khóa'], true)) {
 
 $dieuKien = [];
 $tham     = [];
-$dieuKien[] = 'n.MaND NOT IN (SELECT MaND FROM ADMIN WHERE MaND IS NOT NULL)';   // không liệt kê tài khoản sinh viên liên kết của admin
+$dieuKien[] = 'n.MaND NOT IN (SELECT MaND FROM ADMIN WHERE MaND IS NOT NULL)';   // Loại trừ tài khoản sinh viên liên kết của admin.
 if ($q !== '') {
-    $like       = '%' . addcslashes($q, '\\%_') . '%';   // thoát % và _ để tìm đúng chữ người dùng gõ
+    $like       = '%' . addcslashes($q, '\\%_') . '%';   // Thoát ký tự wildcard LIKE.
     $dieuKien[] = '(n.HoTen LIKE ? OR n.Email LIKE ?)';
     array_push($tham, $like, $like);
 }
@@ -30,7 +30,7 @@ $cotChon = "n.MaND, n.HoTen, n.Email, n.TrangThai, n.NgayTao,
             (SELECT COALESCE(SUM(e.SoTran), 0) FROM ELOMONHOC e WHERE e.MaND = n.MaND) AS so_tran,
             (SELECT ROUND(AVG(e.DiemElo)) FROM ELOMONHOC e WHERE e.MaND = n.MaND AND e.SoTran > 0) AS elo_trung_binh";
 
-// ---- Khóa / mở khóa ngay trên danh sách (A-12): đổi trạng thái + ghi nhật ký cùng một giao dịch (A-40), rồi báo cho người dùng ----
+// Khóa/mở khóa tài khoản, ghi nhật ký và gửi thông báo.
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_check();
     $hanhDong = (string) ($_POST['hanh_dong'] ?? '');
@@ -43,8 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $pdo->beginTransaction();
         try {
-            // Điều kiện theo trạng thái cũ: bấm lặp hoặc hai quản trị viên cùng bấm thì chỉ xử lý một lần.
-            // Không cho khóa tài khoản sinh viên đang liên kết với quản trị viên.
+            // Ràng buộc trạng thái cũ tránh ghi nhật ký trùng và không khóa tài khoản liên kết với admin.
             $up = $pdo->prepare(
                 'UPDATE NGUOIDUNG SET TrangThai = ?
                  WHERE MaND = ? AND TrangThai = ? AND MaND NOT IN (SELECT MaND FROM ADMIN WHERE MaND IS NOT NULL)'
@@ -65,7 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if ($daDoi) {
-            // Gửi thông báo sau khi đã lưu: thông báo lỗi thì tài khoản vẫn được khóa, chỉ báo lại cho quản trị viên biết
+            // Gửi thông báo sau commit để lỗi gửi thông báo không làm rollback thao tác khóa.
             $daBao  = ThongBaoHelper::taoThongBaoTaiKhoan($pdo, $maND, $khoa, $lyDo);
             $ketQua = ($khoa ? 'khoa' : 'mokhoa') . ($daBao ? '' : '_chuabao');
         }
@@ -80,9 +79,7 @@ $thongBao = [
     'loi'            => ['loi', 'Không thực hiện được: tài khoản đã đổi trạng thái trước đó hoặc không được phép khóa.'],
 ][$_GET['kq'] ?? ''] ?? null;
 
-// ---- A-45: xuất Excel / PDF qua hộp thoại "Xuất" (xử lý ở admin/nguoidung_xuat.php, theo đúng bộ lọc đang xem) ----
-
-// ---- Danh sách có phân trang (20 dòng/trang, có hiển thị tổng số) ----
+// Danh sách có phân trang (20 dòng/trang).
 $st = $pdo->prepare("SELECT COUNT(*) FROM NGUOIDUNG n $where");
 $st->execute($tham);
 $p = new Paginator((int) $st->fetchColumn(), 20);
@@ -95,17 +92,17 @@ $st = $pdo->prepare(
 $st->execute($tham);
 $ds = $st->fetchAll();
 
-// ---- Bảng xếp hạng Elo tích hợp trên trang Người dùng ----
+// Bảng xếp hạng Elo tích hợp.
 $monHocBxh = $pdo->query('SELECT MaMon, TenMon FROM MONHOC ORDER BY TenMon')->fetchAll();
 $tenMonBxh = array_column($monHocBxh, 'TenMon', 'MaMon');
 $monBxh = (int) ($_GET['bxh_mon'] ?? 0);
 if ($monBxh !== 0 && !isset($tenMonBxh[$monBxh])) {
-    $monBxh = 0;   // mặc định: tất cả các môn
+    $monBxh = 0;
 }
 $qBxh = trim((string) ($_GET['bxh_q'] ?? ''));
-$nMinBxh = 1;   // giống client: "Tất cả" tính mọi người chơi đã đấu ít nhất 1 trận, không đặt ngưỡng cấu hình
-$soMonHienBxh = 5;   // chỉ hiện 5 môn, các môn còn lại ẩn và tìm bằng ô "Tìm môn"
-// Môn đang chọn luôn nằm đầu danh sách để không bị ẩn
+$nMinBxh = 1;
+$soMonHienBxh = 5;
+// Đưa môn đang chọn lên đầu để không bị ẩn khi thu gọn danh sách.
 usort($monHocBxh, static fn (array $a, array $b): int =>
     ((int) $b['MaMon'] === $monBxh) <=> ((int) $a['MaMon'] === $monBxh));
 
@@ -119,7 +116,7 @@ if ($monBxh > 0) {
 } else {
     $dkBxh[] = 'e.SoTran >= ?';
     $thamBxh[] = $nMinBxh;
-    // MonChinh: môn người này đấu nhiều trận nhất (môn đang mở), giống bảng xếp hạng phía client
+    // Môn chính: môn đấu nhiều trận nhất.
     $cotBxh = "n.MaND, n.HoTen, n.Email, n.TrangThai, AVG(e.DiemElo) AS elo, SUM(e.SoTran) AS SoTran, SUM(e.SoThang) AS SoThang,
                (SELECT m.TenMon FROM ELOMONHOC x JOIN MONHOC m ON m.MaMon = x.MaMon
                  WHERE x.MaND = n.MaND AND x.SoTran >= ? AND m.TrangThai = 'Đang mở'
@@ -140,7 +137,7 @@ $st = $pdo->prepare(
 );
 $st->execute($thamBxh);
 $pBxh = new Paginator((int) $st->fetchColumn(), 20, 'bxh_page');
-// Cùng Elo thì cùng hạng (RANK), trong cùng hạng ưu tiên người nhiều trận hơn: giống client
+// Xếp hạng bằng RANK() đồng hạng khi bằng Elo.
 $st = $pdo->prepare(
     "SELECT r.* FROM (SELECT d.*, RANK() OVER (ORDER BY d.elo DESC) AS Hang
                         FROM (SELECT $cotBxh $fromBxh $nhomSqlBxh) d) r
@@ -171,7 +168,7 @@ $tyLeThangBxh = static fn (int $thang, int $tran): string =>
 
 
 
-// ---- Số liệu cho sơ đồ phía trên (không phụ thuộc bộ lọc) ----
+// Số liệu thống kê cho biểu đồ (không theo bộ lọc).
 $loaiAdmin = 'n.MaND NOT IN (SELECT MaND FROM ADMIN WHERE MaND IS NOT NULL)';
 $tk = $pdo->query(
     "SELECT COUNT(*) AS tong,
@@ -182,7 +179,7 @@ $tk = $pdo->query(
      FROM NGUOIDUNG n WHERE $loaiAdmin"
 )->fetch();
 
-// Số tài khoản mới mỗi ngày trong 30 ngày gần nhất (ngày không có ai đăng ký vẫn hiện cột 0)
+// Số tài khoản mới mỗi ngày trong 30 ngày gần nhất.
 $theoNgay = $pdo->query(
     "SELECT DATE(n.NgayTao) AS ngay, COUNT(*) AS so
      FROM NGUOIDUNG n
@@ -200,7 +197,7 @@ $jsonFlag = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_U
 
 $tieuDe  = 'Người dùng';
 $mucChon = 'nguoidung';
-$cssTrang = ['thongke_xuat', 'nguoidung'];   // nguoidung nạp sau để ghi đè giao diện hộp thoại Xuất (nền trắng)
+$cssTrang = ['thongke_xuat', 'nguoidung'];   // Nạp nguoidung sau để ghi đè style hộp thoại Xuất.
 $jsTrang  = ['nguoidung', 'nguoidung_xuat'];
 require __DIR__ . '/layout/header.php';
 ?>
@@ -215,7 +212,7 @@ require __DIR__ . '/layout/header.php';
     <div class="nd-flash nd-flash-<?= e($thongBao[0]) ?>" role="status"><?= e($thongBao[1]) ?></div>
   <?php endif; ?>
 
-  <!-- Sơ đồ quản lý người dùng -->
+  <!-- Sơ đồ thống kê người dùng -->
   <section class="nd-so-do" aria-label="Sơ đồ người dùng">
     <div class="nd-so-do-trai">
       <div class="nd-so-do-tieude">
@@ -261,7 +258,7 @@ require __DIR__ . '/layout/header.php';
       <?php if ($q !== ''): ?><input type="hidden" name="q" value="<?= e($q) ?>"><?php endif; ?>
       <?php if ($tt !== ''): ?><input type="hidden" name="tt" value="<?= e($tt) ?>"><?php endif; ?>
       <input type="text" name="bxh_q" value="<?= e($qBxh) ?>" placeholder="Tìm người dùng trong bảng xếp hạng" class="nd-o-tim" autocomplete="off">
-      <!-- Chọn môn: ô chọn có tìm kiếm, mặc định chỉ hiện 5 môn + nút "Xem thêm" (xử lý ở assets/js/admin/nguoidung.js) -->
+      <!-- Ô chọn môn có tìm kiếm -->
       <div class="nd-chon-mon" id="ndChonMon">
         <input type="hidden" name="bxh_mon" value="<?= (int) $monBxh ?>">
         <button type="button" class="nd-chon-mon-nut" aria-haspopup="listbox" aria-expanded="false">
@@ -377,7 +374,7 @@ require __DIR__ . '/layout/header.php';
   </section>
 </div>
 
-<!-- Hộp xác nhận khóa / mở khóa: nhập lý do, người dùng sẽ nhận thông báo kèm lý do này -->
+<!-- Hộp xác nhận khóa/mở khóa -->
 <dialog class="nd-hop" id="ndHopKhoa">
   <form method="post" action="" class="nd-hop-form">
     <?= csrf_field() ?>
@@ -395,8 +392,7 @@ require __DIR__ . '/layout/header.php';
 </dialog>
 
 <script src="<?= e(BASE_URL) ?>/assets/vendor/chart.umd.js"></script>
-<!-- Hộp thoại Xuất người dùng (Excel / PDF): cùng giao diện với hộp thoại Xuất của trang Tổng quan (modal-nen, modal xuat-hop);
-     cột trái chọn phạm vi, trường và định dạng, cột phải xem trước. Xử lý ở nguoidung_xuat.php -->
+<!-- Hộp thoại xuất Excel/PDF -->
 <div class="modal-nen" id="ndXuatHop" hidden>
   <form class="modal xuat-hop nd-xuat-hop" id="ndXuatForm" method="post" action="<?= e(BASE_URL) ?>/admin/nguoidung_xuat.php" role="dialog" aria-modal="true" aria-labelledby="ndXuatTieuDe">
     <h3 id="ndXuatTieuDe">Xuất danh sách người dùng</h3>

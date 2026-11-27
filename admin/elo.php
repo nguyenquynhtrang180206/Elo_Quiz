@@ -1,9 +1,7 @@
 <?php
-// Elo và xếp hạng (UC11: A-28, A-29 qua link, A-30, A-31, A-46). Đặt tại: elo_quiz/admin/elo.php
-// Ba tab: ?v=tra (tra cứu Elo), ?v=bxh (bảng xếp hạng, xuất Excel), ?v=bd (biến động Elo bất thường).
-// A-31: trang này chỉ xem; không có chức năng điều chỉnh Elo thủ công, Elo chỉ đổi do kết quả trận.
+// Theo dõi Elo, bảng xếp hạng và biến động bất thường (chỉ xem, không chỉnh Elo thủ công).
 require_once __DIR__ . '/../core/bootstrap.php';
-Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');   // A-04
+Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');
 
 $pdo = Database::pdo();
 $v   = (string) ($_GET['v'] ?? 'bxh');
@@ -17,7 +15,7 @@ if ($mon !== 0 && !isset($tenMon[$mon])) {
     $mon = 0;
 }
 
-// Khai báo sẵn các biến chỉ được gán trong một tab, để phần HTML bên dưới luôn có giá trị
+// Khởi tạo biến dùng chung cho các tab.
 $q        = trim((string) ($_GET['q'] ?? ''));
 $linkXuat = '';
 $tenBxh   = '';
@@ -29,8 +27,7 @@ $ty = static fn (int $thang, int $tran): string => $tran > 0 ? number_format($th
 $ds = [];
 $p  = null;
 
-// Bậc rank chỉ để hiển thị, tính từ Elo khi mở trang, không lưu vào database.
-// Mốc bậc tính từ Elo khởi tạo (ELO_KHOI_TAO) nên tự co giãn khi Admin đổi cấu hình; muốn đổi mốc thì sửa các số cộng thêm ở đây.
+// Bậc rank tính động từ ELO_KHOI_TAO, không lưu CSDL.
 $eloKt   = Config::int('ELO_KHOI_TAO', 1000);
 $bacRank = [
     ['ten' => 'Cao thủ',   'tu' => $eloKt + 450, 'cls' => 'cao', 'mau' => '#c13cff'],
@@ -47,7 +44,7 @@ $bacCua = static function (int $elo) use ($bacRank): array {
     }
     return end($bacRank);
 };
-// Chữ cái đầu của họ và tên, màu avatar cố định theo mã người dùng
+// Avatar chữ cái đầu và màu cố định theo mã người dùng.
 $mauAva  = ['#1e5cf0', '#18b87a', '#e5484d', '#8b5cf6', '#f59e0b', '#0ea5e9', '#14b8a6', '#ec4899'];
 $chuCai  = static function (string $ten): string {
     $t = preg_split('/\s+/u', trim($ten), -1, PREG_SPLIT_NO_EMPTY) ?: ['?'];
@@ -56,7 +53,7 @@ $chuCai  = static function (string $ten): string {
     return $a . $b;
 };
 
-// Số ca biến động bất thường (hiện trên nhãn tab), tính trên mọi môn
+// Số ca biến động bất thường trên toàn hệ thống.
 $st = $pdo->prepare(
     'SELECT COUNT(*) FROM (SELECT 1 FROM LICHSUELO l WHERE l.ThoiGian >= DATE_SUB(NOW(), INTERVAL ? HOUR)
       GROUP BY l.MaND, l.MaMon HAVING ABS(SUM(l.ThayDoi)) > ?) x'
@@ -64,7 +61,7 @@ $st = $pdo->prepare(
 $st->execute([$gio, $nguong]);
 $soBd = (int) $st->fetchColumn();
 
-// Dữ liệu riêng của tab Bảng xếp hạng (điền ở bên dưới)
+// Dữ liệu thống kê cho tab Bảng xếp hạng.
 $thongKe  = ['tong' => 0, 'tb' => 0, 'max' => 0];
 $top5     = [];
 $phoElo   = ['nhan' => [], 'so' => [], 'mau' => []];
@@ -75,9 +72,7 @@ $chon     = null;
 $hangChon = 0;
 $tenMonXu  = '';
 
-// =====================================================================
-// Tab 1 - A-28: tra cứu Elo theo người dùng và theo môn
-// =====================================================================
+// Tab 1: Tra cứu Elo theo người dùng và môn.
 if ($v === 'tra') {
     $dk  = [];
     $tham = [];
@@ -109,19 +104,17 @@ if ($v === 'tra') {
     $ds = $st->fetchAll();
 }
 
-// =====================================================================
-// Tab 2 - bảng xếp hạng theo môn / toàn trường, xuất Excel (A-46)
-// =====================================================================
+// Tab 2: Bảng xếp hạng theo môn hoặc toàn trường.
 if ($v === 'bxh') {
     if ($mon > 0) {
-        // Theo môn: xếp theo Elo giảm dần, hòa Elo thì ai nhiều trận hơn xếp trước
+        // Theo môn: xếp theo Elo giảm dần, hòa Elo thì ưu tiên nhiều trận hơn.
         $from  = 'FROM ELOMONHOC e JOIN NGUOIDUNG n ON n.MaND = e.MaND WHERE e.MaMon = ?';
         $tham  = [$mon];
         $cot   = 'n.MaND, n.HoTen, n.Email, n.TrangThai, e.DiemElo AS elo, e.SoTran, e.SoThang';
         $order = 'ORDER BY e.DiemElo DESC, e.SoTran DESC, n.MaND';
         $sqlDem = "SELECT COUNT(*) $from";
     } else {
-        // Toàn trường (C-37): Elo trung bình các môn đã đủ N trận; môn chưa đủ N trận không tính
+        // Toàn trường: Elo trung bình các môn đã đủ số trận tối thiểu.
         $from  = 'FROM ELOMONHOC e JOIN NGUOIDUNG n ON n.MaND = e.MaND WHERE e.SoTran >= ? GROUP BY n.MaND, n.HoTen, n.Email, n.TrangThai';
         $tham  = [$nMin];
         $cot   = 'n.MaND, n.HoTen, n.Email, n.TrangThai, ROUND(AVG(e.DiemElo)) AS elo, SUM(e.SoTran) AS SoTran, SUM(e.SoThang) AS SoThang, COUNT(*) AS so_mon';
@@ -130,7 +123,7 @@ if ($v === 'bxh') {
     }
     $tenBxh = $mon > 0 ? 'môn ' . $tenMon[$mon] : 'toàn trường';
 
-    // A-46: xuất đúng bảng đang xem
+    // Xuất Excel trực tiếp bảng đang xem.
     if (isset($_GET['xuat'])) {
         $st = $pdo->prepare("SELECT $cot $from $order LIMIT 10000");
         $st->execute($tham);
@@ -151,7 +144,7 @@ if ($v === 'bxh') {
     $ds = $st->fetchAll();
     $linkXuat = '?' . http_build_query(array_merge(array_diff_key($_GET, ['page' => 1]), ['xuat' => 1]));
 
-    // Thống kê chung của bảng đang xem: Elo trung bình, Elo cao nhất, phân bố theo bậc
+    // Thống kê phân bố Elo theo bậc và khoảng điểm.
     $cotElo = $mon > 0 ? 'e.DiemElo AS elo' : 'AVG(e.DiemElo) AS elo';
     $st = $pdo->prepare("SELECT $cotElo $from LIMIT 20000");
     $st->execute($tham);
@@ -180,7 +173,7 @@ if ($v === 'bxh') {
         }
     }
     if ($ds) {
-        // Top 5 Elo của bảng đang xem (trang 1 lấy sẵn từ danh sách, các trang sau truy vấn riêng)
+        // Top 5 Elo của bảng đang xem.
         if ($p->offset() === 0) {
             $top5 = array_slice($ds, 0, 5);
         } else {
@@ -189,7 +182,7 @@ if ($v === 'bxh') {
             $top5 = $st->fetchAll();
         }
 
-        // Biến động Elo 7 ngày gần nhất của những người đang hiện trên trang (theo môn nếu đang lọc môn)
+        // Biến động Elo 7 ngày gần nhất của người chơi trên trang.
         $dsId = array_map(static fn ($r) => (int) $r['MaND'], $ds);
         $sql  = 'SELECT l.MaND, SUM(l.ThayDoi) FROM LICHSUELO l WHERE l.MaND IN (' . implode(',', array_fill(0, count($dsId), '?')) . ')
                   AND l.ThoiGian >= DATE_SUB(NOW(), INTERVAL 7 DAY)' . ($mon > 0 ? ' AND l.MaMon = ?' : '') . ' GROUP BY l.MaND';
@@ -197,7 +190,7 @@ if ($v === 'bxh') {
         $st->execute($mon > 0 ? array_merge($dsId, [$mon]) : $dsId);
         $bienDong = array_map('intval', $st->fetchAll(PDO::FETCH_KEY_PAIR));
 
-        // Panel chi tiết: người được bấm chọn (?nd=), mặc định là người đầu trang
+        // Người chơi hiển thị ở panel chi tiết.
         $nd = (int) ($_GET['nd'] ?? 0);
         foreach ($ds as $i => $r) {
             if ($chon === null || (int) $r['MaND'] === $nd) {
@@ -208,7 +201,7 @@ if ($v === 'bxh') {
                 }
             }
         }
-        // Đường Elo 30 ngày: theo môn đang lọc, hoặc môn người này đấu nhiều nhất khi xem toàn trường
+        // Chuỗi Elo 30 ngày (rút gọn tối đa 60 điểm cho biểu đồ).
         $monVe = $mon;
         if ($monVe === 0) {
             $st = $pdo->prepare('SELECT MaMon FROM ELOMONHOC WHERE MaND = ? ORDER BY SoTran DESC, MaMon LIMIT 1');
@@ -225,7 +218,7 @@ if ($v === 'bxh') {
             $diem = array_map('intval', $st->fetchAll(PDO::FETCH_COLUMN));
             $n = count($diem);
             if ($n >= 2) {
-                if ($n > 60) {   // rút gọn còn tối đa 60 điểm cho biểu đồ nhẹ
+                if ($n > 60) {
                     $moi = [];
                     for ($i = 0; $i < 60; $i++) {
                         $moi[] = $diem[(int) floor($i * $n / 60)];
@@ -239,10 +232,7 @@ if ($v === 'bxh') {
     }
 }
 
-// =====================================================================
-// Tab 3 - A-30: Elo tăng hoặc giảm quá ngưỡng trong khoảng thời gian cấu hình.
-// Tính trực tiếp từ LICHSUELO khi truy vấn, không lưu cờ riêng.
-// =====================================================================
+// Tab 3: Biến động Elo bất thường (tính trực tiếp từ LICHSUELO).
 if ($v === 'bd') {
     $tham   = [$gio, $nguong];
     $loc    = '';
@@ -280,7 +270,7 @@ if ($v === 'bd') {
 
 $tieuDe   = 'Elo và xếp hạng';
 $mucChon  = 'elo';
-$cssTrang = ['thongke_xuat', 'elo'];   // elo nạp sau để ghi đè giao diện hộp thoại Xuất (nền trắng)
+$cssTrang = ['thongke_xuat', 'elo'];   // Nạp elo sau để ghi đè style hộp thoại Xuất.
 $jsTrang  = ['elo', 'elo_xuat'];
 require __DIR__ . '/layout/header.php';
 
@@ -486,8 +476,7 @@ $chiTiet = static fn (int $id): string => e(BASE_URL) . '/admin/nguoidung_chitie
       ],
       'xuhuong' => $diemElo,
   ]; ?>
-<!-- Hộp thoại Xuất bảng xếp hạng (Excel / PDF): cùng giao diện với hộp thoại Xuất của trang Người dùng (modal-nen, modal xuat-hop);
-     cột trái chọn môn, số người, nội dung, cột và định dạng, cột phải xem trước. Xử lý ở elo_xuat.php (A-46) -->
+<!-- Hộp thoại xuất bảng xếp hạng Excel/PDF -->
 <div class="modal-nen" id="exXuatHop" hidden>
   <form class="modal xuat-hop ex-xuat-hop" id="exXuatForm" method="post" action="<?= e(BASE_URL) ?>/admin/elo_xuat.php" role="dialog" aria-modal="true" aria-labelledby="exXuatTieuDe">
     <h3 id="exXuatTieuDe">Xuất bảng xếp hạng Elo</h3>

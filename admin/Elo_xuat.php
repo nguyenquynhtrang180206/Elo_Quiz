@@ -1,18 +1,7 @@
 <?php
-// Endpoint tương thích cho yêu cầu xuất bảng xếp hạng Elo (POST, có CSRF).
-// BXH hiện được tích hợp trên admin/nguoidung.php; endpoint này được giữ để xử lý các biểu mẫu xuất cũ (A-46).
-// Mỗi lần gọi trả MỘT file; khi người dùng chọn "Cả hai", trình duyệt (elo_xuat.js) gọi lần lượt hai lần.
-//
-// Tham số:
-//   mon     : 0 = toàn trường (Elo trung bình các môn đã đủ SO_TRAN_TOI_THIEU_BXH trận), >0 = mã môn.
-//   top     : 0 = toàn bộ bảng xếp hạng, hoặc 10 / 50 / 100 = chỉ lấy N người đứng đầu.
-//   noidung[]: ds = bảng xếp hạng, bac = sơ đồ phân bố theo bậc, pho = sơ đồ phân bố điểm Elo.
-//   truong[]: các cột của bảng: hang, ten, email, bac, elo, sotran, tyle, tt (thứ tự cột luôn theo $COT).
-//   dinhdang: excel | pdf.
-//   anh_bac, anh_pho: ảnh JPEG (data URL) của hai sơ đồ, do trình duyệt vẽ từ số liệu xem trước.
-//   buoc=xemtruoc: không xuất file mà trả JSON để dựng khung "Xem trước".
+// Xuất bảng xếp hạng Elo ra Excel/PDF và trả JSON xem trước.
 require_once __DIR__ . '/../core/bootstrap.php';
-Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');   // A-04
+Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');
 
 function loi_xuat(string $thongBao, int $ma = 400): never
 {
@@ -21,7 +10,7 @@ function loi_xuat(string $thongBao, int $ma = 400): never
     exit($thongBao);
 }
 
-// Ảnh biểu đồ (data URL JPEG): chỉ nhận JPEG hợp lệ, tối đa 5 MB mỗi ảnh
+// Kiểm tra và giải mã ảnh biểu đồ JPEG (tối đa 5 MB).
 function anh_bieu_do(string $khoa): ?array
 {
     $v   = (string) ($_POST[$khoa] ?? '');
@@ -34,7 +23,7 @@ function anh_bieu_do(string $khoa): ?array
     return ['jpeg' => $b, 'rong' => $kt[0], 'cao' => $kt[1]];
 }
 
-// Ảnh dùng trong Excel, rộng $rong pixel (giữ tỷ lệ), cách mép trái $x pixel
+// Tính kích thước ảnh theo chiều rộng cố định (giữ tỷ lệ).
 function anh_theo_rong(?array $a, int $rong, int $x = 0): ?array
 {
     if (!$a) { return null; }
@@ -47,11 +36,11 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 csrf_check();
 @set_time_limit(120);
 
-$TOI_DA_XLSX = 10000;   // số dòng tối đa của file Excel (vượt quá thì yêu cầu chọn Top nhỏ hơn)
+$TOI_DA_XLSX = 10000;
 $TOI_DA_PDF  = 3000;
-$SO_DONG_XEM = 10;      // số dòng đầu đưa vào khung xem trước
+$SO_DONG_XEM = 10;
 
-// Các cột được phép xuất: khóa => [tiêu đề cột, tỉ lệ độ rộng cột trong PDF]
+// Cấu hình cột xuất và tỉ lệ độ rộng trong PDF.
 $COT = [
     'hang'   => ['Hạng',         0.8],
     'ten'    => ['Họ tên',       2.6],
@@ -65,7 +54,7 @@ $COT = [
 
 $pdo = Database::pdo();
 
-// ---- Tham số từ hộp thoại ----
+// Tham số từ hộp thoại xuất.
 $monHoc = $pdo->query('SELECT MaMon, TenMon FROM MONHOC ORDER BY TenMon')->fetchAll();
 $tenMon = array_column($monHoc, 'TenMon', 'MaMon');
 $mon    = (int) ($_POST['mon'] ?? 0);
@@ -77,12 +66,12 @@ if (!in_array($top, [0, 10, 50, 100], true)) { $top = 0; }
 
 $buoc     = (string) ($_POST['buoc'] ?? '');
 $dinhDang = (string) ($_POST['dinhdang'] ?? '');
-if ($buoc === 'xemtruoc') { $dinhDang = 'excel'; }   // xem trước không cần định dạng
+if ($buoc === 'xemtruoc') { $dinhDang = 'excel'; }
 if (!in_array($dinhDang, ['excel', 'pdf'], true)) {
     loi_xuat('Hãy chọn định dạng Excel hoặc PDF.');
 }
 $truongGui = is_array($_POST['truong'] ?? null) ? array_map('strval', $_POST['truong']) : [];
-$truong    = array_values(array_intersect(array_keys($COT), $truongGui));   // giữ thứ tự cố định
+$truong    = array_values(array_intersect(array_keys($COT), $truongGui));   // giữ thứ tự cột cố định
 $NOI_DUNG  = ['ds' => 'Bảng xếp hạng', 'bac' => 'Sơ đồ phân bố theo bậc', 'pho' => 'Sơ đồ phân bố điểm Elo'];
 $noiDung   = array_values(array_intersect(array_keys($NOI_DUNG), is_array($_POST['noidung'] ?? null) ? array_map('strval', $_POST['noidung']) : []));
 $coDs  = in_array('ds', $noiDung, true);
@@ -93,7 +82,7 @@ if ($buoc !== 'xemtruoc') {
     if ($coDs && !$truong) { loi_xuat('Hãy chọn ít nhất một cột cho bảng xếp hạng.'); }
 }
 
-// ---- Bậc rank tính từ Elo khởi tạo, không lưu database ----
+// Bậc rank tính theo ELO_KHOI_TAO, không lưu CSDL.
 $eloKt   = Config::int('ELO_KHOI_TAO', 1000);
 $bacRank = [
     ['ten' => 'Cao thủ',   'tu' => $eloKt + 450, 'mau' => '#c13cff'],
@@ -112,7 +101,7 @@ $ty = static fn (int $thang, int $tran): string => $tran > 0 ? number_format($th
 
 $nMin = max(1, Config::int('SO_TRAN_TOI_THIEU_BXH', 10));
 
-// ---- Truy vấn bảng xếp hạng theo môn / toàn trường ----
+// Truy vấn bảng xếp hạng theo môn hoặc toàn trường.
 if ($mon > 0) {
     $from  = 'FROM ELOMONHOC e JOIN NGUOIDUNG n ON n.MaND = e.MaND WHERE e.MaMon = ?';
     $tham  = [$mon];
@@ -134,9 +123,9 @@ try {
     $st = $pdo->prepare($sqlDem);
     $st->execute($tham);
     $tong   = (int) $st->fetchColumn();
-    $soXuat = $top > 0 ? min($tong, $top) : $tong;   // số dòng thực sự đưa vào bảng
+    $soXuat = $top > 0 ? min($tong, $top) : $tong;
 
-    // Thống kê chung của bảng xếp hạng: Elo trung bình, cao nhất, phân bố theo bậc và theo khoảng điểm
+    // Thống kê phân bố Elo theo bậc và khoảng điểm.
     $st = $pdo->prepare("SELECT $cotElo $from LIMIT 20000");
     $st->execute($tham);
     $moiElo = array_map('intval', array_map('round', array_map('floatval', $st->fetchAll(PDO::FETCH_COLUMN))));
@@ -167,14 +156,14 @@ try {
         $dsBac[] = ['ten' => $b['ten'], 'so' => $phanBo[$i], 'mau' => $b['mau'], 'tu' => $b['tu'] === PHP_INT_MIN ? null : $b['tu']];
     }
 
-    // Lấy các dòng của bảng (xem trước: vài dòng đầu; xuất file: tối đa giới hạn + 1 để biết có vượt không)
+    // Lấy danh sách dòng (xem trước hoặc xuất file).
     $gioiHan = $buoc === 'xemtruoc' ? $SO_DONG_XEM : (($dinhDang === 'pdf' ? $TOI_DA_PDF : $TOI_DA_XLSX) + 1);
     if ($top > 0) { $gioiHan = min($gioiHan, $top); }
     $st = $pdo->prepare("SELECT $cot $from $order LIMIT " . (int) $gioiHan);
     $st->execute($tham);
     $nguoi = $st->fetchAll();
 
-    $dongDu = [];   // mỗi dòng: các giá trị theo khóa cột
+    $dongDu = [];
     foreach ($nguoi as $i => $r) {
         $elo = (int) $r['elo'];
         $dongDu[] = [
@@ -189,7 +178,7 @@ try {
         ];
     }
 
-    // ---- Xem trước: trả JSON ----
+    // Trả JSON xem trước.
     if ($buoc === 'xemtruoc') {
         header('Content-Type: application/json; charset=utf-8');
         header('Cache-Control: no-store');
@@ -208,7 +197,7 @@ try {
         exit;
     }
 
-    // ---- Xuất file ----
+    // Xuất file Excel/PDF.
     if ($tong === 0) {
         loi_xuat('Chưa có người chơi nào được xếp hạng trong ' . $tenBxh . '.');
     }
@@ -264,7 +253,7 @@ try {
         XlsxWriter::taiNhieuSheet($tenFile . '.xlsx', $sheets);
     }
 
-    // PDF: nhiều cột thì dùng A4 ngang
+    // PDF dùng khổ A4 ngang khi bảng nhiều cột.
     $pdf = new PdfWriter(__DIR__ . '/../assets/fonts');
     $pdf->khoTrang($coDs && count($tieuDe) > 6);
     $pdf->tieuDe($coDs ? 'Bảng xếp hạng Elo' : 'Thống kê xếp hạng Elo', 20);
@@ -294,7 +283,7 @@ try {
         foreach ($d as $v) { $o[] = $v === null ? '—' : (string) $v; }
         $dongPdf[] = $o;
         if ($viTriTT !== null) {
-            $mauO[$i] = [$viTriTT => ($d[$viTriTT] ?? '') === 'Bị khóa' ? '#fde3e6' : '#dcf5ea'];   // tô nền ô trạng thái
+            $mauO[$i] = [$viTriTT => ($d[$viTriTT] ?? '') === 'Bị khóa' ? '#fde3e6' : '#dcf5ea'];
         }
     }
     $pdf->khoang(6);

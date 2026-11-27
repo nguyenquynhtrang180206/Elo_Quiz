@@ -1,9 +1,6 @@
-/* =====================================================================
-   Trang chủ QUIZUP ARENA (client/index.php)
-   Thiết kế hiện đại, tương tác 3D & tương thích mọi thiết bị (PC, Laptop, Tablet, Mobile)
-   ===================================================================== */
+/* Trang chủ (client/index.php) */
 
-/* ---- HERO BANNER CAROUSEL (3D QUIZUP ARENA) ---- */
+/* Banner chính */
 .hero-arena {
   --mx:72%; --my:45%; --rx:0deg; --ry:0deg;
   position:relative; overflow:hidden;
@@ -18,7 +15,7 @@
   touch-action:pan-y; user-select:none;
 }
 
-/* Hào quang ánh kim & hiệu ứng sàn không gian 3D phản chiếu */
+/* Hiệu ứng nền banner */
 .hero-tia-sang {
   position:absolute; inset:0; pointer-events:none;
   background:
@@ -43,7 +40,7 @@
   align-items:center; gap:clamp(16px, 2.8vw, 32px);
 }
 
-/* Chồng các slide mượt mà bằng CSS Grid */
+/* Xếp chồng các slide bằng Grid */
 .hero-slides-stack { display:grid; grid-template-columns:100%; align-items:center; }
 .hero-slide {
   grid-area:1 / 1;
@@ -56,7 +53,7 @@
   transform:translateY(0) scale(1);
 }
 
-/* Huy hiệu trạng thái trực tuyến quý phái */
+/* Nhãn trạng thái trực tuyến */
 .hero-chao {
   display:inline-flex; align-items:center; gap:8px;
   padding:5px 15px; margin-bottom:12px; border-radius:999px;
@@ -74,7 +71,7 @@
   50% { transform:scale(1.35); opacity:.55; }
 }
 
-/* Tiêu đề Luxury 3D QUIZUP ARENA */
+/* Tiêu đề banner */
 .hero-tieu-de {
   margin:0; line-height:1.25; font-weight:900; text-transform:uppercase;
   letter-spacing:.03em;
@@ -113,7 +110,7 @@
 }
 .hero-phu.canh-bao { color:#FDE68A; }
 
-/* Nhóm nút CTA trên Hero dát vàng nguyên khối */
+/* Nhóm nút hành động */
 .hero-nut-nhom { display:flex; flex-wrap:wrap; align-items:center; gap:14px 18px; }
 .hero-btn-chinh {
   position:relative; overflow:hidden;
@@ -155,7 +152,7 @@
   text-shadow:0 0 10px rgba(212,175,55,.6);
 }
 
-/* Thanh chỉ số nhanh dưới CTA */
+/* Thanh chỉ số nhanh */
 .hero-thong-ke {
   display:flex; flex-wrap:wrap; gap:10px; margin-top:20px;
 }
@@ -179,7 +176,7 @@
   display:block; filter:drop-shadow(0 0 6px rgba(212,175,55,.5));
 }
 
-/* ---- SÂN KHẤU 3D BÊN PHẢI & HUY HIỆU HUD (3D/4D HOLOGRAPHIC) ---- */
+/* Khu vực minh họa 3D và nhãn HUD */
 .hero-minh-hoa {
   display:flex; justify-content:center; align-items:center;
   perspective:1100px;
@@ -192,7 +189,7 @@
   transition:transform .18s ease-out;
 }
 
-/* Vầng hào quang năng lượng vô địch phát sáng phía sau Faker */
+/* Vầng sáng sau khung linh vật */
 .hero-faker-aura {
   position:absolute; inset:-12% -18%; border-radius:50%; pointer-events:none;
   background:
@@ -206,7 +203,7 @@
   100% { transform:scale(1.1); opacity:1; }
 }
 
-/* Bệ ánh sáng phản chiếu đế chân khung */
+/* Bệ sáng chân khung */
 .hero-faker-pedestal {
   position:absolute; bottom:0%; left:50%; width:340px; height:50px; margin-left:-170px;
   border-radius:50%; pointer-events:none;
@@ -216,14 +213,13 @@
   z-index:1;
 }
 
-/* ---- KHUNG TRANH HOLOGRAPHIC LINH VẬT THI CỬ (PET CARD) ---- */
+/* Thẻ linh vật */
 .hero-pet-card {
   position:relative; z-index:3;
   width:100%; max-width:345px;
   border-radius:22px;
   cursor:pointer; user-select:none;
   transform:translateZ(30px);
-  /* Dash Entrance */
   animation:faker-dash-in 1.15s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   transition:transform .3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow .3s ease;
 }
@@ -245,7 +241,7 @@
   backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
 }
 
-/* 4 góc dát vàng Cyberpunk/Esports */
+/* 4 góc trang trí thẻ */
 .pet-corner {
   position:absolute; width:16px; height:16px; pointer-events:none; z-index:5;
   border-color:#FFD166;
@@ -255,7 +251,7 @@
 .pet-corner.bl { bottom:6px; left:6px; border-bottom:2.5px solid; border-left:2.5px solid; border-bottom-left-radius:6px; }
 .pet-corner.br { bottom:6px; right:6px; border-bottom:2.5px solid; border-right:2.5px solid; border-bottom-right-radius:6px; }
 
-/* Thanh Header trên cùng của thẻ */
+/* Phần đầu thẻ */
 .pet-card-header {
   display:flex; align-items:center; justify-content:space-between;
   padding:4px 8px 8px;
@@ -309,7 +305,7 @@
   background:linear-gradient(135deg, rgba(255,255,255,0.18) 0%, transparent 40%, transparent 60%, rgba(0,217,255,0.12) 100%);
 }
 
-/* Tag mood nổi ở chân ảnh */
+/* Nhãn trạng thái ở chân ảnh */
 .pet-mood-overlay {
   position:absolute; bottom:10px; left:50%; transform:translateX(-50%);
   width:calc(100% - 20px);
@@ -323,7 +319,7 @@
   transition:all .25s ease;
 }
 
-/* Footer chân thẻ */
+/* Chân thẻ */
 .pet-card-footer {
   display:flex; align-items:center; justify-content:center;
   padding:8px 6px 2px;
@@ -334,7 +330,7 @@
   display:inline-flex; align-items:center; gap:4px;
 }
 
-/* Hiệu ứng chuyển thẻ khi click (Flash & Pop) */
+/* Hiệu ứng chuyển thẻ */
 .hero-pet-card.pet-switching .pet-photo {
   animation:pet-img-flash 0.45s ease-out;
 }
@@ -353,7 +349,7 @@
   100% { transform:translateZ(30px) scale(1) rotate(0deg); }
 }
 
-/* Bong bóng hội thoại tương tác của Faker (nằm gọn phía trên khung thẻ, không đè HUD) */
+/* Bong bóng thoại phía trên thẻ (không đè HUD) */
 .faker-speech-bubble {
   position:absolute; top:-4px; left:50%; right:auto; z-index:8;
   max-width:260px; width:max-content; display:flex; align-items:center; gap:8px;
@@ -384,7 +380,7 @@
   border-top:8px solid var(--cyan);
 }
 
-/* Huy hiệu Easter Egg khi click */
+/* Nhãn thưởng khi bấm thẻ */
 .faker-toast-badge {
   position:absolute; top:35%; right:-5%; z-index:10;
   padding:8px 16px; border-radius:999px;
@@ -407,7 +403,7 @@
   100% { opacity:0; transform:translateZ(85px) translateY(-50px) scale(0.85); }
 }
 
-/* Tia hạt sáng (Sparks) khi click vào Faker */
+/* Tia sáng khi bấm thẻ */
 .faker-spark {
   position:absolute; pointer-events:none; z-index:9;
   width:8px; height:8px; border-radius:50%;
@@ -420,7 +416,7 @@
   100% { transform:translate(var(--dx), var(--dy)) scale(0); opacity:0; }
 }
 
-/* Huy hiệu HUD danh giá nổi 3D trong không gian (Holographic Parallax) */
+/* Nhãn HUD nổi */
 .hud-badge {
   position:absolute; z-index:6;
   display:inline-flex; align-items:center; gap:7px;
@@ -440,7 +436,7 @@
   50% { transform:translateZ(65px) translateY(-6px); }
 }
 
-/* ---- NÚT ĐIỀU HƯỚNG SLIDE & THANH TIẾN ĐỘ DÁT VÀNG ---- */
+/* Điều hướng slide và thanh tiến độ */
 .hero-mui-ten {
   position:absolute; top:50%; transform:translateY(-50%); z-index:4;
   width:40px; height:40px; border-radius:50%; cursor:pointer;
@@ -494,9 +490,7 @@
   to { width:100%; }
 }
 
-/* =====================================================================
-   KHỐI 2 CỘT: BÁO ĐẤU TRƯỜNG GEN Z & TAM ĐẠI CHIẾN THẦN 3D (OPTION 2)
-   ===================================================================== */
+/* Khối 2 cột: Báo đấu trường và Top 3 */
 .arena-hai-cot {
   display:grid; grid-template-columns:minmax(0, 1.35fr) minmax(0, 1fr); gap:18px; margin-bottom:18px;
 }
@@ -529,7 +523,7 @@
 }
 .panel-xem-them:hover { color:#FFF8E7; transform:translateX(3px); text-decoration:none; }
 
-/* ---- CỘT TRÁI: BÁO ĐẤU TRƯỜNG GEN Z ---- */
+/* Cột trái: Báo đấu trường */
 .genz-board { position:relative; }
 .ticker-genz {
   display:flex; align-items:center; gap:10px;
@@ -614,7 +608,7 @@
 .tin-muc.genz-card .genz-meta { margin-top:6px; }
 .tin-muc.genz-card .tin-link-doc { display:none; }
 
-/* Thanh Reaction cảm xúc tương tác */
+/* Thanh cảm xúc */
 .genz-reactions {
   display:flex; flex-wrap:wrap; align-items:center; gap:8px;
   margin-top:10px; padding-top:9px;
@@ -641,7 +635,7 @@
 .r-count { font-weight:800; color:#FFD147; }
 .r-label { font-size:10.5px; opacity:.9; }
 
-/* Emoji bay lên khi thả react */
+/* Emoji bay lên khi thả cảm xúc */
 .floating-react {
   position:absolute; pointer-events:none; z-index:60;
   font-size:19px; font-weight:900;
@@ -653,7 +647,7 @@
   100% { opacity:0; transform:translate(var(--dx), -55px) scale(1.5); }
 }
 
-/* ---- CỘT PHẢI: TAM ĐẠI CHIẾN THẦN 3D (CHALLENGER TRADING CARDS) ---- */
+/* Cột phải: Thẻ Top 3 */
 .challenger-panel {
   flex:1; display:flex; flex-direction:column; position:relative;
 }
@@ -679,7 +673,7 @@
   padding:8px 2px 4px; box-sizing:border-box;
 }
 
-/* Thẻ bài phong cách Trading Card Game (3 khung cố định tách biệt, không xoay đè nhau) */
+/* Thẻ bài Top 3 (3 khung cố định không xoay đè nhau) */
 .tc-card {
   width:100%; max-width:none; min-width:0; box-sizing:border-box; border-radius:14px;
   padding:10px 8px 9px;
@@ -691,7 +685,6 @@
   cursor:pointer; user-select:none;
 }
 
-/* Bố cục 3 khung cố định không chồng lấn */
 .card-pos-left {
   transform:none; z-index:2;
 }
@@ -708,7 +701,7 @@
   z-index:12 !important;
 }
 
-/* Phân cấp Thần Thoại theo Rank */
+/* Màu viền theo thứ hạng */
 .rank-challenger {
   border-color:#FBBF24;
   box-shadow:0 10px 28px rgba(251,191,36,.45), inset 0 1px 4px rgba(255,255,255,.3);
@@ -731,7 +724,7 @@
   box-shadow:0 14px 32px rgba(192,132,252,.65), 0 0 18px rgba(232,121,249,.45);
 }
 
-/* Lớp lấp lánh phản quang Hologram Foil */
+/* Lớp phản quang thẻ */
 .tc-foil {
   position:absolute; inset:0; pointer-events:none; opacity:0.18;
   transition:opacity .3s ease; z-index:1;
@@ -747,7 +740,7 @@
 }
 .tc-card:hover .tc-foil { opacity:0.45; }
 
-/* Chi tiết bên trong Thẻ Bài */
+/* Nội dung thẻ bài */
 .tc-top-badge {
   display:flex; align-items:center; gap:4px;
   font-size:8.5px; font-weight:900; letter-spacing:.04em; text-transform:uppercase;
@@ -849,7 +842,7 @@
   cursor:default; transform:none; filter:none;
 }
 
-/* ---- SỐ LIỆU CÁ NHÂN ---- */
+/* Số liệu cá nhân */
 .so-lieu { display:flex; flex-wrap:wrap; gap:14px; margin:8px 0; }
 .so-lieu div {
   flex:1 1 110px; padding:12px; border-radius:10px;
@@ -859,9 +852,7 @@
 .meta { color:var(--mau-phu); font-size:13px; }
 tr.la-toi { font-weight:700; background:rgba(8,123,255,.22); }
 
-/* =====================================================================
-   TƯƠNG THÍCH ĐA THIẾT BỊ (PC, Laptop, Tablet, Điện thoại nhỏ)
-   ===================================================================== */
+/* Responsive */
 
 /* Màn hình lớn (Widescreen >= 1400px) */
 @media (min-width: 1400px) {
@@ -921,27 +912,27 @@ tr.la-toi { font-weight:700; background:rgba(8,123,255,.22); }
   .hero-thong-ke { justify-content: center; }
 }
 
-/* ĐIỆN THOẠI: XẾP DỌC THẺ BÀI TOP 3 TỪ TRÊN XUỐNG (<= 768px) */
+/* Responsive Top 3 trên điện thoại (<= 768px) */
 @media (max-width: 768px) {
   .deck-cards-row {
-    grid-template-columns: 1fr; /* Chuyển từ 3 cột thành 1 cột dọc */
+    grid-template-columns: 1fr;
     gap: 14px;
     padding: 12px 0;
   }
   
-  /* Hủy bỏ hiệu ứng xoay 3D và đưa thẻ về kích thước chuẩn */
+  /* Tắt xoay 3D trên màn hình nhỏ */
   .card-pos-left, .card-pos-center, .card-pos-right {
     transform: none !important;
     width: 100%;
-    max-width: 280px; /* Độ rộng vừa vặn trên mobile */
-    margin: 0 auto; /* Căn giữa thẻ */
-    flex-direction: column; /* Đảm bảo nội dung bên trong xếp dọc */
+    max-width: 280px;
+    margin: 0 auto;
+    flex-direction: column;
     align-items: center;
     text-align: center;
     padding: 15px 12px;
   }
 
-  /* Khôi phục lại vị trí chuẩn cho các thành phần bên trong (như trên máy tính) */
+  /* Khôi phục bố cục dọc cho nội dung thẻ */
   .tc-top-badge { position: static; margin-bottom: 8px; font-size: 10px; }
   .tc-avatar-wrapper { margin-bottom: 10px; margin-right: 0; }
   .tc-player-name { width: 100%; margin-bottom: 6px; font-size: 16px; }
@@ -1000,10 +991,7 @@ tr.la-toi { font-weight:700; background:rgba(8,123,255,.22); }
   .panel-tieu-de { font-size: 15px; }
 }
 
-/* =====================================================================
-   BÁO ĐẤU TRƯỜNG GEN Z: RESPONSIVE ĐIỆN THOẠI DỌC
-   (đặt cuối file để ghi đè các quy tắc @media cũ ở trên)
-   ===================================================================== */
+/* Báo đấu trường: responsive điện thoại dọc (đặt cuối để ghi đè @media trên) */
 .arena-hai-cot > * { min-width: 0; }                 /* không để nội dung đẩy tràn ngang */
 
 @media (max-width: 960px) {

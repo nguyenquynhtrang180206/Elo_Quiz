@@ -1,4 +1,4 @@
-// Chuông thông báo admin (trang Tổng quan). Dữ liệu từ admin/thongbao_api.php
+// Chuông thông báo admin (admin/thongbao_api.php).
 (function () {
   'use strict';
   var goc = document.getElementById('admTb');
@@ -87,7 +87,7 @@
     post({ action: 'doc_het' }).then(function (d) { if (d && d.ok) { tai(); } });
   });
 
-  // Bấm một thông báo: gửi yêu cầu "đã đọc" (keepalive để không bị hủy khi chuyển trang), link vẫn chuyển trang bình thường
+  // Dùng keepalive để yêu cầu đánh dấu đã đọc không bị hủy khi chuyển trang
   ds.addEventListener('click', function (e) {
     var muc = e.target.closest('.adm-tb-muc');
     if (!muc || !muc.classList.contains('chua-doc')) { return; }
@@ -99,7 +99,7 @@
     try { fetch(api, { method: 'POST', body: f, keepalive: true }); } catch (err) { /* vẫn cho chuyển trang */ }
   });
 
-  // Cập nhật số chưa đọc mỗi 30 giây
+  // Polling số chưa đọc mỗi 30 giây
   setInterval(function () {
     fetch(api + '?action=dem').then(function (r) { return r.json(); }).then(function (d) {
       if (d && d.ok) { capNhatSo(d.soChuaDoc); if (dangMo) { tai(); } }

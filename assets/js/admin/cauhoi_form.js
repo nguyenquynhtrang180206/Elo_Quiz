@@ -1,10 +1,4 @@
-/* Trang Thêm/Sửa câu hỏi (admin/cauhoi_form.php). Đặt tại: assets/js/admin/cauhoi_form.js
-   - Thẻ xem trước cập nhật ngay khi gõ (môn, kỳ thi, hạng theo độ khó, nội dung)
-   - Gõ thẳng vào thẻ phương án, bấm vòng tròn bên phải để chọn đáp án đúng
-   - Bộ đếm ký tự, danh sách 5 điều kiện + vòng tiến độ
-   - "Chạy thử như người chơi" (hộp thoại, không ghi vào CSDL), "Làm mới"
-   Dữ liệu người dùng luôn đổ bằng textContent (không innerHTML) nên không có nguy cơ XSS.
-   Việc kiểm tra thật vẫn nằm ở máy chủ (CauHoiHelper::kiemTra); phần này chỉ để báo sớm. */
+// Trang Thêm/Sửa câu hỏi: xem trước trực tiếp, bộ đếm ký tự, điều kiện hợp lệ và chạy thử.
 (function () {
   'use strict';
 
@@ -74,7 +68,7 @@
   }
 
   function capNhat() {
-    // ----- Thẻ xem trước -----
+    // Thẻ xem trước
     $('cfXemMon').textContent = (tenMon() || 'Chưa chọn môn') + ' · ' + tenKyThi();
     var h = HANG[giaTriKho()] || HANG['Trung bình'];
     var nhanHang = $('cfXemHang');
@@ -88,14 +82,14 @@
     var iDung = chiSoDung();
     theDap.forEach(function (the, i) { the.classList.toggle('dung', i === iDung); });
 
-    // ----- Bộ đếm ký tự -----
+    // Bộ đếm ký tự
     var dND = $('cfDemND'), dGT = $('cfDemGT');
     dND.textContent = taND.value.length + '/' + toiDaND;
     dGT.textContent = taGT.value.length + '/' + toiDaGT;
     dND.classList.toggle('gan-het', taND.value.length > toiDaND * 0.9);
     dGT.classList.toggle('gan-het', taGT.value.length > toiDaGT * 0.9);
 
-    // ----- Điều kiện + vòng tiến độ -----
+    // Điều kiện và vòng tiến độ
     var dk = tinhDieuKien(), dat = 0;
     [].forEach.call($('cfKt').querySelectorAll('li'), function (li) {
       var ok = !!dk[li.getAttribute('data-k')];
@@ -107,7 +101,6 @@
     vong.classList.toggle('xong', dat === 5);
     $('cfVongSo').textContent = dat + '/5';
 
-    // ----- Dòng báo dưới nút -----
     var duDeThu = dk.pa && dk.dung;
     thongBao.textContent = duDeThu ? '' : MAC_DINH_THONGBAO;
     thongBao.classList.remove('loi-luu');
@@ -116,7 +109,7 @@
   form.addEventListener('input', function () { daSua = true; capNhat(); });
   form.addEventListener('change', function () { daSua = true; capNhat(); });
 
-  // ---------- Lưu: báo sớm những gì còn thiếu (máy chủ vẫn kiểm tra lại) ----------
+  // Kiểm tra sớm trước khi lưu (tránh bấm hai lần)
   form.addEventListener('submit', function (e) {
     var dk = tinhDieuKien();
     var thieu = [];
@@ -136,7 +129,6 @@
     if (nut) { nut.disabled = true; }   // tránh bấm hai lần
   });
 
-  // ---------- Làm mới ----------
   $('cfLamMoi').addEventListener('click', function () {
     if (daSua && !confirm(laMoi ? 'Xóa hết những gì đã nhập?' : 'Khôi phục lại nội dung câu hỏi như lúc mở trang?')) { return; }
     if (laMoi) {
@@ -156,7 +148,7 @@
     taND.focus();
   });
 
-  // ---------- Chạy thử như người chơi ----------
+  // Hộp thoại chạy thử như người chơi
   var dlg = $('cfDlg');
   var dlgDap = $('cfDlgDap'), dlgKq = $('cfDlgKq'), dlgGt = $('cfDlgGt');
   var dsThu = [], dungThu = -1;

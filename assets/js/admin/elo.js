@@ -1,5 +1,4 @@
-// Trang Elo và xếp hạng (admin/elo.php, tab Bảng xếp hạng): vẽ biểu đồ bằng Chart.js (assets/vendor/chart.umd.js)
-// Dữ liệu do máy chủ nhúng trong thẻ <script id="du-lieu-elo" type="application/json">.
+// Trang Elo và xếp hạng: vẽ biểu đồ Chart.js từ dữ liệu #du-lieu-elo.
 (function () {
   if (typeof Chart === 'undefined') { return; }
   var nguon = document.getElementById('du-lieu-elo');
@@ -10,7 +9,7 @@
   Chart.defaults.color = '#64748b';
   var luoi = 'rgba(15,23,42,.07)';
 
-  // 1. Tròn: số người chơi theo bậc rank
+  // Biểu đồ bậc rank
   var cBac = document.getElementById('bd-bac');
   if (cBac) {
     new Chart(cBac, {
@@ -26,7 +25,7 @@
     });
   }
 
-  // 2. Cột: số người theo khoảng điểm Elo (màu theo bậc của khoảng)
+  // Biểu đồ phân bố Elo
   var cPho = document.getElementById('bd-pho');
   if (cPho) {
     new Chart(cPho, {
@@ -43,7 +42,7 @@
     });
   }
 
-  // 3. Thanh ngang: top 5 Elo cao nhất
+  // Top 5 Elo cao nhất
   var cTop = document.getElementById('bd-top');
   if (cTop && d.top.ten.length) {
     var thap = Math.min.apply(null, d.top.elo);
@@ -61,7 +60,7 @@
     });
   }
 
-  // 4. Đường: Elo 30 ngày gần nhất của người đang chọn (panel bên phải)
+  // Xu hướng Elo 30 ngày gần nhất
   var cXh = document.getElementById('bd-xuhuong');
   if (cXh && d.xuhuong && d.xuhuong.length > 1) {
     new Chart(cXh, {

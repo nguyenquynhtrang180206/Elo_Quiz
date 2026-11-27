@@ -1,12 +1,5 @@
 <?php
-// =====================================================================
-// KHÔI PHỤC MẬT KHẨU AN TOÀN (C-06) - QUIZUP ARENA
-// Đặt tại: elo_quiz/client/quenmatkhau.php
-// Bảo mật chuẩn OWASP:
-// - Chống Brute-force ở cả bước gửi OTP lẫn bước nhập mã OTP 6 số (khóa 15 phút sau 5 lần sai).
-// - So sánh mã OTP bằng hash_equals chống Timing Attack.
-// - Chỉ kiểm tra lịch sử mật khẩu sau khi mã OTP hợp lệ (chống Password History Oracle).
-// =====================================================================
+// Khôi phục mật khẩu qua Email OTP (áp dụng cho cả Sinh viên và Quản trị viên)
 require_once __DIR__ . '/../core/bootstrap.php';
 
 if (Auth::clientId() !== null) {
@@ -36,7 +29,7 @@ if (!empty($_SESSION['reset_flow'])) {
     }
 }
 
-// Xử lý yêu cầu gửi lại mã OTP (cooldown 60s + RateLimiter)
+// Gửi lại mã OTP (cooldown 60s + RateLimiter)
 if (isset($_GET['gui_lai']) && !empty($_SESSION['reset_flow'])) {
     $now      = time();
     $flow     = $_SESSION['reset_flow'];
@@ -56,7 +49,11 @@ if (isset($_GET['gui_lai']) && !empty($_SESSION['reset_flow'])) {
             $_SESSION['reset_flow']['expire']    = $now + 900; // 15 phút
             $_SESSION['reset_flow']['last_sent'] = $now;
 
-            Mailer::guiOtpQuenMatKhau($flow['email'], $flow['hoTen'], $otpMoi);
+            if (($flow['loai'] ?? '') === 'admin') {
+                Mailer::guiOtpQuenMatKhauAdmin($flow['email'], $flow['hoTen'], (string) ($flow['tenDangNhap'] ?? ''), $otpMoi);
+            } else {
+                Mailer::guiOtpQuenMatKhau($flow['email'], $flow['hoTen'], $otpMoi);
+            }
             $loi      = [];
             $daGuiLai = true;
         }
@@ -64,14 +61,11 @@ if (isset($_GET['gui_lai']) && !empty($_SESSION['reset_flow'])) {
     $buoc = 2;
 }
 
-// =====================================================================
-// XỬ LÝ FORM GỬI LÊN
-// =====================================================================
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_check();
     $action = trim((string) ($_POST['action'] ?? ''));
 
-    // BƯỚC 1: XÁC MINH EMAIL / TÀI KHOẢN & GỬI MÃ OTP VÀO EMAIL
+    // Xác minh email và gửi mã OTP
     if ($action === 'xac_minh_email') {
         $loi   = [];
         $email = strtolower(trim((string) ($_POST['email'] ?? '')));
@@ -87,12 +81,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $loi[] = 'Bạn đã gửi yêu cầu quá nhiều lần. Vui lòng thử lại sau '
                     . RateLimiter::dinhDangThoiGian($hanChe['thoiGianCon']) . '.';
             } else {
-                // 1. Kiểm tra trong bảng NGUOIDUNG (Sinh viên)
+                // Kiểm tra tài khoản Sinh viên trước, nếu không có thì kiểm tra Quản trị viên
                 $st = $pdo->prepare('SELECT MaND, HoTen, Email, TrangThai FROM NGUOIDUNG WHERE Email = ?');
                 $st->execute([$email]);
                 $nd = $st->fetch(PDO::FETCH_ASSOC);
 
-                // 2. Nếu không phải sinh viên, tự động kiểm tra trong bảng ADMIN (Quản trị viên)
                 $ad = null;
                 if (!$nd) {
                     $stAd = $pdo->prepare('SELECT MaAdmin, TenDangNhap, HoTen, Email, TrangThai FROM ADMIN WHERE LOWER(Email) = ? LIMIT 1');
@@ -140,7 +133,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    // BƯỚC 2: XÁC THỰC MÃ OTP VÀ ĐẶT MẬT KHẨU MỚI
+    // Xác thực OTP và đặt mật khẩu mới
     elseif ($action === 'dat_lai_mat_khau') {
         $loi = [];
         if (empty($_SESSION['reset_flow']) || time() > ($_SESSION['reset_flow']['expire'] ?? 0)) {
@@ -158,7 +151,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $loi[] = 'Bạn đã nhập sai mã OTP quá 5 lần. Vui lòng thử lại sau '
                     . RateLimiter::dinhDangThoiGian($hanCheVerify['thoiGianCon']) . '.';
             } else {
-                // 1. Kiểm tra OTP bằng hash_equals chống Timing Attack
+                // So sánh OTP bằng hash_equals chống timing attack
                 if ($otpNhap === '') {
                     $loi[] = 'Vui lòng nhập mã OTP 6 số từ email.';
                 } elseif (!hash_equals((string) $flow['otp'], $otpNhap)) {
@@ -171,7 +164,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 }
 
-                // 2. Kiểm tra mật khẩu mới (tự động nhận diện Admin hay Client)
+                // Kiểm tra độ mạnh và lịch sử mật khẩu
                 $laResetAdmin = (($flow['loai'] ?? 'client') === 'admin');
                 if ($matKhauMoi === '') {
                     $loi[] = 'Vui lòng nhập mật khẩu mới.';
@@ -186,7 +179,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     if ($loiManh) {
                         $loi = array_merge($loi, $loiManh);
                     } elseif (!$loi) {
-                        // Chỉ kiểm tra lịch sử mật khẩu sau khi OTP đã đúng (chống Password Oracle)
+                        // Chỉ kiểm tra lịch sử mật khẩu sau khi OTP hợp lệ (chống password oracle)
                         $canhBaoLichSu = $laResetAdmin
                             ? PasswordSecurity::kiemTraLichSuAdmin($pdo, (int) $flow['maAdmin'], $matKhauMoi)
                             : PasswordSecurity::kiemTraLichSu($pdo, (int) $flow['maND'], $matKhauMoi);
@@ -198,7 +191,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
 
-            // 3. Cập nhật vào CSDL nếu hợp lệ 100%
+            // Cập nhật mật khẩu mới vào CSDL
             if (!$loi) {
                 $hashMoi = PasswordSecurity::hash($matKhauMoi);
                 if (!empty($laResetAdmin)) {
@@ -229,7 +222,7 @@ require __DIR__ . '/layout/header.php';
     <h2>Quên mật khẩu</h2>
     <p class="quenmk-mo-ta">Lấy lại quyền truy cập vào tài khoản đấu trường của bạn.</p>
 
-    <!-- Stepper Tiến trình tối giản -->
+    <!-- Tiến trình khôi phục -->
     <div class="quenmk-stepper">
       <div class="stepper-track">
         <div class="stepper-bar" style="width: <?= $buoc === 1 ? '0%' : ($buoc === 2 ? '50%' : '100%') ?>;"></div>
@@ -261,7 +254,7 @@ require __DIR__ . '/layout/header.php';
       </div>
     <?php endif; ?>
 
-    <!-- ==================== BƯỚC 1: NHẬP EMAIL ==================== -->
+    <!-- Nhập email tài khoản -->
     <?php if ($buoc === 1): ?>
       <form method="post" action="" novalidate>
         <?= csrf_field() ?>
@@ -274,7 +267,7 @@ require __DIR__ . '/layout/header.php';
         <p><button type="submit" class="btn">Nhận mã xác thực qua Email</button></p>
       </form>
 
-    <!-- ==================== BƯỚC 2: NHẬP OTP TỪ EMAIL & ĐẶT MẬT KHẨU MỚI ==================== -->
+    <!-- Nhập OTP và mật khẩu mới -->
     <?php elseif ($buoc === 2): ?>
       <?php
         $flow          = $_SESSION['reset_flow'] ?? [];
@@ -362,7 +355,7 @@ require __DIR__ . '/layout/header.php';
       </form>
       <script src="<?= e(BASE_URL) ?>/assets/js/pw_helper.js"></script>
 
-    <!-- ==================== BƯỚC 3: HOÀN TẤT THÀNH CÔNG ==================== -->
+    <!-- Hoàn tất -->
     <?php elseif ($buoc === 3): ?>
       <div class="thanhcong" style="text-align: center; padding: 20px 14px; margin-bottom: 16px;">
         <div style="font-size: 32px; margin-bottom: 8px;">✅</div>

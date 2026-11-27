@@ -2,7 +2,7 @@
 (function () {
   'use strict';
 
-  // 1. Xử lý nút con mắt ẩn/hiện mật khẩu
+  // Ẩn/hiện mật khẩu
   var toggleBtns = document.querySelectorAll('.btn-toggle-pw');
   toggleBtns.forEach(function (btn) {
     btn.addEventListener('click', function () {
@@ -17,7 +17,7 @@
     });
   });
 
-  // 2. Xử lý kiểm tra thời gian thực
+  // Kiểm tra độ mạnh mật khẩu theo thời gian thực
   var pwInput = document.getElementById('mat_khau') || document.getElementById('mat_khau_moi');
   var confirmInput = document.getElementById('xac_nhan');
   var checklist = document.getElementById('pwChecklist');
@@ -72,7 +72,6 @@
       }
     }
 
-    // Rules
     updateRule('len', pw.length >= 8 && pw.length <= 72);
     updateRule('case', /[a-z]/.test(pw) && /[A-Z]/.test(pw));
     updateRule('num_sym', /[0-9]/.test(pw) && /[!@#$%^&*()_\-+=\[\]{};:,.<>?/~`|\\]/.test(pw));
@@ -95,7 +94,7 @@
     checkPassword();
   }
 
-  // 3. Khóa Copy / Paste trên các ô Xác nhận mật khẩu & Mật khẩu chính
+  // Chặn copy/paste để bắt buộc nhập tay ô xác nhận mật khẩu
   function showNoPasteToast(targetInput, text) {
     var wrap = targetInput.closest('.pw-field-wrap') || targetInput.closest('.auth-field-wrapper') || targetInput.closest('.dmk-o') || targetInput.parentElement;
     if (!wrap) return;
@@ -115,7 +114,6 @@
   }
 
   function blockCopyPasteOnConfirm() {
-    // Chặn copy từ ô mật khẩu gốc
     var primaryPws = document.querySelectorAll('input[type="password"]:not([name="xac_nhan"]):not(#xac_nhan):not(#modalRegConfirm):not(#modalConfirmNewPassword)');
     primaryPws.forEach(function (inp) {
       inp.addEventListener('copy', function (e) {
@@ -127,7 +125,6 @@
       });
     });
 
-    // Chặn paste, drop, copy vào ô xác nhận mật khẩu (bắt buộc nhập tay)
     var confirmInputs = document.querySelectorAll('input[name="xac_nhan"], #xac_nhan, #modalRegConfirm, #modalConfirmNewPassword, .input-no-paste');
     confirmInputs.forEach(function (inp) {
       inp.setAttribute('autocomplete', 'new-password');
@@ -156,7 +153,7 @@
   window.blockCopyPasteOnConfirm = blockCopyPasteOnConfirm;
   window.showNoPasteToast = showNoPasteToast;
 
-  // 4. Đồng hồ đếm ngược thời hạn hiệu lực mã OTP (15 phút) và thời gian chờ Gửi lại (60 giây)
+  // Đếm ngược hiệu lực OTP và thời gian chờ gửi lại
   function formatMmSs(totalSec) {
     var s = Math.max(0, parseInt(totalSec, 10) || 0);
     var m = Math.floor(s / 60);

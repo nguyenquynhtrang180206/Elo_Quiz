@@ -1,6 +1,4 @@
-// Biểu đồ "Tổng số trận đã đấu" (tích lũy, kiểu nền) của trang Trận đấu (admin/trandau.php), vẽ bằng SVG thuần, không cần thư viện.
-// Dữ liệu: admin/trandau_nhip.php?khoang=1h|3h|1d|1w. Tự làm mới mỗi 30 giây (trang LIVE).
-// Chỉ còn một chế độ (tích lũy) và một kiểu vẽ (nền); rê chuột để xem từng mốc, mốc có trận bất thường hiện thêm cờ đỏ.
+// Biểu đồ nhịp số trận đã đấu bằng SVG thuần (admin/trandau.php), tự làm mới mỗi 30 giây.
 (function () {
   'use strict';
 
@@ -35,7 +33,6 @@
     return t;
   }
 
-  // ---------- Tải dữ liệu ----------
   function tai() {
     if (dangTai) { return; }
     dangTai = true;
@@ -52,7 +49,6 @@
       .then(function () { dangTai = false; });
   }
 
-  // ---------- Các số phía trên biểu đồ ----------
   function capNhatSo() {
     var tk = du.tk;
     $('tdBdNhan').textContent = du.che_do === 'tichluy' ? 'TỔNG SỐ TRẬN ĐÃ ĐẤU' : NHAN_TIEUDE[du.che_do] + (NHAN_KY[du.don_vi] || du.don_vi).toUpperCase();
@@ -83,7 +79,6 @@
     return Math.ceil(max / 3);
   }
 
-  // ---------- Vẽ ----------
   function veBieuDo() {
     ve.className = 'td-bd-ve';
     ve.textContent = '';
@@ -225,7 +220,6 @@
     bat.addEventListener('pointerleave', function () { lop.setAttribute('visibility', 'hidden'); });
   }
 
-  // ---------- Nút điều khiển ----------
   goc.addEventListener('click', function (e) {
     var nut = e.target.closest ? e.target.closest('button') : null;
     if (!nut || !goc.contains(nut)) { return; }

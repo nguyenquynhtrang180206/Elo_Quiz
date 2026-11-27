@@ -1,12 +1,11 @@
 <?php
-// Nhập câu hỏi hàng loạt từ Word / Excel kèm Trợ lý Xem trước & Sửa lỗi trực tiếp trên Web
-// (UC13: A-22, A-43, A-44; 6.5, 6.8). Đặt tại: elo_quiz/admin/cauhoi_nhap.php
+// Nhập câu hỏi hàng loạt từ Word/Excel kèm bảng xem trước và sửa lỗi trên web.
 require_once __DIR__ . '/../core/bootstrap.php';
-Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');   // A-04
+Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');
 
 $pdo = Database::pdo();
 
-// ---- Tải file Excel mẫu (.xlsx) hoặc Word mẫu (.docx) ----
+// Tải file mẫu Excel hoặc Word.
 if (($_GET['mau'] ?? '') === '1') {
     XlsxWriter::tai('mau_import_cauhoi.xlsx', 'Câu hỏi', NhapCauHoi::COT, [[
         'Tên môn đúng như trong hệ thống', 'Giữa kỳ', 'Trung bình',
@@ -21,23 +20,23 @@ if (($_GET['mau_word'] ?? '') === '1') {
 $dsMon = $pdo->query("SELECT MaMon, TenMon FROM MONHOC WHERE TrangThai IN ('Đang mở','Đã ẩn') ORDER BY TenMon")->fetchAll();
 $dsKT  = $pdo->query('SELECT MaLoaiKT, TenLoaiKT FROM LOAIKYTHI ORDER BY MaLoaiKT')->fetchAll();
 
-$loi       = [];     // lỗi chung của lần gửi
-$kq        = [];     // danh sách kết quả kiểm tra từng câu (hiển thị trên Bảng Trợ Lý Web)
+$loi       = [];
+$kq        = [];
 $tongDong  = 0;
 $buoc      = '';
-$nguonTen  = '';     // tên file nguồn đang xem trước (Word hoặc Excel)
+$nguonTen  = '';
 $nguonLoai = '';     // 'word' | 'excel' | 'tructiep'
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_check();
     $buoc = (string) ($_POST['buoc'] ?? '');
 
-    // ======================= LUỒNG 1: ĐẨY FILE WORD (.DOCX) =======================
+    // Luồng 1: Nhập từ file Word (.docx).
     if ($buoc === 'word') {
         $maMon   = (int) ($_POST['mon'] ?? 0);
         $maKT    = (string) ($_POST['loai'] ?? '');
         $doKho   = (string) ($_POST['dokho'] ?? 'Trung bình');
-        $cheDoW  = (string) ($_POST['che_do_word'] ?? 'xem'); // 'xem' (Xem & sửa trực tiếp trên Web) | 'xuat' (Tải file Excel)
+        $cheDoW  = (string) ($_POST['che_do_word'] ?? 'xem'); // 'xem' hoặc 'xuat'
 
         $tenMon = '';
         foreach ($dsMon as $m) {
@@ -95,7 +94,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $loi[] = $ex->getMessage();
             } finally {
                 if ($tam !== null && is_file($tam)) {
-                    @unlink($tam);   // 6.8: xóa file tạm sau khi xử lý
+                    @unlink($tam);   // Dọn file tạm sau khi xử lý.
                 }
             }
         }
@@ -105,7 +104,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    // ======================= LUỒNG 2: ĐẨY FILE EXCEL (.XLSX) =======================
+    // Luồng 2: Nhập từ file Excel (.xlsx).
     if ($buoc === 'excel') {
         $tam       = null;
         $daLuu     = false;
@@ -175,7 +174,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    // ======================= LUỒNG 3: LƯU HOẶC KIỂM TRA LẠI TỪ BẢNG TRỢ LÝ TRÊN WEB =======================
+    // Luồng 3: Lưu hoặc kiểm tra lại từ bảng trên web.
     if ($buoc === 'luu_truc_tiep') {
         $hanhDong   = (string) ($_POST['hanh_dong_bang'] ?? 'luu_hop_le');
         $nguonTen   = mb_substr(trim((string) ($_POST['nguon_ten'] ?? 'Trợ lý Web')), 0, 100);
@@ -270,7 +269,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// ---- Thống kê kết quả kiểm tra cho Bảng Trợ Lý trên Web ----
+// Thống kê trạng thái các câu trên bảng xem trước.
 $soLoi     = 0;
 $soTrung   = 0;
 $soThieuDA = 0;
@@ -292,7 +291,7 @@ if (!in_array($dokhoChon, CauHoiHelper::DO_KHO, true)) {
 }
 $hangDoKho = ['Dễ' => ['dong', 'Đồng'], 'Trung bình' => ['bac', 'Bạc'], 'Khó' => ['vang', 'Vàng']];
 
-// Mô tả từng cột Excel (theo đúng thứ tự NhapCauHoi::COT): [bắt buộc?, ghi chú]
+// Mô tả cấu trúc các cột trong file Excel mẫu.
 $ghiChuCot = [
     ['bb', 'Đúng tên môn trong hệ thống.'],
     ['',   'Để trống hoặc ghi "Cả hai kỳ" nếu dùng cho cả hai kỳ.'],
@@ -313,7 +312,7 @@ $jsTrang  = 'cauhoi_nhap';
 
 require __DIR__ . '/layout/header.php';
 
-// Lưu ý: Khai báo $ciSvg SAU header.php để không bị biến $svg của header.php ghi đè!
+// Khai báo sau header.php để tránh ghi đè $svg.
 $ciBt = [
     'tai'      => '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/>',
     'xuong'    => '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/>',
@@ -346,7 +345,7 @@ $ciSvg = static fn (string $k, int $px = 18, int|float $net = 2): string =>
     </div>
   </div>
 
-  <!-- Quy trình 3 bước trực quan cho mọi Admin -->
+  <!-- Quy trình 3 bước nhập câu hỏi -->
   <div class="ci-buoc-bar" aria-label="Quy trình nhập câu hỏi dễ dàng">
     <div class="ci-buoc-item">
       <span class="ci-buoc-so">1</span>
@@ -409,7 +408,7 @@ $ciSvg = static fn (string $k, int $px = 18, int|float $net = 2): string =>
   <?php endif; ?>
 
   <?php if ($kq): ?>
-  <!-- ======================= BẢNG TRỢ LÝ XEM TRƯỚC & SỬA LỖI TRỰC TIẾP TRÊN WEB ======================= -->
+  <!-- Bảng xem trước và sửa lỗi trực tiếp -->
   <section class="ci-khoi ci-ketqua" id="ketqua">
     <form method="post" action="" id="formBangTrucTiep">
       <?= csrf_field() ?>
@@ -575,7 +574,7 @@ $ciSvg = static fn (string $k, int $px = 18, int|float $net = 2): string =>
 
   <div class="ci-hai-cot">
 
-    <!-- ===== Thẻ 1: Đẩy file Word (.docx) -> Trợ lý Web hoặc Xuất Excel ===== -->
+    <!-- Cách 1: Nhập từ Word (.docx) -->
     <form method="post" action="" enctype="multipart/form-data" class="ci-khoi ci-the-chinh" id="formWord" data-ci-form="word">
       <?= csrf_field() ?>
       <input type="hidden" name="buoc" value="word">
@@ -649,7 +648,7 @@ $ciSvg = static fn (string $k, int $px = 18, int|float $net = 2): string =>
       </div>
     </form>
 
-    <!-- ===== Thẻ 2: Excel -> CSDL ===== -->
+    <!-- Cách 2: Nhập từ Excel (.xlsx) -->
     <form method="post" action="" enctype="multipart/form-data" class="ci-khoi" data-ci-form="excel">
       <?= csrf_field() ?>
       <input type="hidden" name="buoc" value="excel">

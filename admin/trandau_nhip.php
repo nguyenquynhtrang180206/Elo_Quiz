@@ -1,18 +1,12 @@
 <?php
-// Số trận bắt đầu theo từng mốc thời gian (JSON) cho biểu đồ ở trang Trận đấu. Chỉ đọc.
-// Gọi: trandau_nhip.php?khoang=1h|3h|1d|1w|1m|d7|d30|d90|tuychon&che_do=batdau|dadau|tichluy   (sai hoặc bỏ trống thì lấy 3h, batdau)
-// khoang d7|d30|d90 = 7/30/90 ngày gần nhất, tuychon = từ ngày tu đến ngày den (Y-m-d, tối đa 366 ngày); các khoảng này chia mốc theo NGÀY (giờ máy chủ).
-// che_do: batdau = trận bắt đầu theo mốc; dadau = trận đã đấu xong (Kết thúc) theo mốc kết thúc;
-//         tichluy = tổng số trận đã đấu xong tính đến từng mốc.
-// Mốc đang chạy dở không được tính, để cột cuối không bị thấp giả.
-// Đặt tại: elo_quiz/admin/trandau_nhip.php
+// API trả về số liệu trận đấu theo mốc thời gian (JSON) cho biểu đồ.
 require_once __DIR__ . '/../core/bootstrap.php';
-Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');   // A-04
+Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');
 
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
 
-// khoảng => [tổng giây, giây mỗi mốc, nhãn mốc, định dạng nhãn trục]
+// Cấu hình khoảng thời gian: [tổng giây, bước giây, nhãn đơn vị, định dạng nhãn].
 $cauHinh = [
     '1h' => [3600,   300,   '5 phút',  'H:i'],
     '3h' => [10800,  300,   '5 phút',  'H:i'],
@@ -21,7 +15,7 @@ $cauHinh = [
     '1m' => [2592000, 86400, '1 ngày', 'd/m'],
 ];
 $k = strtolower((string) ($_GET['khoang'] ?? '3h'));
-$ngayMode = in_array($k, ['d7', 'd30', 'd90', 'tuychon'], true);   // chia mốc theo ngày
+$ngayMode = in_array($k, ['d7', 'd30', 'd90', 'tuychon'], true);
 if (!$ngayMode && !isset($cauHinh[$k])) {
     $k = '3h';
 }
@@ -33,14 +27,14 @@ $cheDo = (string) ($_GET['che_do'] ?? 'batdau');
 if (!in_array($cheDo, ['batdau', 'dadau', 'tichluy'], true)) {
     $cheDo = 'batdau';
 }
-$cot  = $cheDo === 'batdau' ? 't.ThoiGianBatDau' : 't.ThoiGianKetThuc';          // cột thời gian dùng để xếp vào mốc
-$loc  = $cheDo === 'batdau' ? '' : " AND t.TrangThai = 'Kết thúc'";               // chỉ tính trận đã đấu xong
+$cot  = $cheDo === 'batdau' ? 't.ThoiGianBatDau' : 't.ThoiGianKetThuc';
+$loc  = $cheDo === 'batdau' ? '' : " AND t.TrangThai = 'Kết thúc'";
 
 $pdo    = Database::pdo();
 $nguong = TranDauGiamSat::nguongGiay();
 [$dkBt, $thamBt] = TranDauGiamSat::dieuKienBatThuong(TranDauGiamSat::coCotTao($pdo), $nguong);
 
-// ---------- Chia mốc theo NGÀY (7 / 30 / 90 ngày gần nhất hoặc tự chọn ngày) ----------
+// Chia mốc theo ngày (7/30/90 ngày hoặc tùy chọn).
 if ($ngayMode) {
     $loiNgay = static function (string $m): never {
         http_response_code(400);
@@ -82,7 +76,7 @@ if ($ngayMode) {
     $st->execute([$tuS, $denS]);
     $tb = $st->fetchColumn();
 
-    $nen = 0;   // tích lũy: số trận đã đấu xong trước ngày đầu của khoảng
+    $nen = 0;   // Số trận kết thúc trước khoảng đang xem (chế độ tích lũy).
     if ($cheDo === 'tichluy') {
         $st = $pdo->prepare("SELECT COUNT(*) FROM TRANDAU t WHERE t.TrangThai = 'Kết thúc' AND t.ThoiGianKetThuc < ?");
         $st->execute([$tuS]);
@@ -114,13 +108,13 @@ if ($ngayMode) {
     exit;
 }
 
-$cuoi = intdiv(time(), $buoc) - 1;                 // chỉ số mốc đã đủ gần nhất
+$cuoi = intdiv(time(), $buoc) - 1;                 // Bỏ mốc đang chạy dở gần nhất.
 $dau  = $cuoi - intdiv($tong, $buoc) + 1;
 $tu   = $dau * $buoc;
 $den  = ($cuoi + 1) * $buoc;
 $trongKhoang = "$cot >= FROM_UNIXTIME(?) AND $cot < FROM_UNIXTIME(?)$loc";
 
-// Số trận và số trận bất thường theo mốc
+// Thống kê số trận và trận bất thường theo mốc.
 $st = $pdo->prepare(
     "SELECT FLOOR(UNIX_TIMESTAMP($cot) / ?) AS b, COUNT(*) AS n, COALESCE(SUM($dkBt), 0) AS bt
        FROM TRANDAU t WHERE $trongKhoang GROUP BY 1"
@@ -131,7 +125,7 @@ foreach ($st->fetchAll() as $r) {
     $theoMoc[(int) $r['b']] = [(int) $r['n'], (int) $r['bt']];
 }
 
-// Trận bất thường cụ thể (lấy mã và nhãn cho cờ khi rê chuột)
+// Trận bất thường mới nhất trong mỗi mốc (hiển thị tooltip).
 $st = $pdo->prepare(
     "SELECT t.MaTran, t.TrangThai, t.LyDoKetThuc,
             FLOOR(UNIX_TIMESTAMP($cot) / ?) AS b,
@@ -141,7 +135,7 @@ $st = $pdo->prepare(
       ORDER BY t.MaTran DESC LIMIT 300"
 );
 $st->execute(array_merge([$buoc, $tu, $den], $thamBt));
-$co = [];   // mốc => [mã, nhãn] của trận bất thường mới nhất trong mốc
+$co = [];
 foreach ($st->fetchAll() as $r) {
     $b = (int) $r['b'];
     if (!isset($co[$b])) {
@@ -149,7 +143,7 @@ foreach ($st->fetchAll() as $r) {
     }
 }
 
-// Thời lượng trung bình của các trận đã kết thúc trong khoảng
+// Thời lượng trung bình các trận đã kết thúc.
 $st = $pdo->prepare(
     "SELECT AVG(TIMESTAMPDIFF(SECOND, t.ThoiGianBatDau, t.ThoiGianKetThuc))
        FROM TRANDAU t WHERE t.TrangThai = 'Kết thúc' AND t.ThoiGianKetThuc IS NOT NULL AND t.ThoiGianBatDau IS NOT NULL AND $trongKhoang"
@@ -157,7 +151,7 @@ $st = $pdo->prepare(
 $st->execute([$tu, $den]);
 $tb = $st->fetchColumn();
 
-// Tích lũy: số trận đã đấu xong trước khoảng đang xem làm mốc xuất phát
+// Mốc xuất phát cho chế độ tích lũy.
 $nen = 0;
 if ($cheDo === 'tichluy') {
     $st = $pdo->prepare("SELECT COUNT(*) FROM TRANDAU t WHERE t.TrangThai = 'Kết thúc' AND t.ThoiGianKetThuc < FROM_UNIXTIME(?)");
@@ -165,7 +159,7 @@ if ($cheDo === 'tichluy') {
     $nen = (int) $st->fetchColumn();
 }
 
-// Điền đủ mọi mốc (mốc không có trận = 0)
+// Điền đủ các mốc (mốc trống = 0).
 $chay = $nen;
 $diem = [];
 for ($i = $dau; $i <= $cuoi; $i++) {

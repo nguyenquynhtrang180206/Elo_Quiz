@@ -13,7 +13,6 @@ function redirect(string $url): never
     exit;
 }
 
-// ---- CSRF ----
 function csrf_token(): string
 {
     if (empty($_SESSION['csrf'])) {

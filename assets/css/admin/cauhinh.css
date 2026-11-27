@@ -366,10 +366,7 @@ html { scroll-behavior:auto; }
   .ch .ch-ghi { text-align:left; }
 }
 
-/* ==========================================================================
-   Responsive: <= 900px các nhóm tham số xếp 1 cột; <= 720px (điện thoại) thu gọn lề, ô nhập rộng hết dòng.
-   Sidebar -> nút 3 gạch đã có sẵn ở style_admin.css + sidebar_toggle.js
-   ========================================================================== */
+/* Responsive: <= 900px xếp 1 cột; <= 720px thu gọn lề */
 @media (max-width: 900px) {
   .ch .ch-grid { grid-template-columns: 1fr; }
 }

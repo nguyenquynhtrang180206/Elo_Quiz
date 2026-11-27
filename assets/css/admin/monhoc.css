@@ -1,6 +1,6 @@
 /* Trang Môn học, loại kỳ thi (admin/monhoc.php) - dùng khung nền + sidebar giống trang Tổng quan */
 
-/* ---- Khung sáng bao nội dung (giống .dash của Tổng quan) và trả lại màu chữ/nút cho nền sáng ---- */
+/* Khung sáng nội dung (trả về màu chữ/nút cho nền sáng) */
 .mh-khung { background:#f3f6fd; color:#12235e; border-radius:20px; padding:22px; margin-bottom:20px; box-shadow:0 10px 30px rgba(0,0,0,.25); }
 .mh-khung h2, .mh-khung h3 { color:#14213d; text-shadow:none; }
 .mh-khung a { text-shadow:none; }
@@ -24,7 +24,7 @@
 .mh-hop .btn:hover { transform:none; filter:none; }
 
 
-/* ---- Card tiêu đề ---- */
+/* Card tiêu đề */
 .mh-hero { display:flex; align-items:center; gap:18px; padding:14px 24px; margin-bottom:14px; background:#fff; border:1px solid #e6ecf8; border-radius:20px; box-shadow:0 6px 20px rgba(30,60,140,.08); }
 .mh-hero-hinh { flex:none; width:150px; height:auto; }
 .mh-hero-chu { flex:1; min-width:0; }
@@ -32,14 +32,14 @@
 .mh-hero-chu p { margin:0; color:#6b7694; font-size:15px; }
 .mh-khung .mh-nut-them { display:inline-flex; align-items:center; gap:8px; flex:none; padding:0 22px; height:42px; font-size:15px; font-weight:600; cursor:pointer; text-decoration:none; }
 
-/* ---- Tab ---- */
+/* Tab */
 .mh-tab { display:flex; gap:16px; margin-bottom:14px; }
 .mh-khung .mh-tab-nut { display:inline-flex; align-items:center; gap:8px; height:38px; padding:0 20px; border:0; border-radius:999px; cursor:pointer; font:600 14px inherit; font-family:inherit; background:#fff; color:#12235e; box-shadow:0 2px 8px rgba(30,60,140,.08); }
 .mh-khung .mh-tab-nut:hover { background:#f3f6fd; }
 .mh-khung .mh-tab-nut.dang-chon { background:#1e5cf0; color:#fff; box-shadow:0 4px 12px rgba(30,92,240,.3); }
 
 
-/* ---- Hàng thẻ môn nổi bật ---- */
+/* Hàng thẻ môn nổi bật */
 .mh-noibat { display:grid; grid-template-columns:repeat(6,1fr); gap:12px; padding:10px; margin-bottom:16px; background:rgba(255,255,255,.7); border:1px solid #e6ecf8; border-radius:20px; box-shadow:0 6px 20px rgba(30,60,140,.08); }
 .mh-khung a.mh-the { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; min-height:110px; padding:12px 8px; border-radius:20px; text-align:center; text-decoration:none; color:#12235e; box-shadow:0 3px 10px rgba(30,60,140,.07); transition:transform .15s, box-shadow .15s; }
 .mh-khung a.mh-the:hover { transform:translateY(-2px); box-shadow:0 8px 18px rgba(30,60,140,.14); color:#12235e; }
@@ -53,7 +53,7 @@
 .mh-c4 { background:#ffe7ee; } .mh-c4 .mh-the-icon, .mh-c4.mh-chip { color:#e5484d; }
 .mh-the.mh-them { background:#ecebf8; } .mh-them .mh-the-icon { color:#6b6fa8; }
 
-/* ---- Hai danh sách cạnh nhau ---- */
+/* Hai danh sách cạnh nhau */
 .mh-hai-cot { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.15fr); gap:16px; align-items:start; }
 .mh-ds-dau { display:flex; align-items:center; gap:10px; margin-bottom:12px; }
 .mh-ds-dau h3 { margin:0 !important; font-size:18px; }
@@ -65,7 +65,7 @@
 
 .mh-khung .mh-nut-them-kt { margin-left:auto; display:inline-flex; align-items:center; gap:6px; height:34px; padding:0 16px; font-size:13px; font-weight:600; cursor:pointer; }
 
-/* ---- Ô tìm kiếm ---- */
+/* Ô tìm kiếm */
 .mh-loc { display:flex; align-items:center; gap:8px; margin:0 0 8px; }
 .mh-tim { display:flex; align-items:center; gap:8px; flex:1; min-width:0; margin:0 !important; padding:0 14px; height:40px; border:1px solid #cfd9f0; border-radius:999px; background:#f7f9fe; color:#8a97b5; font-weight:400; }
 .mh-tim:focus-within { border-color:#1e5cf0; box-shadow:0 0 0 3px rgba(30,92,240,.15); background:#fff; }
@@ -78,7 +78,7 @@
 .mh-ket-qua { margin:0 0 8px; font-size:13px; color:#6b7694; }
 .mh-ket-qua b { color:#1e5cf0; }
 
-/* ---- Danh sách môn: mỗi dòng gồm tên, số câu hỏi, nút ---- */
+/* Danh sách môn */
 .mh-dong-ds { list-style:none; margin:0; padding:0; }
 .mh-dong-ds li { display:grid; grid-template-columns:minmax(0,1fr) auto auto; align-items:center; gap:14px; padding:9px 4px; border-bottom:1px solid #edf1fa; }
 .mh-dong-ds li:last-child { border-bottom:0; }
@@ -90,7 +90,7 @@
 .mh-tt { display:inline-block; padding:1px 8px; border-radius:999px; font-size:11px; font-weight:700; flex:none; }
 .mh-tt-an { background:#fde8ea; color:#e5484d; }
 
-/* ---- Nút Sửa / Xóa dạng viên thuốc ---- */
+/* Nút Sửa / Xóa */
 .mh-thao-tac { display:inline-flex; align-items:center; justify-content:center; gap:8px; }
 .mh-thao-tac .form-dong { margin:0; display:inline-flex; }
 .mh-khung .mh-nut { min-width:58px; height:30px; padding:0 14px; border:0; border-radius:999px; font:600 13px inherit; font-family:inherit; cursor:pointer; box-shadow:none; transition:background .15s; }
@@ -102,7 +102,7 @@
 .mh-khung .mh-nut-hien:hover { background:#c9efd9; }
 .mh-khung .mh-nut:disabled { opacity:.45; cursor:not-allowed; }
 
-/* ---- Bảng (loại kỳ thi, chờ duyệt) ---- */
+/* Bảng loại kỳ thi và chờ duyệt */
 .mh-cuon { overflow-x:auto; border-radius:12px; border:1px solid #e6ecf8; }
 .mh-bang { width:100%; border-collapse:collapse; background:transparent; }
 .mh-bang th { padding:11px 14px; background:#eaf0fc; color:#12235e; font-size:14px; font-weight:700; text-align:left; border:0; }
@@ -116,7 +116,7 @@
 .mh-kt-icon { width:34px; height:34px; display:inline-flex; align-items:center; justify-content:center; flex:none; }
 .mh-kt-vang { color:#f5b82e; } .mh-kt-cam { color:#f08a24; } .mh-kt-do { color:#e5484d; } .mh-kt-xanh { color:#12235e; }
 
-/* ---- Phân trang ‹ 1 2 3 … › ---- */
+/* Phân trang */
 .mh-pt { display:flex; justify-content:center; align-items:center; gap:8px; margin:14px 0 0; }
 .mh-khung .mh-pt a, .mh-khung .mh-pt strong, .mh-pt .tat {
   min-width:34px; height:34px; padding:0 8px; display:inline-flex; align-items:center; justify-content:center;
@@ -125,7 +125,7 @@
 .mh-khung .mh-pt strong { background:#1e5cf0; border-color:#1e5cf0; color:#fff; box-shadow:0 3px 8px rgba(30,92,240,.3); }
 .mh-pt .tat { opacity:.45; }
 
-/* ---- Popup thêm/sửa ---- */
+/* Popup thêm/sửa */
 .mh-hop { width:min(480px, calc(100vw - 32px)); padding:24px; border:0; border-radius:20px; background:#fff; color:#12235e; box-shadow:0 20px 60px rgba(7,27,102,.35); }
 .mh-hop::backdrop { background:rgba(7,27,102,.55); backdrop-filter:blur(2px); }
 .mh-hop h3 { margin:0 0 14px !important; font-size:20px; }
@@ -137,12 +137,12 @@
 .mh-hop .btn { height:40px; padding:0 20px; border:0; border-radius:999px; font:600 14px inherit; font-family:inherit; cursor:pointer; background:#1e5cf0; color:#fff; }
 .mh-hop .btn-phu { background:#e3edff; color:#2563eb; }
 
-/* ---- Màn hình nhỏ ---- */
+/* Màn hình nhỏ */
 @media (max-width:1100px) { .mh-noibat { grid-template-columns:repeat(3,1fr); } .mh-hai-cot { grid-template-columns:1fr; } }
 @media (max-width:720px)  { .mh-hero { flex-wrap:wrap; } .mh-hero-hinh { width:90px; } }
 @media (max-width:560px)  { .mh-noibat { grid-template-columns:repeat(2,1fr); } .mh-dong-ds li { grid-template-columns:1fr auto; } .mh-so { display:none; } }
 
-/* ---- Bản đồ môn học × loại kỳ thi ---- */
+/* Bản đồ môn học và loại kỳ thi */
 .mh-bd-khung { display:grid; grid-template-columns:minmax(0,1fr) 370px; gap:16px; align-items:start; }
 .mh-khung .mh-bd-khung > .card { margin-bottom:0; }
 .mh-bd-ben { display:flex; flex-direction:column; gap:16px; }
@@ -168,7 +168,7 @@
 .mh-de-xuat .form-dong { gap:8px; margin-top:6px; }
 @media (max-width:1100px) { .mh-bd-khung { grid-template-columns:1fr; } }
 
-/* ---- Toàn cảnh: tường ô vuông ---- */
+/* Toàn cảnh tường ô vuông */
 .mh-khung .mh-tc { display:flex; gap:32px; flex-wrap:wrap; align-items:flex-start; margin-bottom:16px; }
 .mh-tc-cot { display:flex; flex-direction:column; gap:10px; min-width:0; }
 .mh-tc-cot h3 { margin:0 !important; font-size:18px; }
@@ -207,7 +207,7 @@
 .mh-tuong[data-co="to"] .mh-ov-thieu { color:#3d2600; }
 .mh-tuong[data-co="to"] .mh-ov-chua { color:#0f1b4d; }
 
-/* ===== Điện thoại: trang Môn học, kỳ thi ===== */
+/* Responsive điện thoại */
 @media (max-width:768px) {
   .mh-khung { padding:12px; border-radius:14px; margin-bottom:14px; }
   .mh-khung .card, .mh-khung .mh-ds { padding:14px; }
@@ -251,9 +251,7 @@
   .mh-chan { flex-direction:column; align-items:flex-start; }
 }
 
-/* ===== "Nên bổ sung trước" và "Chờ duyệt": nổi bật vừa phải (link mặc định xanh nhạt khó đọc trên nền trắng) ===== */
-
-/* -- Nên bổ sung trước -- */
+/* Nên bổ sung trước và Chờ duyệt (link mặc định xanh nhạt khó đọc trên nền trắng) */
 .mh-khung .mh-bs { gap:7px; padding:9px 12px; border:1px solid #efe6d2; border-left:3px solid #e3b259; border-radius:10px; background:#fffdf8; }
 .mh-khung .mh-bs-dau { align-items:center; justify-content:space-between; gap:6px 12px; }
 .mh-khung .mh-bs-dau a { flex:1 1 auto; min-width:0; color:#1e3a8a !important; font-size:15px; text-shadow:none !important; }
@@ -264,7 +262,7 @@
 .mh-khung .mh-bs-nen span { background:#e3b259; }
 .mh-khung .mh-bs-thanh small { color:#41507a; font-weight:600; }
 
-/* -- Chờ duyệt -- */
+/* Chờ duyệt */
 .mh-khung .mh-cho { border:1px solid #f3cfa0 !important; background:#fffaf4 !important; }
 .mh-khung .mh-cho .mh-ds-dau h3 { color:#9a4a00; }
 .mh-khung .mh-cho .mh-de-xuat { margin-top:8px; padding:10px 12px; border:1px solid #f3e1c6; border-left:3px solid #eca552; border-radius:10px; background:#fff; }
@@ -273,11 +271,11 @@
 .mh-khung .mh-cho .btn.mh-nut-nho:not(.btn-do) { background:#e3f4ea; color:#1a7a45; box-shadow:none; }
 .mh-khung .mh-cho .btn.mh-nut-nho:not(.btn-do):hover { background:#cdeedb; color:#1a7a45; }
 
-/* -- Ô vuông "Thiếu câu hỏi" dịu hơn (ô và chú thích dùng chung màu) -- */
+/* Ô vuông thiếu câu hỏi */
 .mh-ov-thieu { background:#e8bc6a; }
 .mh-ov-xem { outline-color:#2b4aa8; }
 
-/* -- Popup thêm/sửa (môn học + loại kỳ thi): nhãn/tiêu đề bị màu xanh nhạt + bóng sáng của giao diện tối => đổi sang màu đậm trên nền trắng -- */
+/* Popup thêm/sửa: ghi đè màu chữ tối sang màu đậm trên nền trắng */
 dialog.mh-hop h3 { color:#14213d !important; text-shadow:none !important; }
 dialog.mh-hop label { color:#12235e !important; text-shadow:none !important; }
 dialog.mh-hop input::placeholder, dialog.mh-hop textarea::placeholder { color:#8a97b5; }

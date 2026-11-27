@@ -53,7 +53,7 @@ class PhatAfk
     }
 }
 
-// Tương thích ngược: Định danh AfkPenalty trỏ tới PhatAfk
+// Alias giữ tương thích tên lớp cũ
 if (!class_exists('AfkPenalty', false)) {
     class_alias('PhatAfk', 'AfkPenalty');
 }

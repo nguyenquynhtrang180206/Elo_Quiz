@@ -1,10 +1,4 @@
-/* Gửi form / mở khung sửa không tải lại trang (Cộng đồng, Bài đăng).
-   Cách dùng: đặt data-mem-vung="tên" lên các vùng nội dung cần làm mới. Form POST nằm trong
-   một vùng sẽ được gửi bằng fetch; trang trả về được đọc lại và chỉ các vùng đó được thay,
-   vị trí cuộn giữ nguyên. Không thay được (đăng nhập, chuyển trang khác...) thì chuyển trang bình thường.
-   Link GET: link có data-mem-lien, hoặc link kiểu "?..." nằm trong vùng có data-mem-links (vd. bộ lọc, tab
-   của Bảng xếp hạng) cũng được mở mềm; loại sau còn ghi vào lịch sử nên nút Quay lại vẫn dùng được.
-   Sau khi thay xong bắn sự kiện "mem:capnhat" để trang khởi tạo lại phần cần thiết. */
+// Cập nhật vùng [data-mem-vung] qua fetch không tải lại trang và phát sự kiện "mem:capnhat".
 (function () {
   'use strict';
 
@@ -21,8 +15,7 @@
     return !!form.closest('[data-mem-vung]');
   }
 
-  // Neo giữ chỗ: nhớ vị trí (so với khung nhìn) của phần tử có id gần nhất quanh chỗ người dùng bấm,
-  // sau khi thay nội dung thì cuộn bù để phần đó vẫn nằm đúng chỗ cũ (form thu gọn, banner thông báo chèn thêm... không làm trang xô lệch)
+  // Giữ vị trí cuộn tương đối theo phần tử có id gần nhất để tránh xô lệch trang
   function layNeo(el) {
     var n = el && el.closest ? el.closest('[id]') : null;
     return n ? { id: n.id, top: n.getBoundingClientRect().top, y: window.scrollY } : { id: '', top: 0, y: window.scrollY };
@@ -75,7 +68,7 @@
     thayVung(kq.res, kq.html, neo, lichSu);
   }
 
-  // ---- Thanh tiến trình mảnh trên đầu trang (không làm tối nội dung) ----
+  // Thanh tiến trình tải trên đầu trang
   var thanh = null, hen = null;
   function thanhChay() {
     if (!thanh) {
@@ -97,7 +90,7 @@
     hen = setTimeout(function () { thanh.style.width = '0'; }, 500);
   }
 
-  // ---- Tải trước: bắt đầu tải ngay lúc nhấn chuột (trước khi nhả), nhớ kết quả vài giây ----
+  // Tải trước link khi nhấn chuột và cache ngắn hạn
   var boNho = {};
   var HAN_NHO = 60000;   // nhớ trang đã tải 60 giây: bấm lại/đã tải trước thì hiện ngay, không đợi máy chủ
   function lay(url) {
@@ -141,8 +134,7 @@
     });
   }
 
-  // Mở link GET (khung sửa bình luận, bộ lọc bảng xếp hạng...) không nhảy trang.
-  // lichSu: 'push' = ghi thêm một mục lịch sử, 'giu' = không đụng vào địa chỉ (đang quay lại/tiến tới), '' = như form
+  // Mở link GET không tải lại trang (lichSu: 'push' | 'giu' | '')
   function moMem(url, neo, lichSu) {
     var lan = ++lanTai;
     thanhChay();

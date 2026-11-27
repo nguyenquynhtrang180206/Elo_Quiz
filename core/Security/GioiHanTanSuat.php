@@ -1,6 +1,5 @@
 <?php
-// Hệ thống chống dò mật khẩu Brute-force & Credential Stuffing (lưu trong CSDL).
-// Khóa tạm thời 15 phút sau 5 lần nhập sai liên tiếp. Mọi lượt đăng nhập được ghi vào LICHSUDANGNHAP.
+// Giới hạn tần suất đăng nhập (khóa 15 phút sau 5 lần sai liên tiếp) và ghi LICHSUDANGNHAP.
 class GioiHanTanSuat
 {
     private const SO_LAN_TOI_DA  = 5;
@@ -195,7 +194,7 @@ class GioiHanTanSuat
     }
 }
 
-// Tương thích ngược: Định danh RateLimiter trỏ tới GioiHanTanSuat
+// Alias giữ tương thích tên lớp cũ
 if (!class_exists('RateLimiter', false)) {
     class_alias('GioiHanTanSuat', 'RateLimiter');
 }

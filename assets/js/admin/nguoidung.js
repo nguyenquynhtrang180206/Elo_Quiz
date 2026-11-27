@@ -1,4 +1,4 @@
-// Trang Người dùng (admin/nguoidung.php): vẽ sơ đồ bằng Chart.js (assets/vendor/chart.umd.js) và hộp xác nhận khóa / mở khóa.
+// Trang Người dùng (admin/nguoidung.php): biểu đồ Chart.js, popup khóa/mở khóa và lọc môn BXH.
 (function () {
   'use strict';
 
@@ -32,7 +32,7 @@
     }
   }
 
-  // ---- Hộp xác nhận khóa / mở khóa ----
+  // Hộp xác nhận khóa/mở khóa
   var hop = document.getElementById('ndHopKhoa');
   if (!hop || typeof hop.showModal !== 'function') { return; }
   var $ = function (id) { return document.getElementById(id); };
@@ -58,7 +58,7 @@
   });
   $('ndHopHuy').addEventListener('click', function () { hop.close(); });
   hop.addEventListener('click', function (ev) { if (ev.target === hop) { hop.close(); } });
-  // Chọn môn của bảng xếp hạng: ô chọn có tìm kiếm, mặc định chỉ hiện 5 môn, "Xem thêm" để mở hết
+  // Ô chọn môn BXH có tìm kiếm (mặc định hiện 5 môn)
   var chonMon = document.getElementById('ndChonMon');
   var formBxh = document.getElementById('ndBxhLoc');
   if (chonMon && formBxh) {

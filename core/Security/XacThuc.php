@@ -1,18 +1,6 @@
 <?php
-// =========================================================================
-// HỆ THỐNG XÁC THỰC & PHÂN QUYỀN ĐA TẦNG (MULTI-GUARD AUTHENTICATION)
-// Đặt tại: core/Security/XacThuc.php
-//
-// Kiến trúc bảo mật chuẩn thị trường (OWASP ASVS Level 2):
-// 1. Dual-Guard Isolation: Tách biệt phiên Client (nd_id) và Admin (admin_id).
-// 2. Real-time Session Revocation: Kiểm tra trạng thái hoạt động thực tế (có Static Cache
-//    1 lần/request), tự động thu hồi phiên ngay lập tức nếu tài khoản bị khóa.
-// 3. Session Hardening (Admin): Khóa phiên theo chữ ký trình duyệt (User-Agent Fingerprint)
-//    và tự động hết hạn khi treo máy quá 60 phút (Idle Timeout).
-// 4. Adaptive 2FA & Trusted Device (Admin): Hỗ trợ xác thực OTP Email 2 lớp trên thiết bị lạ
-//    kèm Cookie tin cậy thiết bị 7 ngày ký bằng HMAC-SHA256.
-// 5. Remember Me (Client): Ghi nhớ đăng nhập 30 ngày bằng Cookie chữ ký HMAC-SHA256.
-// =========================================================================
+// Xác thực và phân quyền hai guard tách biệt (Client / Admin) với kiểm tra trạng thái thực tế.
+// Hỗ trợ remember-me HMAC-SHA256 (30 ngày), idle timeout Admin (60 phút) và OTP 2FA thiết bị lạ.
 
 class XacThuc
 {
@@ -22,15 +10,11 @@ class XacThuc
     private const REMEMBER_TTL_CLIENT    = 2592000; // 30 ngày
     private const TRUST_TTL_ADMIN        = 604800;  // 7 ngày
 
-    /** Bộ nhớ đệm trạng thái xác thực trong 1 vòng đời HTTP Request (tránh truy vấn lặp). */
+    /** Cache trạng thái xác thực trong 1 request để tránh truy vấn lặp. */
     private static bool $daKiemTraClient = false;
     private static bool $daKiemTraAdmin  = false;
     private static ?array $thongTinClient = null;
     private static ?array $thongTinAdmin  = null;
-
-    // =====================================================================
-    // 1. KIỂM TRA PHIÊN & PHÂN QUYỀN (CLIENT & ADMIN GUARDS)
-    // =====================================================================
 
     public static function clientId(): ?int
     {
@@ -79,7 +63,7 @@ class XacThuc
         redirect($loginUrl);
     }
 
-    /** Đặt ở đầu mọi trang và thao tác của Quản trị viên (A-04). */
+    /** Đặt ở đầu mọi trang và thao tác của Quản trị viên. */
     public static function requireAdmin(string $loginUrl = ''): int
     {
         $id = self::adminId();
@@ -92,7 +76,7 @@ class XacThuc
         redirect($dich);
     }
 
-    /** Làm mới Session ID chống tấn công Session Fixation. */
+    /** Làm mới Session ID chống Session Fixation. */
     public static function regenerate(): void
     {
         if (session_status() === PHP_SESSION_ACTIVE && !headers_sent()) {
@@ -100,17 +84,8 @@ class XacThuc
         }
     }
 
-    // =====================================================================
-    // 2. ĐĂNG NHẬP HỢP NHẤT CHUẨN MULTI-GUARD (CLIENT & ADMIN + ADAPTIVE 2FA)
-    // =====================================================================
-
     /**
-     * Xử lý đăng nhập tập trung cho cả Client và Admin.
-     *
-     * @param string $guard    'client' hoặc 'admin'
-     * @param string $dinhDanh Email (với Client) hoặc Tên đăng nhập / Email (với Admin)
-     * @param string $matKhau  Mật khẩu thô người dùng nhập
-     * @param array  $tuyChon  ['remember' => bool, 'yeuCau2FA' => bool]
+     * Đăng nhập tập trung cho guard 'client' hoặc 'admin' (kèm 2FA và remember-me).
      * @return array ['ok' => bool, 'can2FA' => bool, 'loi' => ?string, 'user' => ?array]
      */
     public static function dangNhap(string $guard, string $dinhDanh, string $matKhau, array $tuyChon = []): array
@@ -122,7 +97,7 @@ class XacThuc
             $dinhDanh = strtolower($dinhDanh);
         }
 
-        // 1. Kiểm tra giới hạn tần suất chống Brute-force
+        // Kiểm tra giới hạn tần suất chống brute-force
         $hanChe = RateLimiter::kiemTra($action, $dinhDanh);
         if ($hanChe['biKhoa']) {
             return [
@@ -136,9 +111,8 @@ class XacThuc
 
         $pdo = Database::pdo();
 
-        // 2. Truy vấn tài khoản theo Guard (Admin cho phép đăng nhập bằng cả TenDangNhap hoặc Email)
+        // Truy vấn tài khoản (Admin hỗ trợ cả TenDangNhap và Email)
         if ($laAdmin) {
-            // Đảm bảo cột Email và NgayDoiMatKhau luôn tồn tại trong bảng ADMIN
             DbSchema::damBao($pdo);
 
             $st = $pdo->prepare(
@@ -159,7 +133,7 @@ class XacThuc
         }
         $user = $st->fetch(PDO::FETCH_ASSOC);
 
-        // 3. Xác thực mật khẩu (kèm Dummy Verify chống Timing Attack khi tài khoản không tồn tại)
+        // Xác thực mật khẩu (dummy verify khi không tồn tại để chống timing attack)
         $hopLe = false;
         if ($user) {
             $hopLe = PasswordSecurity::verify($matKhau, (string) $user['MatKhau']);
@@ -182,7 +156,6 @@ class XacThuc
             return ['ok' => false, 'can2FA' => false, 'loi' => $loi, 'user' => null];
         }
 
-        // 4. Kiểm tra trạng thái khóa tài khoản
         if (($user['TrangThai'] ?? '') === 'Bị khóa') {
             $loi = $laAdmin
                 ? 'Tài khoản quản trị này đã bị khóa.'
@@ -190,7 +163,7 @@ class XacThuc
             return ['ok' => false, 'can2FA' => false, 'loi' => $loi, 'user' => null];
         }
 
-        // 5. Xóa bộ đếm sai (cả 2 kênh) & Tự động nâng cấp chuẩn băm Argon2id nếu cần
+        // Xóa bộ đếm sai và nâng cấp hash nếu cần
         RateLimiter::xoa('login_client', $dinhDanh);
         RateLimiter::xoa('login_admin', $dinhDanh);
         $bang = $laAdmin ? 'ADMIN' : 'NGUOIDUNG';
@@ -198,7 +171,7 @@ class XacThuc
         $id   = (int) $user[$cot];
         PasswordSecurity::rehashIfNecessary($pdo, $bang, $cot, $id, $matKhau, (string) $user['MatKhau']);
 
-        // 6. Nhánh Quản trị viên: Kiểm tra Adaptive 2FA (nếu bật yêu cầu 2FA và thiết bị chưa được tin cậy)
+        // Admin: kiểm tra OTP 2FA khi thiết bị chưa tin cậy
         if ($laAdmin) {
             $emailAdmin = trim((string) ($user['Email'] ?? ''));
             $yeuCau2FA  = (bool) ($tuyChon['yeuCau2FA'] ?? true);
@@ -223,15 +196,12 @@ class XacThuc
             return ['ok' => true, 'can2FA' => false, 'loi' => null, 'user' => $user];
         }
 
-        // 7. Nhánh Sinh viên (Client): Kích hoạt phiên & Ghi nhớ đăng nhập (nếu chọn)
+        // Client: kích hoạt phiên và cookie remember-me
         self::kichHoatPhienClient($id, (string) $user['MatKhau'], !empty($tuyChon['remember']));
         return ['ok' => true, 'can2FA' => false, 'loi' => null, 'user' => $user];
     }
 
-    /**
-     * Kiểm tra nhanh một định danh (TenDangNhap hoặc Email) có thuộc bảng ADMIN hay không.
-     * Phục vụ cơ chế Unified Smart Login: nếu Admin đăng nhập nhầm ở cổng Client thì tự chuyển sang Guard Admin.
-     */
+    /** Kiểm tra định danh thuộc bảng ADMIN (chuyển hướng nếu Admin đăng nhập nhầm ở cổng Client). */
     public static function laDinhDanhAdmin(string $dinhDanh): bool
     {
         $dinhDanh = trim($dinhDanh);
@@ -253,9 +223,7 @@ class XacThuc
         }
     }
 
-    /**
-     * Xác thực mã OTP Bước 2 (2FA) khi Admin đăng nhập trên thiết bị mới.
-     */
+    /** Xác thực mã OTP 2FA khi Admin đăng nhập trên thiết bị mới. */
     public static function xacThucOtpAdmin2FA(string $otpNhap, bool $tinCayThietBi = true): array
     {
         $flow = $_SESSION['admin_2fa_pending'] ?? null;
@@ -297,9 +265,7 @@ class XacThuc
         return ['ok' => true, 'hetHan' => false, 'loi' => null];
     }
 
-    /**
-     * Gửi lại mã OTP 2FA cho Admin (cooldown 60 giây).
-     */
+    /** Gửi lại mã OTP 2FA cho Admin (cooldown 60 giây). */
     public static function guiLaiOtpAdmin2FA(): array
     {
         $flow = $_SESSION['admin_2fa_pending'] ?? null;
@@ -334,9 +300,7 @@ class XacThuc
         return ['ok' => true, 'loi' => null];
     }
 
-    /**
-     * Đăng xuất an toàn theo từng phân vùng Guard ('client' hoặc 'admin').
-     */
+    /** Đăng xuất theo guard ('client' hoặc 'admin'). */
     public static function dangXuat(string $guard): void
     {
         if ($guard === 'admin') {
@@ -369,10 +333,6 @@ class XacThuc
         }
         return substr($local, 0, 2) . '***' . substr($local, -2) . '@' . $domain;
     }
-
-    // =====================================================================
-    // 3. CHUYỂN ADMIN SANG KHU SINH VIÊN
-    // =====================================================================
 
     public static function vaoKhuSinhVien(PDO $pdo, int $maAdmin): void
     {
@@ -422,10 +382,6 @@ class XacThuc
         self::$daKiemTraClient   = false;
     }
 
-    // =====================================================================
-    // 4. CÁC HÀM NỘI BỘ: KIỂM TRA PHIÊN THỜI GIAN THỰC & COOKIE CHỮ KÝ HMAC
-    // =====================================================================
-
     private static function kichHoatPhienAdmin(int $maAdmin, string $matKhauHash, bool $luuThietBiTinCay): void
     {
         self::regenerate();
@@ -459,30 +415,28 @@ class XacThuc
         }
     }
 
-    /**
-     * Đồng bộ & kiểm tra tính hợp lệ của phiên Admin trên mỗi request (chạy đúng 1 lần/request).
-     */
+    /** Đồng bộ và kiểm tra phiên Admin (chạy 1 lần/request). */
     private static function dongBoPhienAdmin(): void
     {
         if (!isset($_SESSION['admin_id'])) {
             return;
         }
 
-        // 1. Kiểm tra chữ ký trình duyệt (chống Session Hijacking)
+        // Kiểm tra chữ ký trình duyệt (chống session hijacking)
         $uaHienTai = self::chuKyTrinhDuyet();
         if (!empty($_SESSION['admin_ua']) && !hash_equals((string) $_SESSION['admin_ua'], $uaHienTai)) {
             unset($_SESSION['admin_id'], $_SESSION['admin_ua'], $_SESSION['admin_last_active']);
             return;
         }
 
-        // 2. Kiểm tra thời gian treo máy (Idle Timeout 60 phút)
+        // Hết hạn khi không thao tác quá 60 phút
         $now = time();
         if (!empty($_SESSION['admin_last_active']) && ($now - (int) $_SESSION['admin_last_active']) > self::ADMIN_IDLE_TIMEOUT) {
             unset($_SESSION['admin_id'], $_SESSION['admin_ua'], $_SESSION['admin_last_active']);
             return;
         }
 
-        // 3. Kiểm tra trạng thái hoạt động thực tế trong bảng ADMIN
+        // Kiểm tra trạng thái hoạt động trong CSDL
         $st = Database::pdo()->prepare('SELECT MaAdmin, HoTen, TrangThai FROM ADMIN WHERE MaAdmin = ?');
         $st->execute([(int) $_SESSION['admin_id']]);
         $ad = $st->fetch(PDO::FETCH_ASSOC);
@@ -497,15 +451,12 @@ class XacThuc
         self::$thongTinAdmin           = $ad;
     }
 
-    /**
-     * Đồng bộ & kiểm tra tính hợp lệ của phiên Client trên mỗi request (chạy đúng 1 lần/request).
-     * Hỗ trợ tự động khôi phục từ Cookie "Ghi nhớ đăng nhập" và thu hồi phiên ngay nếu bị khóa.
-     */
+    /** Đồng bộ phiên Client (1 lần/request), khôi phục từ cookie remember-me và thu hồi nếu bị khóa. */
     private static function dongBoPhienClient(): void
     {
         $pdo = Database::pdo();
 
-        // Trường hợp 1: Phiên sinh viên do Admin chuyển sang ("Về trang sinh viên")
+        // Phiên sinh viên do Admin chuyển sang
         if (isset($_SESSION['nd_id']) && isset($_SESSION['nd_la_admin'])) {
             $st = $pdo->prepare('SELECT TrangThai, MaND FROM ADMIN WHERE MaAdmin = ?');
             $st->execute([(int) $_SESSION['nd_la_admin']]);
@@ -521,7 +472,7 @@ class XacThuc
             }
         }
 
-        // Trường hợp 2: Chưa có Session nhưng có Cookie "Ghi nhớ đăng nhập" hợp lệ
+        // Khôi phục từ cookie remember-me
         if (!isset($_SESSION['nd_id']) && !empty($_COOKIE[self::COOKIE_REMEMBER_CLIENT])) {
             $maND = self::xacThucCookieToken(self::COOKIE_REMEMBER_CLIENT, 'cli_rem', 'NGUOIDUNG', 'MaND');
             if ($maND !== null) {
@@ -532,7 +483,7 @@ class XacThuc
             }
         }
 
-        // Trường hợp 3: Đã có $_SESSION['nd_id'] -> Kiểm tra tài khoản còn hoạt động hay đã bị khóa
+        // Kiểm tra tài khoản còn hoạt động hay đã bị khóa
         if (isset($_SESSION['nd_id'])) {
             $st = $pdo->prepare('SELECT MaND, HoTen, Email, TrangThai FROM NGUOIDUNG WHERE MaND = ?');
             $st->execute([(int) $_SESSION['nd_id']]);
@@ -572,10 +523,7 @@ class XacThuc
         return (string) ($cfg['app_secret'] ?? 'quizup-arena-hmac-secret-key-2026-v2');
     }
 
-    /**
-     * Tạo Cookie bảo mật có chữ ký HMAC-SHA256 gắn với Hash mật khẩu hiện tại và User-Agent.
-     * Khi người dùng đổi mật khẩu, chữ ký tự động vô hiệu trên mọi thiết bị cũ!
-     */
+    /** Tạo cookie HMAC-SHA256 gắn với hash mật khẩu và User-Agent (tự vô hiệu khi đổi mật khẩu). */
     private static function datCookieToken(string $tenCookie, string $loai, int $id, string $matKhauHash, int $ttl): void
     {
         if (headers_sent()) {
@@ -670,7 +618,7 @@ class XacThuc
     }
 }
 
-// Tương thích ngược: Định danh Auth trỏ tới XacThuc
+// Alias giữ tương thích tên lớp cũ
 if (!class_exists('Auth', false)) {
     class_alias('XacThuc', 'Auth');
 }

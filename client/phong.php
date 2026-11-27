@@ -1,8 +1,7 @@
 <?php
-// Phòng thi đấu: chờ cả hai vào phòng, thi đấu (câu hỏi, đồng hồ, điểm), kết quả sơ bộ (C-23 đến C-31).
-// Đặt tại: elo_quiz/client/phong.php
+// Phòng thi đấu 1v1: chờ vào phòng, thi đấu trực tiếp và hiển thị kết quả
 require_once __DIR__ . '/../core/bootstrap.php';
-if (Auth::laAdminSinhVien()) {   // admin không tìm trận và không đấu trận
+if (Auth::laAdminSinhVien()) {   // Tài khoản quản trị không tham gia thi đấu
     redirect(BASE_URL . '/client/index.php');
 }
 
@@ -43,12 +42,12 @@ foreach ($st->fetchAll() as $r) {
     }
 }
 
-// Xác định Đấu Thần Plants vs Zombies của Người chơi và Đối thủ
+// Lấy nhân vật và thông thạo của người chơi
 $tuongChonId = $_SESSION['tuong_chon'] ?? 'sunflower';
 $tuongToi = LoLChampions::layTuong($tuongChonId);
 $thongThaoToi = LoLChampions::layThongThao($pdo, $maND, $tuongChonId);
 
-// Gán tướng cho đối thủ dựa trên ID và mã trận
+// Chọn nhân vật cho đối thủ dựa theo mã người dùng và mã trận
 $dsTuongKeys = array_keys(LoLChampions::DANH_SACH);
 $availableKeys = array_values(array_diff($dsTuongKeys, [$tuongChonId]));
 if (empty($availableKeys)) {
@@ -66,7 +65,7 @@ require __DIR__ . '/layout/header.php';
 ?>
 
 <div class="phong-container">
-  <!-- ARENA HEADER BAR -->
+  <!-- Thanh tiêu đề trận đấu -->
   <div class="arena-match-header">
     <div class="header-left-info">
       <span class="match-mode-tag"><span class="live-pulse"></span> TRẬN ĐẤU XẾP HẠNG 1 VS 1</span>
@@ -82,7 +81,7 @@ require __DIR__ . '/layout/header.php';
   </div>
 
   <?php if ($tran['TrangThai'] === 'Đã ghép'): ?>
-    <!-- VERSUS FACE-OFF LOBBY (CHỜ ĐỐI THỦ VÀO PHÒNG) -->
+    <!-- Sảnh chờ đối thủ vào phòng -->
     <div class="vs-lobby-card card" data-tai-lai="1200">
       <div class="pet-corner tl"></div><div class="pet-corner tr"></div>
       <div class="pet-corner bl"></div><div class="pet-corner br"></div>
@@ -96,7 +95,6 @@ require __DIR__ . '/layout/header.php';
       </div>
 
       <div class="vs-faceoff-stage">
-        <!-- Blue Player -->
         <div class="vs-fighter-card blue-side">
           <div class="fighter-glow-ring" style="border-color: <?= e($tuongToi['mauSac']) ?>; box-shadow: 0 0 30px <?= e($tuongToi['mauSac']) ?>66;">
             <img src="<?= e(BASE_URL . $tuongToi['avatar'] . '?v=2') ?>" alt="<?= e($tuongToi['ten']) ?>" class="fighter-img">
@@ -112,7 +110,6 @@ require __DIR__ . '/layout/header.php';
           </div>
         </div>
 
-        <!-- Center VS Emblem -->
         <div class="vs-center-emblem">
           <div class="vs-burst-ring"></div>
           <div class="vs-letters">VS</div>
@@ -121,7 +118,6 @@ require __DIR__ . '/layout/header.php';
           </div>
         </div>
 
-        <!-- Red Opponent -->
         <div class="vs-fighter-card red-side">
           <div class="fighter-glow-ring" style="border-color: <?= e($tuongDoiThu['mauSac']) ?>; box-shadow: 0 0 30px <?= e($tuongDoiThu['mauSac']) ?>66;">
             <img src="<?= e(BASE_URL . $tuongDoiThu['avatar'] . '?v=2') ?>" alt="<?= e($tuongDoiThu['ten']) ?>" class="fighter-img">
@@ -140,7 +136,7 @@ require __DIR__ . '/layout/header.php';
     </div>
 
   <?php elseif ($tran['TrangThai'] === 'Đang diễn ra'): ?>
-    <!-- 1 VS 1 PLANTS VS ZOMBIES COMBAT ARENA -->
+    <!-- Khu vực thi đấu 1v1 -->
     <div id="thi"
          data-api="<?= e(BASE_URL . '/client/api_thi.php?tran=' . $maTran) ?>"
          data-csrf="<?= e(csrf_token()) ?>"
@@ -157,7 +153,7 @@ require __DIR__ . '/layout/header.php';
          data-opp-champ-name="<?= e($tuongDoiThu['ten']) ?>"
          data-opp-champ-buff="<?= e($tuongDoiThu['buffLoai'] ?? '') ?>">
 
-      <!-- DEBUFF LAYERS (KHI BỊ ĐỐI THỦ PHÁ RỐI) -->
+      <!-- Lớp hiệu ứng phá rối từ đối thủ -->
       <div id="debuffFogOverlay" class="debuff-overlay-layer fog-overlay" style="display: none;">
         <canvas id="fogCanvas"></canvas>
         <div class="fog-hud-alert">
@@ -190,12 +186,10 @@ require __DIR__ . '/layout/header.php';
         </div>
       </div>
 
-      <!-- COMBAT STAGE (TOP 1V1 BATTLE VIEW) -->
+      <!-- Sân khấu đối đầu 1v1 -->
       <div class="arena-combat-stage" id="arenaCombatStage">
-        <!-- Floating Damage & Projectile Layer -->
         <div class="combat-fx-layer" id="combatFxLayer"></div>
 
-        <!-- LoL Announcer Floating Banner -->
         <div class="lol-announcer-banner" id="lolAnnouncerBanner" style="display: none;">
           <div class="announcer-wings left"></div>
           <div class="announcer-content">
@@ -205,13 +199,12 @@ require __DIR__ . '/layout/header.php';
           <div class="announcer-wings right"></div>
         </div>
 
-        <!-- Baron Steal Sudden Death Banner -->
         <div class="baron-alert-banner" id="baronAlertBanner" style="display: none;">
           <span class="baron-skull">🐉</span>
           <span class="baron-text">VÒNG QUYẾT ĐẤU BARON STEAL &middot; SÁT THƯƠNG NHÂN ĐÔI!</span>
         </div>
 
-        <!-- BLUE FIGHTER (YOU) -->
+        <!-- Thông tin người chơi (Đội xanh) -->
         <div class="combat-fighter blue-corner" id="blueFighter">
           <div class="fighter-podium">
             <div class="fighter-avatar-box" id="myAvatarBox" style="border-color: <?= e($tuongToi['mauSac']) ?>; box-shadow: 0 0 25px <?= e($tuongToi['mauSac']) ?>88;">
@@ -226,7 +219,6 @@ require __DIR__ . '/layout/header.php';
               </div>
               <div class="champ-label" style="color: <?= e($tuongToi['mauSac']) ?>;"><?= e($tuongToi['ten']) ?></div>
 
-              <!-- Health Bar -->
               <div class="bar-container hp-bar-wrap">
                 <div class="bar-label-row">
                   <span class="bar-title">HP</span>
@@ -238,7 +230,6 @@ require __DIR__ . '/layout/header.php';
                 </div>
               </div>
 
-              <!-- Mana / Energy Bar -->
               <div class="bar-container mana-bar-wrap">
                 <div class="bar-label-row">
                   <span class="bar-title">NỘ / MANA</span>
@@ -252,15 +243,13 @@ require __DIR__ . '/layout/header.php';
           </div>
         </div>
 
-        <!-- CENTER BATTLE LANE & TIMER -->
+        <!-- Đồng hồ và tiến độ câu hỏi -->
         <div class="combat-center-lane">
-          <!-- Question Count Pill -->
           <div class="question-tracker-pill">
             <span class="tracker-label">CÂU HỎI</span>
             <span class="tracker-numbers"><span id="soCauHienTai">1</span> / <span id="tongSoCau">10</span></span>
           </div>
 
-          <!-- Circular Neon SVG Timer -->
           <div class="arena-timer-box">
             <svg class="timer-svg" viewBox="0 0 100 100">
               <circle class="timer-track-circle" cx="50" cy="50" r="42"></circle>
@@ -272,14 +261,13 @@ require __DIR__ . '/layout/header.php';
             </div>
           </div>
 
-          <!-- Killstreak Multiplier Badge -->
           <div class="killstreak-badge" id="killstreakBadge" style="display: none;">
             <span class="streak-flame">🔥</span>
             <span class="streak-text" id="killstreakText">COMBO x2</span>
           </div>
         </div>
 
-        <!-- RED FIGHTER (OPPONENT) -->
+        <!-- Thông tin đối thủ (Đội đỏ) -->
         <div class="combat-fighter red-corner" id="redFighter">
           <div class="fighter-podium reverse">
             <div class="fighter-avatar-box" id="oppAvatarBox" style="border-color: <?= e($tuongDoiThu['mauSac']) ?>; box-shadow: 0 0 25px <?= e($tuongDoiThu['mauSac']) ?>88;">
@@ -294,7 +282,6 @@ require __DIR__ . '/layout/header.php';
               </div>
               <div class="champ-label" style="color: <?= e($tuongDoiThu['mauSac']) ?>;"><?= e($tuongDoiThu['ten']) ?></div>
 
-              <!-- Health Bar -->
               <div class="bar-container hp-bar-wrap">
                 <div class="bar-label-row">
                   <span class="bar-title">HP</span>
@@ -306,7 +293,6 @@ require __DIR__ . '/layout/header.php';
                 </div>
               </div>
 
-              <!-- Mana / Energy Bar -->
               <div class="bar-container mana-bar-wrap">
                 <div class="bar-label-row">
                   <span class="bar-title">NỘ / MANA</span>
@@ -321,10 +307,10 @@ require __DIR__ . '/layout/header.php';
         </div>
       </div>
 
-      <!-- Live Match Score Ticker (Keeps existing API sync) -->
+      <!-- Giữ lại phần tử ẩn đồng bộ điểm qua API -->
       <div id="tiendo" class="live-score-ticker" style="display: none;"></div>
 
-      <!-- QUESTION & SKILLS CONSOLE (BOTTOM CONSOLE) -->
+      <!-- Khung câu hỏi -->
       <div class="arena-question-console card" id="consoleCard">
         <div class="pet-corner tl"></div><div class="pet-corner tr"></div>
         <div class="pet-corner bl"></div><div class="pet-corner br"></div>
@@ -337,12 +323,11 @@ require __DIR__ . '/layout/header.php';
         </div>
       </div>
 
-      <!-- Hotkey Hint Bar -->
       <div class="hotkey-hint-bar">
         <span>⌨️ <strong>MẸO CHIẾN ĐẤU:</strong> Bấm phím <strong>[Q]</strong>, <strong>[W]</strong>, <strong>[E]</strong>, <strong>[R]</strong> trên bàn phím để tung chiêu nhanh như chớp!</span>
       </div>
 
-      <!-- BỘ CHIÊU TRÒ PHÁ RỐI TÂM LÝ (SABOTAGE CONTROLS) -->
+      <!-- Bảng chiêu phá rối đối thủ -->
       <div class="sabotage-deck-container" id="sabotageDeck">
         <div class="sabotage-deck-header">
           <div class="deck-title">
@@ -388,7 +373,7 @@ require __DIR__ . '/layout/header.php';
     </div>
 
   <?php elseif ($tran['TrangThai'] === 'Hủy'): ?>
-    <!-- MATCH CANCELLED SCREEN -->
+    <!-- Trận đấu bị hủy -->
     <div class="card match-cancelled-card">
       <div class="pet-corner tl"></div><div class="pet-corner tr"></div>
       <div class="pet-corner bl"></div><div class="pet-corner br"></div>
@@ -403,7 +388,7 @@ require __DIR__ . '/layout/header.php';
     </div>
 
   <?php else: ?>
-    <!-- MATCH FINISHED CEREMONY: GRAND ESPORTS VICTORY / DEFEAT -->
+    <!-- Kết quả sau trận -->
     <?php
     $kq = (string) $toi['KetQua'];
     $isWin = ($kq === 'Thắng');
@@ -414,7 +399,6 @@ require __DIR__ . '/layout/header.php';
       <div class="pet-corner tl"></div><div class="pet-corner tr"></div>
       <div class="pet-corner bl"></div><div class="pet-corner br"></div>
 
-      <!-- Banner Header -->
       <div class="ceremony-crest">
         <?php if ($isWin): ?>
           <div class="crest-emblem gold">👑</div>
@@ -432,9 +416,7 @@ require __DIR__ . '/layout/header.php';
         <p class="ceremony-sub"><?= e($tran['LyDoKetThuc']) ?></p>
       </div>
 
-      <!-- Post-Match Podium (Blue vs Red) -->
       <div class="ceremony-podium-grid">
-        <!-- Player Box -->
         <div class="podium-card <?= $isWin ? 'winner' : '' ?>">
           <div class="podium-avatar-glow" style="border-color: <?= e($tuongToi['mauSac']) ?>;">
             <img src="<?= e(BASE_URL . $tuongToi['avatar'] . '?v=2') ?>" alt="<?= e($tuongToi['ten']) ?>" class="podium-img">
@@ -452,7 +434,6 @@ require __DIR__ . '/layout/header.php';
 
         <div class="podium-vs-separator">VS</div>
 
-        <!-- Opponent Box -->
         <div class="podium-card <?= $isLose ? 'winner' : '' ?>">
           <div class="podium-avatar-glow" style="border-color: <?= e($tuongDoiThu['mauSac']) ?>;">
             <img src="<?= e(BASE_URL . $tuongDoiThu['avatar'] . '?v=2') ?>" alt="<?= e($tuongDoiThu['ten']) ?>" class="podium-img">
@@ -470,7 +451,7 @@ require __DIR__ . '/layout/header.php';
         </div>
       </div>
 
-      <!-- CHAMPION MASTERY EXP & EVOLUTION CARD -->
+      <!-- Tiến độ thông thạo nhân vật -->
       <div class="post-match-mastery-card">
         <div class="mastery-card-header">
           <div class="mastery-crest-icon"><?= $thongThaoToi['iconCap'] ?></div>
@@ -505,7 +486,6 @@ require __DIR__ . '/layout/header.php';
         </div>
       </div>
 
-      <!-- Action Buttons -->
       <div class="ceremony-actions">
         <a class="btn-quick-match" href="<?= e(BASE_URL) ?>/client/timtran.php">
           <span class="sword-icon">⚔️</span> TÌM TRẬN MỚI

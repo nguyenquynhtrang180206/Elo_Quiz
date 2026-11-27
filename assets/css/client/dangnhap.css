@@ -1,6 +1,6 @@
 @import url("../pw_security.css");
 
-/* Trang Đăng nhập hợp nhất (client/dangnhap.php) */
+/* Trang Đăng nhập (client/dangnhap.php) */
 .container.khung-login { 
   max-width: 440px;
   width: 100%;

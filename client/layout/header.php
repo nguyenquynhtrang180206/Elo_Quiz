@@ -1,15 +1,8 @@
 <?php
-// Header của Site Client. Cách dùng ở mỗi trang:
-//   require_once __DIR__ . '/../core/bootstrap.php';   (đường dẫn tới core/bootstrap.php)
-//   $tieuDe = 'Tên trang';
-//   $cssTrang = 'tenfile';   (nạp assets/css/client/tenfile.css; có thể là mảng)
-//   $jsTrang  = 'tenfile';   (nạp assets/js/client/tenfile.js ở cuối trang; có thể là mảng)
-//   require __DIR__ . '/layout/header.php';
-//   ... nội dung trang ...
-//   require __DIR__ . '/layout/footer.php';
+// Header chung cho giao diện sinh viên
 $tieuDe = $tieuDe ?? 'QUIZUP ARENA';
 $daDangNhap = Auth::clientId() !== null;
-$laAdminSV  = $daDangNhap && Auth::laAdminSinhVien();   // admin đang dùng khu sinh viên: ẩn Tìm trận, Đổi mật khẩu
+$laAdminSV  = $daDangNhap && Auth::laAdminSinhVien();   // Admin đang ở khu sinh viên: ẩn Tìm trận và Đổi mật khẩu
 $cssTrang = (array) ($cssTrang ?? []);
 $trangHienTai = basename((string) ($_SERVER['SCRIPT_NAME'] ?? ''));
 $cur = fn(string $f): string => $f === $trangHienTai ? ' aria-current="page"' : '';
@@ -71,27 +64,16 @@ $cur = fn(string $f): string => $f === $trangHienTai ? ' aria-current="page"' : 
             </radialGradient>
           </defs>
 
-          <!-- Quầng hào quang hoàng kim nhẹ phía sau -->
           <circle cx="26" cy="26" r="24" fill="url(#luxGlow)"/>
-
-          <!-- Khiên Bát Giác Hoàng Gia (Royal Octagon Seal) -->
           <polygon points="26,2.5 42.6,9.4 49.5,26 42.6,42.6 26,49.5 9.4,42.6 2.5,26 9.4,9.4"
             fill="url(#luxPlate)" stroke="url(#luxGold)" stroke-width="1.8" stroke-linejoin="round"/>
-
-          <!-- Vòng chỉ vàng nội viền tinh xảo (Inner Inlay Ring) -->
           <polygon points="26,5.8 40.3,11.7 46.2,26 40.3,40.3 26,46.2 11.7,40.3 5.8,26 11.7,11.7"
             fill="none" stroke="url(#luxGold)" stroke-width="0.75" stroke-dasharray="3 1.5" opacity="0.65"/>
-
-          <!-- Vòng tròn tâm huy hiệu -->
           <circle cx="26" cy="26" r="15.5" fill="#050B1B" stroke="url(#luxGold)" stroke-width="0.8" opacity="0.9"/>
-
-          <!-- 4 Kim cương tại 4 hướng chính (Cardinal Jewels) -->
           <polygon points="26,4.2 27.2,5.5 26,6.8 24.8,5.5" fill="#FFF8E7"/>
           <polygon points="47.8,26 46.5,27.2 45.2,26 46.5,24.8" fill="#FFF8E7"/>
           <polygon points="26,47.8 27.2,46.5 26,45.2 24.8,46.5" fill="#FFF8E7"/>
           <polygon points="4.2,26 5.5,27.2 6.8,26 5.5,24.8" fill="#FFF8E7"/>
-
-          <!-- Cành Nguyệt Quế Hoàng Gia 2 bên (Royal Laurel Wreath) -->
           <path d="M12.5 29 C12 25 13.5 20 16 16.5" fill="none" stroke="url(#luxGold)" stroke-width="0.9" stroke-linecap="round"/>
           <path d="M12 28 C10.5 26.5 11 24.5 13 25 C13 26.5 12.8 27.5 12 28 Z" fill="url(#luxGold)"/>
           <path d="M12.8 23.5 C11.5 22 12.2 20.2 14.2 21 C14 22.3 13.6 23.1 12.8 23.5 Z" fill="url(#luxGold)"/>
@@ -101,25 +83,17 @@ $cur = fn(string $f): string => $f === $trangHienTai ? ' aria-current="page"' : 
           <path d="M40 28 C41.5 26.5 41 24.5 39 25 C39 26.5 39.2 27.5 40 28 Z" fill="url(#luxGold)"/>
           <path d="M39.2 23.5 C40.5 22 39.8 20.2 37.8 21 C38 22.3 38.4 23.1 39.2 23.5 Z" fill="url(#luxGold)"/>
           <path d="M37.5 19 C38.5 17.5 37.5 16 35.8 17 C36.2 18.2 36.7 18.8 37.5 19 Z" fill="url(#luxGold)"/>
-
-          <!-- Vương miện Đế Vương (Imperial Diadem Crown) -->
           <path d="M19.5 18 L21.5 13.5 L26 16 L30.5 13.5 L32.5 18 Z" fill="url(#luxGoldLight)" stroke="url(#luxGoldDark)" stroke-width="0.6"/>
           <circle cx="26" cy="13.2" r="1.3" fill="#FFFFFF" stroke="#D4AF37" stroke-width="0.5"/>
           <circle cx="21.5" cy="12.8" r="0.9" fill="#F3DE8A"/>
           <circle cx="30.5" cy="12.8" r="0.9" fill="#F3DE8A"/>
           <rect x="20.5" y="17.8" width="11" height="1.6" rx="0.8" fill="url(#luxGoldDark)"/>
           <circle cx="26" cy="18.6" r="0.8" fill="#38BDF8"/>
-
-          <!-- Monogram Q Quyền Lực (Chiseled Gold Monogram Q) -->
           <circle cx="26" cy="27" r="7.5" fill="none" stroke="url(#luxGoldDark)" stroke-width="2.8"/>
           <circle cx="26" cy="27" r="7.5" fill="none" stroke="url(#luxGoldLight)" stroke-width="2" stroke-dasharray="24 24" stroke-dashoffset="6"/>
-
-          <!-- Đuôi Q vát cạnh vương trượng (Chiseled Diamond Tail) -->
           <polygon points="28,29 36.5,37.5 38.5,35.5 30,27" fill="url(#luxGoldLight)"/>
           <polygon points="28.8,30.5 37,38.8 35,40.8 26.8,32.5" fill="url(#luxGoldDark)"/>
           <polygon points="36.5,37.5 39.5,39 37.5,41 35,40" fill="#FFF8E7"/>
-
-          <!-- Ngôi sao Kim Cương Trí Tuệ Trung Tâm (Diamond Star of Excellence) -->
           <path d="M26 23 L27.2 26 L30.2 27 L27.2 28 L26 31 L24.8 28 L21.8 27 L24.8 26 Z" fill="url(#luxGoldLight)"/>
           <circle cx="26" cy="27" r="1.1" fill="#FFFFFF"/>
         </svg>
@@ -157,10 +131,10 @@ $cur = fn(string $f): string => $f === $trangHienTai ? ' aria-current="page"' : 
       <?php if ($daDangNhap): ?>
         <?php
           $soThongBaoChuaDoc = ThongBaoHelper::laySoChuaDoc(Database::pdo(), (int) Auth::clientId());
-          $soLoiMoiBanBe = BanBeHelper::demLoiMoiCho((int) Auth::clientId());   // lời mời kết bạn đang chờ mình xử lý
+          $soLoiMoiBanBe = BanBeHelper::demLoiMoiCho((int) Auth::clientId());
           $laNhomHoSo = in_array($trangHienTai, ['hoso.php', 'lichsutran.php', 'banbe.php', 'doimatkhau.php'], true);
         ?>
-        <!-- CHUÔNG THÔNG BÁO CYBER ESPORTS (REALTIME REPLIES & NOTIFICATIONS) -->
+        <!-- Chuông thông báo -->
         <div class="nav-notif-wrap" id="navNotifWrap">
           <button type="button" class="nav-notif-btn" id="btnNotifToggle" aria-label="Xem thông báo" aria-expanded="false" title="Thông báo phản hồi & tương tác">
             <svg class="notif-bell-svg" viewBox="0 0 24 24" width="16" height="16" fill="none" aria-hidden="true">
@@ -172,7 +146,7 @@ $cur = fn(string $f): string => $f === $trangHienTai ? ' aria-current="page"' : 
             </span>
           </button>
 
-          <!-- Dropdown Panel thông báo -->
+          <!-- Danh sách thông báo -->
           <div class="notif-dropdown" id="notifDropdown" hidden>
             <div class="notif-drop-header">
               <div class="notif-drop-title">

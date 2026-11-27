@@ -1,14 +1,13 @@
 <?php
-// Trang Cộng đồng: menu trái, danh sách bài giữa, banner phải. Đặt tại: elo_quiz/client/congdong.php
-// Xem (C-42), đăng bài (C-43), thích bài. Khách chưa đăng nhập vẫn xem được.
+// Trang cộng đồng: lọc, đăng bài và bảng tin
 require_once __DIR__ . '/../core/bootstrap.php';
 
 $maND = Auth::clientId();
-$laQT = Auth::laQuanTriKiemDuyet();   // admin đang ở khu sinh viên: ẩn bài kèm lý do ngay trên bảng tin
+$laQT = Auth::laQuanTriKiemDuyet();   // Quản trị viên có quyền ẩn bài kèm lý do ngay trên bảng tin
 $pdo  = Database::pdo();
 $monDangMo = CongDongHelper::monDangMo();
 
-// Bảng LUOTTHICH có thể chưa được tạo (chạy migration_luotthich.sql); chưa có thì ẩn nút thích
+// Kiểm tra bảng LUOTTHICH tồn tại trước khi hiển thị nút thích
 $coLike = true;
 try {
     $pdo->query('SELECT 1 FROM LUOTTHICH LIMIT 1');
@@ -18,7 +17,7 @@ try {
 
 $coLoai = CongDongHelper::coCotLoaiBai();
 
-// ---- Bộ lọc: 6 chuyên mục dọc chuẩn giao diện Cyber Esports ----
+// Danh sách tab chuyên mục
 $cacTab = [
     'moi'       => ['<svg viewBox="0 0 20 20" width="20" height="20" fill="none" aria-hidden="true"><path d="M14.5 2.5l3 3-10 10H4.5v-3l10-10z" fill="rgba(0, 217, 255, 0.15)" stroke="#00D9FF" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M12.5 4.5l3 3" stroke="#FDE047" stroke-width="1.7" stroke-linecap="round"/><circle cx="5.2" cy="14.8" r="1.3" fill="#00D9FF"/></svg>', 'Bài đăng mới',      'Bài đăng mới nhất'],
     'noibat'    => [CongDongHelper::iconLua(20), 'Bài viết nổi bật',  'Bài viết nổi bật (Nhiều lượt thả lửa)'],
@@ -37,9 +36,9 @@ if (!isset($monDangMo[$monLoc])) {
 }
 $loaiLoc = $coLoai && in_array((string) ($_GET['loai'] ?? ''), CongDongHelper::LOAI_BAI, true) ? (string) $_GET['loai'] : '';
 $tuKhoa = mb_substr(trim((string) ($_GET['q'] ?? '')), 0, 100);
-// Tham số lọc giữ nguyên khi đổi tab, sang trang, thả lửa bài...
+// Giữ nguyên bộ lọc khi đổi tab hoặc chuyển trang
 $thamLoc = ($monLoc > 0 ? ['mon' => $monLoc] : []) + ($loaiLoc !== '' ? ['loai' => $loaiLoc] : []) + ($tuKhoa !== '' ? ['q' => $tuKhoa] : []);
-// Mọi liên kết chuyên mục kèm #cd-bang-tin để bấm xong trang cuộn thẳng xuống khu bảng tin, không quay lên banner
+// Gắn #cd-bang-tin để cuộn thẳng xuống bảng tin sau khi chọn tab
 $thamTab = fn(string $t): string => '?' . http_build_query(['tab' => $t] + $thamLoc) . '#cd-bang-tin';
 
 $loi = [];
@@ -55,7 +54,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         }
         redirect(BASE_URL . '/client/dangnhap.php');
     }
-    if (!CongDongHelper::postQuaLon()) {   // yêu cầu quá lớn thì $_POST rỗng: bỏ qua, báo lỗi ảnh ở dưới thay vì báo "phiên hết hạn"
+    if (!CongDongHelper::postQuaLon()) {   // Request vượt post_max_size làm $_POST rỗng, bỏ qua CSRF check để báo lỗi kích thước ảnh
         csrf_check();
     }
 
@@ -68,7 +67,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     }
 
     if (($_POST['hanh_dong'] ?? '') === 'qt_an_bai') {
-        // ---- Quản trị viên ẩn bài ngay trên bảng tin (bắt buộc lý do, ghi nhật ký, báo cho chủ bài) ----
+        // Quản trị viên ẩn bài kèm lý do và gửi thông báo cho chủ bài
         $kq  = $laQT ? CongDongHelper::kiemDuyet($pdo, 'an_bai', (int) ($_POST['ma'] ?? 0), (string) ($_POST['ly_do'] ?? '')) : 'khong';
         CongDongHelper::flash([
             'ok'      => 'Đã ẩn bài đăng và gửi thông báo kèm lý do cho người đăng.',
@@ -89,7 +88,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     }
 
     if (($_POST['hanh_dong'] ?? '') === 'thich') {
-        // ---- Thả lửa / dập lửa một bài viết ----
+        // Thả lửa hoặc bỏ thả lửa bài viết
         $maBai = (int) ($_POST['ma'] ?? 0);
         $st = $pdo->prepare("SELECT COUNT(*) FROM BAIDANG WHERE MaBaiDang = ? AND TrangThai = 'Hiển thị'");
         $st->execute([$maBai]);
@@ -106,7 +105,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             }
         }
         if ($daThich) {
-            ThongBaoHelper::thaLuaBai($pdo, $maBai, $maND);   // báo cho chủ bài (không báo khi bỏ thả lửa)
+            ThongBaoHelper::thaLuaBai($pdo, $maBai, $maND);   // Chỉ thông báo khi thả lửa
         }
 
         $stCount = $pdo->prepare('SELECT COUNT(*) FROM LUOTTHICH WHERE MaBaiDang = ?');
@@ -142,7 +141,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     }
 
     if (in_array($_POST['hanh_dong'] ?? '', ['an_bai', 'mo_bai', 'xoa_bai'], true)) {
-        // ---- Chủ bài: ẩn / mở lại / xóa bài của mình (chỉ tác động lên bài của chính mình) ----
+        // Chủ bài ẩn, mở lại hoặc xóa bài của chính mình
         $maBai = (int) ($_POST['ma'] ?? 0);
         switch ($_POST['hanh_dong']) {
             case 'an_bai':
@@ -172,7 +171,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         redirect(BASE_URL . '/client/congdong.php?' . http_build_query($quayLai) . '#cd-bang-tin');
     }
 
-    // ---- Đăng bài mới ----
+    // Đăng bài mới
     $tieuDeBai  = trim((string) ($_POST['tieu_de'] ?? ''));
     $noiDungBai = trim((string) ($_POST['noi_dung'] ?? ''));
     $monChon    = (string) ($_POST['mon'] ?? '');
@@ -180,11 +179,11 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
 
     [$loi, $maMon] = CongDongHelper::kiemTraBai($tieuDeBai, $noiDungBai, $monChon, $monDangMo);
 
-    // Ảnh đính kèm (không bắt buộc): JPG/PNG/WEBP, mỗi bài 1 ảnh, dung lượng theo CongDongHelper::gioiHanAnhByte()
+    // Ảnh đính kèm tùy chọn (JPG/PNG/WEBP)
     [$loiAnh, $duoiAnh] = CongDongHelper::kiemTraAnh($_FILES['anh_dinh_kem'] ?? null);
     $loi = array_merge($loi, $loiAnh);
     if (CongDongHelper::postQuaLon()) {
-        // Ảnh làm yêu cầu vượt post_max_size nên máy chủ đã bỏ cả tiêu đề và nội dung: chỉ báo lỗi ảnh, không báo thiếu tiêu đề/nội dung
+        // Vượt post_max_size nên $_POST rỗng, chỉ báo lỗi kích thước ảnh
         $loi = ['anh_dinh_kem' => 'Không thể đăng bài: Ảnh đính kèm quá lớn (vượt giới hạn máy chủ ' . CongDongHelper::gioiHanAnhChu() . '). Vui lòng chọn ảnh nhỏ hơn rồi thử lại.'];
     }
 
@@ -226,14 +225,13 @@ $baiVuaDang = (int) ($thongTinVuaDang['id'] ?? 0);
 unset($_SESSION['bai_vua_dang']);
 
 $baiDang = [];
-$eloMap = [];   // Elo theo người đăng, dùng cho huy hiệu cạnh tên
+$eloMap = [];   // Elo của người đăng để hiển thị huy hiệu
 $thanhVien = [];
 $p = null;
 
 if ($tab === 'huyhieu') {
-    // ---- Huy hiệu là gì?: không cần dữ liệu từ CSDL ----
 } elseif ($tab === 'thanhvien') {
-    // ---- Thành viên nổi bật: xếp theo hoạt động (bài đăng x3 + bình luận) ----
+    // Thành viên nổi bật xếp theo bài đăng (x3) và bình luận
     $thanhVien = $pdo->query(
         "SELECT * FROM (
             SELECT u.MaND, u.HoTen, u.AnhDaiDien,
@@ -245,15 +243,15 @@ if ($tab === 'huyhieu') {
           ORDER BY t.SoBai * 3 + t.SoBL DESC, t.EloCao DESC, t.MaND LIMIT 10"
     )->fetchAll();
 } elseif ($tab === 'cuatoi' && $maND === null) {
-    // Khách chưa đăng nhập bấm xem bài của tôi -> để trống, hiện nút đăng nhập
+    // Tab bài của tôi cần đăng nhập
     $baiDang = [];
     $p = new Paginator(0, 10);
 } else {
-    // ---- Danh sách bài theo tab, lọc môn, phân trang 10 dòng ----
+    // Truy vấn danh sách bài theo tab, bộ lọc và phân trang
     $where = "b.TrangThai = 'Hiển thị'";
     $tham  = [];
     if ($tab === 'cuatoi') {
-        // Bài của mình: gồm cả bài đang ẩn; bài "Đã xóa" thì không hiện
+        // Bài của mình gồm cả bài đang ẩn, loại trừ bài đã xóa
         $where = "b.MaND = :cn AND b.TrangThai IN ('Hiển thị', 'Bị ẩn')";
         $tham[':cn'] = (int) $maND;
     }
@@ -266,7 +264,6 @@ if ($tab === 'huyhieu') {
         $tham[':loai'] = $loaiLoc;
     }
     if ($tuKhoa !== '') {
-        // Tìm theo từ khóa trong tiêu đề hoặc nội dung
         $like = '%' . addcslashes($tuKhoa, '\\%_') . '%';
         $where .= ' AND (b.TieuDe LIKE :q1 OR b.NoiDung LIKE :q2)';
         $tham[':q1'] = $like;
@@ -278,7 +275,7 @@ if ($tab === 'huyhieu') {
                           AND h.TrangThai = 'Hiển thị' AND h.NgayBinhLuan >= DATE_SUB(NOW(), INTERVAL 7 DAY)) >= 3";
     }
     if ($tab === 'noibat' && $coLike) {
-        // Bài viết nổi bật: chỉ lấy bài đã có ít nhất 1 lượt thả lửa
+        // Bài nổi bật: có ít nhất 1 lượt thả lửa
         $where .= ' AND EXISTS (SELECT 1 FROM LUOTTHICH lx WHERE lx.MaBaiDang = b.MaBaiDang)';
     }
     $thuTu = [
@@ -321,7 +318,7 @@ if ($tab === 'huyhieu') {
     $baiDang = $st->fetchAll();
     $eloMap  = CongDongHelper::layElo($pdo, array_column($baiDang, 'MaND'));
 
-    // Xem trước 2 bình luận cấp 1 mới nhất của mỗi bài (chỉ bình luận 'Hiển thị', không lấy trả lời lồng bên trong); phần còn lại xem trong trang bài
+    // Xem trước 2 bình luận gốc mới nhất của mỗi bài
     DbSchema::damBaoCot($pdo, 'BINHLUAN', 'AnhDinhKem', 'VARCHAR(255) NULL DEFAULT NULL');
     $blXemTruoc = [];
     $stBL = $pdo->prepare(
@@ -334,12 +331,12 @@ if ($tab === 'huyhieu') {
     foreach ($baiDang as $bx) {
         if ((int) $bx['SoBL'] > 0) {
             $stBL->execute([(int) $bx['MaBaiDang']]);
-            $blXemTruoc[(int) $bx['MaBaiDang']] = array_reverse($stBL->fetchAll());   // cũ trước, mới sau
+            $blXemTruoc[(int) $bx['MaBaiDang']] = array_reverse($stBL->fetchAll());
         }
     }
 }
 
-// ---- Thống kê thời gian thực cho Hero Banner Cộng Đồng Đẳng Cấp ----
+// Thống kê tổng quan cho banner cộng đồng
 $stStats = $pdo->query("
     SELECT 
         (SELECT COUNT(*) FROM BAIDANG WHERE TrangThai = 'Hiển thị') AS TongBai,
@@ -353,7 +350,7 @@ $tongBLCD    = (int) ($stStats['TongBL'] ?? 0);
 $tongThichCD = (int) ($stStats['TongThich'] ?? 0);
 $tongSiTuCD  = (int) ($stStats['TongSiTu'] ?? 0);
 
-// Tìm Ngôi sao tri thức tuần (Top 1 đóng góp bài đăng + bình luận)
+// Thành viên đóng góp nhiều nhất tuần
 $topMvp = $pdo->query("
     SELECT * FROM (
         SELECT u.MaND, u.HoTen, u.AnhDaiDien,
@@ -381,7 +378,7 @@ $bodyClass = 'trang-cd';
 require __DIR__ . '/layout/header.php';
 ?>
 
-<!-- Reusable Cyber Gradients for Community SVG Icons -->
+<!-- Gradient dùng chung cho biểu tượng SVG -->
 <svg width="0" height="0" style="position: absolute; width: 0; height: 0; overflow: hidden; pointer-events: none;" aria-hidden="true" focusable="false">
   <defs>
     <linearGradient id="cdGradGold" x1="0" y1="0" x2="0" y2="1">
@@ -407,30 +404,23 @@ require __DIR__ . '/layout/header.php';
   </defs>
 </svg>
 
-<!-- =====================================================================
-     HERO BANNER CỘNG ĐỒNG CHIẾN THẦN ELO (ĐỒNG BỘ 100% ESPORTS CÁC TRANG)
-     ===================================================================== -->
+<!-- Banner cộng đồng -->
 <section class="cd-hero-banner" id="cd-hero-banner" aria-label="Đại sảnh Tri thức Cộng đồng">
-  <!-- 4 góc dát vàng phong cách Cyber Esports -->
   <span class="pet-corner tl" aria-hidden="true"></span>
   <span class="pet-corner tr" aria-hidden="true"></span>
   <span class="pet-corner bl" aria-hidden="true"></span>
   <span class="pet-corner br" aria-hidden="true"></span>
 
-  <!-- Hiệu ứng vầng sáng vũ trụ & lưới cyber 3D -->
   <div class="cd-hero-aurora" aria-hidden="true"></div>
   <div class="cd-hero-grid" aria-hidden="true"></div>
 
   <div class="cd-hero-container">
-    <!-- CỘT TRÁI: TIÊU ĐỀ, PHỤ ĐỀ & CÁC NÚT HÀNH ĐỘNG -->
     <div class="cd-hero-left">
-      <!-- Badge Live Status -->
       <div class="cd-hero-badge">
         <span class="cham-live" aria-hidden="true"></span>
         <span class="cd-badge-text">ĐẠI SẢNH TRI THỨC • CỘNG ĐỒNG SĨ TỬ ELO</span>
       </div>
 
-      <!-- Tiêu đề lớn sang trọng -->
       <h1 class="cd-hero-heading">
         <span class="cd-head-gold">KẾT NỐI SĨ TỬ</span>
         <span class="cd-head-cyan">CHIA SẺ ĐỈNH CAO</span>
@@ -440,7 +430,7 @@ require __DIR__ . '/layout/header.php';
         Hỏi xoáy đáp xoay đề thi hóc búa, chia sẻ bí kíp ôn thi thực chiến và thả lửa <?= CongDongHelper::iconLua(15) ?> tiếp sức đồng đội cùng bứt phá thứ hạng Elo!
       </p>
 
-      <!-- 4 Thẻ chip chỉ số thời gian thực chuẩn Esports -->
+      <!-- Thống kê cộng đồng -->
       <div class="cd-hero-chips" data-mem-vung="chips">
         <div class="cd-hchip chip-posts" title="Tổng số bài viết đang mở trong cộng đồng">
           <span class="hchip-icon" aria-hidden="true">
@@ -472,7 +462,6 @@ require __DIR__ . '/layout/header.php';
         </div>
       </div>
 
-      <!-- Nhóm nút hành động nhanh phong cách Game Esports -->
       <div class="cd-hero-actions">
         <button type="button" class="btn-hero-post" id="btnHeroDangBai">
           <span class="icon-pen" aria-hidden="true">
@@ -495,16 +484,14 @@ require __DIR__ . '/layout/header.php';
 
 
 
-    <!-- CỘT PHẢI: BẢNG VINH DANH NGÔI SAO TRI THỨC TUẦN (WEEKLY MVP VIP PRO - TO RỘNG ĐẲNG CẤP) -->
+    <!-- Bảng vinh danh thành viên nổi bật tuần -->
     <div class="cd-hero-right">
       <div class="cd-mvp-card is-expanded" id="cdMvpCard">
-        <!-- 4 Gilded Gaming Brackets (Góc Dát Vàng Đẳng Cấp) -->
         <span class="mvp-corner tl" aria-hidden="true"></span>
         <span class="mvp-corner tr" aria-hidden="true"></span>
         <span class="mvp-corner bl" aria-hidden="true"></span>
         <span class="mvp-corner br" aria-hidden="true"></span>
 
-        <!-- Header: Vương Miện Hoàng Kim 3D + Tag MVP Tuần + Rank Badge -->
         <div class="cd-mvp-header">
           <div class="cd-mvp-tag">
             <span class="cd-mvp-crown-icon" aria-hidden="true">
@@ -521,13 +508,9 @@ require __DIR__ . '/layout/header.php';
                     <stop offset="100%" stop-color="#D97706"/>
                   </linearGradient>
                 </defs>
-                <!-- Laurel Wings Behind -->
                 <path d="M4 18c0-5 3-9 7-11-1.5 3-1.5 7 0 10-3 0-5.5-1.5-7 1zm24 0c0-5-3-9-7-11 1.5 3 1.5 7 0 10 3 0 5.5-1.5 7 1z" fill="url(#epicCrownGlow)" opacity="0.65"/>
-                <!-- 5-Point Crown Body -->
                 <path d="M5 21L3 8l6.5 6L16 4l6.5 10L29 8l-2 13H5z" fill="url(#epicCrownGrad)"/>
-                <!-- Crown Base Band -->
                 <path d="M5 23h22v3H5z" fill="url(#epicCrownGrad)"/>
-                <!-- Embedded Jewels (Rubies & Sapphires) -->
                 <circle cx="16" cy="13" r="1.8" fill="#EF4444" stroke="#FFF" stroke-width="0.6"/>
                 <circle cx="10" cy="16" r="1.3" fill="#38BDF8" stroke="#FFF" stroke-width="0.5"/>
                 <circle cx="22" cy="16" r="1.3" fill="#38BDF8" stroke="#FFF" stroke-width="0.5"/>
@@ -551,7 +534,6 @@ require __DIR__ . '/layout/header.php';
         </div>
 
         <?php if ($topMvp): ?>
-        <!-- Thân thẻ: Avatar vương giả lớn + Thông tin chiến thần mở rộng -->
         <div class="cd-mvp-body">
           <div class="cd-mvp-avatar-wrap">
             <div class="cd-mvp-aura" aria-hidden="true"></div>
@@ -565,7 +547,6 @@ require __DIR__ . '/layout/header.php';
                 </div>
               <?php endif; ?>
             </div>
-            <!-- 3D Champion Seal Medal -->
             <div class="cd-mvp-medal" title="Chiến Thần Đóng Góp Quán Quân" aria-hidden="true">
               <svg viewBox="0 0 28 28" class="cd-mvp-seal-svg" aria-hidden="true">
                 <defs>
@@ -580,12 +561,9 @@ require __DIR__ . '/layout/header.php';
                     <stop offset="100%" stop-color="#991B1B"/>
                   </linearGradient>
                 </defs>
-                <!-- Ribbons -->
                 <path d="M9 20l-3 7 6-2.5 3 2.5-1-7H9zm10 0l3 7-6-2.5-3 2.5 1-7h5z" fill="url(#sealRibbon)"/>
-                <!-- Gold Coin -->
                 <circle cx="14" cy="13" r="11" fill="url(#sealGold)" stroke="#FFF8E7" stroke-width="1.2"/>
                 <circle cx="14" cy="13" r="9" fill="#0A183D" stroke="#D4AF37" stroke-width="0.8"/>
-                <!-- Star Inscription -->
                 <path d="M14 6l1.8 3.6 4 .6-2.9 2.8.7 4-3.6-1.9-3.6 1.9.7-4-2.9-2.8 4-.6z" fill="url(#sealGold)"/>
               </svg>
             </div>
@@ -610,7 +588,6 @@ require __DIR__ . '/layout/header.php';
               <span class="tier-elo"><strong><?= number_format($topMvp['EloCao'] ?? 1000) ?></strong> ELO</span>
             </div>
 
-            <!-- 3 Gaming HUD Stat Capsules -->
             <div class="cd-mvp-stats-grid">
               <div class="mvp-stat-box stat-posts" title="Tổng số bài viết cống hiến">
                 <div class="stat-box-icon">
@@ -653,7 +630,6 @@ require __DIR__ . '/layout/header.php';
         </div>
         <?php endif; ?>
 
-        <!-- Footer: Lời khuyên & Nút xem BXH Thành Viên -->
         <div class="cd-mvp-footer">
           <span class="cd-mvp-motto">&ldquo;Chia sẻ tri thức &ndash; Bứt phá giới hạn!&rdquo;</span>
           <a href="<?= e($thamTab('thanhvien')) ?>" class="cd-mvp-link" title="Xem Bảng xếp hạng thành viên nổi bật">
@@ -668,7 +644,7 @@ require __DIR__ . '/layout/header.php';
 
 <div class="cd-bo-cuc">
 
-  <!-- ===== CỘT TRÁI: BỘ LỌC TÌM KIẾM & 6 CHUYÊN MỤC DỌC (CHUẨN XÁC THEO HÌNH 1) ===== -->
+  <!-- Bộ lọc và chuyên mục bên trái -->
   <aside class="cd-trai">
     <div class="cd-hop-trai cd-sidebar-panel" data-mem-vung="loc" data-mem-links>
       <span class="pet-corner tl" aria-hidden="true"></span>
@@ -676,12 +652,10 @@ require __DIR__ . '/layout/header.php';
       <span class="pet-corner bl" aria-hidden="true"></span>
       <span class="pet-corner br" aria-hidden="true"></span>
 
-      <!-- 1. Bộ lọc tìm kiếm trên cùng của Sidebar -->
       <?php if (!in_array($tab, ['thanhvien', 'huyhieu'], true)): ?>
       <form method="get" action="congdong.php#cd-bang-tin" class="cd-loc-sidebar" id="formLocCD">
         <input type="hidden" name="tab" value="<?= e($tab) ?>">
 
-        <!-- Chọn môn học (mặc định Tất cả môn) -->
         <div class="cd-filter-item">
           <label for="loc_mon" class="cd-filter-label">Lọc theo môn</label>
           <select id="loc_mon" name="mon" class="cd-dropdown-input">
@@ -692,7 +666,6 @@ require __DIR__ . '/layout/header.php';
           </select>
         </div>
 
-        <!-- Lọc theo loại bài -->
         <div class="cd-filter-item">
           <label for="loc_loai" class="cd-filter-label">Lọc theo loại bài</label>
           <select id="loc_loai" name="loai" class="cd-dropdown-input">
@@ -703,7 +676,6 @@ require __DIR__ . '/layout/header.php';
           </select>
         </div>
 
-        <!-- Tìm theo từ khóa -->
         <div class="cd-filter-item">
           <label for="tim_q" class="cd-filter-label">Tìm theo từ khóa</label>
           <div class="cd-tim-bar">
@@ -720,7 +692,6 @@ require __DIR__ . '/layout/header.php';
       </form>
       <?php endif; ?>
 
-      <!-- 2. Danh sách 6 nút chuyên mục dọc (Chuẩn xác như hình 1) -->
       <nav class="cd-menu-list" aria-label="Danh mục cộng đồng">
         <?php foreach ($cacTab as $khoa => [$icon, $nhan]): ?>
           <a class="cd-tab-btn<?= $khoa === $tab ? ' active' : '' ?>" href="<?= e($thamTab($khoa)) ?>"<?= $khoa === $tab ? ' aria-current="page"' : '' ?>>
@@ -731,7 +702,7 @@ require __DIR__ . '/layout/header.php';
       </nav>
     </div>
 
-    <!-- Hộp Chibi Faker Cố Vấn Tinh Thần -->
+    <!-- Khối gợi ý tham gia thi đấu -->
     <div class="cd-hop-trai cd-trai-tip">
       <span class="pet-corner tl" aria-hidden="true"></span>
       <span class="pet-corner tr" aria-hidden="true"></span>
@@ -754,7 +725,7 @@ require __DIR__ . '/layout/header.php';
     </div>
   </aside>
 
-  <!-- ===== CỘT PHẢI: FORM VIẾT BÀI MỚI & BẢNG TIN (CHUẨN THEO HÌNH 2) ===== -->
+  <!-- Khung viết bài và bảng tin -->
   <section class="cd-giua" id="cd-bang-tin" style="scroll-margin-top:80px" data-mem-vung="giua" data-mem-links>
     <?php if ($thanhCong): ?>
       <div class="thanhcong cd-thongbao-tructiep" id="cdThongBaoThanhCong" data-toast-msg="<?= e($thanhCong) ?>">
@@ -789,7 +760,7 @@ require __DIR__ . '/layout/header.php';
       </div>
     <?php endif; ?>
 
-    <!-- KHUNG VIẾT BÀI MỚI CHUẨN ĐẸP (THU GỌN MẶC ĐỊNH, BẤM VÀO MỚI TUNG RA) -->
+    <!-- Khung soạn bài mới -->
     <?php if (!in_array($tab, ['thanhvien', 'huyhieu'], true)): ?>
     <?php $moFormSan = !empty($loi) || $tieuDeBai !== '' || $noiDungBai !== ''; ?>
     <div class="cd-hop-trai cd-write-card<?= $moFormSan ? ' is-open' : '' ?><?= !empty($loi) ? ' has-post-error' : '' ?>" id="khung-dang-bai">
@@ -798,7 +769,6 @@ require __DIR__ . '/layout/header.php';
       <span class="pet-corner bl" aria-hidden="true"></span>
       <span class="pet-corner br" aria-hidden="true"></span>
 
-      <!-- Thanh tiêu đề thu gọn: click vào để mở rộng / thu gọn form -->
       <div class="cd-write-header" id="cd-write-toggle" role="button" tabindex="0" aria-expanded="<?= $moFormSan ? 'true' : 'false' ?>">
         <div class="cd-write-header-left">
           <span class="cd-write-icon" aria-hidden="true">
@@ -817,7 +787,6 @@ require __DIR__ . '/layout/header.php';
         </div>
       </div>
 
-      <!-- Phần thân form: mặc định thu gọn, bấm thì tung ra -->
       <div class="cd-write-body" id="cd-write-body">
         <?php if ($maND !== null): ?>
           <form method="post" action="" enctype="multipart/form-data" novalidate id="formDangBai" class="cd-write-form">
@@ -839,7 +808,7 @@ require __DIR__ . '/layout/header.php';
               </div>
               <input type="hidden" id="mon" name="mon" value="<?= e($monChon) ?>">
 
-              <!-- Khung tìm kiếm nhanh tên môn học (Tối ưu cho 20+ môn) -->
+              <!-- Tìm kiếm nhanh tên môn học -->
               <div class="cd-mon-search-bar">
                 <span class="mon-search-icon" aria-hidden="true">
                   <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="#38BDF8" stroke-width="2" stroke-linecap="round"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/></svg>
@@ -848,7 +817,6 @@ require __DIR__ . '/layout/header.php';
                 <button type="button" id="monClearSearch" class="cd-mon-clear-btn" aria-label="Xóa tìm kiếm" style="display: none;">&times;</button>
               </div>
 
-              <!-- Lưới các thẻ môn học: mặc định hiện 5 môn đầu + Không gắn môn -->
               <div class="cd-mon-grid" id="cdMonGrid">
                 <button type="button" class="cd-mon-pill<?= $monChon === '' ? ' is-selected' : '' ?>" data-mon-id="" data-mon-ten="Không gắn môn">
                   <span class="mon-pill-icon">
@@ -1158,7 +1126,7 @@ require __DIR__ . '/layout/header.php';
             <?php endif; ?>
 
             <?php if ($tab === 'cuatoi'): ?>
-            <!-- Thao tác của chủ bài: sửa (trong 15 phút), ẩn/mở lại và xóa (mọi lúc) -->
+            <!-- Thao tác của chủ bài: sửa trong thời hạn, ẩn/mở lại hoặc xóa -->
             <div class="cd-hanh-dong">
               <?php if (!$dangAn): ?>
                 <?php if (CongDongHelper::conHanSua((int) $b['GiayTuDang'])): ?>

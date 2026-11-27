@@ -1,6 +1,6 @@
 /* Trang Bài đăng (client/baidang.php) */
 .meta { color:var(--mau-phu); font-size:13px; }
-/* Avatar người đăng / người bình luận (cùng kiểu avatar ở bảng tin Cộng đồng) */
+/* Avatar người đăng và bình luận */
 .meta-av { display:flex; align-items:center; gap:12px; margin:0 0 10px; }
 .meta-av .meta-txt { min-width:0; line-height:1.6; }
 .meta-av .meta-txt b { color:#fff; font-size:14.5px; }
@@ -21,7 +21,7 @@ textarea { min-height:90px; resize:vertical; font-family:inherit; }
 .binhluan:first-of-type { border-top:0; }
 .tieu-de-bai, .tieu-de-binhluan { margin-top:0; }
 .form-dong { display:inline; }
-/* Bình luận: nút thích (cùng kiểu nút thích ở bảng tin), nút sửa/ẩn/xóa */
+/* Thao tác bình luận */
 .thao-tac-bl { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-top:6px; }
 .thao-tac-bl .form-dong { display: inline-flex; align-items: center; margin: 0; }
 .btn-nho { padding:2px 12px; font-size:13px; }
@@ -130,14 +130,14 @@ textarea { min-height:90px; resize:vertical; font-family:inherit; }
 .cd-loai-ban  { background:rgba(0,184,255,.18); border-color:rgba(0,184,255,.6); }
 .cd-loai-khac { background:rgba(148,163,184,.18); border-color:rgba(148,163,184,.6); color:#E2E8F0; }
 
-/* Huy hiệu Elo cạnh tên người đăng / người bình luận (tính từ ELOMONHOC, không lưu CSDL) */
+/* Huy hiệu Elo (tính từ ELOMONHOC, không lưu CSDL) */
 .cd-elo { display:inline-block; padding:1px 9px; border-radius:99px; font-size:12px; font-weight:700; border:1px solid; white-space:nowrap; vertical-align:middle; }
 .cd-elo-dong { color:#f0b48a; background:rgba(205,127,50,.16); border-color:rgba(205,127,50,.6); }
 .cd-elo-bac  { color:#e3ebf5; background:rgba(192,200,215,.14); border-color:rgba(200,208,222,.6); }
 .cd-elo-vang { color:#ffe08a; background:rgba(255,200,60,.16); border-color:rgba(255,200,60,.65); }
 .cd-elo-kc   { color:#a8f0ff; background:rgba(0,217,255,.16); border-color:rgba(0,217,255,.7); box-shadow:0 0 8px rgba(0,217,255,.35); }
 
-/* Reply indicator bar */
+/* Thanh báo đang trả lời bình luận */
 .cd-rep-indicator {
   display: inline-flex;
   align-items: center;
@@ -170,7 +170,7 @@ textarea { min-height:90px; resize:vertical; font-family:inherit; }
   transform: scale(1.25);
 }
 
-/* Gradient Action Button (Đồng bộ với Cộng đồng & Hero) */
+/* Nút hành động gradient */
 .btn-dang-bai-gradient {
   display: inline-flex;
   align-items: center;
@@ -195,7 +195,7 @@ textarea { min-height:90px; resize:vertical; font-family:inherit; }
   color: #000;
 }
 
-/* Nút reply bình luận */
+/* Nút trả lời bình luận */
 .btn-rep-bl {
   transition: all 0.2s ease;
 }
@@ -206,14 +206,14 @@ textarea { min-height:90px; resize:vertical; font-family:inherit; }
   box-shadow: 0 0 10px rgba(56, 189, 248, 0.35);
 }
 
-/* Icon Elo Rank vector */
+/* Biểu tượng bậc Elo */
 .svg-elo-rank {
   filter: drop-shadow(0 0 3px rgba(253, 224, 71, 0.4));
   vertical-align: -1.5px;
   margin-right: 3px;
 }
 
-/* Widget Kết bạn & Thách đấu đồng bộ từ Cộng đồng */
+/* Nút kết bạn và thách đấu */
 .cd-friend-widget {
   display: inline-flex;
   align-items: center;
@@ -280,9 +280,7 @@ textarea { min-height:90px; resize:vertical; font-family:inherit; }
   border-color: #FDE047;
 }
 
-/* =====================================================================
-   KHUNG HIỂN THỊ ẢNH BÌNH LUẬN, XEM TRƯỚC ẢNH & NÚT DẤU × XÓA ẢNH
-   ===================================================================== */
+/* Ảnh bình luận và khung xem trước */
 .cd-anh-bl-lon {
   display: block;
   max-width: min(320px, 100%);
@@ -395,9 +393,7 @@ textarea { min-height:90px; resize:vertical; font-family:inherit; }
   box-shadow: 0 0 12px rgba(0, 217, 255, 0.35);
 }
 
-/* =====================================================================
-   RESPONSIVE ĐIỆN THOẠI CHO TRANG CHI TIẾT BÀI ĐĂNG & BÌNH LUẬN
-   ===================================================================== */
+/* Responsive điện thoại */
 .tieu-de-bai,
 .binhluan {
   overflow-wrap: anywhere;

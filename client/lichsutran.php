@@ -1,10 +1,9 @@
 <?php
-// Lịch sử các trận đã đấu của chính người dùng (C-40), phân trang 10 dòng/trang (3.8).
-// Đặt tại: elo_quiz/client/lichsutran.php
+// Lịch sử các trận đã đấu của người dùng
 require_once __DIR__ . '/../core/bootstrap.php';
 
 $maND = Auth::requireClient(BASE_URL . '/client/dangnhap.php');
-if (Auth::laAdminSinhVien()) {   // tài khoản quản trị không thi đấu, không có lịch sử trận và bạn bè
+if (Auth::laAdminSinhVien()) {   // Tài khoản quản trị không tham gia thi đấu
     redirect(BASE_URL . '/client/hoso.php');
 }
 $pdo  = Database::pdo();

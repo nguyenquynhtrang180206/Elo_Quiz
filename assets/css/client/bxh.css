@@ -1,7 +1,4 @@
-/* =====================================================================
-   BẢNG XẾP HẠNG (client/bxh.php) - THEME COSMIC ESPORTS ARENA
-   Đồng bộ 100% phong cách sang trọng, viền neon, glassmorphism với Trang Chủ
-   ===================================================================== */
+/* Trang Bảng xếp hạng (client/bxh.php) */
 
 :root {
   --bxh-gold: #D4AF37;
@@ -14,7 +11,7 @@
   --bxh-panel-glow: 0 0 18px rgba(0, 217, 255, 0.15), 0 10px 30px rgba(0, 0, 0, 0.55);
 }
 
-/* Nền vũ trụ đồng bộ Canvas WebGL */
+/* Nền trang */
 body.trang-bxh {
   background:
     radial-gradient(60% 50% at 50% 0%, rgba(0, 217, 255, 0.12), transparent 75%),
@@ -28,9 +25,7 @@ html.cosmic-on body.trang-bxh {
 body.trang-bxh .container { max-width: 1240px; }
 body.trang-bxh .chan-trang { color: #94a3b8; }
 
-/* =====================================================================
-   1. HERO BANNER: 3D CÚP VÔ ĐỊCH & ÁNH SÁNG HOÀNG GIA (Như Trang Chủ)
-   ===================================================================== */
+/* Banner đầu trang */
 .bxh-hero {
   position: relative; isolation: isolate; overflow: hidden;
   display: flex; align-items: center; justify-content: space-between; gap: 20px;
@@ -44,7 +39,7 @@ body.trang-bxh .chan-trang { color: #94a3b8; }
   box-shadow: 0 0 16px rgba(0, 217, 255, 0.65), 0 0 36px rgba(0, 217, 255, 0.25), inset 0 0 24px rgba(0, 217, 255, 0.1);
 }
 
-/* Hiệu ứng sàn phản chiếu 3D & Hào quang cực quang */
+/* Hiệu ứng nền banner */
 .bxh-hero-aurora {
   position: absolute; inset: 0; pointer-events: none; z-index: -2;
   background: radial-gradient(circle at 50% -20%, rgba(0, 217, 255, 0.25), transparent 60%);
@@ -67,7 +62,7 @@ body.trang-bxh .chan-trang { color: #94a3b8; }
   opacity: 0.55;
 }
 
-/* Cúp vàng 3D với hào quang vương giả */
+/* Cúp đầu trang */
 .bxh-cup {
   position: relative; display: block; flex: none; width: 170px; height: 150px;
 }
@@ -83,12 +78,12 @@ body.trang-bxh .chan-trang { color: #94a3b8; }
   transform: scale(1.04) translateY(-2px);
 }
 
-/* Phần trung tâm của Hero */
+/* Phần giữa banner */
 .bxh-hero-center {
   flex: 1; text-align: center; display: flex; flex-direction: column; align-items: center;
 }
 
-/* Pill Huy hiệu trạng thái giống Header / Hero trang chủ */
+/* Nhãn trạng thái trực tuyến */
 .bxh-live-pill {
   display: inline-flex; align-items: center; gap: 7px;
   padding: 4px 14px; margin-bottom: 8px; border-radius: 999px;
@@ -135,7 +130,7 @@ body.trang-bxh .chan-trang { color: #94a3b8; }
   color: #F3DE8A; text-shadow: 0 0 10px rgba(243, 222, 138, 0.6);
 }
 
-/* Hộp Lời Dẫn Bên Phải */
+/* Hộp trích dẫn */
 .bxh-hero-quote-box {
   width: 210px; flex: none; position: relative;
   padding: 12px 14px; border-radius: 14px;
@@ -152,16 +147,14 @@ body.trang-bxh .chan-trang { color: #94a3b8; }
   color: #E2E8F0; text-shadow: 0 2px 6px #050d24;
 }
 
-/* =====================================================================
-   2. BỐ CỤC 3 CỘT (GRID SYSTEM CHUYÊN NGHIỆP)
-   ===================================================================== */
+/* Bố cục 3 cột */
 .bxh-bocuc {
   display: grid; grid-template-columns: 260px minmax(0, 1fr) 280px; gap: 18px; align-items: start;
 }
 .bxh-giua { min-width: 0; }
 .bxh-trai, .bxh-phai { display: flex; flex-direction: column; gap: 18px; }
 
-/* Hộp Thẻ Phụ (Glassmorphic Panels chuẩn trang chủ) */
+/* Khung nội dung phụ */
 .bxh-hop {
   background: var(--bxh-panel-bg);
   border: 1.5px solid var(--bxh-panel-border);
@@ -180,9 +173,7 @@ body.trang-bxh .chan-trang { color: #94a3b8; }
 }
 .bxh-goiy { margin: 0 0 12px; font-size: 13px; color: #94a3b8; }
 
-/* =====================================================================
-   3. BỘ LỌC CỘT TRÁI (CHIPS & THẺ KÊU GỌI THI ĐẤU)
-   ===================================================================== */
+/* Bộ lọc cột trái */
 .bxh-nhom { margin-bottom: 15px; }
 .bxh-nhom:last-child { margin-bottom: 0; }
 .bxh-nhan {
@@ -228,7 +219,7 @@ body.trang-bxh .chan-trang { color: #94a3b8; }
 }
 .bxh-xem-them:hover { background: rgba(0, 217, 255, 0.14); color: #FFF; border-style: solid; }
 
-/* Thẻ Kêu Gọi Thi Đấu Dát Vàng Hoàng Gia */
+/* Thẻ kêu gọi thi đấu */
 .bxh-moi {
   text-align: center;
   background:
@@ -266,10 +257,8 @@ body.trang-bxh .chan-trang { color: #94a3b8; }
   filter: brightness(1.08); color: #071026 !important;
 }
 
-/* =====================================================================
-   4. CỘT GIỮA: TABS & KHUNG BẢNG XẾP HẠNG
-   ===================================================================== */
-/* Thanh Tab phạm vi bo tròn phong cách Cyber */
+/* Tab và bảng xếp hạng */
+/* Thanh tab phạm vi */
 .bxh-tabs {
   display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; padding: 6px;
   border-radius: 999px; background: rgba(7, 16, 42, 0.88);
@@ -292,7 +281,7 @@ body.trang-bxh .chan-trang { color: #94a3b8; }
   text-shadow: none;
 }
 
-/* Khung Bảng Xếp Hạng Glassmorphic cao cấp */
+/* Khung bảng xếp hạng */
 .bxh-khung {
   background: var(--bxh-panel-bg);
   border: 1.5px solid var(--bxh-panel-border);
@@ -303,7 +292,7 @@ body.trang-bxh .chan-trang { color: #94a3b8; }
 }
 .bxh-cuon { min-width: 0; overflow-x: hidden; }
 
-/* Bảng xếp hạng dạng thẻ dòng rời (Floating rows) */
+/* Bảng xếp hạng */
 .bxh-bang {
   border-collapse: separate; border-spacing: 0 6px; width: 100%; min-width: 0; table-layout: fixed;
 }
@@ -341,10 +330,7 @@ body.trang-bxh .chan-trang { color: #94a3b8; }
 .so-hang { font-weight: 900; margin-left: 5px; }
 .bxh-vuongmien { width: 22px; height: 22px; vertical-align: -5px; }
 
-/* =====================================================================
-   5. TOP 1, 2, 3: PHÂN BẬC ĐẤU THẦN (CHALLENGER / MASTER / HERO)
-   ===================================================================== */
-/* TOP 1: BẬC THÁCH ĐẤU HOÀNG KIM (Challenger Gold) */
+/* Hạng 1 */
 tr.top-1 td {
   background: linear-gradient(90deg, rgba(212, 175, 55, 0.25) 0%, rgba(253, 224, 71, 0.15) 50%, rgba(212, 175, 55, 0.25) 100%);
   border-top: 1px solid rgba(253, 224, 71, 0.65);
@@ -362,7 +348,7 @@ tr.top-1 .o-ten-chu b {
   color: #FFFDF5; text-shadow: 0 0 10px rgba(255, 209, 71, 0.5); font-size: 15.5px;
 }
 
-/* TOP 2: BẬC THẦY KIM CƯƠNG BĂNG GIÁ (Diamond Ice-Cyan) */
+/* Hạng 2 */
 tr.top-2 td {
   background: linear-gradient(90deg, rgba(0, 217, 255, 0.2) 0%, rgba(56, 189, 248, 0.12) 50%, rgba(0, 217, 255, 0.2) 100%);
   border-top: 1px solid rgba(0, 217, 255, 0.5);
@@ -378,7 +364,7 @@ tr.top-2 .bxh-vuongmien {
 }
 tr.top-2 .o-ten-chu b { color: #F0F9FF; }
 
-/* TOP 3: CHIẾN TƯỚNG THẠCH ANH TÍM (Amethyst Purple) */
+/* Hạng 3 */
 tr.top-3 td {
   background: linear-gradient(90deg, rgba(192, 132, 252, 0.2) 0%, rgba(168, 85, 247, 0.12) 50%, rgba(192, 132, 252, 0.2) 100%);
   border-top: 1px solid rgba(192, 132, 252, 0.5);
@@ -420,7 +406,7 @@ tr.la-toi em {
   text-shadow: 0 0 8px var(--cyan);
 }
 
-/* Avatar tuyển thủ */
+/* Ảnh đại diện */
 .bxh-bang .o-ten { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .o-ten-chu { display: flex; flex-direction: column; line-height: 1.4; min-width: 0; }
 .o-ten-chu b { font-weight: 800; color: #FFF; font-size: 14.5px; line-height: 1.4; padding: 1px 0; }
@@ -440,7 +426,7 @@ tr.top-1 .bxh-ava {
   border-color: #FDE047; box-shadow: 0 0 12px rgba(253, 224, 71, 0.6);
 }
 
-/* Badge môn học công nghệ cao */
+/* Nhãn môn học */
 .bxh-mon {
   display: inline-block; max-width: 100%; padding: 3px 8px; border-radius: 999px;
   font-size: 12.5px; font-weight: 700; color: #8AF5FF;
@@ -457,7 +443,7 @@ tr.top-1 .bxh-ava {
 .bxh-rong a { color: #F3DE8A; font-weight: 700; }
 body.trang-bxh .ghi-chu { color: #94A3B8; font-size: 13px; margin-top: 14px; line-height: 1.5; }
 
-/* Phân trang phát sáng */
+/* Phân trang */
 body.trang-bxh .phantrang { text-align: center; color: #94A3B8; margin-top: 18px; }
 body.trang-bxh .phantrang a {
   background: rgba(10, 22, 54, 0.75); color: #cbd8f0; border: 1px solid rgba(0, 217, 255, 0.25);
@@ -473,10 +459,7 @@ body.trang-bxh .phantrang strong {
   box-shadow: 0 0 16px rgba(0, 217, 255, 0.55);
 }
 
-/* =====================================================================
-   6. CỘT PHẢI: WIDGET THỐNG KÊ & TOP MÔN HỌC
-   ===================================================================== */
-/* 3 Ô Thống Kê Nổi Bật */
+/* Thẻ thống kê cột phải */
 .bxh-thongke { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .bxh-thongke div {
   text-align: center; padding: 11px 4px; border-radius: 12px;
@@ -555,9 +538,7 @@ body.trang-bxh .phantrang strong {
   box-shadow: 0 0 8px rgba(192, 132, 252, 0.75);
 }
 
-/* =====================================================================
-   7. RESPONSIVE (TƯƠNG THÍCH MỌI MÀN HÌNH NHƯ TRANG CHỦ)
-   ===================================================================== */
+/* Responsive */
 @media (max-width: 1100px) {
   .bxh-bocuc { grid-template-columns: 240px minmax(0, 1fr); }
   .bxh-phai { grid-column: 1 / -1; flex-direction: row; flex-wrap: wrap; }

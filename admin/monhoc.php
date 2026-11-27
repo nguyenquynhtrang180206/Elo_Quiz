@@ -1,10 +1,7 @@
 <?php
-// Quản lý môn học và loại kỳ thi (UC12: A-14, A-15, A-16) + duyệt môn do sinh viên đề xuất.
-// Đặt tại: elo_quiz/admin/monhoc.php
-// A-15: không có nút xóa môn đã tồn tại; chỉ ẩn/hiện. Môn "Chờ duyệt" bị từ chối thì xóa (chưa ai tham chiếu).
-// Theo ghi chú trong core/NhatKy.php, thao tác môn học không nằm trong danh sách A-40 nên không ghi nhật ký.
+// Quản lý môn học, loại kỳ thi và duyệt đề xuất môn từ sinh viên.
 require_once __DIR__ . '/../core/bootstrap.php';
-Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');   // A-04
+Auth::requireAdmin(BASE_URL . '/admin/dangnhap.php');
 
 $pdo   = Database::pdo();
 $sach  = BASE_URL . '/admin/monhoc.php';
@@ -14,7 +11,7 @@ function mh_chuan(string $s): string
     return trim((string) preg_replace('/\s+/u', ' ', $s));
 }
 
-// Biểu tượng của môn: CSDL chưa có cột biểu tượng nên chọn theo từ khóa trong tên môn, không khớp thì dùng quyển sách.
+// Chọn biểu tượng SVG theo từ khóa tên môn.
 function mh_bieu_tuong(string $ten): string
 {
     $t = mb_strtolower($ten);
@@ -36,9 +33,7 @@ function mh_bieu_tuong(string $ten): string
     return 'book';
 }
 
-// ---------------------------------------------------------------------
-// Xử lý POST (mô hình POST -> redirect -> GET)
-// ---------------------------------------------------------------------
+// Xử lý thao tác POST.
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_check();
     $hd   = (string) ($_POST['hanh_dong'] ?? '');
@@ -59,7 +54,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 } elseif (mb_strlen($moTa) > 500) {
                     $loi = 'Mô tả tối đa 500 ký tự.';
                 } else {
-                    // Trùng tên với môn khác (mọi trạng thái, không phân biệt hoa thường)
+                    // Kiểm tra trùng tên môn ở mọi trạng thái.
                     $st = $pdo->prepare('SELECT TrangThai FROM MONHOC WHERE TenMon = ? AND MaMon <> ? LIMIT 1');
                     $st->execute([$ten, $hd === 'sua_mon' ? $id : 0]);
                     $trung = $st->fetchColumn();
@@ -74,7 +69,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     } else {
                         $up = $pdo->prepare("UPDATE MONHOC SET TenMon = ?, MoTa = ? WHERE MaMon = ? AND TrangThai IN ('Đang mở','Đã ẩn')");
                         $up->execute([$ten, $moTa === '' ? null : $moTa, $id]);
-                        // rowCount = 0 có thể do không đổi gì; kiểm tra tồn tại riêng
+                        // Kiểm tra tồn tại riêng vì rowCount = 0 có thể do không đổi dữ liệu.
                         $co = $pdo->prepare("SELECT COUNT(*) FROM MONHOC WHERE MaMon = ? AND TrangThai IN ('Đang mở','Đã ẩn')");
                         $co->execute([$id]);
                         if ((int) $co->fetchColumn() === 0) {
@@ -97,7 +92,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 break;
 
             case 'xoa_mon':
-                // Chỉ xóa được môn chưa có câu hỏi và chưa có trận đấu (A-15); môn đã dùng thì chỉ ẩn
+                // Chỉ xóa được môn chưa có câu hỏi và trận đấu; môn đã dùng thì ẩn.
                 $del = $pdo->prepare(
                     "DELETE FROM MONHOC WHERE MaMon = ? AND TrangThai IN ('Đang mở','Đã ẩn')
                        AND NOT EXISTS (SELECT 1 FROM CAUHOI c WHERE c.MaMon = MONHOC.MaMon)
@@ -133,7 +128,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 break;
 
             case 'duyet_mon':
-                // Điều kiện theo trạng thái cũ: hai quản trị viên cùng bấm thì chỉ một người có tác dụng
+                // Ràng buộc trạng thái cũ để tránh duyệt trùng khi thao tác đồng thời.
                 $up = $pdo->prepare("UPDATE MONHOC SET TrangThai = 'Đang mở' WHERE MaMon = ? AND TrangThai = 'Chờ duyệt'");
                 $up->execute([$id]);
                 $ok = $up->rowCount() === 1 ? 'Đã duyệt, môn học đã hiện cho sinh viên.' : 'Đề xuất này đã được xử lý trước đó.';
@@ -190,18 +185,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     $_SESSION['mh_flash'] = $loi !== null ? ['loi', $loi] : ['ok', (string) $ok];
-    // Luôn quay lại đúng trang đang xem (giữ từ khóa tìm, trang, tab)
     redirect((string) $_SERVER['REQUEST_URI']);
 }
 
 $flash = $_SESSION['mh_flash'] ?? null;
 unset($_SESSION['mh_flash']);
 
-// ---------------------------------------------------------------------
-// Dữ liệu hiển thị
-// ---------------------------------------------------------------------
-
-// ---- Môn do sinh viên đề xuất, đang chờ duyệt ----
+// Môn chờ duyệt do sinh viên đề xuất.
 $tongCho = (int) $pdo->query("SELECT COUNT(*) FROM MONHOC WHERE TrangThai = 'Chờ duyệt'")->fetchColumn();
 $pCho    = new Paginator($tongCho, 10, 'pcho');
 $dsCho   = $pdo->query(
@@ -212,7 +202,7 @@ $dsCho   = $pdo->query(
      LIMIT " . $pCho->limit() . ' OFFSET ' . $pCho->offset()
 )->fetchAll();
 
-// ---- Danh sách môn (Đang mở / Đã ẩn): tìm theo tên, 6 dòng/trang như ảnh thiết kế ----
+// Danh sách môn học (6 dòng/trang).
 $q    = trim((string) ($_GET['q'] ?? ''));
 $dk   = ["m.TrangThai IN ('Đang mở','Đã ẩn')"];
 $tham = [];
@@ -221,7 +211,7 @@ if ($q !== '') {
     $like   = '%' . addcslashes($q, '\\%_') . '%';
     array_push($tham, $like, $like);
 }
-// Lọc theo tình trạng (bấm ở khung Toàn cảnh): ok | thieu | chua | an
+// Lọc theo tình trạng môn: ok | thieu | chua | an.
 $tt       = (string) ($_GET['tt'] ?? '');
 $sqlThieu = "EXISTS (SELECT 1 FROM LOAIKYTHI k WHERE NOT EXISTS (SELECT 1 FROM CAUHOI c2 WHERE c2.MaMon = m.MaMon AND c2.MaLoaiKT = k.MaLoaiKT))";
 $sqlCoCau = "EXISTS (SELECT 1 FROM CAUHOI c3 WHERE c3.MaMon = m.MaMon)";
@@ -253,16 +243,16 @@ $st = $pdo->prepare(
 $st->execute($tham);
 $dsMon = $st->fetchAll();
 
-// ---- Bản đồ môn x loại kỳ thi: cột = mọi loại kỳ thi, ô = số câu hỏi của các môn đang hiển thị ----
+// Bản đồ số câu hỏi theo môn và loại kỳ thi.
 $cotKT = $pdo->query('SELECT MaLoaiKT, TenLoaiKT FROM LOAIKYTHI ORDER BY MaLoaiKT')->fetchAll();
-$soO   = [];   // $soO[MaMon]['chung' | MaLoaiKT] = số câu hỏi (MaLoaiKT NULL = dùng chung cho cả hai kỳ, A-19)
+$soO   = [];
 if ($dsMon) {
-    $in = implode(',', array_map(static fn ($r) => (int) $r['MaMon'], $dsMon));   // chỉ số nguyên
+    $in = implode(',', array_map(static fn ($r) => (int) $r['MaMon'], $dsMon));
     foreach ($pdo->query("SELECT MaMon, MaLoaiKT, COUNT(*) AS n FROM CAUHOI WHERE MaMon IN ($in) GROUP BY MaMon, MaLoaiKT") as $r) {
         $soO[(int) $r['MaMon']][$r['MaLoaiKT'] === null ? 'chung' : (int) $r['MaLoaiKT']] = (int) $r['n'];
     }
 }
-// ---- Toàn cảnh: mỗi ô vuông là một môn (quá nhiều môn thì mỗi ô là một nhóm môn) ----
+// Dữ liệu lưới toàn cảnh các môn.
 $tenTT = ['ok' => 'Sẵn sàng', 'thieu' => 'Thiếu câu hỏi', 'chua' => 'Chưa có câu hỏi', 'an' => 'Đã ẩn'];
 $tatCa = $pdo->query(
     "SELECT m.MaMon, m.TenMon, m.TrangThai,
@@ -273,17 +263,16 @@ $tatCa = $pdo->query(
 )->fetchAll();
 $dem = ['ok' => 0, 'thieu' => 0, 'chua' => 0, 'an' => 0];
 foreach ($tatCa as $i => $r) {
-    // Đã ẩn > chưa có câu > thiếu câu (chưa có câu cho ít nhất một loại kỳ thi) > sẵn sàng
     $s = $r['TrangThai'] === 'Đã ẩn' ? 'an'
         : ((int) $r['so_cau'] === 0 ? 'chua' : ((int) $r['so_thieu'] > 0 ? 'thieu' : 'ok'));
     $tatCa[$i]['tt'] = $s;
     $dem[$s]++;
 }
 $tongMon = count($tatCa);
-$moiO    = $tongMon > 400 ? (int) ceil($tongMon / 400) : 1;             // trên 400 môn: gộp nhóm
-$coO     = $tongMon <= 24 ? 'to' : ($tongMon <= 150 ? 'vua' : 'nho');   // cỡ ô theo số môn
-$trongTrang = array_flip(array_map(static fn ($r) => (int) $r['MaMon'], $dsMon));   // các môn đang xem ở bảng
-$doNang  = ['an' => 0, 'ok' => 1, 'thieu' => 2, 'chua' => 3];           // nhóm lấy tình trạng nặng nhất
+$moiO    = $tongMon > 400 ? (int) ceil($tongMon / 400) : 1;             // Gộp nhóm khi vượt 400 môn.
+$coO     = $tongMon <= 24 ? 'to' : ($tongMon <= 150 ? 'vua' : 'nho');
+$trongTrang = array_flip(array_map(static fn ($r) => (int) $r['MaMon'], $dsMon));
+$doNang  = ['an' => 0, 'ok' => 1, 'thieu' => 2, 'chua' => 3];           // Nhóm lấy tình trạng mức nặng nhất.
 $dsO     = [];
 foreach (array_chunk($tatCa, $moiO) as $nhom) {
     $s = 'an'; $moSang = false; $dangXem = false;
@@ -302,7 +291,7 @@ foreach (array_chunk($tatCa, $moiO) as $nhom) {
 $urlTT = static fn (string $k): string =>
     '?' . http_build_query(array_diff_key($_GET, ['pmon' => 1, 'tt' => 1]) + ($k !== '' && $k !== $tt ? ['tt' => $k] : [])) . '#ds-mon';
 
-// Môn đang mở được chơi nhiều nhưng còn thiếu câu hỏi (theo số trận đấu)
+// Môn đang mở được chơi nhiều nhưng còn thiếu câu hỏi.
 $canBoSung = $pdo->query(
     "SELECT m.MaMon, m.TenMon,
             (SELECT COUNT(*) FROM TRANDAU t WHERE t.MaMon = m.MaMon) AS so_tran,
@@ -323,7 +312,7 @@ foreach ($canBoSung as $r) { $tranMax = max($tranMax, (int) $r['so_tran']); }
 $tuDong    = $dsMon ? $p->offset() + 1 : 0;
 $denDong   = $p->offset() + count($dsMon);
 
-// Biểu tượng SVG (kiểu Lucide) dùng trong trang này
+// Biểu tượng SVG nội tuyến.
 $bieuTuongMon = [
     'calc'  => '<rect width="16" height="20" x="4" y="2" rx="2"/><line x1="8" x2="16" y1="6" y2="6"/><line x1="16" x2="16" y1="14" y2="18"/><path d="M16 10h.01M12 10h.01M8 10h.01M12 14h.01M8 14h.01M12 18h.01M8 18h.01"/>',
     'atom'  => '<circle cx="12" cy="12" r="1"/><path d="M20.2 20.2c2.04-2.03.02-7.36-4.5-11.9-4.54-4.52-9.87-6.54-11.9-4.5-2.04 2.03-.02 7.36 4.5 11.9 4.54 4.52 9.87 6.54 11.9 4.5Z"/><path d="M15.7 15.7c4.52-4.54 6.54-9.87 4.5-11.9-2.03-2.04-7.36-.02-11.9 4.5-4.52 4.54-6.54 9.87-4.5 11.9 2.03 2.04 7.36.02 11.9-4.5Z"/>',
@@ -346,7 +335,7 @@ $bieuTuongMon = [
 $svgMon = static fn (string $k, int $px = 22): string =>
     '<svg width="' . $px . '" height="' . $px . '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' . $bieuTuongMon[$k] . '</svg>';
 
-// ---- Loại kỳ thi: 5 dòng/trang như ảnh thiết kế ----
+// Danh sách loại kỳ thi (5 dòng/trang).
 $qkt     = trim((string) ($_GET['qkt'] ?? ''));
 $whereKT = '';
 $thamKT  = [];
@@ -368,11 +357,11 @@ $st  = $pdo->prepare(
 $st->execute($thamKT);
 $dsKT = $st->fetchAll();
 
-// Địa chỉ nút xóa tìm kiếm: bỏ từ khóa và số trang của đúng danh sách đó, giữ phần còn lại
+// URL xóa bộ lọc tìm kiếm của từng danh sách.
 $urlXoaTim = static fn (string $tuKhoa, string $trang, string $neo): string =>
     '?' . http_build_query(array_diff_key($_GET, [$tuKhoa => 1, $trang => 1])) . $neo;
 
-// Thanh phân trang kiểu ảnh thiết kế: ‹ 1 2 3 … ›  (giữ nguyên các tham số GET khác)
+// Thanh phân trang giữ nguyên các tham số GET khác.
 $mhPhanTrang = static function (Paginator $pg, string $thamSo, string $neo): string {
     if ($pg->soTrang() <= 1) {
         return '';
@@ -402,7 +391,6 @@ $tieuDe  = 'Môn học, loại kỳ thi';
 $mucChon = 'monhoc';
 $cssTrang = 'monhoc';
 $jsTrang  = 'monhoc';
-// Không bật $giaoDienMoi: dùng cùng khung (nền + sidebar) với trang Tổng quan
 require __DIR__ . '/layout/header.php';
 ?>
 <div class="mh-khung">
@@ -420,7 +408,7 @@ require __DIR__ . '/layout/header.php';
   <div class="<?= $flash[0] === 'ok' ? 'thanhcong' : 'loi' ?>"><?= e($flash[1]) ?></div>
 <?php endif; ?>
 
-<!-- ===== Toàn cảnh: mỗi ô vuông là một môn ===== -->
+<!-- Toàn cảnh các môn học -->
 <section class="card mh-tc" id="toan-canh">
   <div class="mh-tc-cot">
     <h3>Toàn cảnh <?= $tongMon ?> môn</h3>
@@ -465,7 +453,7 @@ require __DIR__ . '/layout/header.php';
 
 <div class="mh-bd-khung">
 
-  <!-- ===== Bản đồ môn học × loại kỳ thi ===== -->
+  <!-- Bản đồ môn học × loại kỳ thi -->
   <section class="card mh-ds" id="ds-mon" style="scroll-margin-top:16px">
     <form method="get" action="<?= e($sach) ?>#ds-mon" class="mh-loc" role="search">
       <?php if ($qkt !== ''): ?><input type="hidden" name="qkt" value="<?= e($qkt) ?>"><?php endif; ?>
@@ -496,7 +484,7 @@ require __DIR__ . '/layout/header.php';
         <tbody>
         <?php foreach ($dsMon as $r):
             $mm    = (int) $r['MaMon'];
-            $coThe = (int) $r['so_cau'] === 0 && (int) $r['so_tran'] === 0;   // chưa dùng ở đâu -> xóa được
+            $coThe = (int) $r['so_cau'] === 0 && (int) $r['so_tran'] === 0;
             $an    = $r['TrangThai'] === 'Đã ẩn';
             $mucO  = static fn (int $n): string => $n >= 80 ? 'mh-o3' : ($n >= 30 ? 'mh-o2' : 'mh-o1'); ?>
           <tr<?= $an ? ' class="mh-da-an"' : '' ?>>
@@ -556,7 +544,7 @@ require __DIR__ . '/layout/header.php';
     <p class="nhan-phu">Mỗi trang 6 môn. Bấm vào ô để xem câu hỏi của môn và loại kỳ thi đó. Môn chưa có câu hỏi hoặc trận đấu hiện nút Xóa; môn đã có dữ liệu chỉ được Ẩn (rồi Hiện lại).</p>
   </section>
 
-  <!-- ===== Cột bên phải ===== -->
+  <!-- Cột bên phải -->
   <aside class="mh-bd-ben">
 
     <?php if ($tongCho > 0): ?>
@@ -580,7 +568,7 @@ require __DIR__ . '/layout/header.php';
     </div>
     <?php endif; ?>
 
-    <!-- Loại kỳ thi: giữ đủ tìm kiếm, phân trang, sửa, xóa như trước -->
+    <!-- Loại kỳ thi -->
     <section class="card mh-ds" id="ds-kt" style="scroll-margin-top:16px">
       <div class="mh-ds-dau"><span class="mh-ds-icon mh-icon-vang"><?= $svgMon('cup', 22) ?></span><h3>Loại kỳ thi</h3></div>
       <form method="get" action="<?= e($sach) ?>#ds-kt" class="mh-loc" role="search">
@@ -628,7 +616,7 @@ require __DIR__ . '/layout/header.php';
 </div>
 </div><!-- /.mh-khung -->
 
-<!-- ===== Popup thêm/sửa môn học (JS điền sẵn dữ liệu khi bấm Sửa) ===== -->
+<!-- Popup thêm/sửa môn học -->
 <dialog class="mh-hop" id="hopMon" aria-labelledby="hopMonTieuDe">
   <form method="post" action="">
     <?= csrf_field() ?>
@@ -646,7 +634,7 @@ require __DIR__ . '/layout/header.php';
   </form>
 </dialog>
 
-<!-- ===== Popup thêm/sửa loại kỳ thi ===== -->
+<!-- Popup thêm/sửa loại kỳ thi -->
 <dialog class="mh-hop" id="hopKt" aria-labelledby="hopKtTieuDe">
   <form method="post" action="">
     <?= csrf_field() ?>
