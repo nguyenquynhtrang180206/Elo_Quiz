@@ -1,7 +1,7 @@
 // Trang Nhật ký quản trị (chỉ xem, không sửa/xóa: A-42).
 // 1) Bấm một thẻ trong dòng thời gian: chi tiết hiện ở panel bên phải (mặc định chọn dòng đầu tiên).
 //    Dữ liệu nằm trong thuộc tính data-nk (JSON do PHP tạo); gán bằng textContent nên không chèn HTML.
-// 2) Vẽ biểu đồ "Nhịp hoạt động hôm nay" (48 mốc 30 phút) bằng Chart.js; cột thất bại tô đỏ.
+// 2) Vẽ biểu đồ "Nhịp hoạt động hôm nay" (48 mốc 30 phút) bằng Chart.js; mỗi cột là tổng số thao tác trong ngày.
 (function () {
   'use strict';
 
@@ -76,8 +76,7 @@
         data: {
           labels: nhip.map(function (m) { return ddmm(m.ngay); }),
           datasets: [
-            { label: 'Thao tác', data: nhip.map(function (m) { return m.tong - m.loi; }), backgroundColor: '#4f46e5', borderRadius: 4, maxBarThickness: 44, stack: 'nhip' },
-            { label: 'Thất bại', data: nhip.map(function (m) { return m.loi; }),          backgroundColor: '#d6293e', borderRadius: 4, maxBarThickness: 44, stack: 'nhip' }
+            { label: 'Thao tác', data: nhip.map(function (m) { return m.tong; }), backgroundColor: '#4f46e5', borderRadius: 4, maxBarThickness: 44, stack: 'nhip' }
           ]
         },
         options: {
@@ -112,10 +111,10 @@
     var luotNhip = 0;   // chống kết quả cũ ghi đè kết quả mới khi bấm nhanh
 
     function veTomTat() {
-      var tong = 0, loi = 0;
-      nhip.forEach(function (m) { tong += m.tong; loi += m.loi; });
+      var tong = 0;
+      nhip.forEach(function (m) { tong += m.tong; });
       phu.textContent = soNgay + ' ngày · ' + nhanNgay(lech(den, -(soNgay - 1))) + ' – ' + nhanNgay(den)
-        + ' · ' + so(tong) + ' hoạt động' + (loi > 0 ? ' · ' + so(loi) + ' thất bại' : '');
+        + ' · ' + so(tong) + ' hoạt động';
     }
     function capNut() {
       nut7.setAttribute('aria-pressed', String(soNgay === 7));
@@ -138,8 +137,7 @@
           soNgay = d.so === 30 ? 30 : 7;
           if (bieuDo) {
             bieuDo.data.labels = nhip.map(function (m) { return ddmm(m.ngay); });
-            bieuDo.data.datasets[0].data = nhip.map(function (m) { return m.tong - m.loi; });
-            bieuDo.data.datasets[1].data = nhip.map(function (m) { return m.loi; });
+            bieuDo.data.datasets[0].data = nhip.map(function (m) { return m.tong; });
             bieuDo.update();
           }
           veTomTat();

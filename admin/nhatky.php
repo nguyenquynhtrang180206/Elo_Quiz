@@ -228,7 +228,7 @@ require __DIR__ . '/layout/header.php';
   <section class="nk-nhip" id="nkNhipKhung" data-url="<?= e(BASE_URL) ?>/admin/nhatky_nhip.php" data-homnay="<?= e(date('Y-m-d')) ?>" data-cu="<?= e($ngayCu) ?>" data-so="7">
     <div class="nk-nhip-dau">
       <h3>Hoạt động theo ngày</h3>
-      <span class="nk-nhip-phu" id="nkNhipPhu">7 ngày · <?= e(date('d/m/Y', strtotime($nhip[0]['ngay']))) ?> – <?= e(date('d/m/Y', strtotime($nhip[count($nhip) - 1]['ngay']))) ?> · <?= $so($nhipTong) ?> hoạt động<?= $nhipLoi > 0 ? ' · ' . $so($nhipLoi) . ' thất bại' : '' ?></span>
+      <span class="nk-nhip-phu" id="nkNhipPhu">7 ngày · <?= e(date('d/m/Y', strtotime($nhip[0]['ngay']))) ?> – <?= e(date('d/m/Y', strtotime($nhip[count($nhip) - 1]['ngay']))) ?> · <?= $so($nhipTong) ?> hoạt động</span>
       <div class="nk-nhip-ngay">
         <button type="button" id="nkNhip7" aria-pressed="true" title="7 ngày gần nhất">7 ngày</button>
         <button type="button" id="nkNhip30" aria-pressed="false" title="30 ngày gần nhất">30 ngày</button>
@@ -236,7 +236,7 @@ require __DIR__ . '/layout/header.php';
         <button type="button" id="nkNhipSau" aria-label="Tiến tới một khoảng" title="Tiến tới">&rsaquo;</button>
         <button type="button" id="nkNhipMoiNhat">Mới nhất</button>
       </div>
-      <span class="nk-chuthich"><i class="nk-cd nk-cd-tao"></i>Thao tác<i class="nk-cd nk-cd-loi"></i>Thất bại</span>
+      <span class="nk-chuthich"><i class="nk-cd nk-cd-tao"></i>Thao tác</span>
     </div>
     <div class="nk-nhip-khung">
       <canvas id="nkNhip" data-nhip="<?= e(json_encode($nhip, JSON_UNESCAPED_UNICODE)) ?>" role="img" aria-label="Biểu đồ số thao tác theo từng ngày"></canvas>
@@ -264,12 +264,6 @@ require __DIR__ . '/layout/header.php';
           <option value="<?= e($h) ?>"<?= $hd === $h ? ' selected' : '' ?>><?= e($h) ?></option>
         <?php endforeach; ?>
       </select>
-      <select name="tt" aria-label="Trạng thái" onchange="this.form.submit()">
-        <option value="">Tất cả trạng thái</option>
-        <?php foreach (['Thành công', 'Thất bại'] as $t): ?>
-          <option value="<?= e($t) ?>"<?= $tt === $t ? ' selected' : '' ?>><?= e($t) ?></option>
-        <?php endforeach; ?>
-      </select>
       <label class="nk-ngay">Từ <input type="date" name="tu" value="<?= e($tu) ?>" onchange="this.form.submit()"></label>
       <label class="nk-ngay">đến <input type="date" name="den" value="<?= e($den) ?>" onchange="this.form.submit()"></label>
       <a class="nk-nut nk-nut-chinh" href="?"><?= $svg('datlai', 18) ?>Đặt lại</a>
@@ -289,12 +283,12 @@ require __DIR__ . '/layout/header.php';
       <?php else: foreach ($nhomNgay as $nd): ?>
         <div class="nk-ngay-dau">
           <b><?= e($nd['nhan']) ?></b>
-          <span><?= $so($nd['tong']) ?> hoạt động<?= $nd['loi'] > 0 ? ' · <em>' . $so($nd['loi']) . ' thất bại</em>' : '' ?></span>
+          <span><?= $so($nd['tong']) ?> hoạt động</span>
         </div>
         <ol class="nk-dong">
         <?php foreach ($nd['dong'] as $r):
             [$lopHd, $iconHd] = $kieuHanhDong((string) $r['HanhDong']);
-            $thatBai = ($r['TrangThai'] ?? '') === 'Thất bại';
+            $thatBai = false;   // đã bỏ hiển thị trạng thái thất bại trên giao diện
             $coDT    = $r['DoiTuong'] !== null && $r['DoiTuong'] !== '';
             $coMT    = $r['MoTa'] !== null && $r['MoTa'] !== '';
             // Dữ liệu cho panel chi tiết (JS đọc bằng JSON.parse rồi gán bằng textContent nên không chèn HTML)
@@ -321,11 +315,6 @@ require __DIR__ . '/layout/header.php';
                   <span class="nk-mota<?= $thatBai ? ' loi' : '' ?>" title="<?= e($r['MoTa']) ?>"><?= $thatBai ? $svg('canhbao', 14) : '' ?><?= e(mb_strimwidth((string) $r['MoTa'], 0, 90, '…', 'UTF-8')) ?></span>
                 <?php endif; ?>
               </span>
-              <?php if ($thatBai): ?>
-                <span class="nk-tt nk-tt-loi"><?= $svg('canhbao', 14) ?>Thất bại</span>
-              <?php else: ?>
-                <span class="nk-tt nk-tt-ok"><?= $svg('dung', 14) ?>Thành công</span>
-              <?php endif; ?>
             </button>
           </li>
         <?php endforeach; ?>
@@ -344,7 +333,6 @@ require __DIR__ . '/layout/header.php';
             <dt>Mô tả</dt><dd class="nk-hop-mota" data-f="mota"></dd>
             <dt>Quản trị viên</dt><dd data-f="ad"></dd>
             <dt>Địa chỉ IP</dt><dd data-f="ip"></dd>
-            <dt>Trạng thái</dt><dd><span class="nk-tt" data-f="tt"></span></dd>
           </dl>
           <p class="nk-hop-chu">Nhật ký chỉ để xem, không thể sửa hoặc xóa. Hệ thống chỉ lưu <?= (int) NhatKy::GIU_THANG ?> tháng gần nhất.</p>
         </section>

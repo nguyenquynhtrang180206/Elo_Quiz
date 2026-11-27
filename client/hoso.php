@@ -44,11 +44,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($f && $f['error'] !== UPLOAD_ERR_NO_FILE) {
         if ($f['error'] === UPLOAD_ERR_INI_SIZE || $f['error'] === UPLOAD_ERR_FORM_SIZE) {
-            $loi[] = 'Ảnh quá lớn, tối đa 2 MB.';
+            $loi[] = 'Ảnh quá lớn.';
         } elseif ($f['error'] !== UPLOAD_ERR_OK || !is_uploaded_file($f['tmp_name'])) {
             $loi[] = 'Tải ảnh lên không thành công, hãy thử lại.';
         } elseif ($f['size'] > AVATAR_TOI_DA) {
-            $loi[] = 'Ảnh quá lớn, tối đa 2 MB.';
+            $loi[] = 'Ảnh quá lớn';
         } else {
             // Đọc loại ảnh thật từ nội dung file, không tin tên file hay loại do trình duyệt gửi
             $thongTin = @getimagesize($f['tmp_name']);
